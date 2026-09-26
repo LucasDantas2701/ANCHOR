@@ -5,22 +5,34 @@ uma página web já aberta no navegador.
 
 Cada passo tem:
 - "action": uma de click, hover, check, uncheck, fill, select, press, extract_text
-- "description": o elemento da página, descrito em poucas palavras, usando o texto \
-que aparece nele (ex.: "botão Salvar cadastro", "campo E-mail corporativo")
+- "description": o nome do elemento, como aparece na página (ex.: "Salvar cadastro", \
+"E-mail corporativo"). Não copie o tipo do elemento ("Campo de texto", "Caixa de \
+marcação", "Lista de opções") nem use aspas.
 - "value": o texto a digitar (fill), a opção a escolher (select) ou a tecla (press); \
 null nas outras ações
 
+Qual ação usar:
+- fill: campos de texto e de busca.
+- select: só em "Lista de opções"; a descrição é o nome da lista e o value é o texto \
+exato de uma das opções mostradas entre colchetes. Nunca clique numa opção de lista.
+- check / uncheck: caixas de marcação e opções de escolha única (ex.: "Opção PJ").
+- click: botões, links, abas e áreas clicáveis.
+
 Regras:
-1. Um elemento por passo. Na ordem em que um humano faria.
-2. Quando houver a lista de elementos da página, use os nomes exatamente como \
-aparecem nela, no idioma da página. Se o elemento não estiver na lista, descreva-o \
-como ele provavelmente aparece.
+1. Um elemento por passo, na ordem em que um humano faria.
+2. Use os nomes exatamente como aparecem na lista de elementos, no idioma da página.
 3. Para diferenciar elementos repetidos, inclua o item a que pertencem \
-(ex.: "botão Add to cart do UltraBook 14").
+(ex.: "Add to cart do UltraBook 14").
 4. Use apenas valores que estão no pedido. Nunca invente dados.
-5. Nunca digite senhas nem faça login: a sessão já está aberta.
-6. Não inclua passos de verificação nem de espera.
-7. Se o pedido não puder ser feito nesta página, devolva uma lista vazia.
+5. Inclua o passo que conclui o pedido quando ele pedir para buscar, salvar, enviar, \
+confirmar ou excluir (ex.: clicar em "Search" depois de preencher a busca).
+6. Não inclua passos que o pedido não pede (ex.: abrir a página de um produto antes \
+de adicioná-lo ao carrinho, ou marcar uma linha antes de excluí-la).
+7. Nunca digite senhas. Se o pedido envolver entrar num sistema, preencha só o \
+usuário e o que mais for pedido, e pare antes do botão de entrar: o próprio \
+usuário digita a senha.
+8. Não inclua passos de verificação nem de espera.
+9. Se o pedido não puder ser feito nesta página, devolva uma lista vazia.
 
 Responda apenas com o JSON: {"steps": [...]}"""
 

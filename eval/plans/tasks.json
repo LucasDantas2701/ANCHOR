@@ -79,12 +79,12 @@
       "id": "p-log-01",
       "split": "dev",
       "fixture": "login.html",
-      "request": "Entre com o usuário lucas.dantas marcando lembrar de mim",
+      "request": "Preencha o usuário lucas.dantas e marque para lembrar de mim",
       "checks": [
         "document.querySelector('#user').value === 'lucas.dantas'",
         "document.querySelector('input[name=remember]').checked",
-        "__clicked('#login-btn')",
-        "document.querySelector('#pwd').value === ''"
+        "document.querySelector('#pwd').value === ''",
+        "!__clicked('#login-btn')"
       ],
       "reference": [
         [
@@ -96,13 +96,9 @@
           "check",
           "caixa Remember me",
           null
-        ],
-        [
-          "click",
-          "botão Log in",
-          null
         ]
-      ]
+      ],
+      "nota": "Ajustada em 26/09/2026: a senha e o clique em entrar ficam com o usuário (credencial nunca passa pela IA)."
     },
     {
       "id": "p-log-02",

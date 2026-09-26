@@ -164,3 +164,32 @@ def test_execucao_para_no_primeiro_passo_que_falha(page):
     results = run_plan(ActionExecutor(page), plan)
     assert len(results) == 1 and results[0][1].status != "success"
     assert page.input_value("#nome") == ""
+
+
+@pytest.mark.parametrize("raw, clean", [
+    ('Campo de texto "Nome completo"', "Nome completo"),
+    ("Caixa de marcação Remember me", "Remember me"),
+    ("Lista de opções Sort by", "Sort by"),
+    ("campo de busca Search products", "Search products"),
+    ('Botão "Add to cart" (UltraBook 14)', "Botão Add to cart (UltraBook 14)"),
+    ("Opção PJ", "Opção PJ"),
+    ("Salvar cadastro", "Salvar cadastro"),
+])
+def test_limpeza_da_descricao(raw, clean):
+    from app.planner.execute import clean_description
+    assert clean_description(raw) == clean
+
+
+def test_descricao_com_rotulo_de_tipo_nao_fica_ambigua(page):
+    page.goto(CADASTRO)
+    plan = Plan(steps=[Step("fill", "Campo de texto Telefone", "(92) 99999-0000")])
+    results = run_plan(ActionExecutor(page), plan)
+    assert results[0][1].status == "success"
+    assert page.input_value("#tel") == "(92) 99999-0000"
+
+
+def test_select_em_botao_de_opcao_vira_check(page):
+    page.goto(CADASTRO)
+    results = run_plan(ActionExecutor(page), Plan(steps=[Step("select", "Opção PJ", "PJ")]))
+    assert results[0][1].status == "success"
+    assert page.is_checked("input[value=pj]")

@@ -40,7 +40,16 @@ que quebram compatibilidade também sobem o MINOR.
 - `eval/plan_run.py` carrega cada modelo antes das tarefas (o tempo de carregamento sai à
   parte, fora do tempo dos planos) e mostra o progresso de cada tarefa.
 
+- Limpeza das descrições dos passos antes da execução: tira rótulos de tipo copiados do
+  resumo da página ("Campo de texto", "Caixa de marcação", "Lista de opções") e aspas.
+- `select` em botão de opção ou caixa de marcação é refeito como `check`.
+
 ### Alterado
+- Prompt do planejador: qual ação usar para cada tipo de elemento, descrição sem o tipo,
+  passo que conclui o pedido, nada de passos não pedidos, e login sem senha (o usuário
+  digita a senha e clica em entrar).
+- Tarefa `p-log-01` ajustada ao desenho do sistema: preencher o usuário e parar antes de
+  entrar, sem digitar a senha.
 - O cliente da OpenAI não repete chamadas sozinho (`max_retries=0`): um tempo esgotado aparece na hora.
 - O nome dos elementos no desempate e no resumo da página usa a pista visual quando o
   texto é curto demais (ex.: "shopping cart 2") e o `data-testid` quando não há outro nome.
