@@ -32,7 +32,16 @@ que quebram compatibilidade também sobem o MINOR.
   pedido → plano → execução → verificação do estado final, com tempo e tokens por modelo,
   e planos de referência escritos à mão como teto.
 
+- API nativa do Ollama nos perfis (`"api": "ollama"`), com o raciocínio dos modelos
+  "thinking" desligado (`"think": false`) e opções como `num_ctx`; mensagens claras quando
+  o Ollama está fechado ou o modelo não existe.
+- Progresso em tempo real no terminal (`app/planner/progress.py`): tempo de espera, e, com a
+  API do Ollama, a resposta em streaming com a fase ("pensando" ou "escrevendo o plano") e os tokens.
+- `eval/plan_run.py` carrega cada modelo antes das tarefas (o tempo de carregamento sai à
+  parte, fora do tempo dos planos) e mostra o progresso de cada tarefa.
+
 ### Alterado
+- O cliente da OpenAI não repete chamadas sozinho (`max_retries=0`): um tempo esgotado aparece na hora.
 - O nome dos elementos no desempate e no resumo da página usa a pista visual quando o
   texto é curto demais (ex.: "shopping cart 2") e o `data-testid` quando não há outro nome.
 - Imports padronizados (PEP 8): biblioteca padrão, terceiros e projeto, separados

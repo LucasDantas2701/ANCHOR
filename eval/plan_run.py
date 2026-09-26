@@ -17,6 +17,7 @@ import argparse
 import csv
 import json
 import subprocess
+import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -29,6 +30,7 @@ from app import __version__
 from app.engine.action_executor import ActionExecutor
 from app.engine.element_resolver import ElementResolver
 from app.planner import ConfigError, Plan, Step, get_profile, page_elements, run_plan
+from app.planner.progress import Progress
 
 ROOT = Path(__file__).resolve().parent
 FIXTURES = ROOT / "fixtures"
@@ -130,6 +132,17 @@ def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool)
     )
 
 
+def warm_up(planner) -> float:
+    """Carrega o modelo antes das tarefas, para o carregamento não entrar no tempo dos planos."""
+    start = time.perf_counter()
+    planner.client.chat.completions.create(
+        model=planner.model,
+        messages=[{"role": "user", "content": "Responda só com a palavra: ok"}],
+        temperature=0,
+    )
+    return time.perf_counter() - start
+
+
 def summarize(rows: list[TaskResult]) -> dict:
     n = len(rows)
     valid = [r for r in rows if r.plano_valido]
@@ -167,12 +180,13 @@ def main() -> int:
         tasks = [t for t in tasks if t["id"] == args.tarefa]
 
     planners = []
+    progress = Progress()
     if args.referencia:
         planners.append(("referencia", ReferencePlanner()))
     for name in args.perfis:
         try:
             profile = get_profile(name)
-            planners.append((name, profile.planner()))
+            planners.append((name, profile.planner(on_progress=progress.update)))
         except ConfigError as exc:
             print(f"[{name}] {exc}")
             return 1
@@ -182,13 +196,29 @@ def main() -> int:
     rows: list[TaskResult] = []
     with sync_playwright() as p:
         browser = p.chromium.launch()
+        warm = {}
         for name, planner in planners:
             print(f"\n=== {name} ({getattr(planner, 'model', '')})")
+            is_llm = not isinstance(planner, ReferencePlanner)
+            if is_llm:
+                progress.prefix = "  carregando o modelo: "
+                try:
+                    with progress:
+                        warm[name] = round(warm_up(planner), 1)
+                except Exception as exc:
+                    print(f"  não foi possível usar este perfil: {type(exc).__name__}: {exc}")
+                    continue
+                print(f"  modelo pronto em {warm[name]} s (fora do tempo dos planos)")
             for task in tasks:
                 page = browser.new_page()
                 page.set_default_timeout(5000)
                 page.add_init_script(INSTRUMENT)
-                r = run_task(page, planner, name, task, use_page=not args.sem_pagina)
+                progress.prefix = f"  ...   {task['id']:10} "
+                if is_llm:
+                    with progress:
+                        r = run_task(page, planner, name, task, use_page=not args.sem_pagina)
+                else:
+                    r = run_task(page, planner, name, task, use_page=not args.sem_pagina)
                 page.close()
                 rows.append(r)
                 mark = "OK " if r.sucesso else ("ERR" if not r.plano_valido else "---")
@@ -205,10 +235,18 @@ def main() -> int:
     print(f"{'perfil':16} {'sucesso':>8} {'plano ok':>9} {'verif.':>7} {'recusas':>8} {'seg/plano':>10} {'tokens':>7}")
     summaries = {}
     for name, _ in planners:
-        s = summarize([r for r in rows if r.perfil == name])
+        profile_rows = [r for r in rows if r.perfil == name]
+        if not profile_rows:
+            continue
+        s = summarize(profile_rows)
+        s["carregamento_s"] = warm.get(name)
         summaries[name] = s
         print(f"{name:16} {s['sucesso']:8.0%} {s['plano_valido']:9.0%} {s['verificacoes']:7.0%} "
               f"{s['recusas_heuristica']:8} {s['segundos_medio']:10.1f} {s['tokens_medio']:7.0f}")
+
+    if not rows:
+        print("Nenhuma tarefa foi executada.")
+        return 1
 
     out = ROOT / "results"
     out.mkdir(exist_ok=True)

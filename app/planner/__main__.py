@@ -19,6 +19,7 @@ from .config import ConfigError, get_profile
 from .execute import run_plan
 from .page_summary import page_elements
 from .plan import PlanError
+from .progress import Progress
 
 
 def to_url(value: str) -> str:
@@ -37,7 +38,8 @@ def main() -> int:
 
     try:
         profile = get_profile(args.perfil)
-        planner = profile.planner()
+        progress = Progress("  ")
+        planner = profile.planner(on_progress=progress.update)
     except ConfigError as exc:
         print(f"Erro de configuração: {exc}")
         return 1
@@ -49,9 +51,10 @@ def main() -> int:
         resolver = ElementResolver(page)
         elements = None if args.sem_pagina else page_elements(resolver)
 
-        print(f"Gerando o plano com {profile.model}...")
+        print(f"Gerando o plano com {profile.model} (na primeira vez, inclui carregar o modelo)...")
         try:
-            plan = planner.plan(args.pedido, page.url, elements)
+            with progress:
+                plan = planner.plan(args.pedido, page.url, elements)
         except PlanError as exc:
             print(f"O modelo não gerou um plano válido: {exc}")
             return 1

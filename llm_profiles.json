@@ -1,20 +1,27 @@
 {
   "_leia": "Perfis dos modelos comparados. NUNCA coloque chaves aqui: api_key_env é o NOME da variável de ambiente com a chave. Troque os COLOQUE_... pelos nomes exatos dos modelos (no Ollama: 'ollama list'). extra_body (opcional) é repassado ao servidor em cada chamada, por exemplo para desligar o raciocínio de modelos 'thinking'; veja na documentação do servidor qual parâmetro ele aceita.",
   "profiles": [
-    {
-      "name": "ollama-pequeno",
-      "model": "COLOQUE_O_MODELO_PEQUENO",
-      "base_url": "http://localhost:11434/v1",
-      "api_key_env": null,
-      "extra_body": null
-    },
-    {
-      "name": "ollama-medio",
-      "model": "COLOQUE_O_MODELO_MEDIO",
-      "base_url": "http://localhost:11434/v1",
-      "api_key_env": null,
-      "extra_body": null
-    },
+  {
+    "name": "ollama-pequeno",
+    "model": "qwen3.5:4b",
+    "api": "ollama",
+    "base_url": "http://localhost:11434",
+    "think": false,
+    "options": {"num_ctx": 4096},
+    "api_key_env": null,
+    "extra_body": null
+  },
+  {
+    "name": "ollama-medio",
+    "model": "qwen3.5:9b",
+    "api": "ollama",
+    "base_url": "http://localhost:11434",
+    "think": false,
+    "options": {"num_ctx": 4096},
+    "api_key_env": null,
+    "extra_body": null,
+    "timeout_s": 300
+  },
     {
       "name": "openai",
       "model": "COLOQUE_O_MODELO_DA_OPENAI",

@@ -194,9 +194,28 @@ chaves: `api_key_env` é o nome da variável de ambiente onde a chave está.
 e coloque os nomes exatos (veja com `ollama list`) nos perfis `ollama-pequeno` e `ollama-medio`:
 
 ```bash
-ollama pull <modelo-pequeno>
-ollama pull <modelo-medio>
+ollama pull qwen3.5:4b
+ollama pull qwen3.5:9b
 ```
+
+Nos perfis do Ollama, use a API nativa (`"api": "ollama"`). Ela permite desligar o raciocínio
+dos modelos "thinking" (`"think": false`), que multiplica o tempo de cada plano, e reduzir o
+contexto (`"options": {"num_ctx": 4096}`), o que ajuda o modelo a caber numa placa de vídeo
+pequena:
+
+```json
+{
+  "name": "ollama-pequeno",
+  "model": "qwen3.5:4b",
+  "api": "ollama",
+  "base_url": "http://localhost:11434",
+  "think": false,
+  "options": {"num_ctx": 4096},
+  "api_key_env": null
+}
+```
+
+Para ver se o modelo está na placa de vídeo ou no processador: `ollama ps` (coluna `PROCESSOR`).
 
 **OpenAI (pago):** crie uma chave na plataforma de desenvolvedores da OpenAI (a assinatura do
 ChatGPT não dá acesso à API), guarde-a numa variável de ambiente e preencha o modelo no
