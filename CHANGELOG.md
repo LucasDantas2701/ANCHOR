@@ -16,6 +16,15 @@ que quebram compatibilidade também sobem o MINOR.
 ## [Não lançado]
 
 ### Adicionado
+- Loop do agente (`app/agent`): plano inicial, execução passo a passo, replanejamento quando
+  a página muda ou um passo falha (com o motivo, inclusive elemento coberto por modal),
+  conferência do fim ("objetivo atingido" quando nada falta), cancelamento com relato depois
+  de 3 falhas e limite de passos. Registra chamadas ao modelo, replanejamentos, falhas,
+  intervenções do usuário, tokens e tempo.
+- Comando `python -m app.agent --perfil <nome> --url <link> "<pedido>"`, com navegador
+  visível, desempate no terminal, memória das escolhas e perfil persistente opcional.
+- O planejador aceita o histórico da execução para replanejar só o que falta.
+- `eval/plan_run.py --agente`: as tarefas executadas pelo loop do agente completo.
 - Número da versão no código (`app.__version__`), gravado também nos resultados da avaliação.
 - Este changelog.
 - Configuração do `isort` em `pyproject.toml`, para verificar a ordem dos imports.

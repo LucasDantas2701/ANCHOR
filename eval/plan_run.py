@@ -6,6 +6,7 @@ Uso (na raiz do projeto):
     python -m eval.plan_run --referencia                     # planos escritos à mão (teto, sem LLM)
     python -m eval.plan_run --perfis ollama-pequeno          # um modelo
     python -m eval.plan_run --perfis ollama-pequeno ollama-medio openai -v
+    python -m eval.plan_run --agente --perfis ollama-pequeno # tarefas pelo loop do agente completo
     python -m eval.plan_run --check                          # confere as tarefas, sem chamar modelos
     python -m eval.plan_run --final --perfis ...             # conjunto FECHADO (uma vez, no fim)
 
@@ -85,7 +86,9 @@ class ReferencePlanner:
     def __init__(self):
         self.current: list = []
 
-    def plan(self, request, url, page_elements=None) -> Plan:
+    def plan(self, request, url, page_elements=None, history=None) -> Plan:
+        if history:  # replanejamento ou conferência do fim no modo --agente: nada falta
+            return Plan(steps=[], model=self.model)
         return Plan(steps=[Step(a, d, v) for a, d, v in self.current], model=self.model)
 
 
@@ -111,6 +114,38 @@ class TaskResult:
     tentativas: int
     erro: str
     plano: str
+    chamadas_llm: int = 0     # só no modo --agente (no modo plano, 1)
+    replanejamentos: int = 0
+
+
+def run_task_agent(page: Page, planner, profile_name: str, task: dict) -> TaskResult:
+    """A tarefa executada pelo loop do agente (sem desempate humano)."""
+    from app.agent import Agent
+
+    page.goto((FIXTURES / task["fixture"]).as_uri())
+    if isinstance(planner, ReferencePlanner):
+        planner.current = task["reference"]
+    result = Agent(page, planner, ActionExecutor(page, resolver=ElementResolver(page)), report=None).run(task["request"])
+
+    checks = [bool(page.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
+    unrequested = page.evaluate("(allowed) => window.__unrequested(allowed)", task["allowed"])
+    success = result.ok and all(checks)
+    done = [r for r in result.records if r.status == "success"]
+    stopped = next((r.status for r in reversed(result.records) if r.status != "success"), "")
+    return TaskResult(
+        perfil=profile_name, modelo=getattr(planner, "model", ""), tarefa=task["id"],
+        split=task.get("split", "dev"),
+        plano_valido=not result.message.startswith("não foi possível gerar o plano"),
+        passos_plano=len(result.records), passos_ok=len(done), parou_em=stopped,
+        verificacoes_ok=sum(checks), verificacoes=len(checks), sucesso=success,
+        nao_pedidos=len(unrequested), nao_pedidos_lista="; ".join(unrequested),
+        limpa=success and not unrequested,
+        segundos=result.seconds, tokens_entrada=result.tokens_in, tokens_saida=result.tokens_out,
+        tentativas=result.failures, erro="" if result.ok else result.message[:300],
+        plano=json.dumps([[r.step.action, r.step.description, r.step.value] for r in result.records],
+                         ensure_ascii=False),
+        chamadas_llm=result.llm_calls, replanejamentos=result.replans,
+    )
 
 
 def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool) -> TaskResult:
@@ -158,6 +193,7 @@ def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool)
         tokens_entrada=plan.tokens_in if plan else 0,
         tokens_saida=plan.tokens_out if plan else 0,
         tentativas=plan.attempts if plan else 0,
+        chamadas_llm=1 if plan is not None else 0,
         erro=error,
         plano=json.dumps([[s.action, s.description, s.value] for s in plan.steps], ensure_ascii=False)
         if plan else "",
@@ -245,6 +281,8 @@ def summarize(rows: list[TaskResult]) -> dict:
         "segundos_medio": mean(r.segundos for r in valid) if valid else 0.0,
         "tokens_medio": mean(r.tokens_entrada + r.tokens_saida for r in valid) if valid else 0.0,
         "tentativas_medio": mean(r.tentativas for r in valid) if valid else 0.0,
+        "chamadas_llm_medio": mean(r.chamadas_llm for r in rows),
+        "replanejamentos": sum(r.replanejamentos for r in rows),
     }
 
 
@@ -265,6 +303,8 @@ def main() -> int:
     ap.add_argument("-v", "--verbose", action="store_true")
     ap.add_argument("--check", action="store_true", help="confere as tarefas, sem chamar modelos")
     ap.add_argument("--final", action="store_true", help="roda o conjunto FECHADO (split test)")
+    ap.add_argument("--agente", action="store_true",
+                    help="executa as tarefas pelo loop do agente (replanejamento e conferência do fim)")
     args = ap.parse_args()
 
     all_tasks = load_tasks()
@@ -316,11 +356,16 @@ def main() -> int:
                 page.set_default_timeout(5000)
                 page.add_init_script(INSTRUMENT)
                 progress.prefix = f"  ...   {task['id']:10} "
+                def execute():
+                    if args.agente:
+                        return run_task_agent(page, planner, name, task)
+                    return run_task(page, planner, name, task, use_page=not args.sem_pagina)
+
                 if is_llm:
                     with progress:
-                        r = run_task(page, planner, name, task, use_page=not args.sem_pagina)
+                        r = execute()
                 else:
-                    r = run_task(page, planner, name, task, use_page=not args.sem_pagina)
+                    r = execute()
                 page.close()
                 rows.append(r)
                 mark = ("OK " if r.limpa else "OK+") if r.sucesso else ("ERR" if not r.plano_valido else "---")
@@ -336,8 +381,9 @@ def main() -> int:
 
     print("\nCOMPARAÇÃO")
     print("(limpas = tarefas cumpridas sem nenhum passo não pedido; OK+ = cumprida, mas com passo a mais)")
+    tempo = "seg/tarefa" if args.agente else "seg/plano"
     print(f"{'perfil':16} {'sucesso':>8} {'limpas':>7} {'não ped.':>9} {'plano ok':>9} {'verif.':>7} "
-          f"{'recusas':>8} {'seg/plano':>10} {'tokens':>7}")
+          f"{'recusas':>8} {tempo:>10} {'tokens':>7}" + (f" {'LLM/tar.':>9} {'replan.':>8}" if args.agente else ""))
     summaries = {}
     for name, _ in planners:
         profile_rows = [r for r in rows if r.perfil == name]
@@ -347,7 +393,8 @@ def main() -> int:
         s["carregamento_s"] = warm.get(name)
         summaries[name] = s
         print(f"{name:16} {s['sucesso']:8.0%} {s['limpas']:7.0%} {s['nao_pedidos']:9} {s['plano_valido']:9.0%} {s['verificacoes']:7.0%} "
-              f"{s['recusas_heuristica']:8} {s['segundos_medio']:10.1f} {s['tokens_medio']:7.0f}")
+              f"{s['recusas_heuristica']:8} {s['segundos_medio']:10.1f} {s['tokens_medio']:7.0f}"
+              + (f" {s['chamadas_llm_medio']:9.1f} {s['replanejamentos']:8}" if args.agente else ""))
 
     if not rows:
         print("Nenhuma tarefa foi executada.")
@@ -362,7 +409,8 @@ def main() -> int:
         w.writerows(asdict(r) for r in rows)
     (out / f"{stem}.json").write_text(json.dumps({
         "versao": __version__, "commit": git_commit(), "data": datetime.now().isoformat(timespec="seconds"),
-        "contexto_da_pagina": not args.sem_pagina, "resumo": summaries,
+        "contexto_da_pagina": not args.sem_pagina, "modo": "agente" if args.agente else "plano",
+        "resumo": summaries,
     }, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nResultados salvos em {(out / stem).relative_to(ROOT.parent)}.csv (+ .json)")
     return 0

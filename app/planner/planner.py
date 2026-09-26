@@ -14,7 +14,13 @@ from .prompt import SYSTEM, user_message
 
 
 class Planner(Protocol):
-    def plan(self, request: str, url: str, page_elements: Optional[list[str]] = None) -> Plan: ...
+    def plan(
+        self,
+        request: str,
+        url: str,
+        page_elements: Optional[list[str]] = None,
+        history: Optional[list[str]] = None,
+    ) -> Plan: ...
 
 
 def _extract_json(text: str) -> object:
@@ -64,10 +70,17 @@ class LLMPlanner:
                 self._schema_supported = False  # servidor sem suporte a esquema: pede só JSON
         return self.client.chat.completions.create(**kwargs, response_format={"type": "json_object"})
 
-    def plan(self, request: str, url: str, page_elements: Optional[list[str]] = None) -> Plan:
+    def plan(
+        self,
+        request: str,
+        url: str,
+        page_elements: Optional[list[str]] = None,
+        history: Optional[list[str]] = None,
+    ) -> Plan:
+        """history: o que já aconteceu na execução (passos feitos e falhas), para replanejar."""
         messages = [
             {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": user_message(request, url, page_elements)},
+            {"role": "user", "content": user_message(request, url, page_elements, history)},
         ]
         tokens_in = tokens_out = 0
         start = time.perf_counter()

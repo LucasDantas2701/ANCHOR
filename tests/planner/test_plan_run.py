@@ -79,3 +79,14 @@ def test_check_aponta_tarefas_com_problema(capsys, browser):
     out = capsys.readouterr().out
     for name in ("sem-campos", "seletor-quebrado", "pagina-inexistente", "verificacao-com-erro"):
         assert name in out
+
+
+def test_modo_agente_confere_o_fim_e_conta_as_chamadas(page):
+    from eval.plan_run import run_task_agent
+    plan = as_json([["select", "Filtrar por status", "Inativos"]])
+    client = FakeClient(plan, as_json([]))          # plano + conferência do fim (nada falta)
+    r = run_task_agent(fresh(page), LLMPlanner(client, "falso"), "falso", FILTER_TASK)
+    assert r.sucesso and r.limpa
+    assert r.chamadas_llm == 2 and r.replanejamentos == 0
+    assert r.tokens_entrada == 200
+    assert "O que já aconteceu" in client.calls[1]["messages"][1]["content"]

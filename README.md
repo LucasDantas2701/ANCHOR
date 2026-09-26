@@ -94,10 +94,12 @@ passos são escritos à mão.
 * [x] **Planejador** (em desenvolvimento, versão 0.2.0): um LLM transforma o pedido
   do usuário em passos, usando os nomes dos elementos da página. Funciona com a API da
   OpenAI e com modelos locais do Ollama.
+* [x] **Loop do agente** (versão 0.2.0): executa o plano passo a passo, replaneja quando a
+  página muda ou um passo falha (inclusive quando um modal cobre o elemento), confere no fim
+  se o objetivo foi atingido e cancela com um relato depois de 3 falhas.
 
 ### Ainda não implementado
 
-* [ ] Loop do agente, com replanejamento quando a página não bate com o plano.
 * [ ] Automações salvas, com dados próprios.
 * [ ] Confirmação humana antes de ações sensíveis.
 * [ ] Frontend (hoje a interação é pelo terminal).
@@ -185,6 +187,18 @@ isort --check-only app eval tests examples   # só verifica
 isort app eval tests examples                # corrige
 ```
 
+### Agente: um pedido de ponta a ponta
+
+```bash
+python -m app.agent --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
+```
+
+O navegador abre visível. O agente planeja, executa cada passo, pergunta no terminal quando a
+heurística não tem certeza e, no fim, mostra o resultado: passos, chamadas ao modelo,
+replanejamentos, falhas, intervenções do usuário, tokens e tempo. As escolhas ficam em
+`memory/agente.json` (outra com `--memoria`), e sistemas com login usam
+`--perfil-navegador profiles/<nome>`.
+
 ### Planejador (LLM)
 
 Os modelos ficam em `llm_profiles.json`, um perfil por modelo. O arquivo nunca guarda
@@ -237,6 +251,7 @@ Comparar os modelos em tarefas completas (pedido → plano → execução → es
 ```bash
 python -m eval.plan_run --referencia                                    # planos escritos à mão (teto)
 python -m eval.plan_run --perfis ollama-pequeno ollama-medio -v         # os modelos
+python -m eval.plan_run --agente --perfis ollama-pequeno ollama-medio   # pelo loop do agente completo
 python -m eval.plan_run --check                                         # confere as tarefas, sem modelos
 ```
 
@@ -279,6 +294,7 @@ smart-rpa/
 ├── app/
 │   ├── main.py                    # exemplo de ponta a ponta no SauceDemo
 │   ├── browser/                   # perfis persistentes, sessão e login
+│   ├── agent/                     # loop do agente: plano, execução, replanejamento, fim
 │   ├── planner/                   # LLM: pedido → passos (perfis, validação, execução)
 │   ├── engine/
 │   │   ├── element_resolver/      # percepção (index_script.js) + ranqueamento

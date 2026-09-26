@@ -37,8 +37,21 @@ usuário digita a senha.
 Responda apenas com o JSON: {"steps": [...]}"""
 
 
-def user_message(request: str, url: str, page_elements: list[str] | None) -> str:
+def user_message(
+    request: str,
+    url: str,
+    page_elements: list[str] | None,
+    history: list[str] | None = None,
+) -> str:
     parts = [f"Página aberta: {url}", f"Pedido do usuário: {request}"]
+    if history:
+        parts.append(
+            "O que já aconteceu nesta execução:\n" + "\n".join(f"- {h}" for h in history)
+            + "\n\nDevolva APENAS os passos que ainda faltam para cumprir o pedido, a partir da "
+            "página como ela está agora. Não repita passos que já deram certo. Se um passo falhou, "
+            "tente outro caminho (por exemplo, fechar o que cobre a página). Se o pedido já foi "
+            "cumprido, devolva uma lista vazia."
+        )
     if page_elements:
         parts.append("Elementos visíveis na página:\n" + "\n".join(f"- {e}" for e in page_elements))
     return "\n\n".join(parts)
