@@ -1,0 +1,41 @@
+{
+  "versao": "0.2.0-dev",
+  "commit": "b4ef994",
+  "data": "2026-09-26T16:46:04",
+  "contexto_da_pagina": true,
+  "resumo": {
+    "referencia": {
+      "tarefas": 12,
+      "sucesso": 1.0,
+      "plano_valido": 1.0,
+      "verificacoes": 1.0,
+      "recusas_heuristica": 0,
+      "segundos_medio": 0.0,
+      "tokens_medio": 0,
+      "tentativas_medio": 1,
+      "carregamento_s": null
+    },
+    "ollama-pequeno": {
+      "tarefas": 12,
+      "sucesso": 1.0,
+      "plano_valido": 1.0,
+      "verificacoes": 1.0,
+      "recusas_heuristica": 0,
+      "segundos_medio": 13.301666666666666,
+      "tokens_medio": 859.4166666666666,
+      "tentativas_medio": 1,
+      "carregamento_s": 3.2
+    },
+    "ollama-medio": {
+      "tarefas": 12,
+      "sucesso": 0.9166666666666666,
+      "plano_valido": 1.0,
+      "verificacoes": 0.9666666666666667,
+      "recusas_heuristica": 0,
+      "segundos_medio": 19.034166666666668,
+      "tokens_medio": 830.8333333333334,
+      "tentativas_medio": 1,
+      "carregamento_s": 24.0
+    }
+  }
+}
