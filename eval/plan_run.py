@@ -6,6 +6,11 @@ Uso (na raiz do projeto):
     python -m eval.plan_run --referencia                     # planos escritos à mão (teto, sem LLM)
     python -m eval.plan_run --perfis ollama-pequeno          # um modelo
     python -m eval.plan_run --perfis ollama-pequeno ollama-medio openai -v
+    python -m eval.plan_run --check                          # confere as tarefas, sem chamar modelos
+    python -m eval.plan_run --final --perfis ...             # conjunto FECHADO (uma vez, no fim)
+
+As tarefas de eval/plans/holdout_tasks.json (split "test") formam o conjunto
+fechado: ficam fora de todas as execuções, a menos que --final seja usado.
 
 Cada tarefa roda numa página nova. A execução não tem desempate: quando a
 heurística recusa um passo, a tarefa para ali (mede o sistema sem ajuda humana).
@@ -35,6 +40,7 @@ from app.planner.progress import Progress
 ROOT = Path(__file__).resolve().parent
 FIXTURES = ROOT / "fixtures"
 TASKS = ROOT / "plans" / "tasks.json"
+HOLDOUT_TASKS = ROOT / "plans" / "holdout_tasks.json"
 
 # Registra cliques e Enter, e impede navegação (links e envio de formulários),
 # para a página continuar aberta até as verificações.
@@ -48,7 +54,25 @@ document.addEventListener("keydown", (e) => {
     if (e.key === "Enter") window.__er_log.push({ type: "enter", el: e.target });
 }, true);
 document.addEventListener("submit", (e) => e.preventDefault(), true);
+for (const type of ["input", "change"]) {
+    document.addEventListener(type, (e) => window.__er_log.push({ type, el: e.target }), true);
+}
 window.__clicked = (sel) => window.__er_log.some((x) => x.type === "click" && x.el.closest && x.el.closest(sel));
+// Elementos com que o plano interagiu (clique, digitação, escolha) fora dos permitidos.
+window.__unrequested = (allowed) => {
+    const seen = new Set(), out = [];
+    for (const { type, el } of window.__er_log) {
+        if (type === "enter" || !el || !el.closest) continue;
+        if (allowed.some((sel) => el.closest(sel))) continue;
+        const target = el.closest("a, button, input, select, textarea, [role], [onclick]") || el;
+        if (seen.has(target)) continue;
+        seen.add(target);
+        const name = (target.getAttribute("aria-label") || target.getAttribute("title")
+            || target.innerText || target.value || target.id || target.tagName).trim().replace(/\\s+/g, " ");
+        out.push(target.tagName.toLowerCase() + ' "' + name.slice(0, 40) + '"');
+    }
+    return out;
+};
 window.__entered = (sel) => window.__er_log.some((x) => x.type === "enter" && x.el.closest && x.el.closest(sel));
 """
 
@@ -78,6 +102,9 @@ class TaskResult:
     verificacoes_ok: int
     verificacoes: int
     sucesso: bool
+    nao_pedidos: int          # elementos acionados que a tarefa não pedia
+    nao_pedidos_lista: str
+    limpa: bool               # sucesso E nenhum passo não pedido
     segundos: float
     tokens_entrada: int
     tokens_saida: int
@@ -110,6 +137,8 @@ def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool)
                 stopped = result.status
 
     checks = [bool(page.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
+    unrequested = page.evaluate("(allowed) => window.__unrequested(allowed)", task["allowed"])
+    success = plan is not None and all(checks)
     return TaskResult(
         perfil=profile_name,
         modelo=getattr(planner, "model", ""),
@@ -121,7 +150,10 @@ def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool)
         parou_em=stopped,
         verificacoes_ok=sum(checks),
         verificacoes=len(checks),
-        sucesso=plan is not None and all(checks),
+        sucesso=success,
+        nao_pedidos=len(unrequested),
+        nao_pedidos_lista="; ".join(unrequested),
+        limpa=success and not unrequested,
         segundos=plan.latency_s if plan else 0.0,
         tokens_entrada=plan.tokens_in if plan else 0,
         tokens_saida=plan.tokens_out if plan else 0,
@@ -143,12 +175,70 @@ def warm_up(planner) -> float:
     return time.perf_counter() - start
 
 
+def load_tasks() -> list[dict]:
+    tasks = json.loads(TASKS.read_text(encoding="utf-8"))["tasks"]
+    if HOLDOUT_TASKS.exists():
+        tasks += json.loads(HOLDOUT_TASKS.read_text(encoding="utf-8"))["tasks"]
+    return tasks
+
+
+REQUIRED = ("id", "fixture", "request", "checks", "allowed", "reference")
+
+
+def check_tasks(tasks: list[dict], browser=None) -> int:
+    """Confere a estrutura das tarefas sem chamar modelos nem a heurística."""
+    if browser is None:
+        with sync_playwright() as p:
+            b = p.chromium.launch()
+            try:
+                return check_tasks(tasks, b)
+            finally:
+                b.close()
+
+    from app.planner import ACTIONS
+
+    problems = []
+    ids = [t.get("id") for t in tasks]
+    problems += [f"id repetido: {i}" for i in sorted({i for i in ids if ids.count(i) > 1})]
+    for t in tasks:
+        tid = t.get("id", "?")
+        missing = [k for k in REQUIRED if not t.get(k)]
+        if missing:
+            problems.append(f"{tid}: faltam os campos {', '.join(missing)}")
+            continue
+        if not (FIXTURES / t["fixture"]).exists():
+            problems.append(f"{tid}: página {t['fixture']} não existe em eval/fixtures")
+            continue
+        for a, d, v in t["reference"]:
+            if a not in ACTIONS or (ACTIONS[a] and not v):
+                problems.append(f"{tid}: passo de referência inválido: {a} {d!r} {v!r}")
+        page = browser.new_page()
+        page.add_init_script(INSTRUMENT)
+        page.goto((FIXTURES / t["fixture"]).as_uri())
+        for sel in t["allowed"]:
+            if page.locator(sel).count() == 0:
+                problems.append(f"{tid}: seletor permitido não encontra nada: {sel}")
+        for c in t["checks"]:
+            try:
+                page.evaluate(f"() => Boolean({c})")
+            except Exception as exc:
+                problems.append(f"{tid}: verificação com erro: {c} ({str(exc).splitlines()[0][:80]})")
+        page.close()
+    for msg in problems:
+        print(f"  [PROBLEMA] {msg}")
+    n_test = sum(t.get("split") == "test" for t in tasks)
+    print(f"{len(tasks)} tarefas conferidas ({n_test} do conjunto fechado), {len(problems)} problema(s).")
+    return 1 if problems else 0
+
+
 def summarize(rows: list[TaskResult]) -> dict:
     n = len(rows)
     valid = [r for r in rows if r.plano_valido]
     return {
         "tarefas": n,
         "sucesso": sum(r.sucesso for r in rows) / n,
+        "limpas": sum(r.limpa for r in rows) / n,
+        "nao_pedidos": sum(r.nao_pedidos for r in rows),
         "plano_valido": len(valid) / n,
         "verificacoes": sum(r.verificacoes_ok for r in rows) / max(1, sum(r.verificacoes for r in rows)),
         "recusas_heuristica": sum(r.parou_em in ("ambiguous", "not_found") for r in rows),
@@ -173,9 +263,21 @@ def main() -> int:
     ap.add_argument("--sem-pagina", action="store_true", help="não envia a lista de elementos ao modelo")
     ap.add_argument("--tarefa", help="roda só uma tarefa (id)")
     ap.add_argument("-v", "--verbose", action="store_true")
+    ap.add_argument("--check", action="store_true", help="confere as tarefas, sem chamar modelos")
+    ap.add_argument("--final", action="store_true", help="roda o conjunto FECHADO (split test)")
     args = ap.parse_args()
 
-    tasks = json.loads(TASKS.read_text(encoding="utf-8"))["tasks"]
+    all_tasks = load_tasks()
+    if args.check:
+        return check_tasks(all_tasks)
+
+    wanted = "test" if args.final else "dev"
+    tasks = [t for t in all_tasks if t.get("split", "dev") == wanted]
+    if args.final:
+        print("*** CONJUNTO FECHADO: execução final. Registre a data e o commit desta rodada. ***")
+        if not tasks:
+            print("Nenhuma tarefa no conjunto fechado (eval/plans/holdout_tasks.json).")
+            return 1
     if args.tarefa:
         tasks = [t for t in tasks if t["id"] == args.tarefa]
 
@@ -221,18 +323,21 @@ def main() -> int:
                     r = run_task(page, planner, name, task, use_page=not args.sem_pagina)
                 page.close()
                 rows.append(r)
-                mark = "OK " if r.sucesso else ("ERR" if not r.plano_valido else "---")
+                mark = ("OK " if r.limpa else "OK+") if r.sucesso else ("ERR" if not r.plano_valido else "---")
                 print(f"[{mark}] {r.tarefa:10} passos {r.passos_ok}/{r.passos_plano} "
                       f"verif. {r.verificacoes_ok}/{r.verificacoes} {r.segundos:5.1f}s"
                       + (f"  parou: {r.parou_em}" if r.parou_em else "")
-                      + (f"  erro: {r.erro[:80]}" if r.erro else ""))
+                      + (f"  erro: {r.erro[:80]}" if r.erro else "")
+                      + (f"  não pedido: {r.nao_pedidos_lista}" if r.nao_pedidos else ""))
                 if args.verbose and r.plano:
                     for a, d, v in json.loads(r.plano):
                         print(f"        {a:12} {d}" + (f' = "{v}"' if v is not None else ""))
         browser.close()
 
     print("\nCOMPARAÇÃO")
-    print(f"{'perfil':16} {'sucesso':>8} {'plano ok':>9} {'verif.':>7} {'recusas':>8} {'seg/plano':>10} {'tokens':>7}")
+    print("(limpas = tarefas cumpridas sem nenhum passo não pedido; OK+ = cumprida, mas com passo a mais)")
+    print(f"{'perfil':16} {'sucesso':>8} {'limpas':>7} {'não ped.':>9} {'plano ok':>9} {'verif.':>7} "
+          f"{'recusas':>8} {'seg/plano':>10} {'tokens':>7}")
     summaries = {}
     for name, _ in planners:
         profile_rows = [r for r in rows if r.perfil == name]
@@ -241,7 +346,7 @@ def main() -> int:
         s = summarize(profile_rows)
         s["carregamento_s"] = warm.get(name)
         summaries[name] = s
-        print(f"{name:16} {s['sucesso']:8.0%} {s['plano_valido']:9.0%} {s['verificacoes']:7.0%} "
+        print(f"{name:16} {s['sucesso']:8.0%} {s['limpas']:7.0%} {s['nao_pedidos']:9} {s['plano_valido']:9.0%} {s['verificacoes']:7.0%} "
               f"{s['recusas_heuristica']:8} {s['segundos_medio']:10.1f} {s['tokens_medio']:7.0f}")
 
     if not rows:
@@ -250,7 +355,7 @@ def main() -> int:
 
     out = ROOT / "results"
     out.mkdir(exist_ok=True)
-    stem = f"planos_{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}"
+    stem = f"planos_{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}" + ("_FINAL" if args.final else "")
     with open(out / f"{stem}.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(asdict(rows[0])))
         w.writeheader()

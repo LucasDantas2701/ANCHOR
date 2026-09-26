@@ -40,6 +40,11 @@ que quebram compatibilidade também sobem o MINOR.
 - `eval/plan_run.py` carrega cada modelo antes das tarefas (o tempo de carregamento sai à
   parte, fora do tempo dos planos) e mostra o progresso de cada tarefa.
 
+- Métrica de passos não pedidos em `eval/plan_run.py`: cada tarefa lista os elementos
+  permitidos (`allowed`), e qualquer outro elemento acionado (clique, digitação ou escolha)
+  conta; a tabela mostra também as tarefas "limpas" (cumpridas sem passo a mais).
+- Conjunto fechado de tarefas do planejador (`eval/plans/holdout_tasks.json`, vazio por
+  enquanto), que só roda com `--final`, e `--check` para conferir as tarefas sem chamar modelos.
 - Limpeza das descrições dos passos antes da execução: tira rótulos de tipo copiados do
   resumo da página ("Campo de texto", "Caixa de marcação", "Lista de opções") e aspas.
 - `select` em botão de opção ou caixa de marcação é refeito como `check`.

@@ -1,0 +1,4 @@
+{
+  "_leia": "CONJUNTO FECHADO de tarefas do planejador. Só roda com 'python -m eval.plan_run --final', uma única vez, no fim do desenvolvimento. Não rode os modelos nestas tarefas antes disso e não ajuste o prompt olhando para elas. Use 'python -m eval.plan_run --check' para conferir a estrutura (não chama modelos). Formato igual ao de tasks.json, com split 'test'.",
+  "tasks": []
+}

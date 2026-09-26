@@ -74,3 +74,29 @@ As consultas do holdout foram escritas pelo mesmo autor das heurísticas
 
 Adicione essas consultas como novos casos `split: "test"`, com ids
 `h-<pagina>-cNN`, e reporte os dois grupos separadamente no artigo.
+
+
+## Conjunto fechado de tarefas do planejador
+
+As tarefas de `plans/tasks.json` foram usadas para ajustar o prompt do planejador, então os
+números delas são de desenvolvimento. Os números finais vêm de `plans/holdout_tasks.json`
+(split `test`), que só roda com `python -m eval.plan_run --final`, uma única vez.
+
+Como montar o conjunto:
+
+1. **Pedidos escritos por outras pessoas.** Peça a 2 ou 3 colegas que abram as páginas de
+   `fixtures/` no navegador e escrevam, para cada uma, 5 a 8 pedidos como fariam a um
+   assistente ("quero reservar a sala Amazonas para amanhã às 10h"), sem ver o código nem as
+   tarefas existentes. A meta é chegar a 30 ou 40 pedidos.
+2. **Metade em páginas novas, metade nas antigas.** Use as páginas `holdout_*.html` (nunca
+   vistas pelo planejador) e as de desenvolvimento, com pedidos novos. Assim, o artigo separa
+   a generalização para pedidos novos da generalização para páginas novas. As `holdout_*`
+   também são o conjunto fechado do Resolver, e os dois `--final` rodam no fim.
+3. **Transformar cada pedido em tarefa**, no formato de `tasks.json`: `checks` (o estado final
+   esperado), `allowed` (os elementos que a tarefa pode acionar), `reference` (o plano certo,
+   escrito à mão) e `"split": "test"`. Pedidos ambíguos ou impossíveis na página podem ficar,
+   com o `checks` descrevendo o comportamento certo (por exemplo, nenhum clique).
+4. **Conferir sem rodar nada:** `python -m eval.plan_run --check` valida campos, páginas,
+   seletores e verificações, sem chamar modelos nem a heurística.
+5. **Não rodar os modelos nessas tarefas nem ajustar o prompt olhando para elas** até a
+   rodada final. Se algo mudar depois de olhar, registre no artigo.

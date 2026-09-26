@@ -236,8 +236,14 @@ Comparar os modelos em tarefas completas (pedido → plano → execução → es
 
 ```bash
 python -m eval.plan_run --referencia                                    # planos escritos à mão (teto)
-python -m eval.plan_run --perfis ollama-pequeno ollama-medio openai -v  # os três modelos
+python -m eval.plan_run --perfis ollama-pequeno ollama-medio -v         # os modelos
+python -m eval.plan_run --check                                         # confere as tarefas, sem modelos
 ```
+
+A tabela final mostra, por modelo: tarefas cumpridas, tarefas **limpas** (cumpridas sem nenhum
+passo não pedido), total de passos não pedidos (elementos acionados fora dos que a tarefa
+permite), planos válidos, verificações cumpridas, recusas da heurística, segundos e tokens por plano.
+O conjunto fechado de tarefas (`eval/plans/holdout_tasks.json`) só roda com `--final`.
 
 ### Avaliação
 

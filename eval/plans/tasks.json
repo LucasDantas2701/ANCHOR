@@ -1,5 +1,5 @@
 {
-  "_leia": "Tarefas completas para comparar planejadores. 'checks' são expressões JS que devem ser verdadeiras no fim; __clicked(seletor) e __entered(seletor) dizem se houve clique ou Enter no elemento. 'reference' é o plano escrito à mão (teto com planejador perfeito).",
+  "_leia": "Tarefas completas para comparar planejadores. 'checks' são expressões JS que devem ser verdadeiras no fim; __clicked(seletor) e __entered(seletor) dizem se houve clique ou Enter no elemento. 'reference' é o plano escrito à mão (teto com planejador perfeito). 'allowed' são os seletores dos elementos que a tarefa pode acionar; qualquer outro elemento acionado conta como passo não pedido.",
   "tasks": [
     {
       "id": "p-cad-01",
@@ -51,6 +51,15 @@
           "botão Salvar cadastro",
           null
         ]
+      ],
+      "allowed": [
+        "#nome",
+        "#cpf",
+        "#mail",
+        "#dep",
+        "input[value=pj]",
+        "#termos",
+        "button.save"
       ]
     },
     {
@@ -73,6 +82,10 @@
           "campo Observações",
           "começa na segunda-feira"
         ]
+      ],
+      "allowed": [
+        "#tel",
+        "#obs"
       ]
     },
     {
@@ -98,7 +111,11 @@
           null
         ]
       ],
-      "nota": "Ajustada em 26/09/2026: a senha e o clique em entrar ficam com o usuário (credencial nunca passa pela IA)."
+      "nota": "Ajustada em 26/09/2026: a senha e o clique em entrar ficam com o usuário (credencial nunca passa pela IA).",
+      "allowed": [
+        "#user",
+        "input[name=remember]"
+      ]
     },
     {
       "id": "p-log-02",
@@ -114,6 +131,9 @@
           "lista Language",
           "Português"
         ]
+      ],
+      "allowed": [
+        "select[name=lang]"
       ]
     },
     {
@@ -130,6 +150,9 @@
           "lista Sort by",
           "Price: low to high"
         ]
+      ],
+      "allowed": [
+        "select[aria-label='Sort by']"
       ]
     },
     {
@@ -153,6 +176,10 @@
           "botão Add to cart do QuietMax Headphones",
           null
         ]
+      ],
+      "allowed": [
+        ".card:nth-of-type(1) .add",
+        ".card:nth-of-type(2) .add"
       ]
     },
     {
@@ -175,6 +202,10 @@
           "botão Search",
           null
         ]
+      ],
+      "allowed": [
+        "input[name=q]",
+        "header button[aria-label=Search]"
       ]
     },
     {
@@ -191,6 +222,9 @@
           "lista Filtrar por status",
           "Inativos"
         ]
+      ],
+      "allowed": [
+        "select[aria-label='Filtrar por status']"
       ]
     },
     {
@@ -214,6 +248,10 @@
           "caixa Selecionar Carla Mendes",
           null
         ]
+      ],
+      "allowed": [
+        "input[aria-label='Selecionar Ana Souza']",
+        "input[aria-label='Selecionar Carla Mendes']"
       ]
     },
     {
@@ -232,6 +270,9 @@
           "botão Excluir do Bruno Lima",
           null
         ]
+      ],
+      "allowed": [
+        "tbody tr:nth-child(2) button[title=Excluir]"
       ]
     },
     {
@@ -248,6 +289,9 @@
           "botão Cancelar pedido do Pedido #1024",
           null
         ]
+      ],
+      "allowed": [
+        ".pedido:nth-of-type(2) .cancel"
       ]
     },
     {
@@ -270,6 +314,10 @@
           "link shopping cart link",
           null
         ]
+      ],
+      "allowed": [
+        ".rec:nth-of-type(2) button",
+        "a.cart"
       ]
     }
   ]
