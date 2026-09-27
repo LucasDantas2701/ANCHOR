@@ -3,4 +3,4 @@
 # Versionamento semântico (MAJOR.MINOR.PATCH). Ver CHANGELOG.md.
 # O sufixo "-dev" indica trabalho em andamento rumo à próxima versão;
 # ele é removido no commit de lançamento.
-__version__ = "0.2.0-dev"
+__version__ = "0.2.0"

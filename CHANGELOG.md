@@ -15,6 +15,13 @@ que quebram compatibilidade também sobem o MINOR.
 
 ## [Não lançado]
 
+## [0.2.0] - 2026-09-26
+
+Agente completo: o sistema recebe um pedido em texto e um link, gera o plano com um LLM,
+executa, replaneja quando precisa e confere se o objetivo foi atingido. Nas 12 tarefas de
+desenvolvimento, pelo loop do agente, os dois modelos locais (Qwen 3.5 com 4B e 9B)
+cumpriram todas; 10 e 9 delas, respectivamente, sem nenhum passo não pedido.
+
 ### Adicionado
 - Loop do agente (`app/agent`): plano inicial, execução passo a passo, replanejamento quando
   a página muda ou um passo falha (com o motivo, inclusive elemento coberto por modal),
@@ -112,7 +119,8 @@ planejador com LLM e o loop do agente ficam para a 0.2.0.
 - Contexto dos elementos em listas de cards curtos, que englobava a lista inteira.
 - Dupla contagem do objeto da consulta no rótulo e no contexto do elemento.
 
-[Não lançado]: https://github.com/LucasDantas2701/smart-rpa/compare/v0.1.0...develop
+[Não lançado]: https://github.com/LucasDantas2701/smart-rpa/compare/v0.2.0...develop
+[0.2.0]: https://github.com/LucasDantas2701/smart-rpa/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LucasDantas2701/smart-rpa/releases/tag/v0.1.0
 
 ---

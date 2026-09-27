@@ -68,11 +68,11 @@ Encontra o botão correspondente
 
 ## Status do projeto
 
-🚧 **Versão 0.1: motor de execução.** O sistema já executa passos descritos em
-linguagem natural numa página real, pergunta ao usuário quando não tem certeza
-e aprende com as respostas. O **planejador** (LLM que transforma o pedido do
-usuário em passos) e o **loop do agente** ainda não existem: por enquanto, os
-passos são escritos à mão.
+🚧 **Versão 0.2: agente completo.** O sistema recebe um pedido em texto e o link do
+site, gera o plano com um LLM (local, via Ollama, ou da OpenAI), executa cada passo,
+pergunta ao usuário quando não tem certeza, aprende com as respostas, replaneja quando
+a página muda ou um passo falha e confere no fim se o objetivo foi atingido. Ainda
+faltam as automações salvas, a confirmação antes de ações sensíveis e o frontend.
 
 ### Implementado
 
@@ -91,10 +91,10 @@ passos são escritos à mão.
 * [x] **Avaliação reproduzível**: casos de desenvolvimento e um conjunto de teste fechado
   (holdout), com métricas atreladas ao commit.
 * [x] Perfis persistentes do navegador e detecção de login.
-* [x] **Planejador** (em desenvolvimento, versão 0.2.0): um LLM transforma o pedido
+* [x] **Planejador**: um LLM transforma o pedido
   do usuário em passos, usando os nomes dos elementos da página. Funciona com a API da
   OpenAI e com modelos locais do Ollama.
-* [x] **Loop do agente** (versão 0.2.0): executa o plano passo a passo, replaneja quando a
+* [x] **Loop do agente**: executa o plano passo a passo, replaneja quando a
   página muda ou um passo falha (inclusive quando um modal cobre o elemento), confere no fim
   se o objetivo foi atingido e cancela com um relato depois de 3 falhas.
 
@@ -286,6 +286,19 @@ Conjunto de desenvolvimento, 60 casos em 7 páginas (6 locais e o SauceDemo), co
 
 Estes números medem a evolução durante o desenvolvimento, não a generalização: os casos foram
 consultados enquanto o código era ajustado. A generalização será medida no holdout.
+
+### Agente em tarefas completas
+
+12 tarefas de desenvolvimento em 5 páginas locais, executadas pelo loop do agente, sem ajuda
+humana, commit `6bad9e4` (máquina: i7-7700HQ, 16 GB, GTX 1050 Ti 4 GB):
+
+| Modelo (Ollama) | Tarefas cumpridas | Sem passo não pedido | Chamadas ao modelo por tarefa | Tempo por tarefa |
+|---|---|---|---|---|
+| Qwen 3.5, 4B | 100% | 83% | 2,0 | 17,5 s |
+| Qwen 3.5, 9B | 100% | 75% | 2,3 | 29,0 s |
+
+O prompt do planejador foi ajustado olhando essas tarefas; os números finais virão do
+conjunto fechado (`eval/plans/holdout_tasks.json`).
 
 ## Estrutura
 

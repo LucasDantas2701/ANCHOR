@@ -11,8 +11,9 @@ Exemplo de ponta a ponta no SauceDemo, com o motor semântico.
    não tem certeza, pergunta no terminal; as escolhas ficam em
    memory/saucedemo.json e não são perguntadas de novo.
 
-O plano (a lista de passos) ainda é fixo aqui. Na próxima fase, ele
-será gerado por um LLM a partir do pedido do usuário.
+Aqui o plano (a lista de passos) é fixo, para demonstrar o motor sem LLM.
+Para um pedido em texto, com o plano gerado pelo LLM, use o agente:
+python -m app.agent --perfil <perfil> --url <link> "<pedido>"
 
 Versão antiga, com seletores fixos, para comparação:
 app/automation/saucedemo.py
