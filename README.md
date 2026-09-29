@@ -377,8 +377,12 @@ informações das páginas não saem do computador ou da rede da empresa.
 
 ## Licença
 
-Distribuído sob a [licença MIT](LICENSE): o software é fornecido "como está", sem garantia de
-qualquer tipo.
+Copyright (c) 2026 Lucas dos Santos Dantas. Todos os direitos autorais pertencem ao autor.
+
+Distribuído sob a [PolyForm Strict License 1.0.0](LICENSE): você pode baixar e usar o smart-rpa
+para fins não comerciais, como estudo, testes e avaliação. Não é permitido modificar,
+redistribuir nem usar comercialmente o software sem autorização do autor. O software é
+fornecido sem garantia de qualquer tipo.
 
 ## Limitações conhecidas
 

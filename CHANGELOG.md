@@ -16,7 +16,8 @@ que quebram compatibilidade também sobem o MINOR.
 ## [Não lançado]
 
 ### Adicionado
-- Licença MIT (`LICENSE`) e seção "Uso responsável" no README.
+- Licença PolyForm Strict 1.0.0 (`LICENSE`): uso não comercial permitido, sem modificação nem
+  redistribuição; direitos autorais do autor. Seção "Uso responsável" no README.
 
 ### Alterado
 - Elementos aninhados viram um candidato só quando um contém o outro e apenas um deles é
