@@ -100,6 +100,8 @@ faltam as automações salvas, a confirmação antes de ações sensíveis e o f
 * [x] **Verificação do efeito** (em desenvolvimento, versão 0.3.0): depois de cada passo, o
   agente confere se a ação teve efeito (valor no campo, mudança na página, mensagens de erro)
   e trata uma ação sem efeito como falha.
+* [x] **Metas** (em desenvolvimento, versão 0.3.0): o planejador define as metas do pedido, e
+  o agente só declara o fim quando todas foram cumpridas e verificadas.
 
 ### Ainda não implementado
 

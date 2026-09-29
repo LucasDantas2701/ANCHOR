@@ -76,7 +76,7 @@ def test_plano_pela_api_nativa_com_raciocinio_desligado(ollama):
     assert body["model"] == "qwen3.5:4b" and body["stream"] is False
     assert body["think"] is False
     assert body["options"] == {"num_ctx": 4096, "temperature": 0.0, "seed": 7}
-    assert body["format"]["required"] == ["steps"]  # o esquema do plano vai em "format"
+    assert body["format"]["required"] == ["goals", "steps"]  # o esquema do plano vai em "format"
 
 
 def test_endereco_com_v1_tambem_funciona(ollama):

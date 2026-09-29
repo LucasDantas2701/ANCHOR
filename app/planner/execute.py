@@ -25,8 +25,18 @@ def clean_description(text: str) -> str:
     return cleaned or text
 
 
+def clean_value(value):
+    """Tira colchetes, aspas e o rótulo "opções:" copiados do resumo da página."""
+    if value is None:
+        return None
+    cleaned = value.strip()
+    cleaned = re.sub(r"^\[?\s*opç(ões|oes):\s*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = cleaned.strip("[]\"“” ").strip()
+    return cleaned or value
+
+
 def run_step(executor: ActionExecutor, step: Step) -> ActionResult:
-    a, d, v = step.action, clean_description(step.description), step.value
+    a, d, v = step.action, clean_description(step.description), clean_value(step.value)
     if a == "fill":
         return executor.fill(d, v)
     if a == "select":

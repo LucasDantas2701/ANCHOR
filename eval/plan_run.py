@@ -86,7 +86,7 @@ class ReferencePlanner:
     def __init__(self):
         self.current: list = []
 
-    def plan(self, request, url, page_elements=None, history=None) -> Plan:
+    def plan(self, request, url, page_elements=None, history=None, **_) -> Plan:
         # No modo --agente, um replanejamento devolve os passos de referência que faltam.
         done = sum(1 for h in (history or []) if h.startswith("feito:"))
         return Plan(steps=[Step(a, d, v) for a, d, v in self.current[done:]], model=self.model)
@@ -118,6 +118,9 @@ class TaskResult:
     replanejamentos: int = 0
     sem_efeito: int = 0       # modo --agente: ações que não tiveram efeito na página
     prematuro: bool = False   # modo --agente: declarou sucesso, mas as verificações falharam
+    metas: int = 0            # modo --agente: metas definidas pelo planejador
+    metas_cumpridas: int = 0
+    suspeitas: int = 0        # modo --agente: textos esperados que não apareceram
 
 
 def run_task_agent(page: Page, planner, profile_name: str, task: dict) -> TaskResult:
@@ -148,6 +151,7 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict) -> TaskRe
                          ensure_ascii=False),
         chamadas_llm=result.llm_calls, replanejamentos=result.replans,
         sem_efeito=result.no_effect, prematuro=result.ok and not all(checks),
+        metas=result.goals_total, metas_cumpridas=result.goals_done, suspeitas=result.suspicions,
     )
 
 
@@ -288,6 +292,9 @@ def summarize(rows: list[TaskResult]) -> dict:
         "replanejamentos": sum(r.replanejamentos for r in rows),
         "sem_efeito": sum(r.sem_efeito for r in rows),
         "prematuros": sum(r.prematuro for r in rows),
+        "metas_cumpridas": (sum(r.metas_cumpridas for r in rows) / sum(r.metas for r in rows)
+                            if sum(r.metas for r in rows) else None),
+        "suspeitas": sum(r.suspeitas for r in rows),
     }
 
 
@@ -380,6 +387,8 @@ def main() -> int:
                       + (f"  erro: {r.erro[:80]}" if r.erro else "")
                       + (f"  não pedido: {r.nao_pedidos_lista}" if r.nao_pedidos else "")
                       + ("  TÉRMINO PREMATURO" if r.prematuro else "")
+                      + (f"  metas {r.metas_cumpridas}/{r.metas}" if r.metas else "")
+                      + (f"  suspeitas: {r.suspeitas}" if r.suspeitas else "")
                       + (f"  sem efeito: {r.sem_efeito}" if r.sem_efeito else ""))
                 if args.verbose and r.plano:
                     for a, d, v in json.loads(r.plano):
@@ -391,7 +400,8 @@ def main() -> int:
     tempo = "seg/tarefa" if args.agente else "seg/plano"
     print(f"{'perfil':16} {'sucesso':>8} {'limpas':>7} {'não ped.':>9} {'plano ok':>9} {'verif.':>7} "
           f"{'recusas':>8} {tempo:>10} {'tokens':>7}"
-          + (f" {'LLM/tar.':>9} {'replan.':>8} {'s/ efeito':>10} {'prematuro':>10}" if args.agente else ""))
+          + (f" {'LLM/tar.':>9} {'replan.':>8} {'s/ efeito':>10} {'prematuro':>10} {'metas':>6} {'suspeitas':>10}"
+             if args.agente else ""))
     summaries = {}
     for name, _ in planners:
         profile_rows = [r for r in rows if r.perfil == name]
@@ -403,7 +413,8 @@ def main() -> int:
         print(f"{name:16} {s['sucesso']:8.0%} {s['limpas']:7.0%} {s['nao_pedidos']:9} {s['plano_valido']:9.0%} {s['verificacoes']:7.0%} "
               f"{s['recusas_heuristica']:8} {s['segundos_medio']:10.1f} {s['tokens_medio']:7.0f}"
               + (f" {s['chamadas_llm_medio']:9.1f} {s['replanejamentos']:8} {s['sem_efeito']:10} {s['prematuros']:10}"
-                 if args.agente else ""))
+                 + (f" {s['metas_cumpridas']:6.0%}" if s["metas_cumpridas"] is not None else f" {'—':>6}")
+                 + f" {s['suspeitas']:10}" if args.agente else ""))
 
     if not rows:
         print("Nenhuma tarefa foi executada.")

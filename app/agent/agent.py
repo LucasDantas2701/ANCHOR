@@ -22,9 +22,14 @@ from playwright.sync_api import Page
 
 from app.engine.action_executor import ActionExecutor, ActionResult
 from app.engine.element_resolver.resolver import accepts
-from app.engine.element_resolver.tokenizer import DESTRUCTIVE_N, normalize_tokens, tokenize
+from app.engine.element_resolver.tokenizer import (
+    DESTRUCTIVE_N,
+    STOPWORDS_N,
+    normalize_tokens,
+    tokenize,
+)
 from app.planner import Plan, Step, page_elements, run_step
-from app.planner.execute import clean_description
+from app.planner.execute import clean_description, clean_value
 
 from .effects import EffectWatcher, state_problem
 
@@ -51,6 +56,9 @@ class AgentResult:
     failures: int = 0
     interventions: int = 0       # passos em que o usuário escolheu o elemento
     no_effect: int = 0           # ações que não tiveram efeito na página
+    goals_total: int = 0         # metas definidas pelo planejador
+    goals_done: int = 0          # metas cumpridas no fim
+    suspicions: int = 0          # passos em que o texto esperado não apareceu
     tokens_in: int = 0
     tokens_out: int = 0
     seconds: float = 0.0
@@ -116,15 +124,76 @@ class Agent:
 
     # ------------------------------------------------------------------
 
+    _VISIBLE_MESSAGES_JS = r"""() => [...document.querySelectorAll(
+        '[role=alert],[role=status],[aria-live],.toast,.alert,.error,.message,.notification')]
+        .filter(e => e.offsetParent !== null || getComputedStyle(e).position === 'fixed')
+        .map(e => (e.innerText || '').replace(/\s+/g, ' ').trim())
+        .filter(t => t.length > 1 && t.length <= 160).slice(0, 5)"""
+
+    def _context_lines(self) -> list[str]:
+        """O estado das metas e as mensagens visíveis, para o planejador (não fica no histórico)."""
+        lines = []
+        if self._goals:
+            labels = {"done": "cumprida", "pending": "pendente", "dropped": "descartada ou substituída"}
+            lines.append("metas: " + "; ".join(
+                f"{g.id} ({g.description}): {labels[self._goal_status[g.id]]}" for g in self._goals.values()))
+        try:
+            visible = self.page.evaluate(self._VISIBLE_MESSAGES_JS)
+        except Exception:
+            visible = []
+        if visible:
+            lines.append("mensagens visíveis na página agora: " + " | ".join(f'"{m}"' for m in visible))
+        return lines
+
     def _plan(self, request: str, history: list[str], result: AgentResult) -> Plan:
         elements = page_elements(self.executor.resolver, request=request)
-        plan = self.planner.plan(request, self.page.url, elements, history or None)
+        context = history + self._context_lines() if history else []
+        extra = {"known_goals": set(self._goals)} if self._goals else {}
+        plan = self.planner.plan(request, self.page.url, elements, context or None, **extra)
+        for goal in getattr(plan, "goals", []) or []:
+            if goal.id not in self._goals:
+                self._goals[goal.id] = goal
+                self._goal_status[goal.id] = "pending"
+        result.goals_total = len(self._goals)
         result.llm_calls += 1
         result.tokens_in += plan.tokens_in
         result.tokens_out += plan.tokens_out
         return plan
 
+    def _pending_goals(self) -> list[str]:
+        """Metas que ainda impedem o fim (as descartadas e as substituídas não impedem)."""
+        return [f"{g.id} ({g.description})" for g in self._goals.values() if self._goal_status[g.id] == "pending"]
+
+    def _supersede(self, failed_goal, queue) -> None:
+        """Depois de uma falha, se o novo plano não tem passos da meta, ela foi substituída."""
+        if (failed_goal in self._goal_status and self._goal_status[failed_goal] == "pending"
+                and not any(s.goal == failed_goal for s in queue)):
+            self._goal_status[failed_goal] = "dropped"
+
+    def _page_words(self) -> set[str]:
+        try:
+            text = self.page.inner_text("body")
+        except Exception:
+            return set()
+        tokens = tokenize(text)
+        return tokens | normalize_tokens(tokens)
+
+    def _expected_missing(self, step: Step, words_before: set[str]) -> bool:
+        """
+        O texto esperado não apareceu depois do passo? (suspeita, não falha)
+        Só conta o texto novo: o que já estava na página antes não confirma nada.
+        """
+        if not step.expect:
+            return False
+        want = normalize_tokens(tokenize(step.expect)) - STOPWORDS_N
+        new = self._page_words() - words_before
+        return bool(want) and len(want & new) / len(want) < 0.5
+
     def _finish(self, result: AgentResult, status: str, message: str, start: float) -> AgentResult:
+        if status == "success" and self._pending_goals():
+            status = "cancelled"
+            message = "o planejador encerrou com metas pendentes: " + ", ".join(self._pending_goals())
+        result.goals_done = sum(s == "done" for s in self._goal_status.values())
         result.status, result.message = status, message
         result.seconds = round(time.perf_counter() - start, 2)
         self.report(f"{'Concluído' if status == 'success' else 'Encerrado'}: {message}")
@@ -171,6 +240,19 @@ class Agent:
                                         selected_element=last_fill, resolved_by="enter_no_campo")
                 except Exception as exc:
                     return ActionResult(status="error", action="press", description=step.description, error=str(exc))
+
+        # Enter num elemento que não é campo de texto: vai para o último campo preenchido.
+        if step.action == "press" and (step.value or "").lower() == "enter" and last_fill is not None:
+            status, found, _ = self.executor._resolve(description, "click")
+            record = next((r for r in self.executor.resolver.records
+                           if found is not None and r["id"] == found.id), None)
+            if status != "success" or record is None or not accepts(record, "fill"):
+                try:
+                    last_fill.locator.press("Enter")
+                    return ActionResult(status="success", action="press", description=step.description,
+                                        selected_element=last_fill, resolved_by="enter_no_campo")
+                except Exception:
+                    pass
 
         # Campo que só aparece depois de um clique (ex.: a lupa que abre a busca).
         if step.action == "fill":
@@ -229,7 +311,19 @@ class Agent:
             return f'apareceu a mensagem "{errors[0]}"', others
         element = outcome.selected_element
         if action in ("fill", "select", "check", "uncheck") and element is not None:
-            return state_problem(action, step.value, element.locator), others
+            return state_problem(action, clean_value(step.value), element.locator), others
+        if action == "click" and element is not None:
+            record = next((r for r in self.executor.resolver.records if r["id"] == element.id), None) or {}
+            if accepts(record, "check"):
+                # Clicar numa caixa ou opção muda o estado dela, não a estrutura da página.
+                was = bool((element.state or {}).get("checked"))
+                try:
+                    now = element.locator.is_checked()
+                except Exception:
+                    return "", others
+                return ("" if now != was or record.get("role") == "radio" and now else "no_effect"), others
+            if accepts(record, "fill") or accepts(record, "select"):
+                return "focus_only", others   # clicar num campo ou numa lista só dá o foco
         if action in ("click", "press") and not effect.changed:
             return "no_effect", others
         return "", others
@@ -249,6 +343,8 @@ class Agent:
 
     def _fail(self, request, history, result, start, step, status, resolved_by, reason):
         """Registra uma falha e replaneja, ou cancela depois de max_failures."""
+        if step.goal in self._goal_status and status != "loop":
+            self._goal_status[step.goal] = "pending"
         result.failures += 1
         result.records.append(StepRecord(step, status, resolved_by, reason))
         history.append(f"falhou: {describe_step(step)} — {reason}")
@@ -264,12 +360,15 @@ class Agent:
                              f"Tentativa {result.failures + 1} de {self.max_failures}")
         if isinstance(queue, AgentResult):
             return queue
+        self._supersede(step.goal, queue)
         if not queue:
             return self._finish(result, "cancelled",
                                 f"o planejador não encontrou outro caminho depois de: {reason}", start)
         return queue
 
     def run(self, request: str) -> AgentResult:
+        self._goals = {}
+        self._goal_status = {}
         start = time.perf_counter()
         result = AgentResult(status="failed", message="")
         history: list[str] = []
@@ -345,6 +444,9 @@ class Agent:
                     queue, after_replan = outcome, True
                     continue
                 blocked.add(key)
+                if self._goal_status.get(step.goal) == "pending" and not any(
+                        r.status == "success" and r.step.goal == step.goal for r in result.records):
+                    self._goal_status[step.goal] = "dropped"   # meta que só tinha a ação barrada
                 result.records.append(StepRecord(step, "blocked", "", reason))
                 history.append(f"barrado: {describe_step(step)} — {reason}")
                 continue
@@ -353,6 +455,7 @@ class Agent:
             self.report(f"  → {describe_step(step)}")
 
             before = self.watcher.snapshot() if self.watcher else None
+            words_before = self._page_words() if (self.watcher and step.expect) else set()
             outcome = self._execute(step, last_fill)
 
             if outcome.resolved_by == "user":
@@ -360,6 +463,7 @@ class Agent:
 
             # ---------------------------------------------------- verificação do efeito
             messages: list[str] = []
+            focus_only = False
             if outcome.status == "success" and self.watcher is not None:
                 problem, messages = self._verify(step, outcome, before)
                 if problem == "no_effect":
@@ -368,6 +472,9 @@ class Agent:
                     outcome = self._execute(step, last_fill)
                     if outcome.status == "success":
                         problem, messages = self._verify(step, outcome, before)
+                focus_only = problem == "focus_only"
+                if focus_only:
+                    problem = ""
                 if outcome.status == "success" and problem:
                     history.extend(f'apareceu na página: "{m}"' for m in messages)
                     status = "no_effect" if problem == "no_effect" else "wrong_effect"
@@ -388,6 +495,13 @@ class Agent:
                 result.records.append(StepRecord(step, "success", outcome.resolved_by))
                 history.append(f"feito: {describe_step(step)}")
                 history.extend(f'apareceu na página: "{m}"' for m in messages)
+                if step.goal in self._goal_status and not (self.watcher is not None and focus_only):
+                    # Um clique que só dá o foco não cumpre a meta.
+                    self._goal_status[step.goal] = "done"
+                if self.watcher is not None and self._expected_missing(step, words_before):
+                    result.suspicions += 1
+                    result.records[-1].note = f'esperava ver "{step.expect}", e não apareceu'
+                    history.append(f'suspeita: depois de "{describe_step(step)}", esperava ver "{step.expect}", e não apareceu')
                 done_count[key] = done_count.get(key, 0) + 1
                 last_done = key
                 if step.action == "fill" and outcome.selected_element is not None:

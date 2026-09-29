@@ -9,7 +9,7 @@ from typing import Optional, Protocol
 
 from openai import BadRequestError
 
-from .plan import PLAN_SCHEMA, Plan, PlanError, parse_plan
+from .plan import PLAN_SCHEMA, Plan, PlanError, check_goals, check_request, parse_goals, parse_plan
 from .prompt import SYSTEM, user_message
 
 
@@ -20,6 +20,7 @@ class Planner(Protocol):
         url: str,
         page_elements: Optional[list[str]] = None,
         history: Optional[list[str]] = None,
+        known_goals: Optional[set[str]] = None,
     ) -> Plan: ...
 
 
@@ -76,8 +77,12 @@ class LLMPlanner:
         url: str,
         page_elements: Optional[list[str]] = None,
         history: Optional[list[str]] = None,
+        known_goals: Optional[set[str]] = None,
     ) -> Plan:
-        """history: o que já aconteceu na execução (passos feitos e falhas), para replanejar."""
+        """
+        history: o que já aconteceu na execução (passos feitos e falhas), para replanejar.
+        known_goals: ids das metas já definidas na execução (um replanejamento pode citá-las).
+        """
         messages = [
             {"role": "system", "content": SYSTEM},
             {"role": "user", "content": user_message(request, url, page_elements, history)},
@@ -93,8 +98,13 @@ class LLMPlanner:
             tokens_out += getattr(usage, "completion_tokens", 0) or 0
             raw = response.choices[0].message.content or ""
             try:
-                steps = parse_plan(_extract_json(raw))
-                return Plan(steps=steps, model=self.model, latency_s=round(time.perf_counter() - start, 2),
+                data = _extract_json(raw)
+                steps = parse_plan(data)
+                goals = parse_goals(data)
+                check_goals(steps, goals, known_goals)
+                if not history and steps:
+                    check_request(steps, goals, request)   # só o plano inicial cobre o pedido todo
+                return Plan(steps=steps, goals=goals, model=self.model, latency_s=round(time.perf_counter() - start, 2),
                             tokens_in=tokens_in, tokens_out=tokens_out, attempts=attempt, raw=raw)
             except PlanError as exc:
                 last_error = exc

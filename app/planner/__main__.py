@@ -64,9 +64,13 @@ def main() -> int:
 
         print(f"\nPlano ({len(plan.steps)} passos, {plan.latency_s}s, "
               f"{plan.tokens_in}+{plan.tokens_out} tokens, {plan.attempts} tentativa(s)):")
+        for g in plan.goals:
+            print(f"  meta {g.id}: {g.description}" + ("  (conclusiva)" if g.conclusive else ""))
         for i, s in enumerate(plan.steps, 1):
             value = f' = "{s.value}"' if s.value is not None else ""
-            print(f"  {i}. {s.action:12} {s.description}{value}")
+            goal = f"  [{s.goal}]" if s.goal else ""
+            expect = f'  → espera "{s.expect}"' if s.expect else ""
+            print(f"  {i}. {s.action:12} {s.description}{value}{goal}{expect}")
 
         if args.executar and plan.steps:
             executor = ActionExecutor(page, resolver=resolver, disambiguator=TerminalDisambiguator(), can_point=True)

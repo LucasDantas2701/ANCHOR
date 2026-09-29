@@ -28,8 +28,37 @@ que quebram compatibilidade também sobem o MINOR.
   aparecer (o que tiver a descrição ou o que receber o foco).
 - `eval/plan_run.py --agente`: colunas de ações sem efeito e de término prematuro (o agente
   declarou sucesso, mas as verificações da tarefa falharam).
+- Verificação do efeito: clicar numa caixa de marcação ou opção confere se o estado dela mudou
+  (antes, contava como "sem efeito", porque a estrutura da página não muda); clicar num campo
+  ou numa lista não exige efeito, porque só dá o foco.
+- `press Enter` num elemento que não é campo de texto vai para o último campo preenchido.
+- Um clique que só dá o foco (num campo ou numa lista) é aceito, mas não cumpre a meta.
+- Valores com colchetes, aspas ou o rótulo "opções:" copiados do resumo da página são limpos
+  antes da execução e da verificação do efeito (ex.: `"[Price: low to high]"`).
 - `eval/fixtures/feedback.js`: resposta visível às ações nas páginas de teste, que não têm
   servidor. Incluído em todas as páginas, inclusive as do holdout, sem mudar o conteúdo delas.
+- Metas (checkpoints) no plano: o planejador lista as metas do pedido, marcando as
+  conclusivas (salvar, enviar), e liga cada passo a uma meta; as conclusivas vêm por último,
+  e planos que violam isso recebem o erro e são refeitos. O agente acompanha as metas (cumprida
+  quando o último passo dela dá certo com o efeito verificado) e só declara o fim com todas
+  cumpridas; o planejador que encerra com metas pendentes leva a "cancelado". Metas que só
+  tinham ações destrutivas barradas são descartadas, e a meta cujo passo falhou e que o
+  replanejamento abandonou (trocando por outro caminho) é marcada como substituída. Todo plano
+  com metas precisa de uma meta conclusiva, e toda meta precisa de pelo menos um passo; planos
+  que violam isso voltam ao modelo com o erro.
+- Conferência do plano contra o pedido, sem LLM, no plano inicial: se o pedido usa um verbo
+  conclusivo (salvar, enviar, excluir, pesquisar, cancelar, confirmar, baixar), algum passo ou
+  meta precisa fazer isso num clique ou tecla (a descrição de uma meta ou um preenchimento não
+  bastam: preencher a busca não é pesquisar); e os dados do pedido (nomes próprios, números como CPF e telefone,
+  e-mails, textos entre aspas) precisam aparecer em algum passo. Um plano que não cobre o
+  pedido volta ao modelo com o motivo. Ataca o término prematuro de modelos pequenos, que
+  definiam só as metas que conseguiam cumprir.
+- Efeito esperado (camada 2): o passo pode informar um texto que deve aparecer; se ele não
+  aparecer entre o texto novo da página, o passo fica suspeito (registrado no histórico e numa
+  métrica), mas não falha.
+- Replanejamentos e a conferência do fim recebem o estado das metas e as mensagens visíveis na
+  página (camada 3, parte das mensagens).
+- `eval/plan_run.py --agente`: colunas de metas cumpridas e de suspeitas.
 - Licença PolyForm Strict 1.0.0 (`LICENSE`): uso não comercial permitido, sem modificação nem
   redistribuição; direitos autorais do autor. Seção "Uso responsável" no README.
 

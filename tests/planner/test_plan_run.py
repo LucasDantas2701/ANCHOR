@@ -29,7 +29,10 @@ def test_plano_do_modelo_cumpre_a_tarefa(page):
 
 
 def test_plano_errado_nao_cumpre(page):
-    client = FakeClient(as_json([["check", "caixa Selecionar Bruno Lima", None]]))
+    # Cobre o pedido (cita a Ana e a Carla), mas também marca o Bruno.
+    client = FakeClient(as_json([["check", "caixa Selecionar Ana Souza", None],
+                                 ["check", "caixa Selecionar Carla Mendes", None],
+                                 ["check", "caixa Selecionar Bruno Lima", None]]))
     r = run_task(fresh(page), LLMPlanner(client, "falso"), "falso", TASK, use_page=True)
     assert r.plano_valido and not r.sucesso
     assert r.verificacoes_ok < r.verificacoes
@@ -94,10 +97,23 @@ def test_modo_agente_confere_o_fim_e_conta_as_chamadas(page):
 def test_termino_prematuro_e_contado(page):
     from eval.plan_run import run_task_agent
 
-    # O modelo "esquece" de marcar a Carla e declara o fim: as verificações falham.
+    # O plano cita a Carla, mas só passa o mouse sobre ela e declara o fim: as
+    # verificações da tarefa falham (e a conferência do plano contra o pedido não pega isso).
     task = next(t for t in TASKS_ALL if t["id"] == "p-usr-02")
-    client = FakeClient(as_json([["check", "Selecionar Ana Souza", None]]), as_json([]))
+    client = FakeClient(as_json([["check", "Selecionar Ana Souza", None],
+                                 ["hover", "Selecionar Carla Mendes", None]]), as_json([]))
     r = run_task_agent(fresh(page), LLMPlanner(client, "falso"), "falso", task)
     assert r.prematuro and not r.sucesso
     s = summarize([r])
     assert s["prematuros"] == 1
+
+
+def test_modo_agente_registra_metas_e_suspeitas(page):
+    from eval.plan_run import run_task_agent
+    plan = {"goals": [{"id": "g1", "description": "inativos filtrados", "conclusive": True}],
+            "steps": [{"action": "select", "description": "Filtrar por status", "value": "Inativos",
+                       "goal": "g1", "expect": "Mostrando 1 usuário inativo"}]}
+    client = FakeClient(json.dumps(plan), json.dumps({"goals": [], "steps": []}))
+    r = run_task_agent(fresh(page), LLMPlanner(client, "falso"), "falso", FILTER_TASK)
+    assert r.sucesso and r.metas == 1 and r.metas_cumpridas == 1
+    assert r.suspeitas == 1                    # a página de teste não mostra esse texto

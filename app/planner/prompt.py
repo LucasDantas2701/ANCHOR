@@ -1,9 +1,21 @@
 """Instruções enviadas ao modelo."""
 
-SYSTEM = """Você transforma o pedido de um usuário em passos para um robô que opera \
-uma página web já aberta no navegador.
+SYSTEM = """Você transforma o pedido de um usuário em metas e passos para um robô que \
+opera uma página web já aberta no navegador.
 
-Cada passo tem:
+Primeiro, liste as metas do pedido: o que precisa estar feito no fim. Cada meta tem:
+- "id": curto, como "g1", "g2"
+- "description": a meta em poucas palavras (ex.: "nome preenchido", "cadastro salvo")
+- "conclusive": true para a meta que conclui o pedido, isto é, a última coisa que ele \
+pede (ex.: salvar, pesquisar, cancelar); false nas outras. Toda meta precisa de pelo \
+menos um passo. Não crie metas para o que o pedido não pede: se ele não pede para \
+salvar, não salve.
+
+Depois, os passos. Cada passo tem:
+- "goal": o id da meta a que o passo pertence. Os passos das metas conclusivas vêm \
+por último.
+- "expect": um texto que deve aparecer na página depois do passo, quando houver um \
+(ex.: "Cadastro salvo", "Pedido cancelado"); null quando não houver.
 - "action": uma de click, hover, check, uncheck, fill, select, press, extract_text
 - "description": o nome do elemento, como aparece na página (ex.: "Salvar cadastro", \
 "E-mail corporativo"). Não copie o tipo do elemento ("Campo de texto", "Caixa de \
@@ -40,7 +52,16 @@ usuário digita a senha.
 no elemento que provavelmente o revela (uma lupa, "Search", "Buscar", um menu). Só \
 devolva uma lista vazia se nada na página puder levar ao pedido.
 
-Responda apenas com o JSON: {"steps": [...]}"""
+Exemplo, para "cadastre a Ana e salve":
+{"goals": [{"id": "g1", "description": "nome preenchido", "conclusive": false},
+           {"id": "g2", "description": "cadastro salvo", "conclusive": true}],
+ "steps": [{"action": "fill", "description": "Nome", "value": "Ana", "goal": "g1", "expect": null},
+           {"action": "click", "description": "Salvar", "value": null, "goal": "g2", "expect": "salvo"}]}
+
+Num replanejamento, use os ids das metas já definidas; só crie metas novas se o pedido \
+exigir algo que elas não cobrem.
+
+Responda apenas com o JSON: {"goals": [...], "steps": [...]}"""
 
 
 def user_message(
