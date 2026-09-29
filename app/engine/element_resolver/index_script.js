@@ -363,6 +363,10 @@
             id, tag, role, type, label, text, value, hint, href, testId,
             state: stateOf(el, tag),
             layer: inLayer(el),
+            // Elemento indexado mais próximo que contém este (percorrido antes, na ordem
+            // do documento), e se este é interativo: usados para unir aninhados.
+            parentId: el.parentElement?.closest(`[${ATTR}]`)?.getAttribute(ATTR) || "",
+            interactive: el.matches(INTERACTIVE) || pointerOnly.has(el),
             context: contextOf(el),
             content,
             ...geometry(el),

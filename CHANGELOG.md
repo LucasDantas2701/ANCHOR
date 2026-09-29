@@ -15,6 +15,16 @@ que quebram compatibilidade também sobem o MINOR.
 
 ## [Não lançado]
 
+### Adicionado
+- Licença MIT (`LICENSE`) e seção "Uso responsável" no README.
+
+### Alterado
+- Elementos aninhados viram um candidato só quando um contém o outro e apenas um deles é
+  interativo (ex.: o link de um produto e o nome dentro dele); fica o interativo, com o maior
+  score dos dois. O script de percepção passou a informar `parentId` e `interactive`.
+- A memória das escolhas guarda no máximo 500 escolhas por arquivo; ao passar disso, descarta a
+  usada há mais tempo.
+
 ## [0.2.1] - 2026-09-26
 
 Correções encontradas em testes em sites reais (LinkedIn e CoinMarketCap), reproduzidas em

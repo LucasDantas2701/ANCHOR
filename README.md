@@ -355,6 +355,31 @@ Reutilização da sessão
 
 Os perfis do navegador são ignorados pelo Git e não fazem parte do repositório.
 
+## Uso responsável
+
+O smart-rpa é uma ferramenta de uso geral. **Quem a usa responde pelo que ela faz**, como
+responderia se executasse as mesmas ações à mão. Antes de automatizar um site:
+
+* **Respeite os termos de uso do site.** Muitos proíbem automação (o LinkedIn, por exemplo), e
+  a conta usada pode ser restringida. A avaliação do projeto usa apenas páginas próprias e sites
+  que permitem automação.
+* **Respeite a LGPD e as regras da sua empresa** ao lidar com dados pessoais: automatize apenas
+  o que você tem autorização para fazer manualmente.
+* **Revise as ações sensíveis.** O sistema barra ações destrutivas que o pedido não mencionou e,
+  a partir da versão 0.3.0, pede confirmação antes de excluir, enviar, salvar, baixar, enviar
+  arquivos ou pagar.
+* **Mantenha os perfis do navegador (`profiles/`) no seu computador.** Eles guardam as sessões
+  dos sistemas e valem como senha; ficam fora do Git.
+
+O projeto não inclui, e não vai incluir, recursos voltados a uso abusivo, como resolver CAPTCHA,
+criar contas em massa ou coletar dados em escala. Com um modelo local (Ollama), o pedido e as
+informações das páginas não saem do computador ou da rede da empresa.
+
+## Licença
+
+Distribuído sob a [licença MIT](LICENSE): o software é fornecido "como está", sem garantia de
+qualquer tipo.
+
 ## Limitações conhecidas
 
 * O casamento de texto é por palavras, com um dicionário de sinônimos; não há semântica real.

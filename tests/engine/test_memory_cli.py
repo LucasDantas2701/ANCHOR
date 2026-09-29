@@ -131,3 +131,15 @@ def test_escolha_errada_e_corrigida_depois_de_esquecida(page, tmp_path):
     assert right.asked == 1
     assert fixed.resolved_by == "user"
     assert fixed.selected_element.label == "Add to wishlist"
+
+
+def test_memoria_descarta_a_escolha_usada_ha_mais_tempo(tmp_path):
+    memory = ChoiceMemory(tmp_path / "m.json", max_entries=3)
+    for i in range(3):
+        memory.remember(URL, "click", f"passo {i}", sig("button", f"B{i}"))
+        memory.entries[next(k for k in memory.entries if k.endswith(f"passo {i}"))].last_used = f"2026-01-0{i + 1}T00:00:00"
+    memory.mark_used(URL, "click", "passo 0")          # o passo 0 volta a ser o mais recente
+    memory.remember(URL, "click", "passo 3", sig("button", "B3"))
+
+    kept = sorted(e.description for e in ChoiceMemory(tmp_path / "m.json").entries.values())
+    assert kept == ["passo 0", "passo 2", "passo 3"]   # saiu o passo 1, o usado há mais tempo

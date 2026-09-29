@@ -12,7 +12,9 @@ se a ordem dos itens mudar. Um caminho CSS fica como plano B.
 Para não contaminar execuções futuras:
     - se a ação falha com um elemento vindo da memória, a entrada é apagada;
     - se o elemento não é encontrado `max_misses` vezes seguidas
-      (o site mudou), a entrada também é apagada.
+      (o site mudou), a entrada também é apagada;
+    - a memória guarda no máximo `max_entries` escolhas (500, por padrão);
+      ao passar disso, sai a usada há mais tempo.
 """
 
 from __future__ import annotations
@@ -94,9 +96,13 @@ class ChoiceMemory:
     MIN_SIMILARITY = 2.5   # papel+tag iguais, texto igual e algum contexto em comum
     MIN_MARGIN = 0.5       # distância mínima para o 2º mais parecido
 
-    def __init__(self, path: str | Path, max_misses: int = 3):
+    def __init__(self, path: str | Path, max_misses: int = 3, max_entries: int = 500):
+        """
+        max_entries: ao passar desse número de escolhas, sai a usada há mais tempo.
+        """
         self.path = Path(path)
         self.max_misses = max_misses
+        self.max_entries = max_entries
         self.entries: dict[str, Entry] = {}
         self._load()
 
@@ -139,6 +145,9 @@ class ChoiceMemory:
             uses=1,
         )
         self.entries[key] = entry
+        while len(self.entries) > self.max_entries:
+            oldest = min(self.entries, key=lambda k: (self.entries[k].last_used, self.entries[k].created))
+            del self.entries[oldest]
         self.save()
         return entry
 

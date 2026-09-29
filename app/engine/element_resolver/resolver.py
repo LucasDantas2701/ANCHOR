@@ -40,6 +40,34 @@ def accepts(record: dict, action: str | None) -> bool:
     return True
 
 
+def merge_nested(matches: list[Match], records: list[dict]) -> list[Match]:
+    """
+    Une elementos aninhados que são o mesmo alvo: quando um contém o outro e só
+    um deles é interativo (ex.: um link e o nome do produto dentro dele), fica o
+    interativo, com o maior score dos dois. Se os dois forem interativos (ex.: um
+    card clicável com um botão dentro), continuam candidatos distintos.
+    """
+    by_id = {r["id"]: r for r in records}
+    candidates = {m.id: m for m in matches}
+    dropped: set[str] = set()
+
+    for match in matches:
+        record = by_id.get(match.id, {})
+        parent_id = record.get("parentId")
+        if not parent_id or parent_id not in candidates:
+            continue
+        parent = by_id[parent_id]
+        if record.get("interactive") == parent.get("interactive"):
+            continue
+        keep, drop = (parent_id, match.id) if parent.get("interactive") else (match.id, parent_id)
+        if drop in dropped or keep in dropped:
+            continue
+        candidates[keep].score = max(candidates[keep].score, candidates[drop].score)
+        dropped.add(drop)
+
+    return [m for m in matches if m.id not in dropped]
+
+
 class ElementResolver:
     """
     Localiza elementos de uma página utilizando
@@ -242,6 +270,8 @@ class ElementResolver:
                 for match in matches
                 if filter(match)
             ]
+
+        matches = merge_nested(matches, self._records)
 
         matches = [
             match
