@@ -319,6 +319,93 @@
         ".rec:nth-of-type(2) button",
         "a.cart"
       ]
+    },
+    {
+      "id": "p-pop-01",
+      "split": "dev",
+      "fixture": "busca_popup.html",
+      "request": "Pesquise a moeda Pi Network",
+      "checks": [
+        "/pi network/i.test(document.querySelector('#q').value)",
+        "__entered('#q')"
+      ],
+      "allowed": [
+        ".lupa",
+        "#q"
+      ],
+      "reference": [
+        [
+          "click",
+          "Search /",
+          null
+        ],
+        [
+          "fill",
+          "Search coins",
+          "Pi Network"
+        ],
+        [
+          "press",
+          "Search coins",
+          "Enter"
+        ]
+      ],
+      "nota": "Reproduz o teste no CoinMarketCap (26/09/2026): a busca abre num pop-up no fim da página."
+    },
+    {
+      "id": "p-ent-01",
+      "split": "dev",
+      "fixture": "busca_enter.html",
+      "request": "Pesquise vagas de rpa em manaus",
+      "checks": [
+        "/rpa/i.test(document.querySelector('#s').value)",
+        "__entered('#s') || __clicked('[role=option]')"
+      ],
+      "allowed": [
+        "#s",
+        "[role=option]"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Pesquisar",
+          "rpa em manaus"
+        ],
+        [
+          "press",
+          "Pesquisar",
+          "Enter"
+        ]
+      ],
+      "nota": "Reproduz o teste no LinkedIn (26/09/2026): a busca não tem botão, só Enter."
+    },
+    {
+      "id": "p-vag-01",
+      "split": "dev",
+      "fixture": "vagas.html",
+      "request": "Salve a primeira vaga",
+      "checks": [
+        "__clicked('#det1 .salvar')",
+        "!__clicked('.fechar')",
+        "!__clicked('.candidatar')"
+      ],
+      "allowed": [
+        ".job1 a",
+        "#det1 .salvar"
+      ],
+      "reference": [
+        [
+          "click",
+          "Consultor RPA",
+          null
+        ],
+        [
+          "click",
+          "Salvar vaga",
+          null
+        ]
+      ],
+      "nota": "Reproduz o teste no LinkedIn (26/09/2026): abrir a vaga mostra o botão Salvar; cada vaga tem um Fechar."
     }
   ]
 }

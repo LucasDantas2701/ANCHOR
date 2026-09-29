@@ -75,14 +75,22 @@ def main() -> int:
             can_point=True,
             memory=ChoiceMemory(args.memoria),
         )
-        result = Agent(page, planner, executor, max_failures=args.max_tentativas).run(args.pedido)
+        try:
+            result = Agent(page, planner, executor, max_failures=args.max_tentativas).run(args.pedido)
+        except KeyboardInterrupt:
+            print("\n\nExecução interrompida pelo usuário.")
+            context.close()
+            return 130
 
         print(f"\nResultado: {result.status} — {result.message}")
         print(f"Passos executados: {sum(r.status == 'success' for r in result.records)} | "
               f"chamadas ao modelo: {result.llm_calls} | replanejamentos: {result.replans} | "
               f"falhas: {result.failures} | intervenções do usuário: {result.interventions} | "
               f"tokens: {result.tokens_in}+{result.tokens_out} | tempo: {result.seconds} s")
-        input("\nEnter para fechar o navegador...")
+        try:
+            input("\nEnter para fechar o navegador...")
+        except KeyboardInterrupt:
+            pass
         context.close()
     return 0 if result.ok else 1
 

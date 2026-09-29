@@ -407,9 +407,56 @@ class ActionExecutor:
             self.disambiguator.notify(
                 "Clique no elemento na janela do navegador."
             )
-            return capture_click(self.page, self.point_timeout_s)
+            captured = capture_click(self.page, self.point_timeout_s)
+            return self._enrich_captured(captured, action_name) if captured else None
 
         return None
+
+    _MARK_PICKED_JS = """(id) => {
+        const e = document.querySelector(`[data-er-id="${id}"]`);
+        if (e) e.setAttribute("data-er-picked", "1");
+        return !!e;
+    }"""
+
+    _READ_PICKED_JS = """() => {
+        const e = document.querySelector("[data-er-picked]");
+        if (!e) return null;
+        e.removeAttribute("data-er-picked");
+        if (e.hasAttribute("data-er-id")) return { id: e.getAttribute("data-er-id"), indexed: true };
+        const id = "el-user-" + Date.now();
+        e.setAttribute("data-er-id", id);
+        return {
+            id, indexed: false,
+            context: (e.parentElement && e.parentElement.innerText || "").replace(/\\s+/g, " ").trim().slice(0, 300),
+            testId: e.getAttribute("data-testid") || e.getAttribute("data-test") || "",
+            label: e.getAttribute("aria-label") || e.getAttribute("title") || "",
+        };
+    }"""
+
+    def _enrich_captured(self, match: Match, action_name: str) -> Match:
+        """
+        O elemento clicado pelo usuário, com a assinatura completa (contexto,
+        pista visual, data-testid), para a memória reencontrá-lo depois.
+        """
+        try:
+            if not self.page.evaluate(self._MARK_PICKED_JS, match.id):
+                return match
+            mode = "content" if action_name.startswith("extract") else "interactive"
+            self.resolver.index(mode)
+            info = self.page.evaluate(self._READ_PICKED_JS)
+        except Exception:
+            return match
+        if not info:
+            return match
+        if info["indexed"]:
+            record = next((r for r in self.resolver.records if r["id"] == info["id"]), None)
+            if record is not None:
+                return self.resolver.to_match(record)
+        match.id = info["id"]
+        match.context = info.get("context", "")
+        match.test_id = info.get("testId", "")
+        match.label = match.label or info.get("label", "")
+        return match
 
     def click(
         self,

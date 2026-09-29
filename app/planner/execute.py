@@ -16,11 +16,12 @@ from .plan import Plan, Step
 _MULTIWORD_KINDS = sorted({k for k in KIND.values() if " " in k}, key=len, reverse=True)
 _KIND_RE = re.compile(r"^(?:" + "|".join(re.escape(k) for k in _MULTIWORD_KINDS) + r")\s+", re.IGNORECASE)
 _QUOTES_RE = re.compile(r"[\"“”]")
+_POPUP_RE = re.compile(r"\s*\[pop-up\]", re.IGNORECASE)
 
 
 def clean_description(text: str) -> str:
-    """Tira rótulos de tipo copiados do resumo da página e aspas."""
-    cleaned = _QUOTES_RE.sub("", _KIND_RE.sub("", text.strip())).strip()
+    """Tira rótulos de tipo e a marca [pop-up] copiados do resumo da página, e aspas."""
+    cleaned = _QUOTES_RE.sub("", _KIND_RE.sub("", _POPUP_RE.sub("", text).strip())).strip()
     return cleaned or text
 
 
@@ -30,10 +31,12 @@ def run_step(executor: ActionExecutor, step: Step) -> ActionResult:
         return executor.fill(d, v)
     if a == "select":
         result = executor.select(d, label=v)
-        # "select" num botão de opção ou numa caixa de marcação: o certo é marcar.
-        element = result.selected_element
-        if result.status == "error" and element is not None and element.role in ("radio", "checkbox"):
-            return executor.check(d)
+        # "select" que não deu certo pode ser um botão de opção ou uma caixa de
+        # marcação descrita como "opção": tenta marcar e só usa se funcionar.
+        if result.status != "success":
+            checked = executor.check(d)
+            if checked.status == "success":
+                return checked
         return result
     if a == "press":
         return executor.press(d, key=v)

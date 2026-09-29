@@ -21,7 +21,14 @@ from typing import Callable, Optional
 from playwright.sync_api import Page
 
 from app.engine.action_executor import ActionExecutor, ActionResult
+from app.engine.element_resolver.resolver import accepts
+from app.engine.element_resolver.tokenizer import DESTRUCTIVE_N, normalize_tokens, tokenize
 from app.planner import Plan, Step, page_elements, run_step
+from app.planner.execute import clean_description
+
+# Radicais de "pesquisar", "buscar", "procurar", "search", "find", "ir", "go":
+# um clique desses sem botão, logo depois de preencher um campo, vira Enter.
+SUBMIT_STEMS = {"pesquis", "busc", "procur", "search", "find", "go", "lupa"}
 
 
 @dataclass
@@ -48,6 +55,10 @@ class AgentResult:
     @property
     def ok(self) -> bool:
         return self.status == "success"
+
+
+def step_key(step: Step) -> tuple:
+    return (step.action, clean_description(step.description).lower(), step.value)
 
 
 def describe_step(step: Step) -> str:
@@ -84,6 +95,8 @@ class Agent:
         max_failures: int = 3,
         max_steps: int = 25,
         verify_end: bool = True,
+        max_end_checks: int = 2,
+        max_repeats: int = 3,
         report: Optional[Callable[[str], None]] = print,
     ):
         self.page = page
@@ -92,12 +105,14 @@ class Agent:
         self.max_failures = max_failures
         self.max_steps = max_steps
         self.verify_end = verify_end
+        self.max_end_checks = max_end_checks
+        self.max_repeats = max_repeats
         self.report = report or (lambda _: None)
 
     # ------------------------------------------------------------------
 
     def _plan(self, request: str, history: list[str], result: AgentResult) -> Plan:
-        elements = page_elements(self.executor.resolver)
+        elements = page_elements(self.executor.resolver, request=request)
         plan = self.planner.plan(request, self.page.url, elements, history or None)
         result.llm_calls += 1
         result.tokens_in += plan.tokens_in
@@ -112,11 +127,73 @@ class Agent:
 
     # ------------------------------------------------------------------
 
+    def _layer_count(self) -> int:
+        """Quantos elementos estão num pop-up, diálogo ou menu aberto."""
+        return sum(1 for r in self.executor.resolver.records if r.get("layer"))
+
+    @staticmethod
+    def _destructive(text: str) -> bool:
+        tokens = tokenize(text or "")
+        return bool((tokens | normalize_tokens(tokens)) & DESTRUCTIVE_N)
+
+    def _unrequested_destructive(self, request: str, step: Step) -> bool:
+        """
+        O passo fecha, exclui, remove, oculta ou cancela algo que o pedido não mencionou?
+        Fechar um pop-up (aviso, diálogo) não conta: é navegação, não descarte.
+        """
+        if step.action != "click" or self._destructive(request):
+            return False
+        description = clean_description(step.description)
+        if not self._destructive(description):
+            return False
+        status, found, _ = self.executor._resolve(description, "click")
+        return not (found is not None and found.layer)
+
+    def _is_submit(self, step: Step) -> bool:
+        return step.action == "click" and bool(tokenize(clean_description(step.description)) & SUBMIT_STEMS)
+
+    def _replan(self, request, history, result, start, why):
+        """Replaneja; devolve a nova fila, ou um AgentResult se não for possível."""
+        self.report(f"  {why}; replanejando...")
+        try:
+            queue = list(self._plan(request, history, result).steps)
+        except Exception as exc:  # plano inválido, conexão, modelo inexistente...
+            return self._finish(result, "failed", f"falha ao replanejar: {exc}", start)
+        result.replans += 1
+        return queue
+
+    def _fail(self, request, history, result, start, step, status, resolved_by, reason):
+        """Registra uma falha e replaneja, ou cancela depois de max_failures."""
+        result.failures += 1
+        result.records.append(StepRecord(step, status, resolved_by, reason))
+        history.append(f"falhou: {describe_step(step)} — {reason}")
+        self.report(f"    falhou: {reason}")
+        if result.failures >= self.max_failures:
+            return self._finish(
+                result, "cancelled",
+                f"{self.max_failures} tentativas sem sucesso; último problema: "
+                f"{describe_step(step)} — {reason}",
+                start,
+            )
+        queue = self._replan(request, history, result, start,
+                             f"Tentativa {result.failures + 1} de {self.max_failures}")
+        if isinstance(queue, AgentResult):
+            return queue
+        if not queue:
+            return self._finish(result, "cancelled",
+                                f"o planejador não encontrou outro caminho depois de: {reason}", start)
+        return queue
+
     def run(self, request: str) -> AgentResult:
         start = time.perf_counter()
         result = AgentResult(status="failed", message="")
         history: list[str] = []
-        verified_end = False
+        end_checks = 0
+        done_count: dict[tuple, int] = {}
+        last_done: Optional[tuple] = None   # último passo executado com sucesso
+        after_replan = False                # a fila atual acabou de ser replanejada
+        last_fill = None                    # elemento do último "fill", para o Enter
+        blocked: set[tuple] = set()         # passos destrutivos barrados
 
         try:
             self.report("Planejando...")
@@ -128,74 +205,132 @@ class Agent:
             return self._finish(result, "cancelled", "o pedido não pode ser feito nesta página", start)
 
         while True:
+            # ---------------------------------------------------- fim do plano
             if not queue:
-                if not self.verify_end or verified_end:
+                if not self.verify_end:
                     return self._finish(result, "success", "todos os passos foram executados", start)
+                if end_checks >= self.max_end_checks:
+                    return self._finish(
+                        result, "cancelled",
+                        "a conferência do fim continuou encontrando passos; confira o resultado", start)
+                end_checks += 1
                 self.report("Conferindo se falta algo...")
                 try:
                     queue = list(self._plan(request, history, result).steps)
                 except Exception as exc:
                     return self._finish(result, "failed", f"falha ao conferir o fim: {exc}", start)
-                verified_end = True
+                # Passos já feitos que a conferência propõe de novo: o modelo não percebeu
+                # que estavam feitos. Descarta; se não sobrar nada, o objetivo foi atingido.
+                queue = [s for s in queue if step_key(s) not in done_count]
                 if not queue:
                     return self._finish(result, "success", "objetivo atingido", start)
                 result.replans += 1
+                after_replan = True
                 continue
 
             if len(result.records) >= self.max_steps:
                 return self._finish(result, "failed", f"limite de {self.max_steps} passos atingido", start)
 
             step = queue.pop(0)
+            key = step_key(step)
+
+            # ---------------------------------------------------- laço
+            repeated_now = after_replan and key == last_done
+            if repeated_now or done_count.get(key, 0) >= self.max_repeats:
+                reason = ("este passo acabou de ser executado com sucesso; não o repita"
+                          if repeated_now else
+                          f"este passo já foi executado {done_count[key]} vezes; o plano está repetindo")
+                self.report(f"  ↺ {describe_step(step)}")
+                after_replan = False
+                outcome = self._fail(request, history, result, start, step, "loop", "", reason)
+                if isinstance(outcome, AgentResult):
+                    return outcome
+                queue, after_replan = outcome, True
+                continue
+            after_replan = False
+
+            # ---------------------------------------------------- ação destrutiva não pedida
+            if self._unrequested_destructive(request, step):
+                reason = "o pedido não pede para fechar, excluir, remover, ocultar ou cancelar; não inclua esse passo"
+                self.report(f"  ✕ {describe_step(step)} (barrado: ação destrutiva não pedida)")
+                if key in blocked:
+                    outcome = self._fail(request, history, result, start, step, "blocked", "", reason)
+                    if isinstance(outcome, AgentResult):
+                        return outcome
+                    queue, after_replan = outcome, True
+                    continue
+                blocked.add(key)
+                result.records.append(StepRecord(step, "blocked", "", reason))
+                history.append(f"barrado: {describe_step(step)} — {reason}")
+                continue
+
             url_before = self.page.url
             self.report(f"  → {describe_step(step)}")
-            outcome = run_step(self.executor, step)
+
+            # ---------------------------------------------------- Enter no lugar do botão de busca
+            if self._is_submit(step) and last_fill is not None:
+                status, found, _ = self.executor._resolve(clean_description(step.description), "click")
+                # Sem botão: nada encontrado, ou o "botão" encontrado é o próprio campo de texto.
+                record = next((r for r in self.executor.resolver.records
+                               if found is not None and r["id"] == found.id), None)
+                is_field = record is not None and accepts(record, "fill")
+                if status != "success" or is_field:
+                    try:
+                        last_fill.locator.press("Enter")
+                        outcome = ActionResult(status="success", action="press", description=step.description,
+                                               selected_element=last_fill, resolved_by="enter_no_campo")
+                        self.report("    sem botão de busca: Enter no campo preenchido")
+                    except Exception as exc:
+                        outcome = ActionResult(status="error", action="press", description=step.description,
+                                               error=str(exc))
+                else:
+                    outcome = run_step(self.executor, step)
+            else:
+                outcome = run_step(self.executor, step)
 
             if outcome.resolved_by == "user":
                 result.interventions += 1
 
+            # ---------------------------------------------------- sucesso
             if outcome.status == "success":
                 result.records.append(StepRecord(step, "success", outcome.resolved_by))
                 history.append(f"feito: {describe_step(step)}")
-                verified_end = False
+                done_count[key] = done_count.get(key, 0) + 1
+                last_done = key
+                if step.action == "fill" and outcome.selected_element is not None:
+                    last_fill = outcome.selected_element
 
+                layers_before = self._layer_count()
                 if self.page.url != url_before:
                     self.page.wait_for_load_state()
-                    self.report("  A página mudou; replanejando...")
-                    try:
-                        queue = list(self._plan(request, history, result).steps)
-                    except Exception as exc:
-                        return self._finish(result, "failed", f"falha ao replanejar: {exc}", start)
-                    result.replans += 1
+                    why = "A página mudou"
+                elif step.action == "fill":
+                    # Sugestões que aparecem enquanto se digita são efeito normal da
+                    # digitação: não justificam replanejar.
+                    why = ""
+                else:
+                    self.executor.resolver.index("interactive")
+                    layers_after = self._layer_count()
+                    why = ("Abriu um pop-up" if layers_after > layers_before
+                           else "Fechou um pop-up" if layers_after < layers_before
+                           else "")
+                if why:
+                    queue = self._replan(request, history, result, start, why)
+                    if isinstance(queue, AgentResult):
+                        return queue
+                    after_replan = True
                 continue
 
+            # ---------------------------------------------------- pulado pelo usuário
             if outcome.resolved_by == "user_skipped":
                 result.records.append(StepRecord(step, "skipped", "user_skipped"))
                 history.append(f"pulado pelo usuário: {describe_step(step)}")
                 self.report("    pulado pelo usuário")
                 continue
 
-            reason = failure_reason(outcome)
-            result.failures += 1
-            result.records.append(StepRecord(step, outcome.status, outcome.resolved_by, reason))
-            history.append(f"falhou: {describe_step(step)} — {reason}")
-            self.report(f"    falhou: {reason}")
-
-            if result.failures >= self.max_failures:
-                return self._finish(
-                    result, "cancelled",
-                    f"{self.max_failures} tentativas sem sucesso; último problema: "
-                    f"{describe_step(step)} — {reason}",
-                    start,
-                )
-
-            self.report(f"  Replanejando (tentativa {result.failures + 1} de {self.max_failures})...")
-            try:
-                queue = list(self._plan(request, history, result).steps)
-            except Exception as exc:
-                return self._finish(result, "failed", f"falha ao replanejar: {exc}", start)
-            result.replans += 1
-            if not queue:
-                return self._finish(
-                    result, "cancelled",
-                    f"o planejador não encontrou outro caminho depois de: {reason}", start,
-                )
+            # ---------------------------------------------------- falha
+            outcome_q = self._fail(request, history, result, start, step,
+                                   outcome.status, outcome.resolved_by, failure_reason(outcome))
+            if isinstance(outcome_q, AgentResult):
+                return outcome_q
+            queue, after_replan = outcome_q, True

@@ -194,6 +194,17 @@ class ChoiceMemory:
             if best - second >= self.MIN_MARGIN:
                 return Found(record=scored[0][1], similarity=best)
             return Found()  # dois elementos igualmente parecidos: melhor perguntar
+
+        # Texto idêntico e único na página, com o mesmo tipo de elemento: é ele, mesmo
+        # que o contexto tenha mudado (ex.: sugestões de pesquisa recriadas a cada busca).
+        sig = entry.signature
+        name = sig.get("text") or sig.get("label")
+        if name:
+            same = [r for r in records
+                    if r.get("role") == sig.get("role") and r.get("tag") == sig.get("tag")
+                    and (_same(name, r.get("text", "")) or _same(name, r.get("label", "")))]
+            if len(same) == 1:
+                return Found(record=same[0], similarity=round(similarity(sig, same[0]), 2))
         if entry.css_path:
             return Found(css_path=entry.css_path)
         return Found()

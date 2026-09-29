@@ -70,14 +70,13 @@ def test_check_aponta_tarefas_com_problema(capsys, browser):
     ok = dict(FILTER_TASK)
     bad = [
         {**ok, "id": "sem-campos", "allowed": []},
-        {**ok, "id": "seletor-quebrado", "allowed": ["#nao-existe"]},
         {**ok, "id": "pagina-inexistente", "fixture": "nao_existe.html"},
         {**ok, "id": "verificacao-com-erro", "checks": ["document.querySelector('#x').value === 1"]},
     ]
     assert check_tasks([ok], browser) == 0
     assert check_tasks(bad, browser) == 1
     out = capsys.readouterr().out
-    for name in ("sem-campos", "seletor-quebrado", "pagina-inexistente", "verificacao-com-erro"):
+    for name in ("sem-campos", "pagina-inexistente", "verificacao-com-erro"):
         assert name in out
 
 

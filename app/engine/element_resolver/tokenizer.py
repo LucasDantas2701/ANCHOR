@@ -24,6 +24,8 @@ from functools import lru_cache
 from .constants import (
     ACTION_EQUIVALENTS,
     ACTION_WORDS,
+    DESTRUCTIVE_WORDS,
+    KIND_WORDS,
     STOPWORDS,
     STRUCTURAL_WORDS,
     SYNONYMS,
@@ -136,6 +138,9 @@ SYNONYMS_N = build_synonyms(SYNONYMS)
 ACTION_WORDS_N = {stem(_basic(w)) for w in ACTION_WORDS if " " not in w}
 STOPWORDS_N = {stem(_basic(w)) for w in STOPWORDS}
 STRUCTURAL_WORDS_N = {stem(_basic(w)) for w in STRUCTURAL_WORDS}
+
+DESTRUCTIVE_N = {stem(_basic(w)) for w in DESTRUCTIVE_WORDS}
+KIND_WORDS_N = {stem(_basic(w)) for w in KIND_WORDS}
 
 _EQUIV_N = [{stem(w) for w in group} for group in ACTION_EQUIVALENTS]
 

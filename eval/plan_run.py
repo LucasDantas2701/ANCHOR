@@ -87,9 +87,9 @@ class ReferencePlanner:
         self.current: list = []
 
     def plan(self, request, url, page_elements=None, history=None) -> Plan:
-        if history:  # replanejamento ou conferência do fim no modo --agente: nada falta
-            return Plan(steps=[], model=self.model)
-        return Plan(steps=[Step(a, d, v) for a, d, v in self.current], model=self.model)
+        # No modo --agente, um replanejamento devolve os passos de referência que faltam.
+        done = sum(1 for h in (history or []) if h.startswith("feito:"))
+        return Plan(steps=[Step(a, d, v) for a, d, v in self.current[done:]], model=self.model)
 
 
 @dataclass
@@ -151,7 +151,7 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict) -> TaskRe
 def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool) -> TaskResult:
     page.goto((FIXTURES / task["fixture"]).as_uri())
     resolver = ElementResolver(page)
-    elements = page_elements(resolver) if use_page else None
+    elements = page_elements(resolver, request=task["request"]) if use_page else None
 
     if isinstance(planner, ReferencePlanner):
         planner.current = task["reference"]
@@ -253,7 +253,7 @@ def check_tasks(tasks: list[dict], browser=None) -> int:
         page.goto((FIXTURES / t["fixture"]).as_uri())
         for sel in t["allowed"]:
             if page.locator(sel).count() == 0:
-                problems.append(f"{tid}: seletor permitido não encontra nada: {sel}")
+                print(f"  [aviso] {tid}: {sel} não existe na página inicial (pode surgir depois)")
         for c in t["checks"]:
             try:
                 page.evaluate(f"() => Boolean({c})")

@@ -182,3 +182,37 @@ def test_mesma_descricao_em_outra_pagina_nao_usa_a_memoria(page, memory, tmp_pat
     assert user.asked == 1
     assert result.resolved_by == "user"
     assert len(memory.entries) == 2
+
+
+def suggestions_html(items):
+    options = "".join(
+        f'<div role="option" onclick="window.escolhida=\'{t}\'" style="cursor:pointer">{t}</div>' for t in items
+    )
+    return (f'<html><body><input aria-label="Pesquisar" value="rpa em manaus">'
+            f'<div role="listbox">{options}</div></body></html>')
+
+
+def test_sugestao_escolhida_pelo_clique_e_reencontrada_com_outras_ao_redor(page, memory):
+    page.set_content(suggestions_html(["rpa em manaus", "rpa developer", "rpa uipath"]))
+
+    class PointUser(FakeUser):
+        def choose(self, request):
+            page.evaluate(
+                "setTimeout(() => [...document.querySelectorAll('[role=option]')]"
+                ".find(e => e.textContent === 'rpa em manaus')"
+                ".dispatchEvent(new MouseEvent('click', {bubbles: true})), 200)"
+            )
+            return UserChoice("point")
+
+    step = "clicar na sugestão da pesquisa"
+    first = ActionExecutor(page, disambiguator=PointUser(), can_point=True,
+                           memory=memory, point_timeout_s=5).click(step)
+    assert first.resolved_by == "user"
+    saved = next(iter(memory.entries.values())).signature
+    assert saved["role"] == "option" and saved["context"]   # assinatura completa, com contexto
+
+    # Na próxima busca, a lista é recriada: outra ordem, outros itens.
+    page.set_content(suggestions_html(["rpa junior", "rpa em manaus", "rpa remoto", "rpa senior"]))
+    second = ActionExecutor(page, disambiguator=FakeUser(), memory=memory).click(step)
+    assert second.resolved_by == "memory"
+    assert page.evaluate("window.escolhida") == "rpa em manaus"

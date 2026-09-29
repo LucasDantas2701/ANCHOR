@@ -193,3 +193,14 @@ def test_select_em_botao_de_opcao_vira_check(page):
     results = run_plan(ActionExecutor(page), Plan(steps=[Step("select", "Opção PJ", "PJ")]))
     assert results[0][1].status == "success"
     assert page.is_checked("input[value=pj]")
+
+
+def test_resumo_guiado_pelo_pedido_traz_o_elemento_relevante(page):
+    from app.engine.element_resolver import ElementResolver
+    from app.planner import page_elements
+    links = "".join(f'<a href="/c/{i}">Categoria {i}</a> ' for i in range(90))
+    page.set_content(f'<html><body>{links}<div style="cursor:pointer">Search /</div></body></html>')
+    without = page_elements(ElementResolver(page))
+    with_request = page_elements(ElementResolver(page), request="pesquise a moeda Pi Network")
+    assert not any("Search /" in line for line in without)          # cortado pelo limite de 80
+    assert with_request[0].startswith('Área clicável "Search /"')   # guiado pelo pedido

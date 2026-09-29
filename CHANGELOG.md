@@ -15,6 +15,67 @@ que quebram compatibilidade também sobem o MINOR.
 
 ## [Não lançado]
 
+## [0.2.1] - 2026-09-26
+
+Correções encontradas em testes em sites reais (LinkedIn e CoinMarketCap), reproduzidas em
+páginas locais. No conjunto de desenvolvimento do Resolver (52 casos locais), o recall@1 foi de
+80,8% para 82,7% e o erro silencioso caiu de 3,8% para 1,9%.
+
+### Corrigido
+- Pop-ups sumiam do resumo da página enviado ao planejador: em páginas grandes, o limite de 80
+  elementos era preenchido pelo cabeçalho, e os pop-ups ficam no fim do código. O resumo agora
+  vem em ordem de relevância (pop-up aberto, marcado com `[pop-up]`; visível na tela; resto), e
+  elementos cobertos pelo pop-up ficam de fora.
+- Um clique que abria um pop-up não gerava replanejamento (só a mudança de URL gerava). O
+  agente agora replaneja quando um pop-up, diálogo ou menu abre ou fecha.
+- O Resolver aceitava elementos que não podiam receber a ação (ex.: preencher um botão). Agora
+  há um filtro por ação: preencher só considera campos de texto, selecionar só listas nativas,
+  marcar só caixas, opções e chaves.
+- Buscas sem botão (só com Enter) travavam: um clique de pesquisar/buscar que não encontra um
+  botão, logo depois de preencher um campo, vira Enter nesse campo. O prompt também orienta a
+  usar `press Enter` quando não há botão de busca.
+- Laço de repetição: o mesmo passo repetido logo depois de um replanejamento é barrado, com um
+  aviso ao planejador, e nenhum passo roda mais de 3 vezes. A conferência do fim roda no máximo
+  2 vezes por execução.
+- Elementos escolhidos pelo clique do usuário eram guardados na memória só com o texto. Agora a
+  página é reindexada e a assinatura completa é guardada; e um elemento com texto idêntico e
+  único na página é reencontrado mesmo que o contexto tenha mudado.
+- Ctrl+C mostrava o erro completo: agora os comandos encerram com uma mensagem curta e fecham
+  o navegador.
+- A conferência do fim que só propõe passos já feitos conta como objetivo atingido (antes, a
+  detecção de laço transformava isso em falha).
+- Em páginas grandes, o elemento que o pedido precisa podia ficar fora do resumo mesmo sem
+  pop-up (ex.: a lupa depois de 90 links). O resumo agora é guiado pelo pedido: elementos com
+  palavras em comum com ele entram logo depois dos pop-ups.
+- Digitar num campo de busca abria a lista de sugestões e gerava um replanejamento, que levava
+  o modelo a clicar nas sugestões em vez de pesquisar. Preencher não gera mais replanejamento
+  por pop-up.
+- Ao clicar, o valor já digitado num campo fazia o campo competir com os itens que tinham
+  aquele texto (ex.: a sugestão de pesquisa). Fora do preenchimento, o valor não identifica
+  mais o campo.
+
+### Alterado
+- Barreira para ações destrutivas não pedidas: um passo que fecha, exclui, remove, oculta ou
+  cancela algo que o pedido não mencionou não é executado, e o planejador é avisado. Fechar um
+  pop-up não conta.
+- Nome idêntico: um elemento cujo texto é exatamente o que o pedido nomeia (ignorando palavras
+  de tipo como "Opção" e "Botão") ganha um bônus pequeno sobre os que só contêm a frase.
+  Não vale na extração, que já tem a regra própria de texto exato.
+- O prompt orienta a clicar no elemento que revela o que falta (lupa, "Search", menu) e a só
+  responder que o pedido não pode ser feito quando nada na página levaria a ele.
+- Pedido sem verbo, que só nomeia um item: elementos que anunciam uma ação destrutiva ou de
+  descarte (fechar, excluir, remover, ocultar, dispensar, cancelar, limpar) perdem pontos.
+- O prompt pede para não fechar, ocultar nem dispensar itens que o pedido não mencionou.
+- A rede de segurança de `select` tenta marcar a opção quando a lista não resolve o passo.
+- `eval/plan_run.py --check`: elementos permitidos que só surgem depois (ex.: sugestões de
+  pesquisa) geram um aviso, não um problema; o plano de referência, no modo `--agente`,
+  devolve os passos que faltam a cada replanejamento.
+
+### Adicionado
+- Três tarefas de desenvolvimento que reproduzem os testes reais: busca num pop-up
+  (`busca_popup.html`), busca só com Enter e sugestões (`busca_enter.html`) e lista de vagas
+  com "Salvar" e "Fechar vaga" (`vagas.html`).
+
 ## [0.2.0] - 2026-09-26
 
 Agente completo: o sistema recebe um pedido em texto e um link, gera o plano com um LLM,
@@ -119,7 +180,8 @@ planejador com LLM e o loop do agente ficam para a 0.2.0.
 - Contexto dos elementos em listas de cards curtos, que englobava a lista inteira.
 - Dupla contagem do objeto da consulta no rótulo e no contexto do elemento.
 
-[Não lançado]: https://github.com/LucasDantas2701/smart-rpa/compare/v0.2.0...develop
+[Não lançado]: https://github.com/LucasDantas2701/smart-rpa/compare/v0.2.1...develop
+[0.2.1]: https://github.com/LucasDantas2701/smart-rpa/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/LucasDantas2701/smart-rpa/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LucasDantas2701/smart-rpa/releases/tag/v0.1.0
 

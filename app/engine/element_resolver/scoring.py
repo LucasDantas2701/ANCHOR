@@ -3,13 +3,18 @@ from .constants import (
     ACTION_CONTENT_BONUS,
     ACTION_MISMATCH_DAMPING,
     ACTION_ROLE_WEIGHTS,
+    DESTRUCTIVE_DAMPING,
     DISABLED_DAMPING,
+    EXACT_NAME_BONUS,
     EXTRACT_TEXT_BONUS,
     OBJECT_CONTEXT_BONUS,
     OBJECT_MISMATCH_DAMPING,
 )
 from .tokenizer import (
     ACTION_WORDS_N,
+    DESTRUCTIVE_N,
+    KIND_WORDS_N,
+    STOPWORDS_N,
     expand_actions,
     normalize_text,
     normalize_tokens,
@@ -267,6 +272,17 @@ def score_element(
             ):
                 score *= ACTION_CONFLICT_DAMPING
 
+    elif action == "click":
+        # Pedido sem verbo, que só nomeia o elemento ("Consultor RPA"): um elemento
+        # que anuncia uma ação destrutiva ("Fechar vaga de Consultor RPA") é menos
+        # provável do que o próprio item, e mais arriscado.
+        element_words = normalize_tokens(
+            tokenize(element_text if element_text is not None else content),
+            synonyms,
+        ) | tokenize(element_text if element_text is not None else content)
+        if element_words & DESTRUCTIVE_N:
+            score *= DESTRUCTIVE_DAMPING
+
     # -------------------------------------------------
     # 8. Peso baseado no tipo de ação.
     # -------------------------------------------------
@@ -333,6 +349,18 @@ def score_element(
 
             if text_normalized == query_normalized:
                 score += 0.25
+
+    # -------------------------------------------------
+    # 9.5. Nome idêntico: o texto (ou rótulo) do elemento é exatamente o que o
+    # pedido nomeia, sem palavras a mais ("vagas de rpa em manaus" e não
+    # "vagas de rpa em manaus júnior").
+    # -------------------------------------------------
+
+    name_tokens = normalize_tokens(tokenize(element_text or ""), synonyms) - STOPWORDS_N
+    named = object_query_tokens - KIND_WORDS_N
+    # Não vale na extração, que já tem a regra própria de texto exato (passo 9).
+    if action != "extract" and named and name_tokens and name_tokens - KIND_WORDS_N == named:
+        score += EXACT_NAME_BONUS
 
     # -------------------------------------------------
     # 10. Estado do elemento.

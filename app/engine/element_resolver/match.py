@@ -26,6 +26,7 @@ class Match:
     options: list = field(default_factory=list)
     in_viewport: bool = True
     obscured: bool = False
+    layer: bool = False          # dentro de um pop-up, diálogo ou menu aberto
 
     @property
     def locator(self) -> Locator:

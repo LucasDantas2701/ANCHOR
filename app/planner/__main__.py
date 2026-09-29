@@ -49,7 +49,7 @@ def main() -> int:
         page = browser.new_page()
         page.goto(to_url(args.url))
         resolver = ElementResolver(page)
-        elements = None if args.sem_pagina else page_elements(resolver)
+        elements = None if args.sem_pagina else page_elements(resolver, request=args.pedido)
 
         print(f"Gerando o plano com {profile.model} (na primeira vez, inclui carregar o modelo)...")
         try:
@@ -79,4 +79,8 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print("\n\nInterrompido pelo usuário.")
+        sys.exit(130)

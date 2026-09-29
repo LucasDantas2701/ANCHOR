@@ -326,6 +326,23 @@ ACTION_CONTENT_BONUS = 0.30
 ACTION_MISMATCH_DAMPING = 0.55
  
 ACTION_CONFLICT_DAMPING = 0.60   # elemento anuncia outro verbo
+# Palavras de tipo que o resumo da página usa ("Opção", "Campo de texto"...): não
+# fazem parte do nome do elemento na comparação de nome idêntico.
+KIND_WORDS = [
+    "botão", "botao", "link", "campo", "texto", "busca", "caixa", "marcação", "marcacao",
+    "opção", "opcao", "opções", "lista", "chave", "aba", "item", "menu", "área", "area",
+    "clicável", "clicavel", "elemento", "sugestão", "sugestao", "option", "button", "field",
+]
+EXACT_NAME_BONUS = 0.15         # texto do elemento = exatamente o que o pedido nomeia
+DESTRUCTIVE_DAMPING = 0.80       # pedido sem verbo; elemento anuncia uma ação destrutiva
+
+# Verbos de ações destrutivas ou de descarte. Um pedido que só nomeia um item
+# ("Consultor RPA") não deve levar a clicar em "Fechar vaga de Consultor RPA".
+DESTRUCTIVE_WORDS = [
+    "fechar", "close", "excluir", "delete", "apagar", "remover", "remove",
+    "ocultar", "hide", "dispensar", "dismiss", "descartar", "discard",
+    "cancelar", "cancel", "limpar", "clear",
+]
 
 # Verbos que expressam a mesma intenção. Um elemento com um verbo
 # do mesmo grupo do pedido não é considerado "conflitante".

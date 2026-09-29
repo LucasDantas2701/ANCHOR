@@ -14,6 +14,31 @@ from .tokenizer import (
     tokenize,
 )
 
+_NOT_TEXT_INPUTS = {"checkbox", "radio", "button", "submit", "reset", "file",
+                    "image", "range", "color", "hidden"}
+
+
+def accepts(record: dict, action: str | None) -> bool:
+    """
+    O elemento pode receber a ação? Evita, por exemplo, tentar preencher um botão.
+
+        fill:   campos de texto (input de texto, textarea, editáveis)
+        select: listas nativas (<select>)
+        check:  caixas de marcação, opções e chaves
+    """
+    tag, role = record.get("tag", ""), record.get("role", "")
+    kind = (record.get("type") or "").lower()
+    if action == "fill":
+        return (tag == "textarea"
+                or (tag == "input" and kind not in _NOT_TEXT_INPUTS)
+                or (tag != "input" and role in ("textbox", "searchbox")))
+    if action == "select":
+        return tag == "select"
+    if action == "check":
+        return ((tag == "input" and kind in ("checkbox", "radio"))
+                or role in ("checkbox", "radio", "switch", "menuitemcheckbox", "menuitemradio"))
+    return True
+
 
 class ElementResolver:
     """
@@ -117,6 +142,7 @@ class ElementResolver:
             options=record.get("options", []),
             in_viewport=record.get("inViewport", True),
             obscured=record.get("obscured", False),
+            layer=record.get("layer", False),
         )
 
     def query(
@@ -176,8 +202,18 @@ class ElementResolver:
 
         for record in self._records:
 
+            if not accepts(record, action):
+                continue
+
+            content = record["content"]
+            value = (record.get("value") or "").lower()
+            if value and action not in ("fill", "extract") and accepts(record, "fill"):
+                # Para clicar ou marcar, o que identifica um campo é o rótulo, não o
+                # texto que já foi digitado nele.
+                content = " ".join(content.replace(value, " ").split())
+
             score = score_element(
-                content=record["content"],
+                content=content,
                 context=record["context"],
                 query=query,
                 query_tokens=query_tokens,

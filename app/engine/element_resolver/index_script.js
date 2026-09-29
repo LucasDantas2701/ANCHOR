@@ -278,6 +278,29 @@
         return container ? clean(innerTextOf(container), 300) : "";
     }
 
+    // Camada aberta por cima da página: diálogo, menu, lista de sugestões, ou um
+    // elemento fixo que cobre boa parte da tela (pop-ups sem papel ARIA).
+    const LAYER_SEL = "dialog[open], [role=dialog], [role=alertdialog], [aria-modal=true], [role=listbox], [role=menu]";
+    const layerCache = new Map();
+    function isLayerRoot(n) {
+        if (n.matches(LAYER_SEL)) return true;
+        const s = getComputedStyle(n);
+        if (s.position !== "fixed") return false;
+        const r = n.getBoundingClientRect();
+        return r.width * r.height >= 0.2 * innerWidth * innerHeight && r.height >= 0.3 * innerHeight;
+    }
+    function inLayer(el) {
+        const path = [];
+        let result = false;
+        for (let n = el; n && n !== document.body && n.nodeType === 1; n = n.parentElement) {
+            if (layerCache.has(n)) { result = layerCache.get(n); break; }
+            path.push(n);
+            if (isLayerRoot(n)) { result = true; break; }
+        }
+        for (const n of path) layerCache.set(n, result);
+        return result;
+    }
+
     function geometry(el) {
         const r = el.getBoundingClientRect();
         const inViewport = r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth;
@@ -339,6 +362,7 @@
         const record = {
             id, tag, role, type, label, text, value, hint, href, testId,
             state: stateOf(el, tag),
+            layer: inLayer(el),
             context: contextOf(el),
             content,
             ...geometry(el),

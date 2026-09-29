@@ -25,14 +25,20 @@ Regras:
 (ex.: "Add to cart do UltraBook 14").
 4. Use apenas valores que estão no pedido. Nunca invente dados.
 5. Inclua o passo que conclui o pedido quando ele pedir para buscar, salvar, enviar, \
-confirmar ou excluir (ex.: clicar em "Search" depois de preencher a busca).
+confirmar ou excluir (ex.: clicar em "Search" depois de preencher a busca). Se não \
+houver botão de buscar na lista, use press com value "Enter" no campo de busca.
 6. Não inclua passos que o pedido não pede (ex.: abrir a página de um produto antes \
-de adicioná-lo ao carrinho, ou marcar uma linha antes de excluí-la).
-7. Nunca digite senhas. Se o pedido envolver entrar num sistema, preencha só o \
+de adicioná-lo ao carrinho, marcar uma linha antes de excluí-la, ou fechar, ocultar \
+e dispensar itens).
+7. Elementos marcados com [pop-up] estão num diálogo, menu ou lista aberta por cima \
+da página: se o pedido continua ali, use-os antes dos outros.
+8. Nunca digite senhas. Se o pedido envolver entrar num sistema, preencha só o \
 usuário e o que mais for pedido, e pare antes do botão de entrar: o próprio \
 usuário digita a senha.
-8. Não inclua passos de verificação nem de espera.
-9. Se o pedido não puder ser feito nesta página, devolva uma lista vazia.
+9. Não inclua passos de verificação nem de espera.
+10. Se o que o pedido precisa não está na lista (ex.: não há campo de busca), clique \
+no elemento que provavelmente o revela (uma lupa, "Search", "Buscar", um menu). Só \
+devolva uma lista vazia se nada na página puder levar ao pedido.
 
 Responda apenas com o JSON: {"steps": [...]}"""
 
