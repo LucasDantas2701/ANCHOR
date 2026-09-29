@@ -97,6 +97,9 @@ faltam as automações salvas, a confirmação antes de ações sensíveis e o f
 * [x] **Loop do agente**: executa o plano passo a passo, replaneja quando a
   página muda ou um passo falha (inclusive quando um modal cobre o elemento), confere no fim
   se o objetivo foi atingido e cancela com um relato depois de 3 falhas.
+* [x] **Verificação do efeito** (em desenvolvimento, versão 0.3.0): depois de cada passo, o
+  agente confere se a ação teve efeito (valor no campo, mudança na página, mensagens de erro)
+  e trata uma ação sem efeito como falha.
 
 ### Ainda não implementado
 

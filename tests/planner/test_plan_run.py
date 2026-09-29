@@ -89,3 +89,15 @@ def test_modo_agente_confere_o_fim_e_conta_as_chamadas(page):
     assert r.chamadas_llm == 2 and r.replanejamentos == 0
     assert r.tokens_entrada == 200
     assert "O que já aconteceu" in client.calls[1]["messages"][1]["content"]
+
+
+def test_termino_prematuro_e_contado(page):
+    from eval.plan_run import run_task_agent
+
+    # O modelo "esquece" de marcar a Carla e declara o fim: as verificações falham.
+    task = next(t for t in TASKS_ALL if t["id"] == "p-usr-02")
+    client = FakeClient(as_json([["check", "Selecionar Ana Souza", None]]), as_json([]))
+    r = run_task_agent(fresh(page), LLMPlanner(client, "falso"), "falso", task)
+    assert r.prematuro and not r.sucesso
+    s = summarize([r])
+    assert s["prematuros"] == 1

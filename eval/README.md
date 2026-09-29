@@ -100,3 +100,12 @@ Como montar o conjunto:
    seletores e verificações, sem chamar modelos nem a heurística.
 5. **Não rodar os modelos nessas tarefas nem ajustar o prompt olhando para elas** até a
    rodada final. Se algo mudar depois de olhar, registre no artigo.
+
+
+## Resposta visível nas páginas de teste (`fixtures/feedback.js`)
+
+As páginas de teste não têm servidor, então muitos botões não produziriam nenhum efeito
+visível. Como o agente verifica o efeito de cada ação, o `feedback.js` mostra um aviso discreto
+("Ação registrada") a cada clique e a cada Enter num campo, como um site real responderia. O
+aviso não é interativo e não entra no índice; os resultados do Resolver não mudam. Ele foi
+incluído também nas páginas `holdout_*`, sem alterar o conteúdo delas (26/09/2026).

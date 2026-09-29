@@ -16,6 +16,20 @@ que quebram compatibilidade também sobem o MINOR.
 ## [Não lançado]
 
 ### Adicionado
+- Verificação do efeito de cada ação (camada 1, sem LLM, `app/agent/effects.py`): nas ações de
+  formulário, o estado do elemento (valor no campo, opção escolhida, caixa marcada; máscaras
+  como a de telefone são aceitas); nos cliques e no Enter, mudanças na página, requisições,
+  abas novas e downloads; em todas, mensagens novas. Uma mensagem de erro ("CPF inválido")
+  transforma o passo em falha; as demais vão para o histórico do planejador. Sem efeito, o
+  passo é repetido uma vez e, depois, conta como falha, com replanejamento; uma escolha da
+  memória sem efeito é esquecida. `Agent(verify_effect=False)` desliga a verificação.
+- Campo revelado: se o campo a preencher não existe, mas há um elemento com esse nome em que
+  dá para clicar (ex.: a lupa que abre a busca), o agente clica nele e preenche o campo que
+  aparecer (o que tiver a descrição ou o que receber o foco).
+- `eval/plan_run.py --agente`: colunas de ações sem efeito e de término prematuro (o agente
+  declarou sucesso, mas as verificações da tarefa falharam).
+- `eval/fixtures/feedback.js`: resposta visível às ações nas páginas de teste, que não têm
+  servidor. Incluído em todas as páginas, inclusive as do holdout, sem mudar o conteúdo delas.
 - Licença PolyForm Strict 1.0.0 (`LICENSE`): uso não comercial permitido, sem modificação nem
   redistribuição; direitos autorais do autor. Seção "Uso responsável" no README.
 

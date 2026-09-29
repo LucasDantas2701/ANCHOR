@@ -26,6 +26,8 @@ from app.engine.element_resolver.tokenizer import DESTRUCTIVE_N, normalize_token
 from app.planner import Plan, Step, page_elements, run_step
 from app.planner.execute import clean_description
 
+from .effects import EffectWatcher, state_problem
+
 # Radicais de "pesquisar", "buscar", "procurar", "search", "find", "ir", "go":
 # um clique desses sem botão, logo depois de preencher um campo, vira Enter.
 SUBMIT_STEMS = {"pesquis", "busc", "procur", "search", "find", "go", "lupa"}
@@ -48,6 +50,7 @@ class AgentResult:
     replans: int = 0
     failures: int = 0
     interventions: int = 0       # passos em que o usuário escolheu o elemento
+    no_effect: int = 0           # ações que não tiveram efeito na página
     tokens_in: int = 0
     tokens_out: int = 0
     seconds: float = 0.0
@@ -97,6 +100,7 @@ class Agent:
         verify_end: bool = True,
         max_end_checks: int = 2,
         max_repeats: int = 3,
+        verify_effect: bool = True,
         report: Optional[Callable[[str], None]] = print,
     ):
         self.page = page
@@ -107,6 +111,7 @@ class Agent:
         self.verify_end = verify_end
         self.max_end_checks = max_end_checks
         self.max_repeats = max_repeats
+        self.watcher = EffectWatcher(page) if verify_effect else None
         self.report = report or (lambda _: None)
 
     # ------------------------------------------------------------------
@@ -148,6 +153,86 @@ class Agent:
             return False
         status, found, _ = self.executor._resolve(description, "click")
         return not (found is not None and found.layer)
+
+    def _execute(self, step: Step, last_fill) -> ActionResult:
+        """Executa um passo, com as redes de segurança do Enter e do campo a revelar."""
+        description = clean_description(step.description)
+
+        # Enter no lugar de um botão de busca que não existe.
+        if self._is_submit(step) and last_fill is not None:
+            status, found, _ = self.executor._resolve(description, "click")
+            record = next((r for r in self.executor.resolver.records
+                           if found is not None and r["id"] == found.id), None)
+            if status != "success" or (record is not None and accepts(record, "fill")):
+                try:
+                    last_fill.locator.press("Enter")
+                    self.report("    sem botão de busca: Enter no campo preenchido")
+                    return ActionResult(status="success", action="press", description=step.description,
+                                        selected_element=last_fill, resolved_by="enter_no_campo")
+                except Exception as exc:
+                    return ActionResult(status="error", action="press", description=step.description, error=str(exc))
+
+        # Campo que só aparece depois de um clique (ex.: a lupa que abre a busca).
+        if step.action == "fill":
+            status, _, _ = self.executor._resolve(description, "fill")
+            if status == "not_found":
+                revealed = self._reveal_and_fill(step, description)
+                if revealed is not None:
+                    return revealed
+
+        return run_step(self.executor, step)
+
+    def _reveal_and_fill(self, step: Step, description: str) -> Optional[ActionResult]:
+        status, trigger, _ = self.executor._resolve(description, "click")
+        if status != "success" or trigger is None:
+            return None
+        try:
+            trigger.click()
+            self.page.wait_for_timeout(400)
+        except Exception:
+            return None
+        self.report(f'    campo não encontrado: clicou em "{description}" para revelá-lo')
+
+        status, target, _ = self.executor._resolve(description, "fill")
+        if status != "success" or target is None:
+            # O campo revelado costuma receber o foco (ex.: o campo de um pop-up de busca).
+            focused = self.page.locator(":focus")
+            try:
+                editable = focused.count() == 1 and focused.evaluate(
+                    "e => e.matches('input, textarea, [contenteditable=\"\"], [contenteditable=true]') && !e.readOnly")
+                er_id = focused.get_attribute("data-er-id") if editable else None
+            except Exception:
+                return None
+            record = next((r for r in self.executor.resolver.records if r["id"] == er_id), None)
+            if record is None:
+                return None
+            target = self.executor.resolver.to_match(record)
+        try:
+            target.fill(step.value or "")
+        except Exception as exc:
+            return ActionResult(status="error", action="fill", description=step.description, error=str(exc))
+        return ActionResult(status="success", action="fill", description=step.description,
+                            selected_element=target, resolved_by="campo_revelado")
+
+    def _verify(self, step: Step, outcome: ActionResult, before) -> tuple[str, list[str]]:
+        """
+        Confere o efeito de um passo que foi executado. Devolve (problema, mensagens):
+        problema vazio = efeito ok; "no_effect" = nada aconteceu; outro texto = o motivo.
+        """
+        action = outcome.action if outcome.action in ("fill", "select", "check", "uncheck", "press") else step.action
+        if action in ("hover", "extract_text"):
+            return "", []
+        effect = self.watcher.effect_since(before)
+        errors = effect.errors
+        others = [m for m in effect.new_messages if m not in errors]
+        if errors:
+            return f'apareceu a mensagem "{errors[0]}"', others
+        element = outcome.selected_element
+        if action in ("fill", "select", "check", "uncheck") and element is not None:
+            return state_problem(action, step.value, element.locator), others
+        if action in ("click", "press") and not effect.changed:
+            return "no_effect", others
+        return "", others
 
     def _is_submit(self, step: Step) -> bool:
         return step.action == "click" and bool(tokenize(clean_description(step.description)) & SUBMIT_STEMS)
@@ -267,34 +352,42 @@ class Agent:
             url_before = self.page.url
             self.report(f"  → {describe_step(step)}")
 
-            # ---------------------------------------------------- Enter no lugar do botão de busca
-            if self._is_submit(step) and last_fill is not None:
-                status, found, _ = self.executor._resolve(clean_description(step.description), "click")
-                # Sem botão: nada encontrado, ou o "botão" encontrado é o próprio campo de texto.
-                record = next((r for r in self.executor.resolver.records
-                               if found is not None and r["id"] == found.id), None)
-                is_field = record is not None and accepts(record, "fill")
-                if status != "success" or is_field:
-                    try:
-                        last_fill.locator.press("Enter")
-                        outcome = ActionResult(status="success", action="press", description=step.description,
-                                               selected_element=last_fill, resolved_by="enter_no_campo")
-                        self.report("    sem botão de busca: Enter no campo preenchido")
-                    except Exception as exc:
-                        outcome = ActionResult(status="error", action="press", description=step.description,
-                                               error=str(exc))
-                else:
-                    outcome = run_step(self.executor, step)
-            else:
-                outcome = run_step(self.executor, step)
+            before = self.watcher.snapshot() if self.watcher else None
+            outcome = self._execute(step, last_fill)
 
             if outcome.resolved_by == "user":
                 result.interventions += 1
+
+            # ---------------------------------------------------- verificação do efeito
+            messages: list[str] = []
+            if outcome.status == "success" and self.watcher is not None:
+                problem, messages = self._verify(step, outcome, before)
+                if problem == "no_effect":
+                    self.report("    sem efeito visível; tentando mais uma vez")
+                    before = self.watcher.snapshot()
+                    outcome = self._execute(step, last_fill)
+                    if outcome.status == "success":
+                        problem, messages = self._verify(step, outcome, before)
+                if outcome.status == "success" and problem:
+                    history.extend(f'apareceu na página: "{m}"' for m in messages)
+                    status = "no_effect" if problem == "no_effect" else "wrong_effect"
+                    reason = "a ação não teve efeito visível na página" if problem == "no_effect" else problem
+                    if outcome.resolved_by == "memory" and self.executor.memory is not None:
+                        # A escolha memorizada não serve mais: esquece.
+                        self.executor.memory.forget(url_before, outcome.action, clean_description(step.description))
+                    result.no_effect += problem == "no_effect"
+                    outcome_q = self._fail(request, history, result, start, step, status,
+                                           outcome.resolved_by, reason)
+                    if isinstance(outcome_q, AgentResult):
+                        return outcome_q
+                    queue, after_replan = outcome_q, True
+                    continue
 
             # ---------------------------------------------------- sucesso
             if outcome.status == "success":
                 result.records.append(StepRecord(step, "success", outcome.resolved_by))
                 history.append(f"feito: {describe_step(step)}")
+                history.extend(f'apareceu na página: "{m}"' for m in messages)
                 done_count[key] = done_count.get(key, 0) + 1
                 last_done = key
                 if step.action == "fill" and outcome.selected_element is not None:

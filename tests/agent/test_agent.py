@@ -37,6 +37,9 @@ FORM = """<html><body>
 
 
 def run(page, planner, **kwargs):
+    # A verificação do efeito tem testes próprios (test_effects.py); aqui as páginas
+    # só mudam variáveis internas, sem efeito visível.
+    kwargs.setdefault("verify_effect", False)
     page.set_default_timeout(1500)
     return Agent(page, planner, ActionExecutor(page), report=None, **kwargs).run("cadastre a Maria")
 
@@ -186,7 +189,7 @@ def test_intervencoes_do_usuario_sao_contadas(page):
     </body></html>""")
     page.set_default_timeout(1500)
     executor = ActionExecutor(page, disambiguator=ChooseSecond())
-    result = Agent(page, ScriptedPlanner([("click", "Adicionar", None)], []), executor, report=None).run("x")
+    result = Agent(page, ScriptedPlanner([("click", "Adicionar", None)], []), executor, report=None, verify_effect=False).run("x")
     assert result.ok and result.interventions == 1
 
 
@@ -322,7 +325,7 @@ def test_acao_destrutiva_nao_pedida_e_barrada(page):
         [("click", "Consultor RPA", None), ("click", "Fechar vaga de Consultor RPA", None), ("click", "Salvar vaga", None)],
         [],
     )
-    result = Agent(page, planner, ActionExecutor(page), report=None).run("salve a primeira vaga")
+    result = Agent(page, planner, ActionExecutor(page), report=None, verify_effect=False).run("salve a primeira vaga")
     assert result.ok and page.evaluate("window.salva") is True
     assert page.evaluate("window.fechada") is None
     assert [r.status for r in result.records] == ["success", "blocked", "success"]
@@ -331,7 +334,7 @@ def test_acao_destrutiva_nao_pedida_e_barrada(page):
 def test_acao_destrutiva_pedida_nao_e_barrada(page):
     page.set_content('<html><body><button onclick="window.fechada=true">Fechar vaga de Consultor RPA</button></body></html>')
     planner = ScriptedPlanner([("click", "Fechar vaga de Consultor RPA", None)], [])
-    result = Agent(page, planner, ActionExecutor(page), report=None).run("feche a vaga de consultor rpa")
+    result = Agent(page, planner, ActionExecutor(page), report=None, verify_effect=False).run("feche a vaga de consultor rpa")
     assert result.ok and page.evaluate("window.fechada") is True
 
 
