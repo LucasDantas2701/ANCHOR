@@ -1,0 +1,28 @@
+{
+  "versao": "0.2.1",
+  "commit": "b81f1b8",
+  "data": "2026-09-29T08:34:02",
+  "filtros": {
+    "split": null,
+    "site": null,
+    "offline": false
+  },
+  "limiares": {
+    "min_score": 0.4,
+    "gap": 0.04
+  },
+  "geral": {
+    "n": 60,
+    "recall@1": 0.85,
+    "recall@3": 0.9,
+    "recall@5": 0.9,
+    "recall@10": 0.9333333333333333,
+    "mrr": 0.8770833333333333,
+    "acerto": 0.7833333333333333,
+    "erro_silencioso": 0.016666666666666666,
+    "recusa_evitavel": 0.06666666666666667,
+    "recusa_correta": 0.13333333333333333,
+    "falha_percepcao": 0.0,
+    "ms_medio": 21.401666666666664
+  }
+}
