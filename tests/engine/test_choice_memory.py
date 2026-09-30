@@ -7,9 +7,9 @@ import json
 
 import pytest
 
-from app.engine.action_executor import ActionExecutor
-from app.engine.disambiguation import UserChoice
-from app.engine.memory import ChoiceMemory
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.disambiguation import UserChoice
+from anchor.engine.memory import ChoiceMemory
 
 
 def shop_html(products, disabled=()):

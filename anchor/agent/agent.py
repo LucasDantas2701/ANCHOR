@@ -20,16 +20,16 @@ from typing import Callable, Optional
 
 from playwright.sync_api import Page
 
-from app.engine.action_executor import ActionExecutor, ActionResult
-from app.engine.element_resolver.resolver import accepts
-from app.engine.element_resolver.tokenizer import (
+from anchor.engine.action_executor import ActionExecutor, ActionResult
+from anchor.engine.element_resolver.resolver import accepts
+from anchor.engine.element_resolver.tokenizer import (
     DESTRUCTIVE_N,
     STOPWORDS_N,
     normalize_tokens,
     tokenize,
 )
-from app.planner import Plan, Step, page_elements, run_step
-from app.planner.execute import clean_description, clean_value
+from anchor.planner import Plan, Step, page_elements, run_step
+from anchor.planner.execute import clean_description, clean_value
 
 from .effects import EffectWatcher, state_problem
 

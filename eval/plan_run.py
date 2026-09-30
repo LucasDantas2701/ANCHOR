@@ -32,11 +32,11 @@ from typing import Optional
 
 from playwright.sync_api import Page, sync_playwright
 
-from app import __version__
-from app.engine.action_executor import ActionExecutor
-from app.engine.element_resolver import ElementResolver
-from app.planner import ConfigError, Plan, Step, get_profile, page_elements, run_plan
-from app.planner.progress import Progress
+from anchor import __version__
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.element_resolver import ElementResolver
+from anchor.planner import ConfigError, Plan, Step, get_profile, page_elements, run_plan
+from anchor.planner.progress import Progress
 
 ROOT = Path(__file__).resolve().parent
 FIXTURES = ROOT / "fixtures"
@@ -125,7 +125,7 @@ class TaskResult:
 
 def run_task_agent(page: Page, planner, profile_name: str, task: dict) -> TaskResult:
     """A tarefa executada pelo loop do agente (sem desempate humano)."""
-    from app.agent import Agent
+    from anchor.agent import Agent
 
     page.goto((FIXTURES / task["fixture"]).as_uri())
     if isinstance(planner, ReferencePlanner):
@@ -238,7 +238,7 @@ def check_tasks(tasks: list[dict], browser=None) -> int:
             finally:
                 b.close()
 
-    from app.planner import ACTIONS
+    from anchor.planner import ACTIONS
 
     problems = []
     ids = [t.get("id") for t in tasks]

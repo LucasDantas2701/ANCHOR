@@ -7,9 +7,9 @@ from pathlib import Path
 
 import pytest
 
-from app.agent import Agent
-from app.engine.action_executor import ActionExecutor
-from app.planner import Plan, PlanError, Step
+from anchor.agent import Agent
+from anchor.engine.action_executor import ActionExecutor
+from anchor.planner import Plan, PlanError, Step
 
 
 class ScriptedPlanner:
@@ -175,7 +175,7 @@ def test_limite_de_passos(page):
 
 class ChooseSecond:
     def choose(self, request):
-        from app.engine.disambiguation import UserChoice
+        from anchor.engine.disambiguation import UserChoice
         return UserChoice("candidate", 1)
 
     def notify(self, message):
@@ -226,8 +226,8 @@ def test_popup_que_abre_gera_replanejamento_com_os_elementos_dele(page):
 
 
 def test_resumo_mostra_o_popup_mesmo_numa_pagina_grande(page):
-    from app.engine.element_resolver import ElementResolver
-    from app.planner import page_elements
+    from anchor.engine.element_resolver import ElementResolver
+    from anchor.planner import page_elements
     page.set_content(SEARCH_POPUP.replace(" hidden role", " role"))  # pop-up já aberto
     lines = page_elements(ElementResolver(page), limit=80)
     assert any("Buscar moedas" in line for line in lines)

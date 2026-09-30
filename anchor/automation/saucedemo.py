@@ -2,15 +2,15 @@
 LEGADO: automação do SauceDemo com seletores fixos.
 
 Mantida como exemplo do "antes" (RPA tradicional). A versão com o motor
-semântico está em app/main.py.
+semântico está em anchor/main.py.
 """
 
 from playwright.sync_api import Page
 
-from app.actions.extraction import extract_text
-from app.actions.interaction import click
-from app.actions.navigation import navigate
-from app.actions.wait import wait_for_element
+from anchor.actions.extraction import extract_text
+from anchor.actions.interaction import click
+from anchor.actions.navigation import navigate
+from anchor.actions.wait import wait_for_element
 
 
 def run_saucedemo(page: Page) -> None:

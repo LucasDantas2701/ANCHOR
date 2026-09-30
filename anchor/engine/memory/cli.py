@@ -1,10 +1,10 @@
 """
 Revisão da memória das escolhas pelo terminal.
 
-    python -m app.engine.memory memory/demo.json listar
-    python -m app.engine.memory memory/demo.json esquecer 2
-    python -m app.engine.memory memory/demo.json esquecer 1 3
-    python -m app.engine.memory memory/demo.json limpar
+    python -m anchor.engine.memory memory/demo.json listar
+    python -m anchor.engine.memory memory/demo.json esquecer 2
+    python -m anchor.engine.memory memory/demo.json esquecer 1 3
+    python -m anchor.engine.memory memory/demo.json limpar
 
 Serve para corrigir o que o assistente aprendeu errado: se uma escolha
 memorizada não é a certa, esqueça-a, e na próxima execução ele volta
@@ -17,7 +17,7 @@ import argparse
 from pathlib import Path
 from typing import Callable
 
-from app.engine.disambiguation.describe import KIND
+from anchor.engine.disambiguation.describe import KIND
 
 from .choices import ChoiceMemory, Entry
 
@@ -48,7 +48,7 @@ def list_entries(memory: ChoiceMemory, out: Callable[[str], None]) -> None:
 
 
 def main(argv: list[str] | None = None, input_fn=input, out: Callable[[str], None] = print) -> int:
-    ap = argparse.ArgumentParser(prog="python -m app.engine.memory", description="Revisa a memória das escolhas.")
+    ap = argparse.ArgumentParser(prog="python -m anchor.engine.memory", description="Revisa a memória das escolhas.")
     ap.add_argument("arquivo", type=Path, help="arquivo da memória (ex.: memory/demo.json)")
     sub = ap.add_subparsers(dest="comando", required=True)
     sub.add_parser("listar", help="mostra as escolhas memorizadas")

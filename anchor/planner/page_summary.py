@@ -16,9 +16,9 @@ from __future__ import annotations
 
 from collections import Counter
 
-from app.engine.disambiguation.describe import describe
-from app.engine.element_resolver import ElementResolver
-from app.engine.element_resolver.tokenizer import (
+from anchor.engine.disambiguation.describe import describe
+from anchor.engine.element_resolver import ElementResolver
+from anchor.engine.element_resolver.tokenizer import (
     STOPWORDS_N,
     STRUCTURAL_WORDS_N,
     normalize_tokens,

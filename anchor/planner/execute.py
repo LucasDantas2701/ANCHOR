@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import re
 
-from app.engine.action_executor import ActionExecutor, ActionResult
-from app.engine.disambiguation.describe import KIND
+from anchor.engine.action_executor import ActionExecutor, ActionResult
+from anchor.engine.disambiguation.describe import KIND
 
 from .plan import Plan, Step
 

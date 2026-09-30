@@ -1,4 +1,4 @@
-from app.engine.element_resolver import ElementResolver
+from anchor.engine.element_resolver import ElementResolver
 
 
 def test_resolve_element(page):

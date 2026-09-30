@@ -196,7 +196,7 @@ def request_values(request: str) -> list[str]:
 
 
 def check_request(steps: list[Step], goals: list[Goal], request: str) -> None:
-    from app.engine.element_resolver.tokenizer import expand_actions, normalize_tokens, tokenize
+    from anchor.engine.element_resolver.tokenizer import expand_actions, normalize_tokens, tokenize
 
     def words(text: str) -> set[str]:
         tokens = tokenize(text or "")

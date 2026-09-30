@@ -10,10 +10,18 @@ import httpx2
 import openai
 import pytest
 
-from app.engine.action_executor import ActionExecutor
-from app.planner import ConfigError, LLMPlanner, LLMProfile, PlanError, Step, parse_plan, run_plan
-from app.planner.plan import Plan
-from app.planner.prompt import user_message
+from anchor.engine.action_executor import ActionExecutor
+from anchor.planner import (
+    ConfigError,
+    LLMPlanner,
+    LLMProfile,
+    PlanError,
+    Step,
+    parse_plan,
+    run_plan,
+)
+from anchor.planner.plan import Plan
+from anchor.planner.prompt import user_message
 
 CADASTRO = (Path(__file__).resolve().parents[2] / "eval" / "fixtures" / "cadastro.html").as_uri()
 
@@ -176,7 +184,7 @@ def test_execucao_para_no_primeiro_passo_que_falha(page):
     ("Salvar cadastro", "Salvar cadastro"),
 ])
 def test_limpeza_da_descricao(raw, clean):
-    from app.planner.execute import clean_description
+    from anchor.planner.execute import clean_description
     assert clean_description(raw) == clean
 
 
@@ -196,8 +204,8 @@ def test_select_em_botao_de_opcao_vira_check(page):
 
 
 def test_resumo_guiado_pelo_pedido_traz_o_elemento_relevante(page):
-    from app.engine.element_resolver import ElementResolver
-    from app.planner import page_elements
+    from anchor.engine.element_resolver import ElementResolver
+    from anchor.planner import page_elements
     links = "".join(f'<a href="/c/{i}">Categoria {i}</a> ' for i in range(90))
     page.set_content(f'<html><body>{links}<div style="cursor:pointer">Search /</div></body></html>')
     without = page_elements(ElementResolver(page))

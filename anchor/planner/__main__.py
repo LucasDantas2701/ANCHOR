@@ -1,8 +1,8 @@
 """
 Gera (e opcionalmente executa) um plano a partir de um pedido e um link.
 
-    python -m app.planner --perfil ollama-pequeno --url https://www.saucedemo.com "adicione a mochila ao carrinho"
-    python -m app.planner --perfil openai --url eval/fixtures/cadastro.html "cadastre a Maria no RH" --executar
+    python -m anchor.planner --perfil ollama-pequeno --url https://www.saucedemo.com "adicione a mochila ao carrinho"
+    python -m anchor.planner --perfil openai --url eval/fixtures/cadastro.html "cadastre a Maria no RH" --executar
 """
 
 import argparse
@@ -11,9 +11,9 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-from app.engine.action_executor import ActionExecutor
-from app.engine.disambiguation import TerminalDisambiguator
-from app.engine.element_resolver import ElementResolver
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.disambiguation import TerminalDisambiguator
+from anchor.engine.element_resolver import ElementResolver
 
 from .config import ConfigError, get_profile
 from .execute import run_plan
@@ -28,7 +28,7 @@ def to_url(value: str) -> str:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(prog="python -m app.planner")
+    ap = argparse.ArgumentParser(prog="python -m anchor.planner")
     ap.add_argument("pedido")
     ap.add_argument("--perfil", required=True, help="nome do perfil em llm_profiles.json")
     ap.add_argument("--url", required=True, help="link do site ou caminho de um arquivo .html")

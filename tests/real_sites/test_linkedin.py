@@ -4,8 +4,8 @@ Testes exploratórios no LinkedIn. DESATIVADOS por padrão.
 Os termos de uso do LinkedIn proíbem automação, e a conta usada pode
 ser restringida. Para rodar mesmo assim, por sua conta e risco:
 
-    set SMART_RPA_LINKEDIN=1        (Windows)
-    export SMART_RPA_LINKEDIN=1     (Linux/macOS)
+    set ANCHOR_LINKEDIN=1        (Windows)
+    export ANCHOR_LINKEDIN=1     (Linux/macOS)
     pytest tests/real_sites -v
 
 A avaliação do projeto usa apenas sites que permitem automação.
@@ -17,12 +17,12 @@ import time
 import pytest
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("SMART_RPA_LINKEDIN") != "1",
-    reason="LinkedIn proíbe automação; defina SMART_RPA_LINKEDIN=1 para rodar",
+    "1" not in (os.environ.get("ANCHOR_LINKEDIN"), os.environ.get("SMART_RPA_LINKEDIN")),
+    reason="LinkedIn proíbe automação; defina ANCHOR_LINKEDIN=1 para rodar",
 )
 
-from app.browser.browser import close_browser, start_browser
-from app.engine.action_executor import ActionExecutor
+from anchor.browser.browser import close_browser, start_browser
+from anchor.engine.action_executor import ActionExecutor
 
 
 @pytest.fixture

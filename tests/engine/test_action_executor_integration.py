@@ -1,6 +1,6 @@
 import pytest
 
-from app.engine.action_executor import ActionExecutor
+from anchor.engine.action_executor import ActionExecutor
 
 
 @pytest.fixture

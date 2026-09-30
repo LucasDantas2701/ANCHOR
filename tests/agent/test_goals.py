@@ -7,9 +7,9 @@ import json
 
 import pytest
 
-from app.agent import Agent
-from app.engine.action_executor import ActionExecutor
-from app.planner import Goal, LLMPlanner, Plan, PlanError, Step, check_request
+from anchor.agent import Agent
+from anchor.engine.action_executor import ActionExecutor
+from anchor.planner import Goal, LLMPlanner, Plan, PlanError, Step, check_request
 from tests.planner.test_planner import FakeClient
 
 FORM = """<html><body>
@@ -103,33 +103,33 @@ def test_replanejamento_usa_as_metas_ja_conhecidas(page):
 
 
 def test_meta_inexistente_no_passo_e_rejeitada():
-    from app.planner import check_goals
+    from anchor.planner import check_goals
     with pytest.raises(PlanError, match='a meta "g9" não existe'):
         check_goals([Step("click", "Salvar", None, "g9")], [Goal("g1", "x", True)])
 
 
 def test_meta_conclusiva_precisa_vir_por_ultimo():
-    from app.planner import check_goals
+    from anchor.planner import check_goals
     steps = [Step("click", "Salvar", None, "g2"), Step("fill", "Nome", "Ana", "g1")]
     with pytest.raises(PlanError, match="devem vir por último"):
         check_goals(steps, [Goal("g1", "nome"), Goal("g2", "salvo", True)])
 
 
 def test_plano_sem_metas_continua_valido():
-    from app.planner import check_goals
+    from anchor.planner import check_goals
     check_goals([Step("click", "Salvar")], [])        # não lança
 
 
 
 def test_meta_sem_passos_e_rejeitada_no_plano():
-    from app.planner import check_goals
+    from anchor.planner import check_goals
     goals = [Goal("g1", "busca feita", True), Goal("g2", "resultado exibido")]
     with pytest.raises(PlanError, match="g2 não tem nenhum"):
         check_goals([Step("click", "Search", None, "g1")], goals)
 
 
 def test_plano_sem_meta_conclusiva_e_rejeitado():
-    from app.planner import check_goals
+    from anchor.planner import check_goals
     with pytest.raises(PlanError, match="conclusiva"):
         check_goals([Step("click", "Consultor RPA", None, "g1")], [Goal("g1", "vaga aberta")])
 
@@ -171,7 +171,7 @@ def test_enter_no_elemento_errado_vai_para_o_ultimo_campo(page):
 # --------------------------------------------------------------------------
 
 def test_plano_sem_o_verbo_do_pedido_volta_ao_modelo():
-    from app.planner import LLMPlanner
+    from anchor.planner import LLMPlanner
     bad = {"goals": [{"id": "g1", "description": "vaga aberta", "conclusive": True}],
            "steps": [{"action": "click", "description": "Consultor RPA", "value": None, "goal": "g1", "expect": None}]}
     good = {"goals": [{"id": "g1", "description": "vaga salva", "conclusive": True}],
@@ -184,7 +184,7 @@ def test_plano_sem_o_verbo_do_pedido_volta_ao_modelo():
 
 
 def test_plano_sem_o_valor_do_pedido_volta_ao_modelo():
-    from app.planner import LLMPlanner
+    from anchor.planner import LLMPlanner
     bad = {"goals": [{"id": "g1", "description": "busca aberta", "conclusive": True}],
            "steps": [{"action": "click", "description": "Search /", "value": None, "goal": "g1", "expect": None}]}
     client = FakeClient(json.dumps(bad), json.dumps(bad))
@@ -193,7 +193,7 @@ def test_plano_sem_o_valor_do_pedido_volta_ao_modelo():
 
 
 def test_replanejamento_nao_precisa_repetir_o_pedido_todo():
-    from app.planner import LLMPlanner
+    from anchor.planner import LLMPlanner
     remaining = {"goals": [], "steps": [{"action": "click", "description": "Salvar", "value": None,
                                          "goal": "g2", "expect": None}]}
     client = FakeClient(json.dumps(remaining))
@@ -203,7 +203,7 @@ def test_replanejamento_nao_precisa_repetir_o_pedido_todo():
 
 
 def test_valor_com_colchetes_copiado_do_resumo_e_limpo():
-    from app.planner.execute import clean_value
+    from anchor.planner.execute import clean_value
     assert clean_value("[Price: low to high]") == "Price: low to high"
     assert clean_value('[opções: Português]') == "Português"
     assert clean_value('"TI"') == "TI"
@@ -221,13 +221,13 @@ def test_clique_de_foco_nao_cumpre_a_meta(page):
 
 
 def test_meta_que_fala_em_salvar_sem_passo_que_salve_nao_basta():
-    from app.planner import check_request
+    from anchor.planner import check_request
     with pytest.raises(PlanError, match='pede para "salvar"'):
         check_request([Step("click", "Consultor RPA")], [Goal("g1", "vaga salva", True)], "Salve a primeira vaga")
 
 
 def test_preencher_a_busca_nao_e_pesquisar():
-    from app.planner import check_request
+    from anchor.planner import check_request
     with pytest.raises(PlanError, match='pede para "pesquisar"'):
         check_request([Step("fill", "Search /", "Pi Network")], [], "Pesquise a moeda Pi Network")
     check_request([Step("fill", "Search /", "Pi Network"), Step("press", "Search /", "Enter")], [],

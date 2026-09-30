@@ -1,8 +1,8 @@
 """
 Executa um pedido de ponta a ponta: plano, execução, replanejamento e fim.
 
-    python -m app.agent --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva no TI"
-    python -m app.agent --perfil ollama-pequeno --url https://www.saucedemo.com --perfil-navegador profiles/user_001 \\
+    python -m anchor.agent --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva no TI"
+    python -m anchor.agent --perfil ollama-pequeno --url https://www.saucedemo.com --perfil-navegador profiles/user_001 \\
         --memoria memory/saucedemo.json "adicione a mochila ao carrinho e abra o carrinho"
 
 O navegador fica visível: quando a heurística não tem certeza, o terminal
@@ -15,12 +15,12 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-from app.engine.action_executor import ActionExecutor
-from app.engine.disambiguation import TerminalDisambiguator
-from app.engine.element_resolver import ElementResolver
-from app.engine.memory import ChoiceMemory
-from app.planner import ConfigError, get_profile
-from app.planner.progress import Progress
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.disambiguation import TerminalDisambiguator
+from anchor.engine.element_resolver import ElementResolver
+from anchor.engine.memory import ChoiceMemory
+from anchor.planner import ConfigError, get_profile
+from anchor.planner.progress import Progress
 
 from .agent import Agent
 
@@ -42,7 +42,7 @@ class ProgressPlanner:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(prog="python -m app.agent")
+    ap = argparse.ArgumentParser(prog="python -m anchor.agent")
     ap.add_argument("pedido")
     ap.add_argument("--perfil", required=True, help="perfil do modelo em llm_profiles.json")
     ap.add_argument("--url", required=True, help="link do site ou caminho de um arquivo .html")

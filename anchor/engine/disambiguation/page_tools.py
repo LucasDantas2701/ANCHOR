@@ -10,7 +10,7 @@ from typing import Optional
 
 from playwright.sync_api import Page
 
-from app.engine.element_resolver import Match
+from anchor.engine.element_resolver import Match
 
 _HIGHLIGHT_JS = """
 (items) => {

@@ -11,9 +11,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
-from app.planner import LLMPlanner, LLMProfile
-from app.planner.ollama_client import OllamaClient, OllamaError
-from app.planner.progress import Progress
+from anchor.planner import LLMPlanner, LLMProfile
+from anchor.planner.ollama_client import OllamaClient, OllamaError
+from anchor.planner.progress import Progress
 from eval.plan_run import warm_up
 
 PLAN = {"steps": [{"action": "click", "description": "botão Salvar", "value": None}]}

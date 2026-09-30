@@ -1,7 +1,7 @@
 import pytest
 
-from app.engine.action_executor import ActionExecutor
-from app.engine.element_resolver import ElementResolver
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.element_resolver import ElementResolver
 
 SAUCEDEMO_URL = "https://www.saucedemo.com"
 
@@ -99,7 +99,7 @@ def test_find_backpack(saucedemo_page):
         == "Sauce Labs Backpack"
     )
 def test_debug_backpack_candidates(saucedemo_page):
-    from app.engine.element_resolver import ElementResolver
+    from anchor.engine.element_resolver import ElementResolver
 
     resolver = ElementResolver(saucedemo_page, synonyms=SAUCEDEMO_VOCAB)
 
@@ -121,7 +121,7 @@ def test_debug_backpack_candidates(saucedemo_page):
         print("Content:", repr(match.content))
         print("Context:", repr(match.context))
 def test_debug_backpack_text_candidates(saucedemo_page):
-    from app.engine.element_resolver import ElementResolver
+    from anchor.engine.element_resolver import ElementResolver
 
     resolver = ElementResolver(saucedemo_page)
 

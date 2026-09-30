@@ -36,14 +36,14 @@ from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
 
-from app import __version__
-from app.engine.action_executor import ActionExecutor
-from app.engine.action_executor.constants import (
+from anchor import __version__
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.action_executor.constants import (
     DEFAULT_AMBIGUITY_GAP,
     DEFAULT_MIN_SCORE,
     RESOLVER_ACTION_MAP,
 )
-from app.engine.element_resolver import ElementResolver
+from anchor.engine.element_resolver import ElementResolver
 from eval.setups import SETUPS
 
 ROOT = Path(__file__).resolve().parent

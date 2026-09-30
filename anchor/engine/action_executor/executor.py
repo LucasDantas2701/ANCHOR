@@ -4,7 +4,7 @@ from typing import Any, Callable, Optional
 
 from playwright.sync_api import Page
 
-from app.engine.disambiguation import (
+from anchor.engine.disambiguation import (
     ChoiceRequest,
     Disambiguator,
     capture_click,
@@ -12,8 +12,8 @@ from app.engine.disambiguation import (
     describe,
     highlight_candidates,
 )
-from app.engine.element_resolver import ElementResolver, Match
-from app.engine.memory import ChoiceMemory
+from anchor.engine.element_resolver import ElementResolver, Match
+from anchor.engine.memory import ChoiceMemory
 
 from .constants import (
     DEFAULT_AMBIGUITY_GAP,

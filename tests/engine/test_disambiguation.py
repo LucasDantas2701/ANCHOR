@@ -7,8 +7,8 @@ automaticamente e registra o que viu, para os testes conferirem.
 
 import pytest
 
-from app.engine.action_executor import ActionExecutor
-from app.engine.disambiguation import TerminalDisambiguator, UserChoice
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.disambiguation import TerminalDisambiguator, UserChoice
 
 PAGE = """
 <html><body>

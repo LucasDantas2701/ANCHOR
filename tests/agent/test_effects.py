@@ -2,10 +2,10 @@
 Verificação do efeito de cada ação (camada 1) e o campo que precisa ser revelado.
 """
 
-from app.agent import Agent
-from app.engine.action_executor import ActionExecutor
-from app.engine.disambiguation import UserChoice
-from app.engine.memory import ChoiceMemory
+from anchor.agent import Agent
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.disambiguation import UserChoice
+from anchor.engine.memory import ChoiceMemory
 from tests.agent.test_agent import ScriptedPlanner
 
 

@@ -1,13 +1,13 @@
-"""Testes do comando de revisão da memória (python -m app.engine.memory)."""
+"""Testes do comando de revisão da memória (python -m anchor.engine.memory)."""
 
 import time
 
 import pytest
 
-from app.engine.action_executor import ActionExecutor
-from app.engine.disambiguation import UserChoice
-from app.engine.memory import ChoiceMemory
-from app.engine.memory.cli import main
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.disambiguation import UserChoice
+from anchor.engine.memory import ChoiceMemory
+from anchor.engine.memory.cli import main
 
 URL = "https://loja.exemplo/produtos"
 

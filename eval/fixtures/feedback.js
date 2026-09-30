@@ -1,7 +1,7 @@
 // Resposta visível às ações, como a de um site real. As páginas de teste não têm
 // servidor, então muitos botões não fariam nada visível; sem isto, a verificação do
 // efeito do agente acusaria "sem efeito" em ações que, num site real, teriam efeito.
-// O aviso não é interativo e não entra no índice do smart-rpa.
+// O aviso não é interativo e não entra no índice do ANCHOR.
 (() => {
     let count = 0;
     const show = (text) => {

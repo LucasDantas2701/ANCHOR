@@ -1,6 +1,6 @@
 """Descreve um Match para uma pessoa não-técnica."""
 
-from app.engine.element_resolver import Match
+from anchor.engine.element_resolver import Match
 
 from .types import CandidateView
 

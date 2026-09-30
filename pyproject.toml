@@ -6,5 +6,5 @@
 #   2. bibliotecas de terceiros (playwright, pytest...)
 #   3. módulos do próprio projeto
 profile = "black"
-known_first_party = ["app", "eval", "tests", "examples"]
+known_first_party = ["anchor", "eval", "tests", "examples"]
 line_length = 100

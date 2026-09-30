@@ -15,6 +15,14 @@ que quebram compatibilidade também sobem o MINOR.
 
 ## [Não lançado]
 
+### Changed
+- The project is now called **ANCHOR** (Adaptive Natural-language Control with Human
+  Oversight and Recovery); repository and package name `anchor-rpa`. The Python package moved
+  from `app/` to `anchor/`, so commands become `python -m anchor.agent`, `python -m
+  anchor.planner` and `python -m anchor.engine.memory`. The LinkedIn tests are enabled with
+  `ANCHOR_LINKEDIN=1` (the old `SMART_RPA_LINKEDIN` still works). From this version on, the
+  changelog and commit messages are written in English.
+
 ### Adicionado
 - Verificação do efeito de cada ação (camada 1, sem LLM, `app/agent/effects.py`): nas ações de
   formulário, o estado do elemento (valor no campo, opção escolhida, caixa marcada; máscaras

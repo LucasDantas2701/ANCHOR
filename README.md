@@ -151,7 +151,7 @@ playwright install chromium
 ### Exemplo no SauceDemo
 
 ```bash
-python -m app.main
+python -m anchor.main
 ```
 
 Na primeira execução, faça o login na janela do navegador
@@ -168,9 +168,9 @@ Rode duas vezes: na primeira, o assistente pergunta; na segunda, usa as escolhas
 ### Revisar o que o assistente aprendeu
 
 ```bash
-python -m app.engine.memory memory/demo.json listar
-python -m app.engine.memory memory/demo.json esquecer 2
-python -m app.engine.memory memory/demo.json limpar
+python -m anchor.engine.memory memory/demo.json listar
+python -m anchor.engine.memory memory/demo.json esquecer 2
+python -m anchor.engine.memory memory/demo.json limpar
 ```
 
 ### Testes
@@ -195,7 +195,7 @@ isort app eval tests examples                # corrige
 ### Agente: um pedido de ponta a ponta
 
 ```bash
-python -m app.agent --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
+python -m anchor.agent --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
 ```
 
 O navegador abre visível. O agente planeja, executa cada passo, pergunta no terminal quando a
@@ -247,8 +247,8 @@ setx OPENAI_API_KEY "sua-chave"        # Windows; abra um terminal novo depois
 Gerar um plano, e executá-lo no navegador:
 
 ```bash
-python -m app.planner --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva no departamento de TI"
-python -m app.planner --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva no departamento de TI" --executar
+python -m anchor.planner --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva no departamento de TI"
+python -m anchor.planner --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva no departamento de TI" --executar
 ```
 
 Comparar os modelos em tarefas completas (pedido → plano → execução → estado final):
@@ -309,7 +309,7 @@ conjunto fechado (`eval/plans/holdout_tasks.json`).
 
 ```text
 smart-rpa/
-├── app/
+├── anchor/
 │   ├── main.py                    # exemplo de ponta a ponta no SauceDemo
 │   ├── browser/                   # perfis persistentes, sessão e login
 │   ├── agent/                     # loop do agente: plano, execução, replanejamento, fim

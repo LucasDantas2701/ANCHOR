@@ -1,7 +1,7 @@
 """
 Exemplo de ponta a ponta no SauceDemo, com o motor semântico.
 
-    python -m app.main
+    python -m anchor.main
 
 1. Abre o navegador com um perfil persistente (profiles/user_001).
 2. Se não houver sessão, espera o usuário fazer o login manualmente
@@ -13,20 +13,20 @@ Exemplo de ponta a ponta no SauceDemo, com o motor semântico.
 
 Aqui o plano (a lista de passos) é fixo, para demonstrar o motor sem LLM.
 Para um pedido em texto, com o plano gerado pelo LLM, use o agente:
-python -m app.agent --perfil <perfil> --url <link> "<pedido>"
+python -m anchor.agent --perfil <perfil> --url <link> "<pedido>"
 
 Versão antiga, com seletores fixos, para comparação:
-app/automation/saucedemo.py
+anchor/automation/saucedemo.py
 """
 
 from pathlib import Path
 
-from app.browser.browser import close_browser, start_browser
-from app.browser.session import is_logged_in, wait_for_login
-from app.engine.action_executor import ActionExecutor
-from app.engine.disambiguation import TerminalDisambiguator
-from app.engine.element_resolver import ElementResolver
-from app.engine.memory import ChoiceMemory
+from anchor.browser.browser import close_browser, start_browser
+from anchor.browser.session import is_logged_in, wait_for_login
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.disambiguation import TerminalDisambiguator
+from anchor.engine.element_resolver import ElementResolver
+from anchor.engine.memory import ChoiceMemory
 
 PROFILE_PATH = "./profiles/user_001"
 URL = "https://www.saucedemo.com/"

@@ -26,7 +26,7 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import urlsplit
 
-from app.engine.element_resolver.tokenizer import normalize_text, tokenize
+from anchor.engine.element_resolver.tokenizer import normalize_text, tokenize
 
 SIGNATURE_FIELDS = ("role", "tag", "label", "text", "hint", "test_id", "context")
 

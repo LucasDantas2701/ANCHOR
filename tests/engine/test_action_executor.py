@@ -1,10 +1,10 @@
 from unittest.mock import Mock
 
-from app.engine.action_executor import (
+from anchor.engine.action_executor import (
     ActionExecutor,
     ActionResult,
 )
-from app.engine.element_resolver import Match
+from anchor.engine.element_resolver import Match
 
 
 def make_match(

@@ -18,9 +18,9 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-from app.engine.action_executor import ActionExecutor
-from app.engine.disambiguation import TerminalDisambiguator
-from app.engine.memory import ChoiceMemory
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.disambiguation import TerminalDisambiguator
+from anchor.engine.memory import ChoiceMemory
 
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "eval" / "fixtures" / "loja.html"

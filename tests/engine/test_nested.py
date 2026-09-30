@@ -1,7 +1,7 @@
 """Elementos aninhados: um candidato só quando apenas um dos dois é interativo."""
 
-from app.engine.action_executor import ActionExecutor
-from app.engine.element_resolver import ElementResolver
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.element_resolver import ElementResolver
 
 PRODUCTS = """<html><body>
   <div class="item"><a href="#p1"><div class="name">Sauce Labs Backpack</div></a> <span>$29.99</span></div>

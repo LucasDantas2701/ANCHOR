@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 
 from playwright.sync_api import Page
 
-# Mudanças feitas pelo próprio smart-rpa (índice, destaque do desempate) não contam.
+# Mudanças feitas pelo próprio ANCHOR (índice, destaque do desempate) não contam.
 OBSERVER_JS = r"""
 () => {
     if (window.__er_obs) return true;
