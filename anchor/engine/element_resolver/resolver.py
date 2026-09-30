@@ -20,11 +20,11 @@ _NOT_TEXT_INPUTS = {"checkbox", "radio", "button", "submit", "reset", "file",
 
 def accepts(record: dict, action: str | None) -> bool:
     """
-    O elemento pode receber a ação? Evita, por exemplo, tentar preencher um botão.
+    Can the element receive the action? Prevents, for example, filling a button.
 
-        fill:   campos de texto (input de texto, textarea, editáveis)
-        select: listas nativas (<select>)
-        check:  caixas de marcação, opções e chaves
+        fill:   text fields (text inputs, textareas, editable elements)
+        select: native lists (<select>)
+        check:  checkboxes, radio buttons and switches
     """
     tag, role = record.get("tag", ""), record.get("role", "")
     kind = (record.get("type") or "").lower()
@@ -42,10 +42,11 @@ def accepts(record: dict, action: str | None) -> bool:
 
 def merge_nested(matches: list[Match], records: list[dict]) -> list[Match]:
     """
-    Une elementos aninhados que são o mesmo alvo: quando um contém o outro e só
-    um deles é interativo (ex.: um link e o nome do produto dentro dele), fica o
-    interativo, com o maior score dos dois. Se os dois forem interativos (ex.: um
-    card clicável com um botão dentro), continuam candidatos distintos.
+    Merges nested elements that are the same target: when one contains the other
+    and only one of them is interactive (e.g. a link and the product name inside
+    it), the interactive one is kept, with the higher score of the two. If both are
+    interactive (e.g. a clickable card with a button inside), they remain separate
+    candidates.
     """
     by_id = {r["id"]: r for r in records}
     candidates = {m.id: m for m in matches}
@@ -70,18 +71,18 @@ def merge_nested(matches: list[Match], records: list[dict]) -> list[Match]:
 
 class ElementResolver:
     """
-    Localiza elementos de uma página utilizando
-    descrição em linguagem natural.
+    Finds elements on a page from a natural-language
+    description.
 
-    Fluxo:
+    Flow:
 
-        página
+        page
           ↓
         index()
           ↓
-        candidatos
+        candidates
           ↓
-        contexto
+        context
           ↓
         query()
           ↓
@@ -100,18 +101,18 @@ class ElementResolver:
     ):
         """
         context_selectors:
-            Containers específicos de um site para o contexto
-            (ex.: [".inventory_item"]). Opcional: o script já
-            tem uma heurística genérica.
+            Site-specific containers used for context
+            (e.g. [".inventory_item"]). Optional: the script already
+            has a generic heuristic.
 
         selector:
-            Seletor CSS fixo. Se informado, desliga a detecção
-            automática do script (use só para depuração).
+            Fixed CSS selector. When given, it turns off the script's
+            automatic detection (use it only for debugging).
 
         synonyms:
-            Vocabulário específico do site ou da automação salva
-            (ex.: {"mochila": "backpack"}). Soma-se ao dicionário
-            genérico, sem precisar alterar o constants.py.
+            Vocabulary specific to the site or to the saved automation
+            (e.g. {"mochila": "backpack"}). It is added to the generic
+            dictionary, with no need to change constants.py.
         """
 
         self.page = page
@@ -124,11 +125,11 @@ class ElementResolver:
 
     def index(self, mode: str = "interactive") -> int:
         """
-        Analisa a página e cria o índice de elementos.
+        Scans the page and builds the element index.
 
         mode:
-            "interactive": só elementos clicáveis/preenchíveis.
-            "content": interativos + elementos com texto (extração).
+            "interactive": only clickable/fillable elements.
+            "content": interactive elements + elements with text (extraction).
         """
 
         self._records = self.page.evaluate(
@@ -145,11 +146,11 @@ class ElementResolver:
 
     @property
     def records(self) -> list[dict]:
-        """Registros da última indexação (um por elemento)."""
+        """Records from the last indexing (one per element)."""
         return self._records
 
     def to_match(self, record: dict, score: float = 0.0) -> Match:
-        """Converte um registro do index_script.js em Match."""
+        """Converts a record from index_script.js into a Match."""
         return Match(
             id=record["id"],
             tag=record["tag"],
@@ -182,8 +183,8 @@ class ElementResolver:
         filter: Callable[[Match], bool] | None = None,
     ) -> list[Match]:
         """
-        Procura elementos relacionados à descrição
-        e retorna os melhores candidatos.
+        Looks for elements related to the description
+        and returns the best candidates.
 
         action:
             click
@@ -191,11 +192,11 @@ class ElementResolver:
             extract
 
         filter:
-            Função opcional para filtrar candidatos.
+            Optional function to filter candidates.
         """
 
-        # Reindexa a cada consulta: a página pode ter mudado
-        # desde a última (navegação, re-render). Corrige o B2.
+        # Reindex on every query: the page may have changed
+        # since the last one (navigation, re-render). Fixes bug B2.
         self.index(
             "content" if action == "extract" else "interactive"
         )
@@ -209,14 +210,14 @@ class ElementResolver:
             self._synonyms,
         )
 
-        # Palavras de ação presentes na consulta.
+        # Action words present in the query.
         action_query_tokens = (
             normalized_query_tokens & ACTION_WORDS_N
             if action
             else set()
         )
 
-        # Objetos relevantes da consulta.
+        # Relevant objects in the query.
         object_query_tokens = (
             extract_object_tokens(
                 normalized_query_tokens,
@@ -236,8 +237,8 @@ class ElementResolver:
             content = record["content"]
             value = (record.get("value") or "").lower()
             if value and action not in ("fill", "extract") and accepts(record, "fill"):
-                # Para clicar ou marcar, o que identifica um campo é o rótulo, não o
-                # texto que já foi digitado nele.
+                # To click or check, a field is identified by its label, not by
+                # the text already typed into it.
                 content = " ".join(content.replace(value, " ").split())
 
             score = score_element(

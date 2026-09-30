@@ -16,7 +16,7 @@ class Match:
     score: float
     page: Page = field(repr=False)
 
-    # Campos novos do index_script.js (opcionais para manter os testes com mock).
+    # Newer fields from index_script.js (optional, so tests with mocks keep working).
     type: str = ""
     value: str = ""
     hint: str = ""
@@ -26,7 +26,7 @@ class Match:
     options: list = field(default_factory=list)
     in_viewport: bool = True
     obscured: bool = False
-    layer: bool = False          # dentro de um pop-up, diálogo ou menu aberto
+    layer: bool = False          # inside an open pop-up, dialog or menu
 
     @property
     def locator(self) -> Locator:

@@ -1,11 +1,11 @@
-# DEFAULT_SELECTOR removido: o index_script.js detecta os elementos sozinho.
+# DEFAULT_SELECTOR removed: index_script.js detects the elements on its own.
 
 
 # ---------------------------------------------------------------------------
-# Sinônimos PT -> EN (ações, e-commerce, navegação, formulários, conta, social)
+# Synonyms PT -> EN (actions, e-commerce, navigation, forms, account, social)
 # ---------------------------------------------------------------------------
 SYNONYMS = {
-    # elementos / UI genérica
+    # elements / generic UI
     "botão": "button",
     "botao": "button",
     "botoes": "button",
@@ -78,7 +78,7 @@ SYNONYMS = {
     "widget": "widget",
     "componente": "component",
 
-    # ações principais
+    # main actions
     "adicionar": "add",
     "adicione": "add",
     "incluir": "add",
@@ -123,7 +123,7 @@ SYNONYMS = {
     "diminuir": "decrease",
     "reduzir": "decrease",
 
-    # navegação / fluxo
+    # navigation / flow
     "buscar": "search",
     "pesquisar": "search",
     "pesquise": "search",
@@ -153,7 +153,7 @@ SYNONYMS = {
     "feche": "close",
     "sair": "logout",
     "entrar": "login",
-    "sign in": "login",   # equivalências EN → EN também valem
+    "sign in": "login",   # EN → EN equivalences also apply
     "log in": "login",
     "sign up": "signup",
     "acessar": "login",
@@ -174,7 +174,7 @@ SYNONYMS = {
     "redefinir": "reset",
     "resetar": "reset",
 
-    # formulários / conta
+    # forms / account
     "enviar": "send",
     "envie": "send",
     "submeter": "submit",
@@ -185,7 +185,7 @@ SYNONYMS = {
     "salve": "save",
     "gravar": "save",
     "senha": "password",
-    "usuário": "user username",   # valores com espaço = vários sinônimos
+    "usuário": "user username",   # values with spaces = several synonyms
     "e-mail": "email",
     "email": "email",
     "nome": "name",
@@ -240,7 +240,7 @@ SYNONYMS = {
     "devolucao": "return",
     "reembolso": "refund",
 
-    # social / mídia
+    # social / media
     "curtir": "like",
     "curta": "like",
     "seguir": "follow",
@@ -259,7 +259,7 @@ SYNONYMS = {
     "notificações": "notifications",
     "notificacoes": "notifications",
 
-    # arquivos / mídia
+    # files / media
     "carregar": "upload",
     "fazer upload": "upload",
     "baixar": "download",
@@ -320,32 +320,32 @@ STRUCTURAL_WORDS = {
 
  
 # ---------------------------------------------------------------------------
-# Pesos de scoring
+# Scoring weights
 # ---------------------------------------------------------------------------
 ACTION_CONTENT_BONUS = 0.30
 ACTION_MISMATCH_DAMPING = 0.55
  
-ACTION_CONFLICT_DAMPING = 0.60   # elemento anuncia outro verbo
-# Palavras de tipo que o resumo da página usa ("Opção", "Campo de texto"...): não
-# fazem parte do nome do elemento na comparação de nome idêntico.
+ACTION_CONFLICT_DAMPING = 0.60   # the element announces another verb
+# Kind words used by the page summary ("Opção", "Campo de texto"...): they are not
+# part of the element's name when comparing for an identical name.
 KIND_WORDS = [
     "botão", "botao", "link", "campo", "texto", "busca", "caixa", "marcação", "marcacao",
     "opção", "opcao", "opções", "lista", "chave", "aba", "item", "menu", "área", "area",
     "clicável", "clicavel", "elemento", "sugestão", "sugestao", "option", "button", "field",
 ]
-EXACT_NAME_BONUS = 0.15         # texto do elemento = exatamente o que o pedido nomeia
-DESTRUCTIVE_DAMPING = 0.80       # pedido sem verbo; elemento anuncia uma ação destrutiva
+EXACT_NAME_BONUS = 0.15         # element text = exactly what the request names
+DESTRUCTIVE_DAMPING = 0.80       # request with no verb; the element announces a destructive action
 
-# Verbos de ações destrutivas ou de descarte. Um pedido que só nomeia um item
-# ("Consultor RPA") não deve levar a clicar em "Fechar vaga de Consultor RPA".
+# Verbs of destructive or dismissive actions. A request that only names an item
+# ("Consultor RPA") must not lead to clicking "Fechar vaga de Consultor RPA".
 DESTRUCTIVE_WORDS = [
     "fechar", "close", "excluir", "delete", "apagar", "remover", "remove",
     "ocultar", "hide", "dispensar", "dismiss", "descartar", "discard",
     "cancelar", "cancel", "limpar", "clear",
 ]
 
-# Verbos que expressam a mesma intenção. Um elemento com um verbo
-# do mesmo grupo do pedido não é considerado "conflitante".
+# Verbs that express the same intent. An element whose verb is in the
+# same group as the request's verb is not considered "conflicting".
 ACTION_EQUIVALENTS = [
     {"select", "choose", "pick"},
     {"open", "view", "show", "expand"},
@@ -356,7 +356,7 @@ ACTION_EQUIVALENTS = [
     {"login", "signin"},
     {"search", "find"},
 ]
-DISABLED_DAMPING = 0.30          # elemento desabilitado (exceto extração)
+DISABLED_DAMPING = 0.30          # disabled element (except for extraction)
 
 OBJECT_CONTEXT_BONUS = 0.30
 OBJECT_MISMATCH_DAMPING = 0.70
@@ -374,7 +374,7 @@ ACTION_ROLE_WEIGHTS = {
         "tab": 0.10,
         "menuitem": 0.10,
         "switch": 0.10,
-        "clickable": 0.05,   # div/span com cursor:pointer (detectado pelo script)
+        "clickable": 0.05,   # div/span with cursor:pointer (detected by the script)
         "div": -0.05,
         "span": -0.05,
         "p": -0.05,

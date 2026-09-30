@@ -24,14 +24,14 @@ class ActionResult:
     candidates: Optional[list[Match]] = None
     error: Optional[str] = None
 
-    # Quem escolheu o elemento: "heuristic", "user" (desempate),
-    # "memory" (escolha anterior do usuário) ou "user_skipped"
-    # (o usuário pediu para pular o passo).
+    # Who chose the element: "heuristic", "user" (disambiguation),
+    # "memory" (a previous choice by the user) or "user_skipped"
+    # (the user asked to skip the step).
     resolved_by: str = "heuristic"
 
-    # Só para resolved_by == "memory": quão parecido o elemento da página
-    # é com o memorizado. Não é comparável ao score da heurística, por
-    # isso fica em campo separado (e score fica None).
+    # Only for resolved_by == "memory": how similar the element on the page
+    # is to the remembered one. It is not comparable to the heuristic's score,
+    # so it lives in a separate field (and score is None).
     similarity: Optional[float] = None
 
     def __bool__(self) -> bool:

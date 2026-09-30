@@ -22,6 +22,21 @@ que quebram compatibilidade também sobem o MINOR.
   anchor.planner` and `python -m anchor.engine.memory`. The LinkedIn tests are enabled with
   `ANCHOR_LINKEDIN=1` (the old `SMART_RPA_LINKEDIN` still works). From this version on, the
   changelog and commit messages are written in English.
+- English translation, part 1 (the engine): comments and docstrings of the element resolver,
+  the executor, disambiguation and the choice memory, plus the small modules (browser session,
+  legacy SauceDemo script, `anchor/main.py`). Checked by comparing the syntax trees before and
+  after (Python and JavaScript): the code itself did not change, and the evaluation results are
+  identical. The Portuguese vocabulary of the resolver stays, since it is data for understanding
+  Portuguese requests.
+- The memory commands are now `list`, `forget` and `clear` (with `--yes`); the Portuguese ones
+  (`listar`, `esquecer`, `limpar`, `--sim`) still work.
+
+### Added
+- `anchor/i18n.py`: user-facing messages in English (default) or Portuguese, chosen with the
+  `ANCHOR_LANG` environment variable (`en` or `pt`). The terminal disambiguation, the memory
+  commands, the login messages and the demo use it. To skip a step, both `S` and `P` work. What
+  the model reads (the page summary) keeps the Portuguese element kinds, so the planner's input,
+  and therefore its measured results, do not change.
 
 ### Adicionado
 - Verificação do efeito de cada ação (camada 1, sem LLM, `app/agent/effects.py`): nas ações de

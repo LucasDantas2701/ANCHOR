@@ -68,7 +68,7 @@ def test_usuario_escolhe_o_segundo_candidato(shop):
     assert request.reason == "ambiguous"
     assert request.screenshot  # sem janela visível, vai uma imagem
     chosen = request.candidates[1]
-    assert chosen.kind == "Botão"
+    assert chosen.kind == "Button"
     assert chosen.name == "Adicionar ao carrinho"
     assert sum(clicks(shop).values()) == 1
     target = "a" if "azul" in chosen.near else "b"
@@ -139,6 +139,21 @@ def test_terminal_repete_a_pergunta_ate_resposta_valida(shop):
     assert result.status == "success"
     assert sum(clicks(shop).values()) == 1
     text = "\n".join(out)
-    assert "mais de um elemento" in text
-    assert "[1] Botão" in text and "[2] Botão" in text
-    assert text.count("não reconhecida") == 2
+    assert "more than one possible element" in text
+    assert "[1] Button" in text and "[2] Button" in text
+    assert text.count("not recognized") == 2
+
+
+
+def test_terminal_messages_in_portuguese(monkeypatch):
+    from anchor.engine.disambiguation import TerminalDisambiguator
+    from anchor.engine.disambiguation.types import CandidateView, ChoiceRequest
+
+    monkeypatch.setenv("ANCHOR_LANG", "pt")
+    printed, answers = [], iter(["x", "p"])
+    terminal = TerminalDisambiguator(open_screenshot=False, input_fn=lambda _: next(answers), output=printed.append)
+    request = ChoiceRequest(action="click", description="Salvar", reason="ambiguous", can_point=False, screenshot=None,
+                            candidates=[CandidateView(1, "Botão", "Salvar", ""), CandidateView(2, "Botão", "Salvar", "")])
+    assert terminal.choose(request).kind == "skip"
+    text = "\n".join(printed)
+    assert "Encontrei mais de um elemento" in text and "Resposta não reconhecida" in text

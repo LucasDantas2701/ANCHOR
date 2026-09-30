@@ -37,16 +37,16 @@ def run(argv, answers=()):
 def test_listar_mostra_as_escolhas_numeradas(memory_file):
     code, text = run([memory_file, "listar"])
     assert code == 0
-    assert '[1] Passo: "adicionar ao carrinho"' in text
-    assert '[2] Passo: "marcar a cafeteira como favorita"' in text
+    assert '[1] Step: "adicionar ao carrinho"' in text
+    assert '[2] Step: "marcar a cafeteira como favorita"' in text
     assert 'Link "Wishlist"' in text
-    assert "perto de: UltraBook 14 $899.00" in text
+    assert "near: UltraBook 14 $899.00" in text
 
 
 def test_esquecer_um_item(memory_file):
     code, text = run([memory_file, "esquecer", 2])
     assert code == 0
-    assert "Esquecida [2]" in text
+    assert "Forgotten [2]" in text
     remaining = ChoiceMemory(memory_file).ordered()
     assert [e.description for _, e in remaining] == ["adicionar ao carrinho"]
 
@@ -54,17 +54,17 @@ def test_esquecer_um_item(memory_file):
 def test_esquecer_numero_invalido_nao_apaga_nada(memory_file):
     code, text = run([memory_file, "esquecer", 7])
     assert code == 1
-    assert "inválido" in text
+    assert "Invalid" in text
     assert len(ChoiceMemory(memory_file).entries) == 2
 
 
 def test_limpar_pede_confirmacao(memory_file):
     code, text = run([memory_file, "limpar"], answers=["n"])
-    assert "Nada foi apagado" in text
+    assert "Nothing was deleted" in text
     assert len(ChoiceMemory(memory_file).entries) == 2
 
     code, text = run([memory_file, "limpar"], answers=["s"])
-    assert "2 escolha(s) esquecida(s)" in text
+    assert "2 choice(s) forgotten" in text
     assert ChoiceMemory(memory_file).entries == {}
 
 
@@ -76,7 +76,7 @@ def test_limpar_sem_confirmacao(memory_file):
 def test_arquivo_inexistente(tmp_path):
     code, text = run([tmp_path / "nao_existe.json", "listar"])
     assert code == 1
-    assert "não encontrado" in text
+    assert "not found" in text
 
 
 # --------------------------------------------------------------------------
@@ -143,3 +143,11 @@ def test_memoria_descarta_a_escolha_usada_ha_mais_tempo(tmp_path):
 
     kept = sorted(e.description for e in ChoiceMemory(tmp_path / "m.json").entries.values())
     assert kept == ["passo 0", "passo 2", "passo 3"]   # saiu o passo 1, o usado há mais tempo
+
+
+
+def test_english_commands_and_confirmation(memory_file):
+    code, text = run([memory_file, "list"])
+    assert code == 0 and "[1] Step" in text
+    code, text = run([memory_file, "clear"], answers=["y"])
+    assert code == 0 and ChoiceMemory(memory_file).entries == {}

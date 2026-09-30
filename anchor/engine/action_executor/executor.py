@@ -26,23 +26,23 @@ from .result import ActionResult
 
 class ActionExecutor:
     """
-    Orquestra ElementResolver + execução de ações no Playwright.
+    Orchestrates the ElementResolver + running actions in Playwright.
 
-    Fluxo:
+    Flow:
 
-        descrição
+    description
             ↓
         ElementResolver
             ↓
-        candidatos
-            ↓
-        score mínimo
-            ↓
-        verificação de ambiguidade
-            ↓
-        elemento selecionado
-            ↓
-        execução
+        candidates
+        ↓
+        minimum score
+        ↓
+        ambiguity check
+        ↓
+        selected element
+        ↓
+        execution
             ↓
         ActionResult
     """
@@ -63,17 +63,17 @@ class ActionExecutor:
     ):
         """
         disambiguator:
-            Quem pergunta ao usuário quando a heurística recusa
-            (ambiguous / not_found). Sem ele, o Executor devolve a
-            recusa, como antes.
+            Whatever asks the user when the heuristic refuses
+            (ambiguous / not_found). Without it, the Executor returns
+            the refusal, as before.
 
         can_point:
-            True quando o navegador está visível (headed): o usuário
-            pode clicar direto no elemento.
+            True when the browser is visible (headed): the user
+            can click the element directly.
 
         memory:
-            Memória das escolhas do usuário. Com ela, um passo que já foi
-            desempatado antes é resolvido direto, sem perguntar de novo.
+            Memory of the user's choices. With it, a step that was already
+            disambiguated is resolved directly, without asking again.
         """
         self.page = page
 
@@ -126,7 +126,7 @@ class ActionExecutor:
                 matches,
             )
 
-        # Margem relativa ao score do 1º colocado (ver constants.py).
+        # Margin relative to the 1st candidate's score (see constants.py).
         gap = (
             matches[0].score
             - matches[1].score
@@ -159,7 +159,7 @@ class ActionExecutor:
 
         url = self.page.url
 
-        # 1. Memória: o usuário já escolheu este elemento antes?
+        # 1. Memory: has the user chosen this element before?
         if self.memory is not None:
             found = self._from_memory(url, description, action_name, resolver_action)
 
@@ -168,7 +168,7 @@ class ActionExecutor:
                 try:
                     value = fn(remembered)
                 except Exception as exc:
-                    # A escolha antiga não serve mais: esquece.
+                    # The old choice no longer works: forget it.
                     self.memory.forget(url, action_name, description)
                     return ActionResult(
                         status="error",
@@ -191,7 +191,7 @@ class ActionExecutor:
                     similarity=similarity,
                 )
 
-        # 2. Heurística (e, se ela recusar, o usuário).
+        # 2. Heuristic (and, if it refuses, the user).
         status, match, candidates = self._resolve(
             description,
             resolver_action,
@@ -226,7 +226,7 @@ class ActionExecutor:
 
         assert match is not None
 
-        # Assinatura capturada ANTES da ação (ela pode mudar ou sair da página).
+        # Signature captured BEFORE the action (the element may change or leave the page).
         to_remember = (
             self._signature_of(match)
             if resolved_by == "user" and self.memory is not None
@@ -247,7 +247,7 @@ class ActionExecutor:
                 resolved_by=resolved_by,
             )
 
-        # 3. Deu certo com a escolha do usuário: guarda para a próxima vez.
+        # 3. It worked with the user's choice: keep it for next time.
         if to_remember is not None:
             signature, css_path = to_remember
             self.memory.remember(url, action_name, description, signature, css_path)
@@ -263,7 +263,7 @@ class ActionExecutor:
         )
 
     # ------------------------------------------------------------------
-    # Memória
+    # Memory
     # ------------------------------------------------------------------
 
     _CSS_PATH_JS = """
@@ -281,11 +281,11 @@ class ActionExecutor:
     """
 
     def _signature_of(self, match: Match) -> tuple[dict, str]:
-        """Assinatura do elemento (pelo registro completo, quando existir) + caminho CSS."""
+        """The element's signature (from the full record, when there is one) + CSS path."""
         record = next((r for r in self.resolver.records if r["id"] == match.id), None)
         if record:
             signature = {**record, "test_id": record.get("testId", "")}
-        else:  # elemento capturado por clique, fora do índice
+        else:  # element captured by a click, outside the index
             signature = {
                 "role": match.role, "tag": match.tag, "label": match.label,
                 "text": match.text, "hint": match.hint, "test_id": match.test_id,
@@ -304,7 +304,7 @@ class ActionExecutor:
         action_name: str,
         resolver_action: str,
     ) -> Optional[tuple[Match, float]]:
-        """Elemento memorizado na página atual, com a similaridade (0 = só pelo caminho CSS)."""
+        """The remembered element on the current page, with its similarity (0 = CSS path only)."""
         entry = self.memory.lookup(url, action_name, description)
         if entry is None:
             return None
@@ -324,7 +324,7 @@ class ActionExecutor:
         return None
 
     def _from_css_path(self, css_path: str, signature: dict) -> Optional[Match]:
-        """Plano B: o caminho CSS salvo, conferindo se o elemento ainda é o mesmo."""
+        """Plan B: the saved CSS path, checking that the element is still the same."""
         try:
             locator = self.page.locator(css_path)
             if locator.count() != 1 or not locator.is_visible():
@@ -355,12 +355,12 @@ class ActionExecutor:
         candidates: list[Match],
     ) -> list[Match]:
         """
-        Mostra só o que vale a pena ao usuário:
+        Shows the user only what is worth showing:
 
-        ambiguous: os candidatos com score perto do 1º (>= choice_ratio
-                   do score dele), no mínimo 2 e no máximo max_choices.
-        not_found: no máximo 3, porque o mais provável é o alvo nem estar
-                   na lista (o usuário deve clicar direto na página).
+        ambiguous: candidates whose score is close to the 1st (>= choice_ratio
+        of its score), at least 2 and at most max_choices.
+        not_found: at most 3, because the target is most likely not even in
+        the list (the user should click directly on the page).
         """
         if not candidates:
             return []
@@ -379,7 +379,7 @@ class ActionExecutor:
         reason: str,
         candidates: list[Match],
     ) -> Optional[Match]:
-        """Desempate: destaca os candidatos, pergunta e devolve a escolha."""
+        """Disambiguation: highlights the candidates, asks, and returns the choice."""
 
         shown = self._choices_to_show(reason, candidates)
 
@@ -435,8 +435,8 @@ class ActionExecutor:
 
     def _enrich_captured(self, match: Match, action_name: str) -> Match:
         """
-        O elemento clicado pelo usuário, com a assinatura completa (contexto,
-        pista visual, data-testid), para a memória reencontrá-lo depois.
+        The element clicked by the user, with its full signature (context,
+        visual hint, data-testid), so the memory can find it again later.
         """
         try:
             if not self.page.evaluate(self._MARK_PICKED_JS, match.id):

@@ -1,8 +1,8 @@
 """
-LEGADO: automação do SauceDemo com seletores fixos.
+LEGACY: SauceDemo automation with fixed selectors.
 
-Mantida como exemplo do "antes" (RPA tradicional). A versão com o motor
-semântico está em anchor/main.py.
+Kept as an example of the "before" (traditional RPA). The version with the
+semantic engine is in anchor/main.py.
 """
 
 from playwright.sync_api import Page
@@ -15,22 +15,22 @@ from anchor.actions.wait import wait_for_element
 
 def run_saucedemo(page: Page) -> None:
 
-    # Página de produtos
+    # Products page
     navigate(page, "https://www.saucedemo.com/inventory.html")
 
     wait_for_element(page, ".inventory_list")
 
-    print("Página de produtos carregada.")
+    print("Products page loaded.")
 
-    # Adiciona um produto ao carrinho
+    # Add a product to the cart
     click(
         page,
         '[data-test="add-to-cart-sauce-labs-backpack"]'
     )
 
-    print("Produto adicionado ao carrinho.")
+    print("Product added to the cart.")
 
-    # Abre o carrinho
+    # Open the cart
     click(
         page,
         '[data-test="shopping-cart-link"]'
@@ -41,10 +41,10 @@ def run_saucedemo(page: Page) -> None:
         ".cart_item"
     )
 
-    # Extrai o nome do produto
+    # Extract the product name
     product_name = extract_text(
         page,
         ".inventory_item_name"
     )
 
-    print(f"Produto no carrinho: {product_name}")
+    print(f"Product in the cart: {product_name}")

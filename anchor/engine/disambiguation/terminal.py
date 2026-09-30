@@ -1,4 +1,4 @@
-"""Desempate pelo terminal (interface provisória, até existir o frontend)."""
+"""Disambiguation through the terminal (a provisional interface, until the frontend exists)."""
 
 from __future__ import annotations
 
@@ -7,13 +7,11 @@ import sys
 import tempfile
 import webbrowser
 
+from anchor.i18n import MESSAGES, t
+
 from .types import ChoiceRequest, UserChoice
 
-_ACTIONS = {
-    "click": "clicar", "hover": "passar o mouse", "check": "marcar", "uncheck": "desmarcar",
-    "press": "pressionar uma tecla em", "fill": "preencher", "select": "escolher uma opção em",
-    "extract_text": "ler o texto de", "extract_attribute": "ler", "extract_value": "ler o valor de",
-}
+SKIP_KEYS = {"s", "p"}   # "skip" (English) and "pular" (Portuguese) both work
 
 
 class TerminalDisambiguator:
@@ -27,59 +25,60 @@ class TerminalDisambiguator:
 
     def choose(self, request: ChoiceRequest) -> UserChoice:
         p = self._print
-        verb = _ACTIONS.get(request.action, request.action)
+        verb_key = f"verb.{request.action}"
+        verb = t(verb_key) if verb_key in MESSAGES else request.action
         p("")
         p("=" * 64)
-        where = "na janela do navegador" if request.can_point else "na imagem"
+        where = t("dis.where_browser") if request.can_point else t("dis.where_image")
 
         if request.reason == "ambiguous":
-            p(f"Encontrei mais de um elemento possível para: \"{request.description}\"")
+            p(t("dis.ambiguous", description=request.description))
             p("=" * 64)
-            p(f"Os candidatos estão numerados {where}:")
+            p(t("dis.numbered", where=where))
         else:
-            p(f"Não encontrei onde {verb}: \"{request.description}\"")
+            p(t("dis.not_found", verb=verb, description=request.description))
             p("=" * 64)
             if request.can_point:
-                p("Se você está vendo o elemento, digite C e clique nele no navegador.")
+                p(t("dis.point_hint"))
             if request.candidates:
-                p(f"Se for um destes (numerados {where}), digite o número:")
+                p(t("dis.number_hint", where=where))
 
         for c in request.candidates:
-            near = f"  (perto de: {c.near})" if c.near else ""
+            near = t("dis.near", near=c.near) if c.near else ""
             p(f"  [{c.number}] {c.kind} \"{c.name}\"{near}")
 
         if request.reason == "ambiguous" and request.can_point:
-            p("Se não for nenhum destes, digite C e clique no elemento certo no navegador.")
+            p(t("dis.none_of_these"))
 
         if request.screenshot and self.open_screenshot:
             self._show(request.screenshot)
 
         options = []
-        point = "C para clicar você mesmo no navegador"
+        point = t("dis.opt_point")
         if request.can_point and request.reason == "not_found":
             options.append(point)
         if request.candidates:
-            options.append(f"número de 1 a {len(request.candidates)}")
+            options.append(t("dis.opt_number", count=len(request.candidates)))
         if request.can_point and request.reason == "ambiguous":
             options.append(point)
-        options.append("P para pular este passo")
-        prompt = "Digite " + ", ".join(options) + ": "
+        options.append(t("dis.opt_skip"))
+        prompt = t("dis.prompt", options=", ".join(options))
 
         while True:
             answer = self._input(prompt).strip().lower()
-            if answer == "p":
+            if answer in SKIP_KEYS:
                 return UserChoice("skip")
             if answer == "c" and request.can_point:
                 return UserChoice("point")
             if answer.isdigit() and 1 <= int(answer) <= len(request.candidates):
                 return UserChoice("candidate", int(answer))
-            p("Resposta não reconhecida, tente de novo.")
+            p(t("dis.invalid"))
 
     def _show(self, png: bytes) -> None:
-        fd, path = tempfile.mkstemp(suffix=".png", prefix="desempate_")
+        fd, path = tempfile.mkstemp(suffix=".png", prefix="disambiguation_")
         with os.fdopen(fd, "wb") as f:
             f.write(png)
-        self._print(f"(imagem salva em {path})")
+        self._print(t("dis.image_saved", path=path))
         try:
             if sys.platform.startswith("win"):
                 os.startfile(path)  # type: ignore[attr-defined]

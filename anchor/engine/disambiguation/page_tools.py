@@ -1,7 +1,7 @@
 """
-Ferramentas de página para o desempate: destacar candidatos e capturar
-o clique do usuário. Tudo opera sobre os atributos data-er-id que o
-index_script.js já grava nos elementos.
+Page tools for disambiguation: highlight candidates and capture the
+user's click. Everything works on the data-er-id attributes that
+index_script.js already writes on the elements.
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ from typing import Optional
 from playwright.sync_api import Page
 
 from anchor.engine.element_resolver import Match
+from anchor.i18n import t
 
 _HIGHLIGHT_JS = """
 (items) => {
@@ -49,13 +50,13 @@ _CLEAR_JS = """
 }
 """
 
-# Espera um clique do usuário e o BLOQUEIA (o site não reage a ele):
-# quem executa a ação depois é o Executor, uma única vez.
+# Waits for a user click and BLOCKS it (the site does not react to it):
+# the Executor performs the action afterwards, exactly once.
 _CAPTURE_JS = """
-(timeoutMs) => new Promise((resolve) => {
+({ timeoutMs, bannerText }) => new Promise((resolve) => {
     const banner = document.createElement("div");
     banner.id = "er-point-banner";
-    banner.textContent = "Clique no elemento que o assistente deve usar";
+    banner.textContent = bannerText;
     banner.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:2147483647;pointer-events:none;" +
         "background:#e91e63;color:#fff;font:bold 15px sans-serif;padding:10px;text-align:center";
     document.body.appendChild(banner);
@@ -104,8 +105,8 @@ def clear_highlights(page: Page) -> None:
 
 
 def capture_click(page: Page, timeout_s: float = 120) -> Optional[Match]:
-    """Espera o usuário clicar num elemento da página e devolve um Match para ele."""
-    info = page.evaluate(_CAPTURE_JS, int(timeout_s * 1000))
+    """Waits for the user to click an element on the page and returns a Match for it."""
+    info = page.evaluate(_CAPTURE_JS, {"timeoutMs": int(timeout_s * 1000), "bannerText": t("dis.banner")})
     if not info:
         return None
     return Match(

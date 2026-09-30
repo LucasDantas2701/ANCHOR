@@ -1,20 +1,20 @@
 """
-Memória das escolhas do usuário (aprendizado entre execuções).
+Memory of the user's choices (learning across runs).
 
-Quando o usuário desempata um passo e a ação dá certo, a escolha é
-guardada. Na próxima execução do mesmo passo, na mesma página, o
-Executor usa a escolha direto, sem perguntar de novo.
+When the user disambiguates a step and the action works, the choice is
+kept. On the next run of the same step, on the same page, the Executor
+uses the choice directly, without asking again.
 
-O elemento é reencontrado pelo CONTEÚDO (papel, texto, rótulo, pistas
-visuais, data-testid e contexto), não pela posição: continua funcionando
-se a ordem dos itens mudar. Um caminho CSS fica como plano B.
+The element is found again by its CONTENT (role, text, label, visual
+hints, data-testid and context), not by its position: it keeps working
+if the order of the items changes. A CSS path is kept as plan B.
 
-Para não contaminar execuções futuras:
-    - se a ação falha com um elemento vindo da memória, a entrada é apagada;
-    - se o elemento não é encontrado `max_misses` vezes seguidas
-      (o site mudou), a entrada também é apagada;
-    - a memória guarda no máximo `max_entries` escolhas (500, por padrão);
-      ao passar disso, sai a usada há mais tempo.
+So that future runs are not contaminated:
+- if the action fails with an element from memory, the entry is deleted;
+- if the element is not found `max_misses` times in a row
+(the site changed), the entry is also deleted;
+- the memory keeps at most `max_entries` choices (500 by default);
+beyond that, the least recently used one is dropped.
 """
 
 from __future__ import annotations
@@ -47,14 +47,14 @@ class Entry:
 
 @dataclass
 class Found:
-    """Resultado da busca de uma entrada na página atual."""
-    record: Optional[dict] = None     # registro do index_script.js
-    css_path: Optional[str] = None    # ou: caminho CSS (plano B)
+    """Result of looking up an entry on the current page."""
+    record: Optional[dict] = None     # record from index_script.js
+    css_path: Optional[str] = None    # or: CSS path (plan B)
     similarity: float = 0.0
 
 
 def page_key(url: str) -> str:
-    """Página sem query string nem âncora (ex.: .../pedidos?id=3 → .../pedidos)."""
+    """The page without query string or anchor (e.g. .../pedidos?id=3 → .../pedidos)."""
     parts = urlsplit(url or "")
     return f"{parts.scheme}://{parts.netloc}{parts.path}"
 
@@ -79,7 +79,7 @@ def _jaccard(a: str, b: str) -> float:
 
 
 def similarity(signature: dict, record: dict) -> float:
-    """Quão parecido um elemento da página é com o elemento memorizado."""
+    """How similar an element on the page is to the remembered element."""
     if signature.get("role") != record.get("role") or signature.get("tag") != record.get("tag"):
         return 0.0
     score = 0.0
@@ -93,12 +93,12 @@ def similarity(signature: dict, record: dict) -> float:
 
 
 class ChoiceMemory:
-    MIN_SIMILARITY = 2.5   # papel+tag iguais, texto igual e algum contexto em comum
-    MIN_MARGIN = 0.5       # distância mínima para o 2º mais parecido
+    MIN_SIMILARITY = 2.5   # same role+tag, same text and some shared context
+    MIN_MARGIN = 0.5       # minimum distance to the 2nd most similar
 
     def __init__(self, path: str | Path, max_misses: int = 3, max_entries: int = 500):
         """
-        max_entries: ao passar desse número de escolhas, sai a usada há mais tempo.
+        max_entries: beyond this number of choices, the least recently used one is dropped.
         """
         self.path = Path(path)
         self.max_misses = max_misses
@@ -106,7 +106,7 @@ class ChoiceMemory:
         self.entries: dict[str, Entry] = {}
         self._load()
 
-    # ------------------------------------------------------------ persistência
+    # ------------------------------------------------------------ persistence
 
     def _load(self) -> None:
         if not self.path.exists():
@@ -119,7 +119,7 @@ class ChoiceMemory:
         data = {"version": 1, "entries": {k: asdict(e) for k, e in self.entries.items()}}
         self.path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    # ------------------------------------------------------------ operações
+    # ------------------------------------------------------------ operations
 
     def lookup(self, url: str, action: str, description: str) -> Optional[Entry]:
         return self.entries.get(step_key(url, action, description))
@@ -160,7 +160,7 @@ class ChoiceMemory:
             self.save()
 
     def mark_missed(self, url: str, action: str, description: str) -> None:
-        """O elemento memorizado não está na página. Após max_misses seguidas, esquece."""
+        """The remembered element is not on the page. After max_misses in a row, forget it."""
         key = step_key(url, action, description)
         entry = self.entries.get(key)
         if not entry:
@@ -175,7 +175,7 @@ class ChoiceMemory:
             self.save()
 
     def ordered(self) -> list[tuple[str, Entry]]:
-        """Entradas em ordem estável (da mais antiga para a mais nova), para numerar."""
+        """Entries in a stable order (oldest to newest), for numbering."""
         return sorted(self.entries.items(), key=lambda kv: (kv[1].created, kv[0]))
 
     def forget_key(self, key: str) -> bool:
@@ -188,10 +188,10 @@ class ChoiceMemory:
         self.entries = {}
         self.save()
 
-    # ------------------------------------------------------------ busca na página
+    # ------------------------------------------------------------ lookup on the page
 
     def find(self, entry: Entry, records: list[dict]) -> Found:
-        """Procura o elemento memorizado entre os registros da página atual."""
+        """Looks for the remembered element among the current page's records."""
         scored = sorted(
             ((similarity(entry.signature, r), r) for r in records),
             key=lambda x: x[0],
@@ -202,10 +202,10 @@ class ChoiceMemory:
             second = scored[1][0] if len(scored) > 1 else 0.0
             if best - second >= self.MIN_MARGIN:
                 return Found(record=scored[0][1], similarity=best)
-            return Found()  # dois elementos igualmente parecidos: melhor perguntar
+            return Found()  # two equally similar elements: better to ask
 
-        # Texto idêntico e único na página, com o mesmo tipo de elemento: é ele, mesmo
-        # que o contexto tenha mudado (ex.: sugestões de pesquisa recriadas a cada busca).
+        # Identical text, unique on the page, with the same kind of element: it is the
+        # one, even if the context changed (e.g. search suggestions rebuilt on each search).
         sig = entry.signature
         name = sig.get("text") or sig.get("label")
         if name:

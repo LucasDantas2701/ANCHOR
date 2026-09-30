@@ -1,15 +1,15 @@
 (args = {}) => {
-    // Aceita o formato antigo [selector, includeHidden] ou um objeto de opções.
+    // Accepts the old format [selector, includeHidden] or an options object.
     const opts = Array.isArray(args)
         ? { selector: args[0], includeHidden: args[1] }
         : args;
 
     const {
-        mode = "interactive",     // "interactive" (clicar, preencher) | "content" (extrair texto)
-        selector = null,          // seletor CSS fixo; ignora o modo
+        mode = "interactive",     // "interactive" (click, fill) | "content" (extract text)
+        selector = null,          // fixed CSS selector; ignores the mode
         includeHidden = false,
-        detectPointer = true,     // inclui elementos com cursor:pointer (divs clicáveis de SPAs)
-        contextSelectors = [],    // containers específicos de um site (ex.: ".inventory_item")
+        detectPointer = true,     // includes elements with cursor:pointer (clickable divs in SPAs)
+        contextSelectors = [],    // site-specific containers (e.g. ".inventory_item")
         maxElements = 1000,
         maxText = 200,
     } = opts;
@@ -17,7 +17,7 @@
     const ATTR = "data-er-id";
 
     // ------------------------------------------------------------------
-    // Configuração
+    // Configuration
     // ------------------------------------------------------------------
 
     const ROLES = [
@@ -54,12 +54,12 @@
     ]);
 
     // ------------------------------------------------------------------
-    // Utilitários
+    // Utilities
     // ------------------------------------------------------------------
 
     const clean = (s, n = maxText) => String(s || "").replace(/\s+/g, " ").trim().slice(0, n);
 
-    // Palavras úteis de nomes de arquivo, classes e ids de ícones ("icon-shopping_cart.svg" → "shopping cart").
+    // Useful words from file names, classes and ids of icons ("icon-shopping_cart.svg" → "shopping cart").
     const words = (s) => String(s || "")
         .replace(/\.[a-z0-9]{2,5}$/i, "")
         .split(/[^a-zA-Z]+/)
@@ -72,11 +72,11 @@
     const iconClass = (c) =>
         /icon|^(fa|bi|mdi|ti|ri)-/i.test(c) ? words(c) : "";
 
-    // Elemento com texto próprio (nó de texto filho direto), não só herdado dos filhos.
+    // Element with its own text (a direct text child node), not only text inherited from children.
     const hasOwnText = (el) =>
         Array.from(el.childNodes).some((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
 
-    // Percorre o DOM, entrando em shadow roots abertos.
+    // Walks the DOM, entering open shadow roots.
     function* walk(root) {
         const it = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
         for (let el = it.nextNode(); el; el = it.nextNode()) {
@@ -85,25 +85,25 @@
         }
     }
 
-    // "a contém b", atravessando fronteiras de shadow DOM.
+    // "a contains b", crossing shadow DOM boundaries.
     function containsDeep(a, b) {
         for (let n = b; n; n = n.parentNode || n.host) if (n === a) return true;
         return false;
     }
 
     // ------------------------------------------------------------------
-    // Filtros
+    // Filters
     // ------------------------------------------------------------------
 
-    // Elementos que só entram pelo cursor:pointer (divs clicáveis) recebem o papel "clickable".
+    // Elements that only qualify through cursor:pointer (clickable divs) get the "clickable" role.
     const pointerOnly = new WeakSet();
 
     function isInteractive(el) {
         if (el.matches(INTERACTIVE)) return true;
         if (!detectPointer) return false;
 
-        // cursor:pointer é herdado; fica só o elemento mais externo,
-        // e só se ele não estiver dentro de um controle já reconhecido.
+        // cursor:pointer is inherited; only the outermost element is kept,
+        // and only if it is not inside an already recognized control.
         if (getComputedStyle(el).cursor !== "pointer") return false;
         const parent = el.parentElement;
         const ok = !parent || (getComputedStyle(parent).cursor !== "pointer" && !parent.closest(INTERACTIVE));
@@ -111,7 +111,7 @@
         return ok;
     }
 
-    // Modo "content": interativos + qualquer elemento com texto próprio + imagens com alt.
+    // "content" mode: interactive elements + any element with its own text + images with alt.
     function isContent(el) {
         if (el.matches(INTERACTIVE)) return true;
         if (el.tagName === "IMG") return !!el.getAttribute("alt");
@@ -130,7 +130,7 @@
     }
 
     // ------------------------------------------------------------------
-    // Extração
+    // Extraction
     // ------------------------------------------------------------------
 
     function roleOf(el, tag) {
@@ -166,8 +166,8 @@
         return clean(el.innerText ?? el.textContent);
     }
 
-    // Pistas visuais: alt de imagens, <title> de SVG, nome do arquivo, classes de ícone.
-    // É o que identifica botões que só têm ícone.
+    // Visual hints: image alt, SVG <title>, file name, icon classes.
+    // This is what identifies icon-only buttons.
     function visualHint(el) {
         const hints = [];
         const media = [el, ...el.querySelectorAll("img, svg, i, [class*=icon]")].slice(0, 6);
@@ -195,7 +195,7 @@
 
     function valueOf(el, tag) {
         if (tag === "select") return clean(Array.from(el.selectedOptions, (o) => o.text).join(", "));
-        if (tag === "input" && el.type === "password") return el.value ? "********" : ""; // senha nunca vai para a IA
+        if (tag === "input" && el.type === "password") return el.value ? "********" : ""; // passwords never go to the AI
         if (tag === "input" && ["checkbox", "radio", "button", "submit", "reset", "file"].includes(el.type)) return "";
         if (tag === "input" || tag === "textarea") return clean(el.value);
         return "";
@@ -224,27 +224,27 @@
 
     const signature = (e) => e.tagName + "|" + e.className + "|" + innerTextOf(e).trim();
 
-    // Seletor do caminho de "container" até "el" (tags + classes), ex.:
-    // ":scope > div.card > h3 > a". Se ele casa com mais de um elemento,
-    // o container repete a mesma estrutura: é uma lista, não um card.
+    // Selector of the path from "container" to "el" (tags + classes), e.g.
+    // ":scope > div.card > h3 > a". If it matches more than one element,
+    // the container repeats the same structure: it is a list, not a card.
     function structuralPath(container, el) {
         const parts = [];
         for (let n = el; n && n !== container; n = n.parentElement) {
             const classes = n.classList.length
                 ? Array.from(n.classList, (c) => "." + CSS.escape(c)).join("")
-                : ":not([class])";   // "a" sem classe não é gêmeo de "a.logo"
+                : ":not([class])";   // an "a" without a class is not a twin of "a.logo"
             parts.unshift(n.tagName.toLowerCase() + classes);
         }
         return ":scope > " + parts.join(" > ");
     }
 
     function hasTwin(container, el) {
-        // Gêmeo idêntico (mesma tag, classe e texto) ...
+        // Identical twin (same tag, class and text) ...
         const sig = signature(el);
         for (const other of container.getElementsByTagName(el.tagName)) {
             if (other !== el && signature(other) === sig) return true;
         }
-        // ... ou gêmeo estrutural (mesmo caminho de tags e classes).
+        // ... or structural twin (same path of tags and classes).
         try {
             return container.querySelectorAll(structuralPath(container, el)).length > 1;
         } catch (e) {
@@ -256,9 +256,9 @@
         let container = null;
         for (const sel of CONTEXT) if ((container = el.closest(sel))) break;
 
-        // Fallback genérico: sobe até 5 níveis e fica com o maior bloco que ainda
-        // cabe em 400 caracteres. Para antes de um container que tenha um "gêmeo"
-        // do elemento (mesma tag, classe e texto): ali já é a lista, não o card.
+        // Generic fallback: climbs up to 5 levels and keeps the largest block that still
+        // fits in 400 characters. It stops before a container holding a "twin" of the
+        // element (same tag, class and text): at that point it is the list, not the card.
         if (!container) {
             let p = el.parentElement;
             for (let i = 0; i < 5 && p && p !== document.body; i++, p = p.parentElement) {
@@ -266,20 +266,20 @@
                 container = p;
             }
 
-            // Se o próprio pai já repete a estrutura (ex.: dois botões soltos
-            // num cabeçalho), ele ainda é o melhor contexto disponível.
+            // If the parent itself already repeats the structure (e.g. two loose
+            // buttons in a header), it is still the best context available.
             const first = el.parentElement;
             if (!container && first && first !== document.body && innerTextOf(first).length <= 400) {
                 container = first;
             }
         }
-        // Texto original (sem minúsculas): o scoring normaliza por conta própria,
-        // e o desempate mostra o contexto ao usuário.
+        // Original text (not lowercased): scoring normalizes it on its own,
+        // and disambiguation shows the context to the user.
         return container ? clean(innerTextOf(container), 300) : "";
     }
 
-    // Camada aberta por cima da página: diálogo, menu, lista de sugestões, ou um
-    // elemento fixo que cobre boa parte da tela (pop-ups sem papel ARIA).
+    // Layer open on top of the page: a dialog, menu, suggestion list, or a fixed
+    // element covering a large part of the screen (pop-ups without an ARIA role).
     const LAYER_SEL = "dialog[open], [role=dialog], [role=alertdialog], [aria-modal=true], [role=listbox], [role=menu]";
     const layerCache = new Map();
     function isLayerRoot(n) {
@@ -305,7 +305,7 @@
         const r = el.getBoundingClientRect();
         const inViewport = r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth;
 
-        // Coberto por outro elemento (modal, banner de cookies, overlay)?
+        // Covered by another element (modal, cookie banner, overlay)?
         let obscured = false;
         if (inViewport) {
             const x = Math.min(Math.max(r.left + r.width / 2, 0), innerWidth - 1);
@@ -324,7 +324,7 @@
     }
 
     // ------------------------------------------------------------------
-    // Execução
+    // Execution
     // ------------------------------------------------------------------
 
     const matches = selector ? (el) => el.matches(selector)
@@ -334,7 +334,7 @@
     let index = 0;
 
     for (const el of walk(document.body || document.documentElement)) {
-        el.removeAttribute(ATTR); // limpa IDs de indexações anteriores
+        el.removeAttribute(ATTR); // clears IDs from previous indexings
 
         if (records.length >= maxElements) continue;
         if (!matches(el)) continue;
@@ -363,8 +363,8 @@
             id, tag, role, type, label, text, value, hint, href, testId,
             state: stateOf(el, tag),
             layer: inLayer(el),
-            // Elemento indexado mais próximo que contém este (percorrido antes, na ordem
-            // do documento), e se este é interativo: usados para unir aninhados.
+            // Closest indexed element that contains this one (visited earlier, in document
+            // order), and whether this one is interactive: used to merge nested elements.
             parentId: el.parentElement?.closest(`[${ATTR}]`)?.getAttribute(ATTR) || "",
             interactive: el.matches(INTERACTIVE) || pointerOnly.has(el),
             context: contextOf(el),

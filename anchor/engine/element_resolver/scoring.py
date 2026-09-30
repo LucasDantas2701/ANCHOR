@@ -40,8 +40,8 @@ def score_element(
     element_text: str | None = None,
 ) -> float:
     """
-    Calcula a relevância de um elemento
-    em relação à descrição.
+    Computes how relevant an element is
+    to the description.
     """
 
     if not content or not query:
@@ -49,7 +49,7 @@ def score_element(
 
     score = 0.0
 
-    # Mesmo espaço da consulta: minúsculas, sem acentos, expressões compostas.
+    # Same space as the query: lowercase, no accents, compound expressions.
     content = normalize_text(content)
     context = normalize_text(context)
     text = normalize_text(text)
@@ -68,14 +68,14 @@ def score_element(
     )
 
     # -------------------------------------------------
-    # 1. Correspondência da frase completa.
+    # 1. Full-phrase match.
     # -------------------------------------------------
 
     if query in content:
         score += 0.35
 
     # -------------------------------------------------
-    # 2. Correspondência direta das palavras no elemento.
+    # 2. Direct match of the words in the element.
     # -------------------------------------------------
 
     if query_tokens:
@@ -95,7 +95,7 @@ def score_element(
         ) * 0.25
 
     # -------------------------------------------------
-    # 3. Correspondência semântica no elemento.
+    # 3. Semantic match in the element.
     # -------------------------------------------------
 
     if normalized_query_tokens:
@@ -111,7 +111,7 @@ def score_element(
         ) * 0.20
 
     # -------------------------------------------------
-    # 4. Correspondência contextual.
+    # 4. Context match.
     # -------------------------------------------------
 
     if normalized_query_tokens:
@@ -127,18 +127,18 @@ def score_element(
         ) * 0.15
 
     # -------------------------------------------------
-    # 4.5. Correspondência do objeto no contexto.
+    # 4.5. Object match in the context.
     #
-    # Para ações, o objeto é o principal discriminador
-    # entre elementos semelhantes.
+    # For actions, the object is the main discriminator
+    # between similar elements.
     # -------------------------------------------------
 
     if object_query_tokens and action:
 
-        # Cada token do objeto conta uma vez: o que já está no
-        # próprio elemento está coberto; o contexto só é consultado
-        # para o que faltar. Evita contar duas vezes o rótulo do
-        # elemento, que também aparece no texto do contexto.
+        # Each object token counts once: what is already in the
+        # element itself is covered; the context is only checked
+        # for what is missing. This avoids counting twice the
+        # element's label, which also appears in the context text.
         own_hits = object_query_tokens & normalized_content_tokens
         context_hits = (
             (object_query_tokens - own_hits)
@@ -160,8 +160,8 @@ def score_element(
                 score += 0.20
 
     # -------------------------------------------------
-    # 4.6. Correspondência direta do objeto no próprio
-    # elemento.
+    # 4.6. Direct object match in the element
+    # itself.
     # -------------------------------------------------
 
     if object_query_tokens:
@@ -184,7 +184,7 @@ def score_element(
             )
 
     # -------------------------------------------------
-    # 5. Correspondência do tipo de elemento.
+    # 5. Element type match.
     # -------------------------------------------------
 
     if stem(role) in normalized_query_tokens:
@@ -194,7 +194,7 @@ def score_element(
         score += 0.05
 
     # -------------------------------------------------
-    # 6. Preferência por elementos interativos.
+    # 6. Preference for interactive elements.
     # -------------------------------------------------
 
     interactive_roles = {
@@ -235,7 +235,7 @@ def score_element(
         score -= 0.05
 
     # -------------------------------------------------
-    # 7. Alinhamento da ação com o conteúdo.
+    # 7. Alignment between the action and the content.
     # -------------------------------------------------
 
     if action_query_tokens:
@@ -258,10 +258,10 @@ def score_element(
         if action_coverage == 0.0:
             score *= ACTION_MISMATCH_DAMPING
 
-            # Verbo conflitante: o elemento anuncia OUTRA ação
-            # ("Add to cart" quando se pediu "abrir o carrinho").
-            # Os verbos vêm só do rótulo/texto/pistas do elemento,
-            # nunca do valor de um campo ("Selecione" num select).
+            # Conflicting verb: the element announces ANOTHER action
+            # ("Add to cart" when the request was "open the cart").
+            # Verbs come only from the element's label/text/hints,
+            # never from a field's value ("Selecione" in a select).
             element_verbs = normalize_tokens(
                 tokenize(element_text if element_text is not None else content),
                 synonyms,
@@ -273,9 +273,9 @@ def score_element(
                 score *= ACTION_CONFLICT_DAMPING
 
     elif action == "click":
-        # Pedido sem verbo, que só nomeia o elemento ("Consultor RPA"): um elemento
-        # que anuncia uma ação destrutiva ("Fechar vaga de Consultor RPA") é menos
-        # provável do que o próprio item, e mais arriscado.
+        # A request with no verb, which only names the element ("Consultor RPA"):
+        # an element announcing a destructive action ("Fechar vaga de Consultor RPA")
+        # is less likely than the item itself, and riskier.
         element_words = normalize_tokens(
             tokenize(element_text if element_text is not None else content),
             synonyms,
@@ -284,7 +284,7 @@ def score_element(
             score *= DESTRUCTIVE_DAMPING
 
     # -------------------------------------------------
-    # 8. Peso baseado no tipo de ação.
+    # 8. Weight based on the action type.
     # -------------------------------------------------
 
     if action:
@@ -301,7 +301,7 @@ def score_element(
             score += action_weights[tag]
 
     # -------------------------------------------------
-    # 9. Extração de texto.
+    # 9. Text extraction.
     # -------------------------------------------------
 
     if action == "extract" and normalized_query_tokens:
@@ -351,25 +351,25 @@ def score_element(
                 score += 0.25
 
     # -------------------------------------------------
-    # 9.5. Nome idêntico: o texto (ou rótulo) do elemento é exatamente o que o
-    # pedido nomeia, sem palavras a mais ("vagas de rpa em manaus" e não
+    # 9.5. Identical name: the element's text (or label) is exactly what the
+    # request names, with no extra words ("vagas de rpa em manaus" rather than
     # "vagas de rpa em manaus júnior").
     # -------------------------------------------------
 
     name_tokens = normalize_tokens(tokenize(element_text or ""), synonyms) - STOPWORDS_N
     named = object_query_tokens - KIND_WORDS_N
-    # Não vale na extração, que já tem a regra própria de texto exato (passo 9).
+    # Not applied to extraction, which has its own exact-text rule (step 9).
     if action != "extract" and named and name_tokens and name_tokens - KIND_WORDS_N == named:
         score += EXACT_NAME_BONUS
 
     # -------------------------------------------------
-    # 10. Estado do elemento.
+    # 10. Element state.
     #
-    # Um elemento desabilitado não pode ser o alvo de
-    # uma interação (mas pode ser lido na extração).
-    # Elementos cobertos (obscured) NÃO são penalizados
-    # aqui: o alvo pode estar atrás de um modal, e o certo
-    # é fechar o modal, não escolher outro elemento.
+    # A disabled element cannot be the target of an
+    # interaction (but it can be read during extraction).
+    # Covered (obscured) elements are NOT penalized here:
+    # the target may be behind a modal, and the right move
+    # is to close the modal, not to pick another element.
     # -------------------------------------------------
 
     if state and state.get("disabled") and action != "extract":

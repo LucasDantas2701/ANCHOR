@@ -49,7 +49,9 @@ def page_elements(resolver: ElementResolver, limit: int = 80, request: str | Non
 
     records.sort(key=priority)  # ordenação estável: mantém a ordem da página em cada grupo
 
-    views = [describe(resolver.to_match(r), 0) for r in records]
+    # The summary goes to the model: element kinds in the planner prompt's language
+    # (Portuguese, the measured default), not in the interface language.
+    views = [describe(resolver.to_match(r), 0, language="pt") for r in records]
     repeated = Counter((v.kind, v.name) for v in views)
 
     lines, seen = [], set()

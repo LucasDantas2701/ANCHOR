@@ -1,20 +1,20 @@
 """
-Normalização de texto do Resolver.
+Text normalization for the Resolver.
 
-Todo texto (consulta, conteúdo e contexto dos elementos, dicionários)
-passa pelo mesmo pipeline, para que os dois lados sejam comparáveis:
+All text (the query, the elements' content and context, the dictionaries)
+goes through the same pipeline, so both sides are comparable:
 
-    texto
-      ↓  minúsculas + remoção de acentos       "Devoluções" → "devolucoes"
-      ↓  expressões compostas (B5)             "lista de desejos" → "wishlist"
-      ↓  tokenização
-      ↓  radical (stem) leve PT/EN             "devolucoes" → "devoluca"
-    tokens
+text
+↓  lowercase + accent removal            "Devoluções" → "devolucoes"
+↓  compound expressions (B5)             "lista de desejos" → "wishlist"
+↓  tokenization
+↓  light PT/EN stem                      "devolucoes" → "devoluca"
+tokens
 
-O stemmer é propositalmente simples (inspirado no RSLP, Orengo & Huyck, 2001):
-remove plural e depois uma terminação verbal/nominal. Ele não precisa gerar
-palavras corretas, só levar variações da mesma palavra ao mesmo radical,
-aplicado igualmente à consulta e à página.
+The stemmer is simple on purpose (inspired by RSLP, Orengo & Huyck, 2001):
+it removes the plural and then one verb/noun ending. It does not need to
+produce correct words, only to bring variations of the same word to the same
+stem, applied equally to the query and to the page.
 """
 
 import re
@@ -33,13 +33,13 @@ from .constants import (
 
 TOKEN_RE = re.compile(r"[^a-z0-9]+")
 
-# Plural: aplicado primeiro, no máximo uma regra.
+# Plural: applied first, at most one rule.
 _PLURAL = (
     ("oes", "ao"), ("aes", "ao"), ("ais", "al"), ("eis", "el"),
     ("ois", "ol"), ("ns", "m"), ("res", "r"), ("zes", "z"), ("s", ""),
 )
 
-# Terminações verbais e de gênero: depois do plural, no máximo uma regra.
+# Verb and gender endings: after the plural, at most one rule.
 _SUFFIXES = (
     "amento", "imento", "ando", "endo", "indo",
     "ado", "ada", "ido", "ida", "ar", "er", "ir", "e", "a", "o",
@@ -75,7 +75,7 @@ def stem(token: str) -> str:
 
 
 # ----------------------------------------------------------------------
-# Expressões compostas (corrige o B5)
+# Compound expressions (fixes bug B5)
 # ----------------------------------------------------------------------
 
 def _basic(text: str) -> str:
@@ -99,7 +99,7 @@ _PHRASE_RE = (
 
 
 def normalize_text(text: str) -> str:
-    """Minúsculas, sem acentos, com expressões compostas substituídas."""
+    """Lowercase, no accents, with compound expressions replaced."""
     text = _basic(text or "")
     if _PHRASE_RE:
         text = _PHRASE_RE.sub(lambda m: _PHRASES[m.group(1)], text)
@@ -123,17 +123,17 @@ def tokenize(text: str) -> set[str]:
 
 
 def build_synonyms(raw: dict[str, str]) -> dict[str, set[str]]:
-    """Normaliza chaves e valores de um dicionário de sinônimos de uma palavra."""
+    """Normalizes keys and values of a one-word synonym dictionary."""
     out: dict[str, set[str]] = {}
     for key, value in raw.items():
         keys = _stem_words(key)
         if len(keys) != 1:
-            continue  # expressões compostas são tratadas por normalize_text
+            continue  # compound expressions are handled by normalize_text
         out[keys.pop()] = _stem_words(value)
     return out
 
 
-# Dicionários já normalizados (mesmo espaço dos tokens).
+# Dictionaries already normalized (same space as the tokens).
 SYNONYMS_N = build_synonyms(SYNONYMS)
 ACTION_WORDS_N = {stem(_basic(w)) for w in ACTION_WORDS if " " not in w}
 STOPWORDS_N = {stem(_basic(w)) for w in STOPWORDS}
@@ -146,7 +146,7 @@ _EQUIV_N = [{stem(w) for w in group} for group in ACTION_EQUIVALENTS]
 
 
 def expand_actions(actions: set[str]) -> set[str]:
-    """Inclui os verbos equivalentes (select → choose, pick...)."""
+    """Adds the equivalent verbs (select → choose, pick...)."""
     out = set(actions)
     for group in _EQUIV_N:
         if out & group:
@@ -159,11 +159,11 @@ def normalize_tokens(
     extra: dict[str, set[str]] | None = None,
 ) -> set[str]:
     """
-    Substitui cada token pelo(s) sinônimo(s).
+    Replaces each token with its synonym(s).
 
     extra:
-        Vocabulário específico de uma automação/site
-        (ex.: "mochila" → backpack), já normalizado com build_synonyms().
+    Vocabulary specific to an automation/site
+    (e.g. "mochila" → backpack), already normalized with build_synonyms().
     """
     normalized: set[str] = set()
     for token in tokens:
@@ -181,8 +181,8 @@ def extract_object_tokens(
     action_query_tokens: set[str],
 ) -> set[str]:
     """
-    Extrai os tokens semanticamente relevantes
-    da consulta.
+    Extracts the semantically relevant tokens
+    from the query.
     """
 
     return (
