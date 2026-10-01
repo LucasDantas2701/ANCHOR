@@ -41,7 +41,7 @@ def run(page, planner, **kwargs):
     # só mudam variáveis internas, sem efeito visível.
     kwargs.setdefault("verify_effect", False)
     page.set_default_timeout(1500)
-    return Agent(page, planner, ActionExecutor(page), report=None, **kwargs).run("cadastre a Maria")
+    return Agent(page, planner, ActionExecutor(page), report=None, **kwargs).run("faça a tarefa da página")
 
 
 def test_executa_o_plano_e_confere_o_fim(page):

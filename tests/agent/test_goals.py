@@ -34,7 +34,7 @@ class GoalPlanner:
         return Plan(steps=[Step(*s) for s in steps], goals=goals)
 
 
-def run(page, planner, request="cadastre a Maria"):
+def run(page, planner, request="faça a tarefa da página"):
     page.set_default_timeout(1500)
     return Agent(page, planner, ActionExecutor(page), report=None).run(request)
 
@@ -241,3 +241,50 @@ def test_verificacao_usa_o_valor_limpo(page):
     planner = GoalPlanner((goals, [("select", "Sort by", "[Price: low to high]", "g1", None)]), ([], []))
     result = run(page, planner, request="ordene por preço")
     assert result.ok and result.goals_done == 1
+
+
+# --------------------------------------------------------------------------
+# Before declaring success, what was DONE must cover the request
+# --------------------------------------------------------------------------
+
+POPUP_SEARCH = """<html><body>
+  <div class="lupa" style="cursor:pointer" onclick="document.getElementById('b').hidden=false; document.getElementById('q').focus()">Search /</div>
+  <div id="b" hidden role="dialog" style="position:fixed;inset:0;background:#fff">
+    <label for="q">Search coins</label><input id="q"
+      onkeydown="if(event.key==='Enter') document.getElementById('r').textContent='Resultados para ' + this.value">
+    <p id="r"></p></div>
+</body></html>"""
+
+ONE_GOAL = [Goal("g1", "busca feita", True)]
+FULL_SEARCH = [("click", "Search /", None, "g1", None), ("fill", "Search coins", "Pi Network", "g1", None),
+               ("press", "Search coins", "Enter", "g1", None)]
+
+
+def test_model_saying_it_is_done_too_early_gets_warned_and_finishes_the_search(page):
+    page.set_content(POPUP_SEARCH)
+    planner = GoalPlanner(
+        (ONE_GOAL, FULL_SEARCH),
+        ([], []),                       # the pop-up opened: "nothing is left" (wrong)
+        ([], []),                       # end check: "nothing is left" (wrong again)
+        ([], FULL_SEARCH[1:]),          # after the warning, it finishes the search
+        ([], []),
+    )
+    result = run(page, planner, request="Pesquise a moeda Pi Network")
+    assert result.ok and "Resultados para Pi Network" in page.inner_text("body")
+    warned = planner.calls[3]["history"]
+    assert any(h.startswith('o pedido ainda não foi cumprido: o pedido menciona "Pi Network"') for h in warned)
+
+
+def test_model_insisting_it_is_done_ends_without_success(page):
+    page.set_content(POPUP_SEARCH)
+    planner = GoalPlanner((ONE_GOAL, FULL_SEARCH), ([], []), ([], []), ([], []), ([], []))
+    result = run(page, planner, request="Pesquise a moeda Pi Network")
+    assert result.status == "cancelled"
+    assert result.message.startswith("the request was not fulfilled")
+    assert "Pi Network" in result.message
+
+
+def test_enter_in_any_field_counts_as_searching():
+    from anchor.planner import check_request
+    check_request([Step("fill", "Type a coin", "Pi Network"), Step("press", "Type a coin", "Enter")], [],
+                  "Pesquise a moeda Pi Network")   # does not raise

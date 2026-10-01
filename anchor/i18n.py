@@ -208,4 +208,6 @@ MESSAGES: dict[str, dict[str, str]] = {
     "demo.remembered": {"en": "I have {count} remembered choice(s) in {path}. Delete the file for the assistant to ask again.",
                         "pt": "Tenho {count} escolha(s) memorizada(s) em {path}. Apague o arquivo para o assistente perguntar de novo."},
     "demo.result": {"en": "Result: {result}", "pt": "Resultado: {result}"},
+    "agent.not_fulfilled": {"en": "  The request is not fulfilled yet: {reason}", "pt": "  O pedido ainda não foi cumprido: {reason}"},
+    "end.not_fulfilled": {"en": "the request was not fulfilled: {reason}", "pt": "o pedido não foi cumprido: {reason}"},
 }

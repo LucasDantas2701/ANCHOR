@@ -97,6 +97,8 @@ TEXT: dict[str, dict[str, str]] = {
     "hist.message": {"pt": 'apareceu na página: "{message}"', "en": 'appeared on the page: "{message}"'},
     "hist.suspicion": {"pt": 'suspeita: depois de "{step}", esperava ver "{expect}", e não apareceu',
                        "en": 'suspicion: after "{step}", expected to see "{expect}", and it did not appear'},
+    "hist.not_fulfilled": {"pt": "o pedido ainda não foi cumprido: {reason}",
+                           "en": "the request is not fulfilled yet: {reason}"},
     "ctx.goals": {"pt": "metas: {goals}", "en": "goals: {goals}"},
     "ctx.messages": {"pt": "mensagens visíveis na página agora: {messages}",
                      "en": "messages visible on the page now: {messages}"},

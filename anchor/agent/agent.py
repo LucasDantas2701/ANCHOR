@@ -33,7 +33,7 @@ from anchor.engine.element_resolver.tokenizer import (
     tokenize,
 )
 from anchor.i18n import get_language, t
-from anchor.planner import Plan, Step, page_elements, run_step
+from anchor.planner import Plan, PlanError, Step, check_request, page_elements, run_step
 from anchor.planner.execute import clean_description, clean_value
 from anchor.planner.language import DEFAULT_PROMPT_LANGUAGE, Reason, mt
 
@@ -168,6 +168,24 @@ class Agent:
         result.tokens_in += plan.tokens_in
         result.tokens_out += plan.tokens_out
         return plan
+
+    def _uncovered(self, request: str, result: "AgentResult"):
+        """
+        Do the steps that were actually performed cover the request? The same check the
+        initial plan goes through (conclusive verbs in a click or key press, the request's
+        data in some step), but on what was done, not on what was planned. Returns None if
+        they do, or the reason (model language, interface language) if they do not.
+        """
+        done = [r.step for r in result.records if r.status == "success"]
+        try:
+            check_request(done, [], request, self.language)
+            return None
+        except PlanError as model_error:
+            try:
+                check_request(done, [], request, get_language())
+            except PlanError as ui_error:
+                return str(model_error), str(ui_error)
+            return str(model_error), str(model_error)
 
     def _pending_goals(self) -> list[str]:
         """Goals that still prevent the end (dropped and replaced ones do not)."""
@@ -383,6 +401,7 @@ class Agent:
         result = AgentResult(status="failed", message="")
         history: list[str] = []
         end_checks = 0
+        coverage_warned = False             # the "request not fulfilled" warning was given
         done_count: dict[tuple, int] = {}
         last_done: Optional[tuple] = None   # last step performed successfully
         after_replan = False                # the current queue was just replanned
@@ -416,7 +435,20 @@ class Agent:
                 # they were done. Drop them; if nothing is left, the goal was reached.
                 queue = [s for s in queue if step_key(s) not in done_count]
                 if not queue:
-                    return self._finish(result, "success", t("end.goal_reached"), start)
+                    # The model says nothing is left: check it against what was really done.
+                    missing = self._uncovered(request, result)
+                    if missing is None:
+                        return self._finish(result, "success", t("end.goal_reached"), start)
+                    model_reason, ui_reason = missing
+                    if coverage_warned:
+                        return self._finish(result, "cancelled", t("end.not_fulfilled", reason=ui_reason), start)
+                    # Warn the model once. The warning gives it two more end checks: one to
+                    # propose the missing steps, one to confirm the end.
+                    coverage_warned = True
+                    end_checks = min(end_checks, max(0, self.max_end_checks - 2))
+                    history.append(mt("hist.not_fulfilled", self.language, reason=model_reason))
+                    self.report(t("agent.not_fulfilled", reason=ui_reason))
+                    continue
                 result.replans += 1
                 after_replan = True
                 continue

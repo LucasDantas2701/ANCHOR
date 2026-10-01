@@ -183,6 +183,8 @@ CONCLUSIVE_VERBS = ["salvar", "save", "enviar", "send", "submit", "excluir", "de
                     "pesquisar", "buscar", "procurar", "search", "cancelar", "cancel",
                     "confirmar", "confirm", "baixar", "download"]
 
+SEARCH_VERBS = ["pesquisar", "buscar", "procurar", "search"]
+
 _QUOTED = _re.compile(r'["“]([^"”]{2,})["”]')
 _EMAIL = _re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+")
 _NUMBER = _re.compile(r"\d[\d.()\-/ ]{2,}\d")
@@ -217,6 +219,9 @@ def check_request(steps: list[Step], goals: list[Goal], request: str,
     for s in steps:
         if s.action in ("click", "press"):
             concluding_words |= words(s.description)
+        # Pressing Enter in a field is a search, whatever the field is called ("Type a coin").
+        if s.action == "press" and (s.value or "").strip().lower() == "enter":
+            concluding_words |= {v for w in SEARCH_VERBS for v in words(w)}
 
     request_words = words(request)
     for verb in CONCLUSIVE_VERBS:

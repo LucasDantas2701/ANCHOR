@@ -65,6 +65,15 @@ que quebram compatibilidade também sobem o MINOR.
   (`listar`, `esquecer`, `limpar`, `--sim`) still work.
 
 ### Added
+- Before declaring success, the agent checks what was actually **done** against the request,
+  with the same check the initial plan goes through (conclusive verbs in a click or key press,
+  the request's data in some step). Until now, a goal counted as fulfilled as soon as one of its
+  steps worked, so a model that said "nothing is left" right after opening the search pop-up got
+  a false success (found in `p-pop-01`, 2026-09-30). Now the model is warned once ("the request is
+  not fulfilled yet: ...") and gets two more end checks; if what was done still does not cover the
+  request, the run ends as not fulfilled.
+- Pressing Enter in a field counts as searching, whatever the field is called (in the plan check
+  and in the new check of what was done).
 - Planner prompt in English, as an option: `"prompt_language": "en"` in the model profile, or
   `--prompt-language en` in the command-line tools. Portuguese stays the default, since it is the
   measured one; the English prompt must be measured on the dev set before being used. With
