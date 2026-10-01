@@ -205,4 +205,7 @@ MESSAGES: dict[str, dict[str, str]] = {
     "planner_cli.goal": {"en": "  goal {id}: {description}", "pt": "  meta {id}: {description}"},
     "planner_cli.conclusive": {"en": "  (conclusive)", "pt": "  (conclusiva)"},
     "planner_cli.expects": {"en": '  → expects "{text}"', "pt": '  → espera "{text}"'},
+    "demo.remembered": {"en": "I have {count} remembered choice(s) in {path}. Delete the file for the assistant to ask again.",
+                        "pt": "Tenho {count} escolha(s) memorizada(s) em {path}. Apague o arquivo para o assistente perguntar de novo."},
+    "demo.result": {"en": "Result: {result}", "pt": "Resultado: {result}"},
 }

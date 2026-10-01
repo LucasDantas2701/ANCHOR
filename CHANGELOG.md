@@ -54,6 +54,12 @@ que quebram compatibilidade também sobem o MINOR.
   `correct`, `silent_error`, `avoidable_refusal`, `correct_refusal` and `perception_failure`.
   Older result files keep the old names; `eval/README.md` (now in English) has the mapping. Both
   evaluations give the same numbers as before.
+- README rewritten in English, following the Best-README-Template structure: badges, table of
+  contents, about the project (with the architecture), getting started, usage, evaluation,
+  roadmap, feedback (issues only, since the license does not allow modifications), development,
+  responsible use, known limitations, license, contact and acknowledgments. Placeholders are
+  ready for a logo and a demo GIF.
+- `examples/desempate.py` → `examples/disambiguation_demo.py`, in English.
 - `eval/plan_run.py --prompt-language en|pt` runs the planner with the chosen prompt language.
 - The memory commands are now `list`, `forget` and `clear` (with `--yes`); the Portuguese ones
   (`listar`, `esquecer`, `limpar`, `--sim`) still work.

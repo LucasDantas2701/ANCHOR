@@ -1,230 +1,258 @@
-# Smart RPA
+<a id="readme-top"></a>
 
-> Automação inteligente de processos web utilizando Playwright, agentes de IA e resolução adaptativa de elementos.
+<!-- PROJECT SHIELDS -->
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![License][license-shield]][license-url]
+[![Python][python-shield]][python-url]
 
-**Smart RPA** é um projeto experimental voltado para a construção de uma abordagem mais inteligente e flexível para **RPA (Robotic Process Automation)**.
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <!-- Logo: add images/logo.png and uncomment the line below. -->
+  <!-- <a href="https://github.com/LucasDantas2701/ANCHOR"><img src="images/logo.png" alt="Logo" width="80" height="80"></a> -->
 
-A proposta é combinar automação de navegadores, resolução semântica de elementos e agentes de IA para criar automações capazes de **interpretar tarefas, executar ações e se adaptar a mudanças nas interfaces web**.
+  <h3 align="center">ANCHOR</h3>
 
-## Visão geral
+  <p align="center">
+    <b>A</b>daptive <b>N</b>atural-language <b>C</b>ontrol with <b>H</b>uman <b>O</b>versight and <b>R</b>ecovery
+    <br />
+    Web automation from plain-language requests, with a human in the loop.
+    <br />
+    <br />
+    <a href="#getting-started"><strong>Get started »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/LucasDantas2701/ANCHOR/issues/new?labels=bug">Report a bug</a>
+    &middot;
+    <a href="https://github.com/LucasDantas2701/ANCHOR/issues/new?labels=enhancement">Request a feature</a>
+  </p>
+</div>
 
-Automações tradicionais de navegadores normalmente dependem de seletores definidos manualmente:
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+        <li><a href="#how-it-works">How It Works</a></li>
+      </ul>
+    </li>
+    <li>
+      <a href="#getting-started">Getting Started</a>
+      <ul>
+        <li><a href="#prerequisites">Prerequisites</a></li>
+        <li><a href="#installation">Installation</a></li>
+        <li><a href="#quick-example">Quick Example</a></li>
+      </ul>
+    </li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#evaluation">Evaluation</a></li>
+    <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#feedback">Feedback</a></li>
+    <li><a href="#development">Development</a></li>
+    <li><a href="#responsible-use">Responsible Use</a></li>
+    <li><a href="#known-limitations">Known Limitations</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
+
+
+
+<!-- ABOUT THE PROJECT -->
+## About The Project
+
+<!-- Screenshot or GIF of the agent at work: add images/demo.gif and uncomment the line below. -->
+<!-- [![ANCHOR at work][product-screenshot]](https://github.com/LucasDantas2701/ANCHOR) -->
+
+Traditional RPA depends on fixed selectors, written by a developer:
 
 ```python
 page.locator('[data-test="add-to-cart"]').click()
 ```
 
-Isso funciona enquanto a estrutura da página permanece estável. Pequenas alterações na interface podem fazer com que a automação deixe de funcionar.
+It works while the page stays the same, and breaks as soon as it changes. Each automation also
+needs a developer to create and maintain it, which keeps it away from the person who actually
+knows the task.
 
-O Smart RPA busca criar uma camada de abstração entre o agente e o navegador:
-
-```text
-Usuário
-   │
-   ▼
-Agente de IA
-   │
-   ▼
-Planejador / Orquestrador
-   │
-   ▼
-Camada de Ações
-   │
-   ▼
-Resolvedor de Elementos
-   │
-   ▼
-Motor do Navegador
-   │
-   ▼
-Playwright
-   │
-   ▼
-Navegador
-```
-
-A ideia é que o agente descreva **o que precisa ser feito**, enquanto o sistema determina **como executar a ação**.
-
-Por exemplo:
+ANCHOR lets a non-technical person describe the task in plain language, give the site's link,
+and let the system do the rest:
 
 ```text
-"Adicione a mochila ao carrinho"
-             │
-             ▼
-         Agente de IA
-             │
-             ▼
-          ação: click
-             │
-             ▼
-    Resolvedor de Elementos
-             │
-             ▼
-Encontra o botão correspondente
-             │
-             ▼
-          Playwright
+"Cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
 ```
 
-## Status do projeto
+What sets it apart is **who controls what**:
 
-🚧 **Versão 0.2: agente completo.** O sistema recebe um pedido em texto e o link do
-site, gera o plano com um LLM (local, via Ollama, ou da OpenAI), executa cada passo,
-pergunta ao usuário quando não tem certeza, aprende com as respostas, replaneja quando
-a página muda ou um passo falha e confere no fim se o objetivo foi atingido. Ainda
-faltam as automações salvas, a confirmação antes de ações sensíveis e o frontend.
+* **The LLM only plans.** It turns the request into goals and steps, using the names of the
+  elements on the page. It never clicks anything directly.
+* **A heuristic finds each element**, without spending tokens, and refuses when it is not sure.
+* **The user breaks ties.** When the heuristic refuses, the candidates are numbered on the page,
+  and the user picks one, or clicks the right element.
+* **Choices are remembered** and reused on the next runs, so interventions go down over time.
+* **Every action is verified**: the agent checks that the field got the value, that the page
+  reacted, and that no error message appeared, and only declares the end when all goals are met.
+* **Safety barriers**: destructive actions the request did not mention (close, delete, hide...)
+  are blocked, and plans that do not cover the request are sent back to the model.
+* **Local models.** The planner runs on small local models (Qwen 3.5 via Ollama), so requests
+  and page contents do not leave the computer or the company network. Logins use persistent
+  browser profiles: credentials never go through the AI.
 
-### Implementado
+> **Status:** version 0.3.0 in development. The engine, the planner, the agent loop, effect
+> verification and goals are done; saved automations, confirmation of sensitive actions and the
+> frontend are next. See the [roadmap](#roadmap) and the [changelog](CHANGELOG.md).
 
-* [x] **Percepção da página** (`index_script.js`): indexa só os elementos interativos
-  (links, botões, campos, papéis ARIA e áreas clicáveis por `cursor: pointer`), com
-  nome acessível, pistas visuais de ícones, estado, contexto do card e geometria.
-  Entra em shadow DOM aberto.
-* [x] **Resolvedor de elementos** heurístico: normalização de texto (acentos, plurais,
-  expressões compostas), sinônimos PT→EN, vocabulário por site e scoring por ação.
-* [x] **Executor de ações**: click, hover, check, uncheck, press, fill, select e extrações,
-  com validação por score mínimo e margem relativa de ambiguidade.
-* [x] **Desempate pelo usuário**: quando a heurística não tem certeza, os candidatos são
-  numerados na página e o usuário escolhe no terminal, ou clica direto no elemento.
-* [x] **Memória das escolhas**: o que o usuário escolheu é reaproveitado nas próximas
-  execuções, com expiração automática e comando de revisão.
-* [x] **Avaliação reproduzível**: casos de desenvolvimento e um conjunto de teste fechado
-  (holdout), com métricas atreladas ao commit.
-* [x] Perfis persistentes do navegador e detecção de login.
-* [x] **Planejador**: um LLM transforma o pedido
-  do usuário em passos, usando os nomes dos elementos da página. Funciona com a API da
-  OpenAI e com modelos locais do Ollama.
-* [x] **Loop do agente**: executa o plano passo a passo, replaneja quando a
-  página muda ou um passo falha (inclusive quando um modal cobre o elemento), confere no fim
-  se o objetivo foi atingido e cancela com um relato depois de 3 falhas.
-* [x] **Verificação do efeito** (em desenvolvimento, versão 0.3.0): depois de cada passo, o
-  agente confere se a ação teve efeito (valor no campo, mudança na página, mensagens de erro)
-  e trata uma ação sem efeito como falha.
-* [x] **Metas** (em desenvolvimento, versão 0.3.0): o planejador define as metas do pedido, e
-  o agente só declara o fim quando todas foram cumpridas e verificadas.
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-### Ainda não implementado
+### Built With
 
-* [ ] Automações salvas, com dados próprios.
-* [ ] Confirmação humana antes de ações sensíveis.
-* [ ] Frontend (hoje a interação é pelo terminal).
+* [![Python][python-shield]][python-url]
+* [![Playwright][playwright-shield]][playwright-url]
+* [![Ollama][ollama-shield]][ollama-url]
 
-## Como funciona hoje
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+### How It Works
 
 ```text
-Passo em linguagem natural ("adicionar a mochila ao carrinho")
+Request in plain language + link
         │
         ▼
-Memória: o usuário já escolheu este elemento antes? ── sim ──► executa
-        │ não
+LLM plans goals and steps ──► does the plan cover the request? ── no ──► back to the LLM
+        │ yes
         ▼
-Percepção: indexa os elementos interativos da página (index_script.js)
+For each step:
+   destructive action the request did not ask for? ── yes ──► blocked
+        │ no
+        ▼
+   Memory: has the user chosen this element before? ── yes ──┐
+        │ no                                                  │
+        ▼                                                     │
+   Perception + resolver rank the candidates                  │
+        │                                                     │
+   Confident? ── no ──► the user picks (number or click) ─────┤
+        │ yes                                                 │
+        ▼                                                     ▼
+   Playwright performs the action ◄───────────────────────────┘
         │
         ▼
-Resolvedor: ranqueia os candidatos pela descrição
-        │
+   Effect check: value in the field? page reacted? error message?
+        │                                 │
+       ok                          failed (3 failures cancel)
+        │                                 │
+        ▼                                 ▼
+   page or pop-up changed? ── yes ──► LLM replans with what happened
+        │ no
         ▼
-Validação: score mínimo e margem para o 2º colocado
-        │                              │
-     confiante                   ambíguo / não encontrado
-        │                              │
-        │                              ▼
-        │                 Usuário escolhe (número ou clique na página)
-        │                              │
-        │                              ▼
-        │                 Escolha guardada na memória
-        ▼                              ▼
-                Playwright executa a ação
+End of plan ──► LLM checks whether anything is left ──► all goals met? ──► done
 ```
 
-## Como rodar
+What the model reads and what the user reads are separate, each with its own language: the
+planner prompt is in Portuguese by default (the measured one) or English; the interface is in
+English by default or Portuguese.
 
-Requisitos: Python 3.10 ou mais recente.
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-```bash
-python -m venv venv
-venv\Scripts\activate            # Windows  (Linux/macOS: source venv/bin/activate)
-pip install -r requirements.txt
-playwright install chromium
+
+
+<!-- GETTING STARTED -->
+## Getting Started
+
+### Prerequisites
+
+* Python 3.10 or newer
+* [Ollama](https://ollama.com), to run the planner locally (free). The engine and the
+  disambiguation demo work without it.
+
+### Installation
+
+1. Clone the repository
+   ```sh
+   git clone https://github.com/LucasDantas2701/ANCHOR.git
+   cd ANCHOR
+   ```
+2. Create a virtual environment and install the dependencies
+   ```sh
+   python -m venv venv
+   venv\Scripts\activate            # Windows (Linux/macOS: source venv/bin/activate)
+   pip install -r requirements.txt
+   playwright install chromium
+   ```
+3. Download the models (the names go in `llm_profiles.json`; check them with `ollama list`)
+   ```sh
+   ollama pull qwen3.5:4b
+   ollama pull qwen3.5:9b
+   ```
+4. Check that everything works
+   ```sh
+   pytest tests -v
+   ```
+
+### Quick Example
+
+The repository comes with local test pages, so you can try it without touching a real site:
+
+```sh
+python -m anchor.agent --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
 ```
 
-### Exemplo no SauceDemo
+The browser opens, the agent plans and runs each step, asks in the terminal when it is not sure,
+and at the end shows the result: steps, model calls, replans, failures, user interventions,
+tokens and time.
 
-```bash
-python -m anchor.main
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- USAGE -->
+## Usage
+
+**Run a request end to end** (plan, execution, replanning and end):
+
+```sh
+python -m anchor.agent --profile ollama-small --url <link or .html file> "<request>"
 ```
 
-Na primeira execução, faça o login na janela do navegador
-(`standard_user` / `secret_sauce`). A sessão fica no perfil persistente.
+* `--memory memory/<name>.json` chooses where the choices are remembered (default `memory/agent.json`).
+* `--browser-profile profiles/<name>` uses a persistent browser profile, for systems with login:
+  log in by hand once, and the session stays on your computer.
+* `--lang pt` shows the messages in Portuguese (or set `ANCHOR_LANG=pt`).
+* `--prompt-language en` uses the English planner prompt (not measured yet; Portuguese is the default).
 
-### Demonstração do desempate e da memória
+**Only generate a plan**, and optionally run it:
 
-```bash
-python -m examples.desempate
+```sh
+python -m anchor.planner --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria Silva no departamento de TI"
+python -m anchor.planner --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria Silva no departamento de TI" --run
 ```
 
-Rode duas vezes: na primeira, o assistente pergunta; na segunda, usa as escolhas memorizadas.
+**See the disambiguation and the memory at work** (run it twice: the first time it asks, the
+second time it remembers):
 
-### Revisar o que o assistente aprendeu
-
-```bash
-python -m anchor.engine.memory memory/demo.json listar
-python -m anchor.engine.memory memory/demo.json esquecer 2
-python -m anchor.engine.memory memory/demo.json limpar
+```sh
+python -m examples.disambiguation_demo
 ```
 
-### Testes
+**Review what the assistant learned**, and forget a wrong choice:
 
-```bash
-pytest tests/engine -v
+```sh
+python -m anchor.engine.memory memory/demo.json list
+python -m anchor.engine.memory memory/demo.json forget 2
+python -m anchor.engine.memory memory/demo.json clear
 ```
 
-Os testes em `tests/real_sites/` (LinkedIn) ficam desativados por padrão, porque os termos
-de uso do site proíbem automação.
-
-### Padrão dos imports
-
-Os imports seguem a PEP 8, em três grupos separados por uma linha em branco:
-biblioteca padrão, bibliotecas de terceiros e módulos do projeto. Antes de commitar:
-
-```bash
-isort --check-only app eval tests examples   # só verifica
-isort app eval tests examples                # corrige
-```
-
-### Agente: um pedido de ponta a ponta
-
-```bash
-python -m anchor.agent --perfil ollama-pequeno --url eval/fixtures/registration.html "cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
-```
-
-O navegador abre visível. O agente planeja, executa cada passo, pergunta no terminal quando a
-heurística não tem certeza e, no fim, mostra o resultado: passos, chamadas ao modelo,
-replanejamentos, falhas, intervenções do usuário, tokens e tempo. As escolhas ficam em
-`memory/agente.json` (outra com `--memoria`), e sistemas com login usam
-`--perfil-navegador profiles/<nome>`.
-
-### Planejador (LLM)
-
-Os modelos ficam em `llm_profiles.json`, um perfil por modelo. O arquivo nunca guarda
-chaves: `api_key_env` é o nome da variável de ambiente onde a chave está.
-
-**Modelos locais (Ollama, grátis):** instale o [Ollama](https://ollama.com), baixe os modelos
-e coloque os nomes exatos (veja com `ollama list`) nos perfis `ollama-pequeno` e `ollama-medio`:
-
-```bash
-ollama pull qwen3.5:4b
-ollama pull qwen3.5:9b
-```
-
-Nos perfis do Ollama, use a API nativa (`"api": "ollama"`). Ela permite desligar o raciocínio
-dos modelos "thinking" (`"think": false`), que multiplica o tempo de cada plano, e reduzir o
-contexto (`"options": {"num_ctx": 4096}`), o que ajuda o modelo a caber numa placa de vídeo
-pequena:
+**Model profiles** live in `llm_profiles.json`, one per model. The file never stores keys:
+`api_key_env` is the name of the environment variable holding the key. For Ollama, use the native
+API (`"api": "ollama"`), which turns off the reasoning of "thinking" models (`"think": false`) and
+reduces the context (`"options": {"num_ctx": 4096}`) to fit a small GPU:
 
 ```json
 {
-  "name": "ollama-pequeno",
+  "name": "ollama-small",
   "model": "qwen3.5:4b",
   "api": "ollama",
   "base_url": "http://localhost:11434",
@@ -234,169 +262,233 @@ pequena:
 }
 ```
 
-Para ver se o modelo está na placa de vídeo ou no processador: `ollama ps` (coluna `PROCESSOR`).
+To see whether the model runs on the GPU or the CPU: `ollama ps` (column `PROCESSOR`). An OpenAI
+profile is also supported (paid): set the key with `setx OPENAI_API_KEY "your-key"` on Windows
+and fill in the model of the `openai` profile.
 
-**OpenAI (pago):** crie uma chave na plataforma de desenvolvedores da OpenAI (a assinatura do
-ChatGPT não dá acesso à API), guarde-a numa variável de ambiente e preencha o modelo no
-perfil `openai`:
+The old Portuguese options (`--perfil`, `--memoria`, `--perfis`...) and profile names
+(`ollama-pequeno`, `ollama-medio`) still work.
 
-```bash
-setx OPENAI_API_KEY "sua-chave"        # Windows; abra um terminal novo depois
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- EVALUATION -->
+## Evaluation
+
+```sh
+python -m eval.run --offline -v                                       # element resolver, local pages
+python -m eval.run --sweep                                            # tries threshold combinations
+python -m eval.plan_run --reference                                   # hand-written plans (ceiling)
+python -m eval.plan_run --agent --profiles ollama-small ollama-medium -v   # complete tasks, full agent
 ```
 
-Gerar um plano, e executá-lo no navegador:
+Every result is saved with the version and the commit. The closed test sets (holdout) only run
+with `--final`, once, at the end of development. Details in [`eval/README.md`](eval/README.md).
 
-```bash
-python -m anchor.planner --perfil ollama-pequeno --url eval/fixtures/registration.html "cadastre a Maria Silva no departamento de TI"
-python -m anchor.planner --perfil ollama-pequeno --url eval/fixtures/registration.html "cadastre a Maria Silva no departamento de TI" --executar
-```
+**Element resolver** — development set, 60 cases on 7 pages (6 local pages and SauceDemo),
+version 0.2.1:
 
-Comparar os modelos em tarefas completas (pedido → plano → execução → estado final):
-
-```bash
-python -m eval.plan_run --referencia                                    # planos escritos à mão (teto)
-python -m eval.plan_run --perfis ollama-pequeno ollama-medio -v         # os modelos
-python -m eval.plan_run --agente --perfis ollama-pequeno ollama-medio   # pelo loop do agente completo
-python -m eval.plan_run --check                                         # confere as tarefas, sem modelos
-```
-
-A tabela final mostra, por modelo: tarefas cumpridas, tarefas **limpas** (cumpridas sem nenhum
-passo não pedido), total de passos não pedidos (elementos acionados fora dos que a tarefa
-permite), planos válidos, verificações cumpridas, recusas da heurística, segundos e tokens por plano.
-O conjunto fechado de tarefas (`eval/plans/holdout_tasks.json`) só roda com `--final`.
-
-### Avaliação
-
-```bash
-python -m eval.run -v            # casos de desenvolvimento (inclui o SauceDemo real)
-python -m eval.run --offline     # só as páginas locais
-python -m eval.run --sweep       # testa combinações de limiares
-python -m eval.run --check       # confere os seletores esperados, sem calcular scores
-```
-
-O conjunto de teste fechado (holdout) só roda com `--final`, uma única vez, no fim do
-desenvolvimento. Detalhes em [`eval/README.md`](eval/README.md).
-
-## Resultados atuais
-
-Conjunto de desenvolvimento, 60 casos em 7 páginas (6 locais e o SauceDemo), commit `0de5a8b`:
-
-| Métrica | Valor |
+| Metric | Value |
 |---|---|
-| Elemento certo em 1º (recall@1) | 83,3% |
-| Elemento certo entre os 5 primeiros (recall@5) | 90,0% |
-| Executor decide e acerta | 76,7% |
-| Executor decide e erra (erro silencioso) | 3,3% |
-| Executor recusa e pergunta ao usuário | 20,0% |
+| Right element first (recall@1) | 85.0% |
+| Right element among the first 5 (recall@5) | 90.0% |
+| The Executor decides and gets it right | 78.3% |
+| The Executor decides and gets it wrong (silent error) | 1.7% |
+| The Executor refuses and asks the user | 20.0% |
 
-Estes números medem a evolução durante o desenvolvimento, não a generalização: os casos foram
-consultados enquanto o código era ajustado. A generalização será medida no holdout.
+**Complete tasks** — 15 development tasks on 8 local pages, through the full agent loop, with no
+human help, version 0.3.0 in development (i7-7700HQ, 16 GB RAM, GTX 1050 Ti 4 GB):
 
-### Agente em tarefas completas
-
-12 tarefas de desenvolvimento em 5 páginas locais, executadas pelo loop do agente, sem ajuda
-humana, commit `6bad9e4` (máquina: i7-7700HQ, 16 GB, GTX 1050 Ti 4 GB):
-
-| Modelo (Ollama) | Tarefas cumpridas | Sem passo não pedido | Chamadas ao modelo por tarefa | Tempo por tarefa |
+| Model (Ollama) | Tasks done | Done with no unrequested step | Premature ends | Time per task |
 |---|---|---|---|---|
-| Qwen 3.5, 4B | 100% | 83% | 2,0 | 17,5 s |
-| Qwen 3.5, 9B | 100% | 75% | 2,3 | 29,0 s |
+| Qwen 3.5, 4B | 87% | 80% | 0 | 31.7 s |
+| Qwen 3.5, 9B | 93% | 87% | 0 | 52.1 s |
 
-O prompt do planejador foi ajustado olhando essas tarefas; os números finais virão do
-conjunto fechado (`eval/plans/holdout_tasks.json`).
+These are development numbers: the code and the prompt were tuned looking at these cases. The
+final numbers will come from the closed sets.
 
-## Estrutura
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- ROADMAP -->
+## Roadmap
+
+- [x] **0.1** — Engine: page perception, heuristic element resolver, executor, user
+  disambiguation, choice memory, persistent browser profiles, reproducible evaluation
+- [x] **0.2** — LLM planner (local models via Ollama) and the agent loop with replanning; fixes
+  from tests on real sites (pop-ups, Enter-only searches, loops, destructive actions)
+- [ ] **0.3** — Reliability and saved automations
+    - [x] Effect verification of each action, goals, and checking the plan against the request
+    - [x] English translation, with the planner prompt in Portuguese or English
+    - [ ] Saved automations that **heal themselves**: when a saved plan breaks and is recovered,
+      the fix is kept, with a reviewable (and undoable) record of what changed
+    - [ ] Confirmation of sensitive actions (delete, send, save, download, upload, pay)
+    - [ ] Defense against instructions injected by page content
+    - [ ] Screenshot analysis by a vision model, when the other checks disagree
+    - [ ] Intervention experiment with a simulated user
+    - [ ] Resilience benchmark: changed versions of the pages, comparing fixed-selector scripts,
+      an LLM-in-control agent and ANCHOR
+- [ ] **0.4** — Uploads, downloads, new tabs, data extraction and iframes
+- [ ] **0.5** — Local frontend (runs on your computer, opens in the browser), with a "Run"
+  button for each saved automation
+- [ ] **1.0** — Evaluated version: final runs on the closed sets
+
+See the [changelog](CHANGELOG.md) for what changed in each version, and the
+[open issues](https://github.com/LucasDantas2701/ANCHOR/issues) for known problems.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- FEEDBACK -->
+## Feedback
+
+Feedback is very welcome, especially from real use. Please
+[open an issue](https://github.com/LucasDantas2701/ANCHOR/issues) with:
+
+1. the request you typed and the site (or the kind of system) you ran it on;
+2. what you expected and what happened;
+3. the terminal output (remove any personal data first);
+4. your setup: operating system, model profile and, if you know it, your GPU.
+
+Suggestions and ideas are welcome as issues too. The [license](#license) does not allow
+modifying or redistributing the code, so pull requests cannot be accepted for now.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- DEVELOPMENT -->
+## Development
+
+```sh
+pytest tests -v                                   # the test suite
+isort --check-only anchor eval tests examples     # import order (PEP 8 groups)
+```
+
+The tests in `tests/real_sites/` (LinkedIn) are disabled by default, because the site's terms of
+use forbid automation; set `ANCHOR_LINKEDIN=1` to run them.
 
 ```text
-smart-rpa/
+ANCHOR/
 ├── anchor/
-│   ├── main.py                    # exemplo de ponta a ponta no SauceDemo
-│   ├── browser/                   # perfis persistentes, sessão e login
-│   ├── agent/                     # loop do agente: plano, execução, replanejamento, fim
-│   ├── planner/                   # LLM: pedido → passos (perfis, validação, execução)
+│   ├── agent/                     # the agent loop: plan, execution, effect checks, replanning, end
+│   ├── planner/                   # LLM: request → goals and steps (profiles, prompt, validation)
 │   ├── engine/
-│   │   ├── element_resolver/      # percepção (index_script.js) + ranqueamento
-│   │   ├── action_executor/       # validação e execução das ações
-│   │   ├── disambiguation/        # desempate pelo usuário (terminal; contrato para o frontend)
-│   │   └── memory/                # memória das escolhas + comando de revisão
-│   ├── actions/                   # ações de baixo nível por seletor (legado)
-│   └── automation/saucedemo.py    # exemplo LEGADO com seletores fixos (o "antes")
-├── eval/                          # avaliação: páginas, casos, resultados, holdout e tarefas (plans/)
-├── examples/                      # demonstrações
+│   │   ├── element_resolver/      # perception (index_script.js) + ranking
+│   │   ├── action_executor/       # validation and execution of actions
+│   │   ├── disambiguation/        # the user's disambiguation (terminal; contract for the frontend)
+│   │   └── memory/                # choice memory + review commands
+│   ├── browser/                   # persistent profiles, session and login
+│   ├── i18n.py                    # interface messages (English and Portuguese)
+│   ├── main.py                    # end-to-end example on SauceDemo, with a fixed plan
+│   └── automation/saucedemo.py    # LEGACY example with fixed selectors (the "before")
+├── eval/                          # evaluation: test pages, cases, tasks, results, closed sets
+├── examples/                      # demos
 ├── tests/
-│   ├── engine/                    # testes do motor
-│   └── real_sites/                # exploratórios, desativados por padrão
-├── profiles/                      # perfis do navegador (fora do Git)
-├── memory/                        # escolhas memorizadas (fora do Git)
-└── llm_profiles.json              # perfis dos modelos de LLM (sem chaves)
+├── profiles/                      # browser profiles (not in Git)
+├── memory/                        # remembered choices (not in Git)
+└── llm_profiles.json              # model profiles (no keys)
 ```
 
-## Sessões persistentes
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-O Smart RPA utiliza perfis persistentes do Playwright para manter sessões do navegador localmente.
 
-Isso permite reutilizar uma sessão autenticada sem que credenciais precisem ser enviadas para o agente de IA.
 
-O fluxo esperado é:
+<!-- RESPONSIBLE USE -->
+## Responsible Use
 
-```text
-Primeira execução
-       │
-       ▼
-Abre o navegador
-       │
-       ▼
-Usuário realiza o login
-       │
-       ▼
-Sessão armazenada localmente
-       │
-       ▼
-Próximas execuções
-       │
-       ▼
-Reutilização da sessão
-```
+ANCHOR is a general-purpose tool. **Whoever uses it is responsible for what it does**, as they
+would be if they performed the same actions by hand. Before automating a site:
 
-Os perfis do navegador são ignorados pelo Git e não fazem parte do repositório.
+* **Respect the site's terms of use.** Many forbid automation (LinkedIn, for example), and the
+  account used may be restricted. The project's evaluation uses only its own pages and sites
+  that allow automation.
+* **Respect data-protection laws** (such as the LGPD in Brazil) **and your company's rules**:
+  automate only what you are allowed to do by hand.
+* **Review sensitive actions.** The system blocks destructive actions the request did not
+  mention and, from version 0.3.0 on, asks for confirmation before deleting, sending, saving,
+  downloading, uploading files or paying.
+* **Keep the browser profiles (`profiles/`) on your computer.** They hold the systems' sessions
+  and work like passwords; they are kept out of Git.
 
-## Uso responsável
+The project does not include, and will not include, features aimed at abuse, such as solving
+CAPTCHAs, creating accounts in bulk or scraping data at scale. With a local model (Ollama),
+requests and page contents do not leave the computer or the company network.
 
-O smart-rpa é uma ferramenta de uso geral. **Quem a usa responde pelo que ela faz**, como
-responderia se executasse as mesmas ações à mão. Antes de automatizar um site:
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-* **Respeite os termos de uso do site.** Muitos proíbem automação (o LinkedIn, por exemplo), e
-  a conta usada pode ser restringida. A avaliação do projeto usa apenas páginas próprias e sites
-  que permitem automação.
-* **Respeite a LGPD e as regras da sua empresa** ao lidar com dados pessoais: automatize apenas
-  o que você tem autorização para fazer manualmente.
-* **Revise as ações sensíveis.** O sistema barra ações destrutivas que o pedido não mencionou e,
-  a partir da versão 0.3.0, pede confirmação antes de excluir, enviar, salvar, baixar, enviar
-  arquivos ou pagar.
-* **Mantenha os perfis do navegador (`profiles/`) no seu computador.** Eles guardam as sessões
-  dos sistemas e valem como senha; ficam fora do Git.
 
-O projeto não inclui, e não vai incluir, recursos voltados a uso abusivo, como resolver CAPTCHA,
-criar contas em massa ou coletar dados em escala. Com um modelo local (Ollama), o pedido e as
-informações das páginas não saem do computador ou da rede da empresa.
 
-## Licença
+<!-- KNOWN LIMITATIONS -->
+## Known Limitations
 
-Copyright (c) 2026 Lucas dos Santos Dantas. Todos os direitos autorais pertencem ao autor.
+* Text matching is word-based, with a synonym dictionary; there is no real semantics. Data
+  extraction ("the price of product X") is the weakest point.
+* Iframes and closed shadow DOM are not read.
+* When the heuristic is wrong with confidence (a silent error), the user is not asked.
+* Unattended runs stop when there is an ambiguity, until the memory learns the answer.
+* The measured results use the Portuguese planner prompt and Portuguese requests; the English
+  prompt has not been measured yet.
 
-Distribuído sob a [PolyForm Strict License 1.0.0](LICENSE): você pode baixar e usar o smart-rpa
-para fins não comerciais, como estudo, testes e avaliação. Não é permitido modificar,
-redistribuir nem usar comercialmente o software sem autorização do autor. O software é
-fornecido sem garantia de qualquer tipo.
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-## Limitações conhecidas
 
-* O casamento de texto é por palavras, com um dicionário de sinônimos; não há semântica real.
-  Extração de dados ("o preço do produto X") é o ponto mais fraco.
-* Iframes e shadow DOM fechado não são lidos.
-* Quando a heurística erra com confiança (erro silencioso), o usuário não é consultado.
-* Execuções sem ninguém por perto param quando há ambiguidade, até a memória aprender.
 
-## Contexto
+<!-- LICENSE -->
+## License
 
-Projeto de TCC na Faculdade Matias Machline (Manaus-AM), de Lucas dos Santos Dantas.
+Copyright (c) 2026 Lucas dos Santos Dantas. All copyrights belong to the author.
+
+Distributed under the [PolyForm Strict License 1.0.0](LICENSE): you may download and use ANCHOR
+for noncommercial purposes, such as study, testing and evaluation. Modifying, redistributing or
+using the software commercially is not allowed without the author's permission. The software is
+provided without warranty of any kind. This is not an open-source license.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- CONTACT -->
+## Contact
+
+Lucas dos Santos Dantas — [@LucasDantas2701](https://github.com/LucasDantas2701)
+
+Project: [https://github.com/LucasDantas2701/ANCHOR](https://github.com/LucasDantas2701/ANCHOR)
+
+Research project at Faculdade Matias Machline (Manaus, Brazil).
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- ACKNOWLEDGMENTS -->
+## Acknowledgments
+
+* [Playwright](https://playwright.dev) and [Ollama](https://ollama.com)
+* The Qwen team, for the Qwen 3.5 models
+* Steward (Tang & Shin, 2024) and RPAI (Nikkari, 2025), which inspired the comparison between
+  LLM-driven and controlled web automation
+* [Best-README-Template](https://github.com/othneildrew/Best-README-Template) and
+  [Shields.io](https://shields.io)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+[stars-shield]: https://img.shields.io/github/stars/LucasDantas2701/ANCHOR.svg?style=for-the-badge
+[stars-url]: https://github.com/LucasDantas2701/ANCHOR/stargazers
+[issues-shield]: https://img.shields.io/github/issues/LucasDantas2701/ANCHOR.svg?style=for-the-badge
+[issues-url]: https://github.com/LucasDantas2701/ANCHOR/issues
+[license-shield]: https://img.shields.io/badge/license-PolyForm%20Strict%201.0.0-blue.svg?style=for-the-badge
+[license-url]: LICENSE
+[python-shield]: https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white
+[python-url]: https://www.python.org
+[playwright-shield]: https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white
+[playwright-url]: https://playwright.dev
+[ollama-shield]: https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white
+[ollama-url]: https://ollama.com
+[product-screenshot]: images/demo.gif
