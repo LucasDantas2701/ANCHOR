@@ -1,8 +1,8 @@
 """
-Testes do desempate pelo usuário.
+Tests of the user's disambiguation.
 
-Um "usuário falso" (FakeUser) substitui o terminal: ele responde
-automaticamente e registra o que viu, para os testes conferirem.
+A "fake user" (FakeUser) replaces the terminal: it answers
+automatically and records what it saw, for the tests to check.
 """
 
 import pytest
@@ -52,13 +52,13 @@ def clicks(page):
     return page.evaluate("window.clicks")
 
 
-def test_sem_desempate_mantem_comportamento_antigo(shop):
+def test_without_disambiguator_keeps_the_old_behavior(shop):
     result = ActionExecutor(shop).click("adicionar ao carrinho")
     assert result.status == "ambiguous"
     assert clicks(shop) == {"a": 0, "b": 0, "fav": 0}
 
 
-def test_usuario_escolhe_o_segundo_candidato(shop):
+def test_user_picks_the_second_candidate(shop):
     user = FakeUser(UserChoice("candidate", 2))
     result = ActionExecutor(shop, disambiguator=user).click("adicionar ao carrinho")
 
@@ -66,7 +66,7 @@ def test_usuario_escolhe_o_segundo_candidato(shop):
     assert result.resolved_by == "user"
     request = user.requests[0]
     assert request.reason == "ambiguous"
-    assert request.screenshot  # sem janela visível, vai uma imagem
+    assert request.screenshot  # with no visible window, an image is sent
     chosen = request.candidates[1]
     assert chosen.kind == "Button"
     assert chosen.name == "Adicionar ao carrinho"
@@ -75,7 +75,7 @@ def test_usuario_escolhe_o_segundo_candidato(shop):
     assert clicks(shop)[target] == 1
 
 
-def test_numeros_aparecem_na_pagina_e_somem_depois(shop):
+def test_numbers_appear_on_the_page_and_disappear_afterwards(shop):
     seen = {}
 
     def look():
@@ -91,7 +91,7 @@ def test_numeros_aparecem_na_pagina_e_somem_depois(shop):
     assert shop.locator("[data-er-highlight]").count() == 0
 
 
-def test_usuario_pula_o_passo(shop):
+def test_user_skips_the_step(shop):
     user = FakeUser(UserChoice("skip"))
     result = ActionExecutor(shop, disambiguator=user).click("adicionar ao carrinho")
 
@@ -100,8 +100,8 @@ def test_usuario_pula_o_passo(shop):
     assert clicks(shop) == {"a": 0, "b": 0, "fav": 0}
 
 
-def test_usuario_clica_no_elemento_e_o_clique_nao_dispara_duas_vezes(shop):
-    # Simula o clique do usuário no navegador logo depois da resposta "C".
+def test_user_clicks_the_element_and_the_click_does_not_fire_twice(shop):
+    # Simulates the user's click in the browser right after the "C" answer.
     def schedule_user_click():
         shop.evaluate(
             "setTimeout(() => document.getElementById('fav')"
@@ -115,13 +115,13 @@ def test_usuario_clica_no_elemento_e_o_clique_nao_dispara_duas_vezes(shop):
     assert user.requests[0].reason == "not_found"
     assert result.status == "success"
     assert result.resolved_by == "user"
-    assert user.messages  # avisou para clicar no navegador
-    # O clique do usuário foi bloqueado; só o Executor clicou: uma vez.
+    assert user.messages  # told the user to click in the browser
+    # The user's click was blocked; only the Executor clicked: once.
     assert clicks(shop)["fav"] == 1
     assert shop.locator("#er-point-banner").count() == 0
 
 
-def test_tempo_esgotado_ao_esperar_o_clique(shop):
+def test_timeout_while_waiting_for_the_click(shop):
     user = FakeUser(UserChoice("point"))
     executor = ActionExecutor(shop, disambiguator=user, can_point=True, point_timeout_s=0.3)
     result = executor.click("marcar a caneca como favorita")
@@ -130,7 +130,7 @@ def test_tempo_esgotado_ao_esperar_o_clique(shop):
     assert clicks(shop)["fav"] == 0
 
 
-def test_terminal_repete_a_pergunta_ate_resposta_valida(shop):
+def test_terminal_repeats_the_question_until_a_valid_answer(shop):
     answers = iter(["9", "talvez", "2"])
     out = []
     ui = TerminalDisambiguator(open_screenshot=False, input_fn=lambda _: next(answers), output=out.append)

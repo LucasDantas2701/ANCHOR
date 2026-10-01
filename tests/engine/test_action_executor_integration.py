@@ -34,8 +34,8 @@ def product_page(page):
 
 def test_click_product_button_is_ambiguous(product_page):
     """
-    Quando existem dois elementos semanticamente equivalentes,
-    o Executor deve evitar escolher arbitrariamente entre eles.
+    When there are two semantically equivalent elements,
+    the Executor must avoid picking one of them arbitrarily.
     """
 
     executor = ActionExecutor(
@@ -59,8 +59,8 @@ def test_click_product_button_is_ambiguous(product_page):
 
 def test_click_unique_product_button(product_page):
     """
-    Quando existe apenas um botão compatível com a
-    descrição, o Executor deve executá-lo.
+    When there is only one button matching the
+    description, the Executor must use it.
     """
 
     product_page.locator(
@@ -87,8 +87,8 @@ def test_click_unique_product_button(product_page):
 
 def test_fill_real_input(page):
     """
-    Testa a integração Resolver + Executor com um
-    campo de entrada real.
+    Tests the Resolver + Executor integration with a
+    real input field.
     """
 
     page.set_content(
@@ -126,8 +126,8 @@ def test_fill_real_input(page):
 
 def test_extract_real_text(page):
     """
-    Testa a integração Resolver + Executor com
-    extração de texto real.
+    Tests the Resolver + Executor integration with
+    real text extraction.
     """
 
     page.set_content(

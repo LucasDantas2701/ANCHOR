@@ -1,6 +1,6 @@
 """
-Testes do loop do agente, com um planejador roteirizado (planos prontos,
-em sequência) e páginas de teste reais.
+Tests of the agent loop, with a scripted planner (ready-made plans, in
+sequence) and real test pages.
 """
 
 from pathlib import Path
@@ -13,7 +13,7 @@ from anchor.planner import Plan, PlanError, Step
 
 
 class ScriptedPlanner:
-    """Devolve os planos da lista, um por chamada, e guarda o que recebeu."""
+    """Returns the plans in the list, one per call, and keeps what it received."""
 
     def __init__(self, *plans):
         self.plans = list(plans)
@@ -37,18 +37,18 @@ FORM = """<html><body>
 
 
 def run(page, planner, **kwargs):
-    # A verificação do efeito tem testes próprios (test_effects.py); aqui as páginas
-    # só mudam variáveis internas, sem efeito visível.
+    # Effect verification has its own tests (test_effects.py); here the pages
+    # only change internal variables, with no visible effect.
     kwargs.setdefault("verify_effect", False)
     page.set_default_timeout(1500)
     return Agent(page, planner, ActionExecutor(page), report=None, **kwargs).run("faça a tarefa da página")
 
 
-def test_executa_o_plano_e_confere_o_fim(page):
+def test_runs_the_plan_and_checks_the_end(page):
     page.set_content(FORM)
     planner = ScriptedPlanner(
         [("fill", "Nome", "Maria"), ("fill", "E-mail", "maria@x.com"), ("click", "Salvar", None)],
-        [],  # conferência do fim: nada falta
+        [],  # end check: nothing is left
     )
     result = run(page, planner)
 
@@ -59,11 +59,11 @@ def test_executa_o_plano_e_confere_o_fim(page):
     assert "feito: click Salvar" in planner.calls[1]["history"][-1]
 
 
-def test_conferencia_do_fim_completa_o_que_faltou(page):
+def test_end_check_completes_what_was_missing(page):
     page.set_content(FORM)
     planner = ScriptedPlanner(
         [("fill", "Nome", "Maria")],
-        [("click", "Salvar", None)],   # a conferência encontrou um passo faltando
+        [("click", "Salvar", None)],   # the check found a missing step
         [],
     )
     result = run(page, planner)
@@ -71,13 +71,13 @@ def test_conferencia_do_fim_completa_o_que_faltou(page):
     assert result.llm_calls == 3 and result.replans == 1
 
 
-def test_sem_conferencia_do_fim(page):
+def test_without_end_check(page):
     page.set_content(FORM)
     result = run(page, ScriptedPlanner([("fill", "Nome", "Maria")]), verify_end=False)
     assert result.ok and result.llm_calls == 1
 
 
-def test_navegacao_leva_ao_replanejamento_com_a_pagina_nova(page, tmp_path: Path):
+def test_navigation_triggers_replanning_with_the_new_page(page, tmp_path: Path):
     (tmp_path / "passo2.html").write_text(
         '<html><body><label for="cpf">CPF</label><input id="cpf">'
         '<button onclick="window.enviado=true">Enviar</button></body></html>', encoding="utf-8")
@@ -88,7 +88,7 @@ def test_navegacao_leva_ao_replanejamento_com_a_pagina_nova(page, tmp_path: Path
 
     planner = ScriptedPlanner(
         [("fill", "Nome", "Maria"), ("click", "Próximo", None), ("fill", "passo que não existe mais", "x")],
-        [("fill", "CPF", "123"), ("click", "Enviar", None)],   # replanejado na página nova
+        [("fill", "CPF", "123"), ("click", "Enviar", None)],   # replanned on the new page
         [],
     )
     result = run(page, planner)
@@ -97,12 +97,12 @@ def test_navegacao_leva_ao_replanejamento_com_a_pagina_nova(page, tmp_path: Path
     assert page.url.endswith("passo2.html") and page.input_value("#cpf") == "123"
     replan = planner.calls[1]
     assert replan["url"].endswith("passo2.html")
-    assert any("CPF" in e for e in replan["elements"])            # recebeu os elementos da página nova
+    assert any("CPF" in e for e in replan["elements"])            # received the new page's elements
     assert replan["history"] == ["feito: fill Nome = \"Maria\"", "feito: click Próximo"]
     assert result.replans == 1
 
 
-def test_falha_leva_ao_replanejamento_com_o_motivo(page):
+def test_failure_triggers_replanning_with_the_reason(page):
     page.set_content(FORM)
     planner = ScriptedPlanner(
         [("click", "Enviar para o espaço sideral", None)],
@@ -118,7 +118,7 @@ def test_falha_leva_ao_replanejamento_com_o_motivo(page):
     assert "nenhum elemento" in history[0]
 
 
-def test_tres_falhas_cancelam_e_relatam(page):
+def test_three_failures_cancel_and_report(page):
     page.set_content(FORM)
     bad = [("click", "Botão que não existe", None)]
     result = run(page, ScriptedPlanner(bad, bad, bad))
@@ -128,7 +128,7 @@ def test_tres_falhas_cancelam_e_relatam(page):
     assert "Botão que não existe" in result.message
 
 
-def test_modal_cobrindo_o_botao_e_fechado_no_replanejamento(page):
+def test_modal_covering_the_button_is_closed_when_replanning(page):
     page.set_content("""<html><body>
       <button id="salvar" onclick="window.salvo=true">Salvar</button>
       <div id="modal" style="position:fixed;inset:0;background:#fff">
@@ -138,7 +138,7 @@ def test_modal_cobrindo_o_botao_e_fechado_no_replanejamento(page):
     planner = ScriptedPlanner(
         [("click", "Salvar", None)],
         [("click", "Fechar aviso", None)],
-        [("click", "Salvar", None)],   # replanejado porque o pop-up fechou
+        [("click", "Salvar", None)],   # replanned because the pop-up closed
         [],
     )
     result = run(page, planner)
@@ -148,25 +148,25 @@ def test_modal_cobrindo_o_botao_e_fechado_no_replanejamento(page):
 
 
 
-def test_plano_vazio_no_inicio_cancela(page):
+def test_empty_initial_plan_cancels(page):
     page.set_content(FORM)
     result = run(page, ScriptedPlanner([]))
     assert result.status == "cancelled" and "cannot be done" in result.message
 
 
-def test_replanejamento_sem_saida_cancela(page):
+def test_replanning_with_no_way_out_cancels(page):
     page.set_content(FORM)
     result = run(page, ScriptedPlanner([("click", "Botão que não existe", None)], []))
     assert result.status == "cancelled" and "found no other way" in result.message
 
 
-def test_erro_do_modelo_encerra_com_mensagem(page):
+def test_model_error_ends_with_a_message(page):
     page.set_content(FORM)
     result = run(page, ScriptedPlanner(PlanError("resposta inválida")))
     assert result.status == "failed" and "resposta inválida" in result.message
 
 
-def test_limite_de_passos(page):
+def test_step_limit(page):
     page.set_content(FORM)
     loop = [("fill", "Nome", f"Maria {i}") for i in range(10)]
     result = run(page, ScriptedPlanner(loop), max_steps=4)
@@ -182,7 +182,7 @@ class ChooseSecond:
         pass
 
 
-def test_intervencoes_do_usuario_sao_contadas(page):
+def test_user_interventions_are_counted(page):
     page.set_content("""<html><body>
       <div><h3>Caneca azul</h3><button onclick="window.c='azul'">Adicionar</button></div>
       <div><h3>Caneca verde</h3><button onclick="window.c='verde'">Adicionar</button></div>
@@ -195,7 +195,7 @@ def test_intervencoes_do_usuario_sao_contadas(page):
 
 
 # --------------------------------------------------------------------------
-# Casos reais que viraram testes (versão 0.2.1)
+# Real cases that became tests (version 0.2.1)
 # --------------------------------------------------------------------------
 
 SEARCH_POPUP = """<html><body>
@@ -209,7 +209,7 @@ SEARCH_POPUP = """<html><body>
 </body></html>"""
 
 
-def test_popup_que_abre_gera_replanejamento_com_os_elementos_dele(page):
+def test_opening_popup_triggers_replanning_with_its_elements(page):
     page.set_content(SEARCH_POPUP)
     planner = ScriptedPlanner(
         [("click", "Search /", None), ("fill", "campo que o modelo imaginou", "pi network")],
@@ -220,15 +220,15 @@ def test_popup_que_abre_gera_replanejamento_com_os_elementos_dele(page):
 
     assert result.ok and page.evaluate("window.buscou") == "pi network"
     replan = planner.calls[1]
-    assert replan["elements"][0].startswith('Campo de texto "Buscar moedas"')   # o pop-up vem primeiro...
-    assert "[pop-up]" in replan["elements"][0]                                 # ...marcado
-    assert not any("Menu 5" in e for e in replan["elements"])                   # o que ficou coberto sai
+    assert replan["elements"][0].startswith('Campo de texto "Buscar moedas"')   # the pop-up comes first...
+    assert "[pop-up]" in replan["elements"][0]                                 # ...marked
+    assert not any("Menu 5" in e for e in replan["elements"])                   # what was covered is left out
 
 
-def test_resumo_mostra_o_popup_mesmo_numa_pagina_grande(page):
+def test_summary_shows_the_popup_even_on_a_large_page(page):
     from anchor.engine.element_resolver import ElementResolver
     from anchor.planner import page_elements
-    page.set_content(SEARCH_POPUP.replace(" hidden role", " role"))  # pop-up já aberto
+    page.set_content(SEARCH_POPUP.replace(" hidden role", " role"))  # pop-up already open
     lines = page_elements(ElementResolver(page), limit=80)
     assert any("Buscar moedas" in line for line in lines)
 
@@ -239,7 +239,7 @@ ENTER_ONLY = """<html><body>
 </body></html>"""
 
 
-def test_busca_sem_botao_usa_enter_no_campo(page):
+def test_search_without_button_uses_enter_in_the_field(page):
     page.set_content(ENTER_ONLY)
     planner = ScriptedPlanner([("fill", "Pesquisar", "rpa em manaus"), ("click", "Pesquisar", None)], [])
     result = run(page, planner)
@@ -249,7 +249,7 @@ def test_busca_sem_botao_usa_enter_no_campo(page):
     assert result.interventions == 0
 
 
-def test_preencher_nunca_escolhe_um_botao(page):
+def test_fill_never_picks_a_button(page):
     page.set_content("""<html><body>
       <button>Filtros, Título da vaga</button>
       <label for="t">Título</label><input id="t">
@@ -269,12 +269,12 @@ JOBS = """<html><body>
 </body></html>"""
 
 
-def test_passo_repetido_depois_de_replanejar_e_barrado(page):
+def test_step_repeated_after_replanning_is_blocked(page):
     page.set_content(JOBS)
     planner = ScriptedPlanner(
         [("click", "Consultor RPA", None)],
-        [("click", "Consultor RPA", None)],     # a URL mudou; o modelo repete o clique
-        [("click", "Salvar vaga", None)],       # avisado, ele segue em frente
+        [("click", "Consultor RPA", None)],     # the URL changed; the model repeats the click
+        [("click", "Salvar vaga", None)],       # once warned, it moves on
         [],
     )
     result = run(page, planner)
@@ -285,37 +285,37 @@ def test_passo_repetido_depois_de_replanejar_e_barrado(page):
     assert "não o repita" in planner.calls[2]["history"][-1]
 
 
-def test_conferencia_do_fim_tem_limite(page):
+def test_end_check_has_a_limit(page):
     page.set_content(FORM)
     planner = ScriptedPlanner(
         [("fill", "Nome", "Maria")],
-        [("fill", "E-mail", "a@x.com")],        # 1ª conferência: acha algo
-        [("click", "Salvar", None)],            # 2ª conferência: acha mais
+        [("fill", "E-mail", "a@x.com")],        # 1st check: finds something
+        [("click", "Salvar", None)],            # 2nd check: finds more
     )
     result = run(page, planner)
     assert result.status == "cancelled" and "end check" in result.message
     assert page.evaluate("window.salvo") is True
 
 
-def test_pedido_sem_verbo_nao_escolhe_a_acao_destrutiva(page):
+def test_request_without_verb_does_not_pick_the_destructive_action(page):
     page.set_content("""<html><body><ul>
       <li><a href="#v1" onclick="window.aberta=true">Consultor RPA</a>
           <button aria-label="Fechar vaga de Consultor RPA" onclick="window.fechada=true">✕</button></li>
     </ul></body></html>""")
-    # O link muda a URL (#v1): replanejamento (nada falta) e conferência do fim.
+    # The link changes the URL (#v1): replanning (nothing left) and the end check.
     result = run(page, ScriptedPlanner([("click", "Consultor RPA", None)], [], []))
     assert result.ok and page.evaluate("window.aberta") is True
     assert page.evaluate("window.fechada") is None
 
 
-def test_conferencia_que_so_repete_passos_feitos_conta_como_fim(page):
+def test_end_check_repeating_only_done_steps_counts_as_the_end(page):
     page.set_content(FORM)
     planner = ScriptedPlanner([("click", "Salvar", None)], [("click", "Salvar", None)])
     result = run(page, planner)
     assert result.ok and result.message == "goal reached" and result.failures == 0
 
 
-def test_acao_destrutiva_nao_pedida_e_barrada(page):
+def test_unrequested_destructive_action_is_blocked(page):
     page.set_content("""<html><body><ul>
       <li><a href="#" onclick="document.getElementById('d').hidden=false;return false">Consultor RPA</a>
           <button onclick="window.fechada=true">Fechar vaga de Consultor RPA</button></li></ul>
@@ -331,7 +331,7 @@ def test_acao_destrutiva_nao_pedida_e_barrada(page):
     assert [r.status for r in result.records] == ["success", "blocked", "success"]
 
 
-def test_acao_destrutiva_pedida_nao_e_barrada(page):
+def test_requested_destructive_action_is_not_blocked(page):
     page.set_content('<html><body><button onclick="window.fechada=true">Fechar vaga de Consultor RPA</button></body></html>')
     planner = ScriptedPlanner([("click", "Fechar vaga de Consultor RPA", None)], [])
     result = Agent(page, planner, ActionExecutor(page), report=None, verify_effect=False).run("feche a vaga de consultor rpa")
@@ -347,9 +347,9 @@ SUGGESTIONS = """<html><body>
 </body></html>"""
 
 
-def test_sugestoes_ao_digitar_nao_geram_replanejamento(page):
+def test_suggestions_while_typing_do_not_trigger_replanning(page):
     page.set_content(SUGGESTIONS)
     planner = ScriptedPlanner([("fill", "Pesquisar", "rpa em manaus"), ("click", "Opção rpa em manaus", None)], [])
     result = run(page, planner)
     assert result.ok and result.replans == 0
-    assert page.evaluate("window.escolhida") == "rpa em manaus"   # a sugestão exata, não a "júnior"
+    assert page.evaluate("window.escolhida") == "rpa em manaus"   # the exact suggestion, not the "júnior" one

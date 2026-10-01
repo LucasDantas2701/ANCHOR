@@ -69,8 +69,8 @@ def make_executor(
 
 def test_click_success():
     """
-    Deve executar a ação quando existe um único
-    candidato confiável.
+    Must perform the action when there is a single
+    reliable candidate.
     """
 
     executor, match, locator = make_executor(
@@ -92,8 +92,8 @@ def test_click_success():
 
 def test_click_ambiguous():
     """
-    Deve impedir a execução quando os dois melhores
-    candidatos possuem scores muito próximos.
+    Must prevent the execution when the two best
+    candidates have very close scores.
     """
 
     page = Mock()
@@ -139,8 +139,8 @@ def test_click_ambiguous():
 
 def test_click_not_found():
     """
-    Deve retornar not_found quando não existe
-    candidato confiável.
+    Must return not_found when there is no
+    reliable candidate.
     """
 
     executor, match, locator = make_executor(
@@ -161,8 +161,8 @@ def test_click_not_found():
 
 def test_click_error():
     """
-    Deve retornar error quando o elemento foi encontrado,
-    mas a execução da ação falhou.
+    Must return error when the element was found,
+    but performing the action failed.
     """
 
     executor, match, locator = make_executor(
@@ -194,7 +194,7 @@ def test_click_error():
 
 def test_hover_success():
     """
-    Deve executar hover no elemento resolvido.
+    Must hover over the resolved element.
     """
 
     executor, match, locator = make_executor(
@@ -219,7 +219,7 @@ def test_hover_success():
 
 def test_check_success():
     """
-    Deve marcar o checkbox encontrado.
+    Must check the checkbox found.
     """
 
     executor, match, locator = make_executor(
@@ -244,7 +244,7 @@ def test_check_success():
 
 def test_uncheck_success():
     """
-    Deve desmarcar o checkbox encontrado.
+    Must uncheck the checkbox found.
     """
 
     executor, match, locator = make_executor(
@@ -269,7 +269,7 @@ def test_uncheck_success():
 
 def test_press_success():
     """
-    Deve pressionar a tecla especificada.
+    Must press the given key.
     """
 
     executor, match, locator = make_executor(
@@ -297,7 +297,7 @@ def test_press_success():
 
 def test_fill_success():
     """
-    Deve preencher o elemento com o texto informado.
+    Must fill the element with the given text.
     """
 
     executor, match, locator = make_executor(
@@ -326,7 +326,7 @@ def test_fill_success():
 
 def test_select_by_value():
     """
-    Deve selecionar uma opção utilizando value.
+    Must select an option by value.
     """
 
     executor, match, locator = make_executor(
@@ -349,7 +349,7 @@ def test_select_by_value():
 
 def test_select_by_label():
     """
-    Deve selecionar uma opção utilizando label.
+    Must select an option by label.
     """
 
     executor, match, locator = make_executor(
@@ -372,7 +372,7 @@ def test_select_by_label():
 
 def test_select_by_index():
     """
-    Deve selecionar uma opção utilizando índice.
+    Must select an option by index.
     """
 
     executor, match, locator = make_executor(
@@ -395,8 +395,8 @@ def test_select_by_index():
 
 def test_select_without_option():
     """
-    Deve retornar error quando nenhum método
-    de seleção foi informado.
+    Must return error when no selection
+    method was given.
     """
 
     executor, match, locator = make_executor(
@@ -420,13 +420,13 @@ def test_select_without_option():
 
 
 # ============================================================
-# EXTRAÇÃO
+# EXTRACTION
 # ============================================================
 
 
 def test_extract_text_success():
     """
-    Deve extrair o texto interno do elemento.
+    Must extract the element's inner text.
     """
 
     executor, match, locator = make_executor(
@@ -450,7 +450,7 @@ def test_extract_text_success():
 
 def test_extract_attribute_success():
     """
-    Deve extrair um atributo do elemento.
+    Must extract an attribute of the element.
     """
 
     executor, match, locator = make_executor(
@@ -481,7 +481,7 @@ def test_extract_attribute_success():
 
 def test_extract_value_success():
     """
-    Deve extrair o valor de um campo.
+    Must extract the value of a field.
     """
 
     executor, match, locator = make_executor(

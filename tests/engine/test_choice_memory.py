@@ -1,6 +1,6 @@
 """
-Testes da memória das escolhas: o usuário desempata uma vez, e as
-próximas execuções do mesmo passo usam a escolha sem perguntar.
+Tests of the choice memory: the user disambiguates once, and the next
+runs of the same step use the choice without asking.
 """
 
 import json
@@ -42,7 +42,7 @@ class FakeUser:
 
 
 def pick(request_text, color):
-    """Número do candidato cujo 'perto de' contém a cor."""
+    """Number of the candidate whose 'near' text contains the color."""
     return next(c.number for c in request_text.candidates if color in c.near)
 
 
@@ -69,7 +69,7 @@ def run(page, memory, user):
     return ActionExecutor(page, disambiguator=user, memory=memory).click(STEP)
 
 
-def test_escolha_do_usuario_e_lembrada(page, memory):
+def test_user_choice_is_remembered(page, memory):
     page.set_content(shop_html([AZUL, VERDE]))
     first = run(page, memory, PickColor("verde"))
     assert first.resolved_by == "user"
@@ -77,7 +77,7 @@ def test_escolha_do_usuario_e_lembrada(page, memory):
     assert len(memory.entries) == 1
 
     page.set_content(shop_html([AZUL, VERDE]))
-    user = FakeUser()  # falha se for consultado
+    user = FakeUser()  # fails if consulted
     second = run(page, memory, user)
     assert second.status == "success"
     assert second.resolved_by == "memory"
@@ -85,7 +85,7 @@ def test_escolha_do_usuario_e_lembrada(page, memory):
     assert clicks(page) == {"verde": 1}
 
 
-def test_memoria_persiste_em_arquivo(page, tmp_path):
+def test_memory_persists_to_a_file(page, tmp_path):
     path = tmp_path / "memoria.json"
     page.set_content(shop_html([AZUL, VERDE]))
     run(page, ChoiceMemory(path), PickColor("azul"))
@@ -94,26 +94,26 @@ def test_memoria_persiste_em_arquivo(page, tmp_path):
     assert len(saved["entries"]) == 1
 
     page.set_content(shop_html([AZUL, VERDE]))
-    result = run(page, ChoiceMemory(path), FakeUser())  # nova instância, lê do arquivo
+    result = run(page, ChoiceMemory(path), FakeUser())  # new instance, reads from the file
     assert result.resolved_by == "memory"
     assert clicks(page) == {"azul": 1}
 
 
-def test_reencontra_o_elemento_mesmo_se_a_ordem_mudar(page, memory):
+def test_finds_the_element_again_even_if_the_order_changes(page, memory):
     page.set_content(shop_html([AZUL, VERDE, PRETA]))
     run(page, memory, PickColor("verde"))
 
-    page.set_content(shop_html([PRETA, VERDE, AZUL]))  # outra ordem
+    page.set_content(shop_html([PRETA, VERDE, AZUL]))  # another order
     result = run(page, memory, FakeUser())
     assert result.resolved_by == "memory"
     assert clicks(page) == {"verde": 1}
 
 
-def test_elemento_sumiu_volta_a_perguntar_e_expira(page, memory):
+def test_missing_element_asks_again_and_expires(page, memory):
     page.set_content(shop_html([AZUL, VERDE]))
     run(page, memory, PickColor("verde"))
 
-    # A caneca verde saiu da página: a memória não serve, o usuário é consultado.
+    # The green mug left the page: the memory does not help, the user is asked.
     for attempt in range(memory.max_misses):
         page.set_content(shop_html([AZUL, PRETA]))
         user = FakeUser(UserChoice("skip"))
@@ -121,10 +121,10 @@ def test_elemento_sumiu_volta_a_perguntar_e_expira(page, memory):
         assert result.resolved_by == "user_skipped"
         assert user.asked == 1
 
-    assert memory.entries == {}  # esquecida depois de max_misses faltas seguidas
+    assert memory.entries == {}  # forgotten after max_misses misses in a row
 
 
-def test_acao_falha_com_escolha_memorizada_e_ela_e_esquecida(page, memory):
+def test_action_failing_with_a_remembered_choice_forgets_it(page, memory):
     page.set_content(shop_html([AZUL, VERDE]))
     run(page, memory, PickColor("verde"))
 
@@ -135,13 +135,13 @@ def test_acao_falha_com_escolha_memorizada_e_ela_e_esquecida(page, memory):
     assert memory.entries == {}
 
 
-def test_pular_nao_e_lembrado(page, memory):
+def test_skipping_is_not_remembered(page, memory):
     page.set_content(shop_html([AZUL, VERDE]))
     run(page, memory, FakeUser(UserChoice("skip")))
     assert memory.entries == {}
 
 
-def test_escolha_pelo_clique_na_pagina_e_lembrada(page, memory):
+def test_choice_by_clicking_on_the_page_is_remembered(page, memory):
     page.set_content(
         "<html><body><script>window.clicks={};</script>"
         "<p>Caneca azul</p>"
@@ -169,7 +169,7 @@ def test_escolha_pelo_clique_na_pagina_e_lembrada(page, memory):
     assert clicks(page) == {"fav": 2}
 
 
-def test_mesma_descricao_em_outra_pagina_nao_usa_a_memoria(page, memory, tmp_path):
+def test_same_description_on_another_page_does_not_use_the_memory(page, memory, tmp_path):
     (tmp_path / "a.html").write_text(shop_html([AZUL, VERDE]), encoding="utf-8")
     (tmp_path / "b.html").write_text(shop_html([AZUL, VERDE]), encoding="utf-8")
 
@@ -192,7 +192,7 @@ def suggestions_html(items):
             f'<div role="listbox">{options}</div></body></html>')
 
 
-def test_sugestao_escolhida_pelo_clique_e_reencontrada_com_outras_ao_redor(page, memory):
+def test_suggestion_chosen_by_click_is_found_again_among_others(page, memory):
     page.set_content(suggestions_html(["rpa em manaus", "rpa developer", "rpa uipath"]))
 
     class PointUser(FakeUser):
@@ -209,9 +209,9 @@ def test_sugestao_escolhida_pelo_clique_e_reencontrada_com_outras_ao_redor(page,
                            memory=memory, point_timeout_s=5).click(step)
     assert first.resolved_by == "user"
     saved = next(iter(memory.entries.values())).signature
-    assert saved["role"] == "option" and saved["context"]   # assinatura completa, com contexto
+    assert saved["role"] == "option" and saved["context"]   # full signature, with context
 
-    # Na próxima busca, a lista é recriada: outra ordem, outros itens.
+    # On the next search, the list is rebuilt: another order, other items.
     page.set_content(suggestions_html(["rpa junior", "rpa em manaus", "rpa remoto", "rpa senior"]))
     second = ActionExecutor(page, disambiguator=FakeUser(), memory=memory).click(step)
     assert second.resolved_by == "memory"

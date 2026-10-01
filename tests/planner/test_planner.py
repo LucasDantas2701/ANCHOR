@@ -1,5 +1,5 @@
 """
-Testes do planejador com um cliente falso (nenhuma chamada real à API).
+Tests of the planner with a fake client (no real API calls).
 """
 
 import json
@@ -27,7 +27,7 @@ CADASTRO = (Path(__file__).resolve().parents[2] / "eval" / "fixtures" / "registr
 
 
 class FakeClient:
-    """Imita client.chat.completions.create devolvendo respostas prontas."""
+    """Imitates client.chat.completions.create, returning ready-made answers."""
 
     def __init__(self, *responses):
         self.responses = list(responses)
@@ -52,7 +52,7 @@ def plan_json(*steps):
 GOOD = plan_json(("fill", "campo Nome completo", "Maria Silva"), ("click", "botão Salvar cadastro", None))
 
 
-def test_plano_valido():
+def test_valid_plan():
     client = FakeClient(GOOD)
     plan = LLMPlanner(client, "modelo-x").plan("cadastre a Maria", "http://x", ["Campo de texto \"Nome completo\""])
     assert [s.action for s in plan.steps] == ["fill", "click"]
@@ -64,8 +64,8 @@ def test_plano_valido():
     assert "Nome completo" in sent["messages"][1]["content"]
 
 
-def test_plano_invalido_recebe_o_erro_e_corrige():
-    bad = plan_json(("fill", "campo Nome", None))  # fill sem valor
+def test_invalid_plan_gets_the_error_and_is_fixed():
+    bad = plan_json(("fill", "campo Nome", None))  # fill without a value
     client = FakeClient(bad, GOOD)
     plan = LLMPlanner(client, "m").plan("cadastre a Maria", "http://x")
     assert plan.attempts == 2 and plan.tokens_in == 200
@@ -73,35 +73,35 @@ def test_plano_invalido_recebe_o_erro_e_corrige():
     assert "precisa de um valor" in feedback
 
 
-def test_desiste_depois_das_tentativas():
+def test_gives_up_after_the_attempts():
     client = FakeClient("isso não é json", "nem isso")
     with pytest.raises(PlanError, match="2 attempts"):
         LLMPlanner(client, "m").plan("x", "http://x")
 
 
-def test_aceita_json_dentro_de_bloco_de_codigo():
+def test_accepts_json_inside_a_code_block():
     client = FakeClient("Claro! Aqui está:\n```json\n" + GOOD + "\n```")
     assert len(LLMPlanner(client, "m").plan("x", "http://x").steps) == 2
 
 
-def test_ignora_o_raciocinio_de_modelos_thinking():
+def test_ignores_the_reasoning_of_thinking_models():
     client = FakeClient("<think>O usuário quer cadastrar... vou usar fill.</think>\n" + GOOD)
     assert len(LLMPlanner(client, "m").plan("x", "http://x").steps) == 2
 
 
-def test_parametros_extras_do_perfil_vao_para_o_servidor():
+def test_profile_extra_parameters_go_to_the_server():
     client = FakeClient(GOOD)
     LLMPlanner(client, "m", extra_body={"opcao": False}).plan("x", "http://x")
     assert client.calls[0]["extra_body"] == {"opcao": False}
 
 
-def test_sem_parametros_extras_nada_e_enviado():
+def test_without_extra_parameters_nothing_is_sent():
     client = FakeClient(GOOD)
     LLMPlanner(client, "m").plan("x", "http://x")
     assert "extra_body" not in client.calls[0]
 
 
-def test_servidor_sem_esquema_json_usa_json_simples():
+def test_server_without_json_schema_uses_plain_json():
     request = httpx2.Request("POST", "http://localhost/v1/chat/completions")
     no_schema = openai.BadRequestError("json_schema não suportado",
                                        response=httpx2.Response(400, request=request), body=None)
@@ -117,38 +117,38 @@ def test_servidor_sem_esquema_json_usa_json_simples():
     ({"steps": [{"action": "click", "description": "  ", "value": None}]}, "descrição vazia"),
     ({"steps": [{"action": "select", "description": "lista", "value": ""}]}, "precisa de um valor"),
 ])
-def test_validacao_do_plano(data, message):
+def test_plan_validation(data, message):
     with pytest.raises(PlanError, match=message):
         parse_plan(data)
 
 
-def test_plano_vazio_e_valido():
+def test_empty_plan_is_valid():
     assert parse_plan({"steps": []}) == []
 
 
-def test_mensagem_sem_lista_de_elementos():
+def test_message_without_list_of_elements():
     msg = user_message("abrir o carrinho", "http://x", None)
     assert "Pedido do usuário: abrir o carrinho" in msg and "Elementos" not in msg
 
 
-def test_perfil_sem_chave_explica_como_configurar(monkeypatch):
+def test_profile_without_key_explains_how_to_configure(monkeypatch):
     monkeypatch.delenv("CHAVE_DE_TESTE", raising=False)
     profile = LLMProfile(name="p", model="m", api_key_env="CHAVE_DE_TESTE")
     with pytest.raises(ConfigError, match="setx CHAVE_DE_TESTE"):
         profile.client()
 
 
-def test_perfil_com_modelo_nao_preenchido():
+def test_profile_with_model_not_filled_in():
     with pytest.raises(ConfigError, match='"model" field'):
         LLMProfile(name="p", model="COLOQUE_O_MODELO").client()
 
 
-def test_perfil_local_nao_exige_chave():
+def test_local_profile_does_not_require_a_key():
     client = LLMProfile(name="p", model="m", base_url="http://localhost:11434/v1").client()
     assert str(client.base_url).startswith("http://localhost:11434")
 
 
-def test_plano_executado_no_formulario(page):
+def test_plan_run_on_the_form(page):
     page.goto(CADASTRO)
     plan = Plan(steps=[
         Step("fill", "campo Nome completo", "Maria Silva"),
@@ -165,7 +165,7 @@ def test_plano_executado_no_formulario(page):
     assert page.is_checked("input[value=pj]") and page.is_checked("#termos")
 
 
-def test_execucao_para_no_primeiro_passo_que_falha(page):
+def test_execution_stops_at_the_first_failing_step(page):
     page.goto(CADASTRO)
     plan = Plan(steps=[Step("click", "botão Enviar para o espaço sideral", None),
                        Step("fill", "campo Nome completo", "Maria")])
@@ -183,12 +183,12 @@ def test_execucao_para_no_primeiro_passo_que_falha(page):
     ("Opção PJ", "Opção PJ"),
     ("Salvar cadastro", "Salvar cadastro"),
 ])
-def test_limpeza_da_descricao(raw, clean):
+def test_description_cleanup(raw, clean):
     from anchor.planner.execute import clean_description
     assert clean_description(raw) == clean
 
 
-def test_descricao_com_rotulo_de_tipo_nao_fica_ambigua(page):
+def test_description_with_kind_label_is_not_ambiguous(page):
     page.goto(CADASTRO)
     plan = Plan(steps=[Step("fill", "Campo de texto Telefone", "(92) 99999-0000")])
     results = run_plan(ActionExecutor(page), plan)
@@ -196,19 +196,19 @@ def test_descricao_com_rotulo_de_tipo_nao_fica_ambigua(page):
     assert page.input_value("#tel") == "(92) 99999-0000"
 
 
-def test_select_em_botao_de_opcao_vira_check(page):
+def test_select_on_a_radio_button_becomes_check(page):
     page.goto(CADASTRO)
     results = run_plan(ActionExecutor(page), Plan(steps=[Step("select", "Opção PJ", "PJ")]))
     assert results[0][1].status == "success"
     assert page.is_checked("input[value=pj]")
 
 
-def test_resumo_guiado_pelo_pedido_traz_o_elemento_relevante(page):
+def test_summary_guided_by_the_request_brings_the_relevant_element(page):
     from anchor.engine.element_resolver import ElementResolver
     from anchor.planner import page_elements
     links = "".join(f'<a href="/c/{i}">Categoria {i}</a> ' for i in range(90))
     page.set_content(f'<html><body>{links}<div style="cursor:pointer">Search /</div></body></html>')
     without = page_elements(ElementResolver(page))
     with_request = page_elements(ElementResolver(page), request="pesquise a moeda Pi Network")
-    assert not any("Search /" in line for line in without)          # cortado pelo limite de 80
-    assert with_request[0].startswith('Área clicável "Search /"')   # guiado pelo pedido
+    assert not any("Search /" in line for line in without)          # cut by the limit of 80
+    assert with_request[0].startswith('Área clicável "Search /"')   # guided by the request

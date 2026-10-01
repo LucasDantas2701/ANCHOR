@@ -1,19 +1,86 @@
 # Changelog
 
-Todas as mudanças relevantes do projeto ficam registradas aqui.
+All notable changes to the project are recorded here.
 
-O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/),
-e o projeto usa [Versionamento Semântico](https://semver.org/lang/pt-BR/)
-(MAJOR.MINOR.PATCH):
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project
+uses [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH):
 
-- **MAJOR**: mudança que quebra compatibilidade (ex.: formato da memória ou dos casos de avaliação).
-- **MINOR**: funcionalidade nova, compatível com o que existe.
-- **PATCH**: correção de bug, sem funcionalidade nova.
+- **MAJOR**: a change that breaks compatibility (e.g. the format of the memory or of the evaluation cases).
+- **MINOR**: a new feature, compatible with what exists.
+- **PATCH**: a bug fix, with no new feature.
 
-Enquanto o MAJOR for 0, o projeto está em desenvolvimento inicial, e mudanças
-que quebram compatibilidade também sobem o MINOR.
+While MAJOR is 0, the project is in initial development, and changes that break compatibility
+also bump MINOR.
 
-## [Não lançado]
+The project was called smart-rpa until 2026-09-29; the entries before that use the old names
+(the `app/` package, the Portuguese commands and options).
+
+## [Unreleased]
+
+### Added
+- Before declaring success, the agent checks what was actually **done** against the request,
+  with the same check the initial plan goes through (conclusive verbs in a click or key press,
+  the request's data in some step). Until now, a goal counted as fulfilled as soon as one of its
+  steps worked, so a model that said "nothing is left" right after opening the search pop-up got
+  a false success (found in `p-pop-01`, 2026-09-30). Now the model is warned once ("the request is
+  not fulfilled yet: ...") and gets two more end checks; if what was done still does not cover the
+  request, the run ends as not fulfilled.
+- Pressing Enter in a field counts as searching, whatever the field is called (in the plan check
+  and in the new check of what was done).
+- Planner prompt in English, as an option: `"prompt_language": "en"` in the model profile, or
+  `--prompt-language en` in the command-line tools. Portuguese stays the default, since it is the
+  measured one; the English prompt must be measured on the dev set before being used. With
+  English, everything the model reads is in English, including the element kinds in the page
+  summary and the execution history.
+- `--lang en|pt` in the command-line tools, for the interface language (overrides `ANCHOR_LANG`).
+- `anchor/i18n.py`: user-facing messages in English (default) or Portuguese, chosen with the
+  `ANCHOR_LANG` environment variable (`en` or `pt`). The terminal disambiguation, the memory
+  commands, the login messages and the demo use it. To skip a step, both `S` and `P` work. What
+  the model reads (the page summary) keeps the Portuguese element kinds, so the planner's input,
+  and therefore its measured results, do not change.
+- Effect verification of each action (layer 1, no LLM, `anchor/agent/effects.py`): for form
+  actions, the element's state (value in the field, chosen option, checked box; input masks such
+  as the phone one are accepted); for clicks and Enter, changes on the page, requests, new tabs
+  and downloads; for all of them, new messages. An error message ("CPF inválido") turns the step
+  into a failure; the others go to the planner's history. With no effect, the step is retried once
+  and then counts as a failure, with replanning; a remembered choice with no effect is forgotten.
+  `Agent(verify_effect=False)` turns the verification off.
+- Revealed field: if the field to fill in does not exist, but there is a clickable element with
+  that name (e.g. the magnifier that opens the search), the agent clicks it and fills in the field
+  that appears (the one matching the description, or the one that gets the focus).
+- Effect verification: clicking a checkbox or option checks whether its state changed (before, it
+  counted as "no effect", since the page structure does not change); clicking a field or a list
+  does not require an effect, since it only gives the focus.
+- `press Enter` on an element that is not a text field goes to the last filled-in field.
+- A click that only gives the focus (on a field or a list) is accepted, but does not fulfill the goal.
+- Values with brackets, quotes or the "opções:" label copied from the page summary are cleaned
+  before execution and before the effect check (e.g. `"[Price: low to high]"`).
+- `eval/fixtures/feedback.js`: visible feedback for actions on the test pages, which have no
+  server. Included in every page, the holdout ones too, without changing their content.
+- Goals (checkpoints) in the plan: the planner lists the request's goals, marking the conclusive
+  ones (save, send), and links each step to a goal; conclusive goals come last, and plans that
+  break this get the error and are redone. The agent tracks the goals (fulfilled when its last
+  step works with the effect verified) and only declares the end with all of them fulfilled; a
+  planner that finishes with pending goals leads to "cancelled". Goals that only had blocked
+  destructive actions are dropped, and a goal whose step failed and that replanning abandoned (by
+  taking another way) is marked as replaced. Every plan with goals needs a conclusive goal, and
+  every goal needs at least one step; plans that break this go back to the model with the error.
+- Checking the plan against the request, without the LLM, on the initial plan: if the request uses
+  a conclusive verb (save, send, delete, search, cancel, confirm, download), some step must do it
+  in a click or key press (a goal's description or a fill is not enough: filling in the search is
+  not searching); and the request's data (proper names, numbers such as CPF and phone, e-mails,
+  quoted texts) must appear in some step. A plan that does not cover the request goes back to the
+  model with the reason. This targets the premature end of small models, which defined only the
+  goals they could fulfill.
+- Expected effect (layer 2): a step can give a text that should appear; if it does not appear in
+  the page's new text, the step becomes a suspicion (recorded in the history and in a metric),
+  but does not fail.
+- Replanning and the end check receive the goals' status and the messages visible on the page
+  (layer 3, the messages part).
+- `eval/plan_run.py --agent`: columns for actions with no effect, premature ends (the agent
+  declared success, but the task's checks failed), goals fulfilled and suspicions.
+- PolyForm Strict License 1.0.0 (`LICENSE`): noncommercial use allowed, no modification or
+  redistribution; copyright by the author. "Responsible use" section in the README.
 
 ### Changed
 - The project is now called **ANCHOR** (Adaptive Natural-language Control with Human
@@ -60,264 +127,185 @@ que quebram compatibilidade também sobem o MINOR.
   responsible use, known limitations, license, contact and acknowledgments. Placeholders are
   ready for a logo and a demo GIF.
 - `examples/desempate.py` → `examples/disambiguation_demo.py`, in English.
+- English translation, part 3b (the tests): 118 test names, the comments and the docstrings. The
+  test data (requests and page contents) stays in Portuguese. The whole changelog is now in English.
 - `eval/plan_run.py --prompt-language en|pt` runs the planner with the chosen prompt language.
 - The memory commands are now `list`, `forget` and `clear` (with `--yes`); the Portuguese ones
   (`listar`, `esquecer`, `limpar`, `--sim`) still work.
-
-### Added
-- Before declaring success, the agent checks what was actually **done** against the request,
-  with the same check the initial plan goes through (conclusive verbs in a click or key press,
-  the request's data in some step). Until now, a goal counted as fulfilled as soon as one of its
-  steps worked, so a model that said "nothing is left" right after opening the search pop-up got
-  a false success (found in `p-pop-01`, 2026-09-30). Now the model is warned once ("the request is
-  not fulfilled yet: ...") and gets two more end checks; if what was done still does not cover the
-  request, the run ends as not fulfilled.
-- Pressing Enter in a field counts as searching, whatever the field is called (in the plan check
-  and in the new check of what was done).
-- Planner prompt in English, as an option: `"prompt_language": "en"` in the model profile, or
-  `--prompt-language en` in the command-line tools. Portuguese stays the default, since it is the
-  measured one; the English prompt must be measured on the dev set before being used. With
-  English, everything the model reads is in English, including the element kinds in the page
-  summary and the execution history.
-- `--lang en|pt` in the command-line tools, for the interface language (overrides `ANCHOR_LANG`).
-- `anchor/i18n.py`: user-facing messages in English (default) or Portuguese, chosen with the
-  `ANCHOR_LANG` environment variable (`en` or `pt`). The terminal disambiguation, the memory
-  commands, the login messages and the demo use it. To skip a step, both `S` and `P` work. What
-  the model reads (the page summary) keeps the Portuguese element kinds, so the planner's input,
-  and therefore its measured results, do not change.
-
-### Adicionado
-- Verificação do efeito de cada ação (camada 1, sem LLM, `app/agent/effects.py`): nas ações de
-  formulário, o estado do elemento (valor no campo, opção escolhida, caixa marcada; máscaras
-  como a de telefone são aceitas); nos cliques e no Enter, mudanças na página, requisições,
-  abas novas e downloads; em todas, mensagens novas. Uma mensagem de erro ("CPF inválido")
-  transforma o passo em falha; as demais vão para o histórico do planejador. Sem efeito, o
-  passo é repetido uma vez e, depois, conta como falha, com replanejamento; uma escolha da
-  memória sem efeito é esquecida. `Agent(verify_effect=False)` desliga a verificação.
-- Campo revelado: se o campo a preencher não existe, mas há um elemento com esse nome em que
-  dá para clicar (ex.: a lupa que abre a busca), o agente clica nele e preenche o campo que
-  aparecer (o que tiver a descrição ou o que receber o foco).
-- `eval/plan_run.py --agente`: colunas de ações sem efeito e de término prematuro (o agente
-  declarou sucesso, mas as verificações da tarefa falharam).
-- Verificação do efeito: clicar numa caixa de marcação ou opção confere se o estado dela mudou
-  (antes, contava como "sem efeito", porque a estrutura da página não muda); clicar num campo
-  ou numa lista não exige efeito, porque só dá o foco.
-- `press Enter` num elemento que não é campo de texto vai para o último campo preenchido.
-- Um clique que só dá o foco (num campo ou numa lista) é aceito, mas não cumpre a meta.
-- Valores com colchetes, aspas ou o rótulo "opções:" copiados do resumo da página são limpos
-  antes da execução e da verificação do efeito (ex.: `"[Price: low to high]"`).
-- `eval/fixtures/feedback.js`: resposta visível às ações nas páginas de teste, que não têm
-  servidor. Incluído em todas as páginas, inclusive as do holdout, sem mudar o conteúdo delas.
-- Metas (checkpoints) no plano: o planejador lista as metas do pedido, marcando as
-  conclusivas (salvar, enviar), e liga cada passo a uma meta; as conclusivas vêm por último,
-  e planos que violam isso recebem o erro e são refeitos. O agente acompanha as metas (cumprida
-  quando o último passo dela dá certo com o efeito verificado) e só declara o fim com todas
-  cumpridas; o planejador que encerra com metas pendentes leva a "cancelado". Metas que só
-  tinham ações destrutivas barradas são descartadas, e a meta cujo passo falhou e que o
-  replanejamento abandonou (trocando por outro caminho) é marcada como substituída. Todo plano
-  com metas precisa de uma meta conclusiva, e toda meta precisa de pelo menos um passo; planos
-  que violam isso voltam ao modelo com o erro.
-- Conferência do plano contra o pedido, sem LLM, no plano inicial: se o pedido usa um verbo
-  conclusivo (salvar, enviar, excluir, pesquisar, cancelar, confirmar, baixar), algum passo ou
-  meta precisa fazer isso num clique ou tecla (a descrição de uma meta ou um preenchimento não
-  bastam: preencher a busca não é pesquisar); e os dados do pedido (nomes próprios, números como CPF e telefone,
-  e-mails, textos entre aspas) precisam aparecer em algum passo. Um plano que não cobre o
-  pedido volta ao modelo com o motivo. Ataca o término prematuro de modelos pequenos, que
-  definiam só as metas que conseguiam cumprir.
-- Efeito esperado (camada 2): o passo pode informar um texto que deve aparecer; se ele não
-  aparecer entre o texto novo da página, o passo fica suspeito (registrado no histórico e numa
-  métrica), mas não falha.
-- Replanejamentos e a conferência do fim recebem o estado das metas e as mensagens visíveis na
-  página (camada 3, parte das mensagens).
-- `eval/plan_run.py --agente`: colunas de metas cumpridas e de suspeitas.
-- Licença PolyForm Strict 1.0.0 (`LICENSE`): uso não comercial permitido, sem modificação nem
-  redistribuição; direitos autorais do autor. Seção "Uso responsável" no README.
-
-### Alterado
-- Elementos aninhados viram um candidato só quando um contém o outro e apenas um deles é
-  interativo (ex.: o link de um produto e o nome dentro dele); fica o interativo, com o maior
-  score dos dois. O script de percepção passou a informar `parentId` e `interactive`.
-- A memória das escolhas guarda no máximo 500 escolhas por arquivo; ao passar disso, descarta a
-  usada há mais tempo.
+- Nested elements become a single candidate when one contains the other and only one of them is
+  interactive (e.g. a product's link and the name inside it); the interactive one is kept, with
+  the higher score of the two. The perception script now reports `parentId` and `interactive`.
+- The choice memory keeps at most 500 choices per file; beyond that, it drops the least recently
+  used one.
 
 ## [0.2.1] - 2026-09-26
 
-Correções encontradas em testes em sites reais (LinkedIn e CoinMarketCap), reproduzidas em
-páginas locais. No conjunto de desenvolvimento do Resolver (52 casos locais), o recall@1 foi de
-80,8% para 82,7% e o erro silencioso caiu de 3,8% para 1,9%.
+Fixes found in tests on real sites (LinkedIn and CoinMarketCap), reproduced on local pages. On the
+Resolver's development set (52 local cases), recall@1 went from 80.8% to 82.7% and the silent
+error dropped from 3.8% to 1.9%.
 
-### Corrigido
-- Pop-ups sumiam do resumo da página enviado ao planejador: em páginas grandes, o limite de 80
-  elementos era preenchido pelo cabeçalho, e os pop-ups ficam no fim do código. O resumo agora
-  vem em ordem de relevância (pop-up aberto, marcado com `[pop-up]`; visível na tela; resto), e
-  elementos cobertos pelo pop-up ficam de fora.
-- Um clique que abria um pop-up não gerava replanejamento (só a mudança de URL gerava). O
-  agente agora replaneja quando um pop-up, diálogo ou menu abre ou fecha.
-- O Resolver aceitava elementos que não podiam receber a ação (ex.: preencher um botão). Agora
-  há um filtro por ação: preencher só considera campos de texto, selecionar só listas nativas,
-  marcar só caixas, opções e chaves.
-- Buscas sem botão (só com Enter) travavam: um clique de pesquisar/buscar que não encontra um
-  botão, logo depois de preencher um campo, vira Enter nesse campo. O prompt também orienta a
-  usar `press Enter` quando não há botão de busca.
-- Laço de repetição: o mesmo passo repetido logo depois de um replanejamento é barrado, com um
-  aviso ao planejador, e nenhum passo roda mais de 3 vezes. A conferência do fim roda no máximo
-  2 vezes por execução.
-- Elementos escolhidos pelo clique do usuário eram guardados na memória só com o texto. Agora a
-  página é reindexada e a assinatura completa é guardada; e um elemento com texto idêntico e
-  único na página é reencontrado mesmo que o contexto tenha mudado.
-- Ctrl+C mostrava o erro completo: agora os comandos encerram com uma mensagem curta e fecham
-  o navegador.
-- A conferência do fim que só propõe passos já feitos conta como objetivo atingido (antes, a
-  detecção de laço transformava isso em falha).
-- Em páginas grandes, o elemento que o pedido precisa podia ficar fora do resumo mesmo sem
-  pop-up (ex.: a lupa depois de 90 links). O resumo agora é guiado pelo pedido: elementos com
-  palavras em comum com ele entram logo depois dos pop-ups.
-- Digitar num campo de busca abria a lista de sugestões e gerava um replanejamento, que levava
-  o modelo a clicar nas sugestões em vez de pesquisar. Preencher não gera mais replanejamento
-  por pop-up.
-- Ao clicar, o valor já digitado num campo fazia o campo competir com os itens que tinham
-  aquele texto (ex.: a sugestão de pesquisa). Fora do preenchimento, o valor não identifica
-  mais o campo.
+### Fixed
+- Pop-ups disappeared from the page summary sent to the planner: on large pages, the limit of 80
+  elements was filled by the header, and pop-ups sit at the end of the code. The summary is now
+  sorted by relevance (open pop-up, marked with `[pop-up]`; visible on the screen; the rest), and
+  elements covered by the pop-up are left out.
+- A click that opened a pop-up did not trigger replanning (only a URL change did). The agent now
+  replans when a pop-up, dialog or menu opens or closes.
+- The Resolver accepted elements that could not receive the action (e.g. filling in a button). There
+  is now a filter by action: fill only considers text fields, select only native lists, check only
+  checkboxes, options and switches.
+- Searches without a button (Enter only) got stuck: a search click that finds no button, right
+  after filling in a field, becomes Enter in that field. The prompt also says to use `press Enter`
+  when there is no search button.
+- Repetition loop: the same step repeated right after replanning is blocked, with a warning to the
+  planner, and no step runs more than 3 times. The end check runs at most twice per run.
+- Elements chosen by the user's click were kept in the memory with their text only. Now the page is
+  reindexed and the full signature is kept; and an element whose text is identical and unique on
+  the page is found again even if its context changed.
+- Ctrl+C showed the full error: the commands now end with a short message and close the browser.
+- An end check that only proposes steps already done counts as the goal being reached (before,
+  loop detection turned it into a failure).
+- On large pages, the element the request needs could be left out of the summary even with no
+  pop-up (e.g. the magnifier after 90 links). The summary is now guided by the request: elements
+  sharing words with it come right after the pop-ups.
+- Typing in a search field opened the suggestion list and triggered replanning, which led the model
+  to click the suggestions instead of searching. Filling in no longer triggers replanning for pop-ups.
+- When clicking, the value already typed in a field made the field compete with items showing that
+  text (e.g. the search suggestion). Outside of filling in, the value no longer identifies the field.
 
-### Alterado
-- Barreira para ações destrutivas não pedidas: um passo que fecha, exclui, remove, oculta ou
-  cancela algo que o pedido não mencionou não é executado, e o planejador é avisado. Fechar um
-  pop-up não conta.
-- Nome idêntico: um elemento cujo texto é exatamente o que o pedido nomeia (ignorando palavras
-  de tipo como "Opção" e "Botão") ganha um bônus pequeno sobre os que só contêm a frase.
-  Não vale na extração, que já tem a regra própria de texto exato.
-- O prompt orienta a clicar no elemento que revela o que falta (lupa, "Search", menu) e a só
-  responder que o pedido não pode ser feito quando nada na página levaria a ele.
-- Pedido sem verbo, que só nomeia um item: elementos que anunciam uma ação destrutiva ou de
-  descarte (fechar, excluir, remover, ocultar, dispensar, cancelar, limpar) perdem pontos.
-- O prompt pede para não fechar, ocultar nem dispensar itens que o pedido não mencionou.
-- A rede de segurança de `select` tenta marcar a opção quando a lista não resolve o passo.
-- `eval/plan_run.py --check`: elementos permitidos que só surgem depois (ex.: sugestões de
-  pesquisa) geram um aviso, não um problema; o plano de referência, no modo `--agente`,
-  devolve os passos que faltam a cada replanejamento.
+### Changed
+- Barrier for unrequested destructive actions: a step that closes, deletes, removes, hides or
+  cancels something the request did not mention is not performed, and the planner is warned.
+  Closing a pop-up does not count.
+- Identical name: an element whose text is exactly what the request names (ignoring kind words
+  such as "Opção" and "Botão") gets a small bonus over those that only contain the phrase. It does
+  not apply to extraction, which has its own exact-text rule.
+- The prompt says to click the element that reveals what is missing (magnifier, "Search", menu)
+  and to answer that the request cannot be done only when nothing on the page would lead to it.
+- A request with no verb, which only names an item: elements announcing a destructive or
+  dismissive action (close, delete, remove, hide, dismiss, cancel, clear) lose points.
+- The prompt asks not to close, hide or dismiss items the request did not mention.
+- The `select` safety net tries checking the option when the list does not solve the step.
+- `eval/plan_run.py --check`: allowed elements that only show up later (e.g. search suggestions)
+  give a warning, not a problem; the reference plan, in `--agente` mode, returns the missing steps
+  on each replan.
 
-### Adicionado
-- Três tarefas de desenvolvimento que reproduzem os testes reais: busca num pop-up
-  (`busca_popup.html`), busca só com Enter e sugestões (`busca_enter.html`) e lista de vagas
-  com "Salvar" e "Fechar vaga" (`vagas.html`).
+### Added
+- Three development tasks reproducing the real tests: a search in a pop-up (`busca_popup.html`), a
+  search with Enter only and suggestions (`busca_enter.html`), and a list of jobs with "Salvar" and
+  "Fechar vaga" (`vagas.html`).
 
 ## [0.2.0] - 2026-09-26
 
-Agente completo: o sistema recebe um pedido em texto e um link, gera o plano com um LLM,
-executa, replaneja quando precisa e confere se o objetivo foi atingido. Nas 12 tarefas de
-desenvolvimento, pelo loop do agente, os dois modelos locais (Qwen 3.5 com 4B e 9B)
-cumpriram todas; 10 e 9 delas, respectivamente, sem nenhum passo não pedido.
+Complete agent: the system receives a text request and a link, generates the plan with an LLM, runs
+it, replans when needed and checks whether the goal was reached. On the 12 development tasks,
+through the agent loop, both local models (Qwen 3.5 with 4B and 9B) completed all of them; 10 and
+9 of them, respectively, with no unrequested step.
 
-### Adicionado
-- Loop do agente (`app/agent`): plano inicial, execução passo a passo, replanejamento quando
-  a página muda ou um passo falha (com o motivo, inclusive elemento coberto por modal),
-  conferência do fim ("objetivo atingido" quando nada falta), cancelamento com relato depois
-  de 3 falhas e limite de passos. Registra chamadas ao modelo, replanejamentos, falhas,
-  intervenções do usuário, tokens e tempo.
-- Comando `python -m app.agent --perfil <nome> --url <link> "<pedido>"`, com navegador
-  visível, desempate no terminal, memória das escolhas e perfil persistente opcional.
-- O planejador aceita o histórico da execução para replanejar só o que falta.
-- `eval/plan_run.py --agente`: as tarefas executadas pelo loop do agente completo.
-- Número da versão no código (`app.__version__`), gravado também nos resultados da avaliação.
-- Este changelog.
-- Configuração do `isort` em `pyproject.toml`, para verificar a ordem dos imports.
+### Added
+- The agent loop (`app/agent`): initial plan, step-by-step execution, replanning when the page
+  changes or a step fails (with the reason, including an element covered by a modal), the end
+  check ("goal reached" when nothing is left), cancelling with a report after 3 failures, and a
+  step limit. It records model calls, replans, failures, user interventions, tokens and time.
+- The command `python -m app.agent --perfil <name> --url <link> "<request>"`, with a visible
+  browser, disambiguation in the terminal, the choice memory and an optional persistent profile.
+- The planner accepts the execution history, to replan only what is missing.
+- `eval/plan_run.py --agente`: the tasks run through the full agent loop.
+- The version number in the code (`app.__version__`), also written to the evaluation results.
+- This changelog.
+- `isort` configuration in `pyproject.toml`, to check the import order.
+- The planner (`app/planner`): turns the user's request into steps with an LLM, in the OpenAI API
+  format (it works with OpenAI and with local Ollama models). JSON output validated against the
+  Executor's actions, with a new attempt when the plan is invalid, and the list of the page's
+  elements in the request to the model. It drops the reasoning of "thinking" models
+  (`<think>...</think>`) and accepts extra parameters per profile.
+- Model profiles in `llm_profiles.json` (address, model and the name of the environment variable
+  holding the key; never the key itself).
+- The command `python -m app.planner`, to generate and run a plan from a request and a link.
+- Evaluation of complete tasks (`eval/plan_run.py`, 12 tasks in `eval/plans/tasks.json`): request →
+  plan → execution → check of the final state, with time and tokens per model, and hand-written
+  reference plans as a ceiling.
+- Ollama's native API in the profiles (`"api": "ollama"`), with the reasoning of "thinking" models
+  turned off (`"think": false`) and options such as `num_ctx`; clear messages when Ollama is not
+  running or the model does not exist.
+- Real-time progress in the terminal (`app/planner/progress.py`): waiting time and, with the Ollama
+  API, the streamed answer with the phase ("thinking" or "writing the plan") and the tokens.
+- `eval/plan_run.py` loads each model before the tasks (the loading time is reported separately,
+  outside the plans' time) and shows each task's progress.
+- Unrequested-step metric in `eval/plan_run.py`: each task lists its allowed elements (`allowed`),
+  and any other element acted on (click, typing or choice) counts; the table also shows the
+  "clean" tasks (done with no extra step).
+- Closed set of planner tasks (`eval/plans/holdout_tasks.json`, empty for now), which only runs with
+  `--final`, and `--check` to check the tasks without calling models.
+- Cleanup of step descriptions before execution: removes kind labels copied from the page summary
+  ("Campo de texto", "Caixa de marcação", "Lista de opções") and quotes.
+- A `select` on a radio button or checkbox is redone as `check`.
 
-- Planejador (`app/planner`): transforma o pedido do usuário em passos com um LLM,
-  no formato da API da OpenAI (funciona com a OpenAI e com modelos locais do Ollama).
-  Saída JSON validada contra as ações do Executor, com nova tentativa quando o plano
-  é inválido, e lista dos elementos da página no pedido ao modelo. Descarta o raciocínio
-  de modelos "thinking" (`<think>...</think>`) e aceita parâmetros extras por perfil.
-- Perfis de modelo em `llm_profiles.json` (endereço, modelo e o nome da variável de
-  ambiente com a chave; nunca a chave em si).
-- Comando `python -m app.planner` para gerar e executar um plano a partir de um pedido e um link.
-- Avaliação de tarefas completas (`eval/plan_run.py`, 12 tarefas em `eval/plans/tasks.json`):
-  pedido → plano → execução → verificação do estado final, com tempo e tokens por modelo,
-  e planos de referência escritos à mão como teto.
-
-- API nativa do Ollama nos perfis (`"api": "ollama"`), com o raciocínio dos modelos
-  "thinking" desligado (`"think": false`) e opções como `num_ctx`; mensagens claras quando
-  o Ollama está fechado ou o modelo não existe.
-- Progresso em tempo real no terminal (`app/planner/progress.py`): tempo de espera, e, com a
-  API do Ollama, a resposta em streaming com a fase ("pensando" ou "escrevendo o plano") e os tokens.
-- `eval/plan_run.py` carrega cada modelo antes das tarefas (o tempo de carregamento sai à
-  parte, fora do tempo dos planos) e mostra o progresso de cada tarefa.
-
-- Métrica de passos não pedidos em `eval/plan_run.py`: cada tarefa lista os elementos
-  permitidos (`allowed`), e qualquer outro elemento acionado (clique, digitação ou escolha)
-  conta; a tabela mostra também as tarefas "limpas" (cumpridas sem passo a mais).
-- Conjunto fechado de tarefas do planejador (`eval/plans/holdout_tasks.json`, vazio por
-  enquanto), que só roda com `--final`, e `--check` para conferir as tarefas sem chamar modelos.
-- Limpeza das descrições dos passos antes da execução: tira rótulos de tipo copiados do
-  resumo da página ("Campo de texto", "Caixa de marcação", "Lista de opções") e aspas.
-- `select` em botão de opção ou caixa de marcação é refeito como `check`.
-
-### Alterado
-- Prompt do planejador: qual ação usar para cada tipo de elemento, descrição sem o tipo,
-  passo que conclui o pedido, nada de passos não pedidos, e login sem senha (o usuário
-  digita a senha e clica em entrar).
-- Tarefa `p-log-01` ajustada ao desenho do sistema: preencher o usuário e parar antes de
-  entrar, sem digitar a senha.
-- O cliente da OpenAI não repete chamadas sozinho (`max_retries=0`): um tempo esgotado aparece na hora.
-- O nome dos elementos no desempate e no resumo da página usa a pista visual quando o
-  texto é curto demais (ex.: "shopping cart 2") e o `data-testid` quando não há outro nome.
-- Imports padronizados (PEP 8): biblioteca padrão, terceiros e projeto, separados
-  por linha em branco e em ordem alfabética.
+### Changed
+- Planner prompt: which action to use for each kind of element, descriptions without the kind, the
+  step that completes the request, no unrequested steps, and login without the password (the user
+  types the password and clicks log in).
+- Task `p-log-01` adjusted to the system's design: fill in the username and stop before logging in,
+  without typing the password.
+- The OpenAI client does not retry calls on its own (`max_retries=0`): a timeout shows up right away.
+- Element names in disambiguation and in the page summary use the visual hint when the text is too
+  short (e.g. "shopping cart 2") and the `data-testid` when there is no other name.
+- Imports standardized (PEP 8): standard library, third parties and the project, separated by a
+  blank line and in alphabetical order.
 
 ## [0.1.0] - 2026-09-25
 
-Primeira versão: motor de execução. Os passos ainda são escritos à mão; o
-planejador com LLM e o loop do agente ficam para a 0.2.0.
+First version: the execution engine. Steps are still written by hand; the LLM planner and the agent
+loop come in 0.2.0.
 
-### Adicionado
-- Percepção da página (`index_script.js`) só com elementos interativos: links, botões,
-  campos, papéis ARIA e áreas clicáveis por `cursor: pointer`, com nome acessível,
-  pistas visuais de ícones, estado, contexto do card e geometria. Modo de extração
-  com elementos de texto. Leitura de shadow DOM aberto.
-- Normalização de texto: remoção de acentos, stemmer leve PT/EN, expressões compostas
-  e sinônimos com vários valores.
-- Vocabulário por site (`ElementResolver(synonyms=...)`), fora do dicionário genérico.
-- Scoring com penalidade para elementos desabilitados e para verbos conflitantes
-  (com grupos de verbos equivalentes).
-- Desempate pelo usuário (`app/engine/disambiguation`): candidatos numerados na
-  página, escolha no terminal ou clique direto no elemento. Contrato
-  `Disambiguator` pronto para um frontend.
-- Memória das escolhas (`app/engine/memory`): reaproveita as escolhas do usuário,
-  reencontra o elemento pelo conteúdo, expira entradas que falham ou somem, e tem
-  o comando de revisão `python -m app.engine.memory`.
-- Avaliação reproduzível (`eval/`): 60 casos de desenvolvimento, holdout fechado de
-  42 casos (só roda com `--final`), varredura de limiares e conferência de seletores.
-- `app/main.py` com o motor semântico no SauceDemo e demonstração em `examples/desempate.py`.
+### Added
+- Page perception (`index_script.js`) with interactive elements only: links, buttons, fields, ARIA
+  roles and areas clickable through `cursor: pointer`, with the accessible name, icons' visual hints,
+  state, card context and geometry. An extraction mode with text elements. Reading of open shadow DOM.
+- Text normalization: accent removal, a light PT/EN stemmer, compound expressions and synonyms with
+  several values.
+- Per-site vocabulary (`ElementResolver(synonyms=...)`), outside the generic dictionary.
+- Scoring with a penalty for disabled elements and for conflicting verbs (with groups of equivalent
+  verbs).
+- The user's disambiguation (`app/engine/disambiguation`): candidates numbered on the page, a choice
+  in the terminal or a direct click on the element. A `Disambiguator` contract ready for a frontend.
+- The choice memory (`app/engine/memory`): reuses the user's choices, finds the element again by
+  its content, expires entries that fail or disappear, and has the review command
+  `python -m app.engine.memory`.
+- Reproducible evaluation (`eval/`): 60 development cases, a closed holdout of 42 cases (it only runs
+  with `--final`), a threshold sweep and a selector check.
+- `app/main.py` with the semantic engine on SauceDemo, and a demo in `examples/desempate.py`.
 
-### Alterado
-- Limiares do Executor calibrados na avaliação: score mínimo 0,40 e margem de
-  ambiguidade **relativa** de 4% (antes: 0,20 e margem absoluta de 0,08).
-- O Resolver reindexa a página a cada consulta.
-- Resultados vindos da memória informam `similarity` em vez de `score`.
-- Testes do LinkedIn desativados por padrão (os termos de uso do site proíbem automação).
+### Changed
+- The Executor's thresholds calibrated in the evaluation: minimum score 0.40 and a **relative**
+  ambiguity margin of 4% (before: 0.20 and an absolute margin of 0.08).
+- The Resolver reindexes the page on every query.
+- Results coming from the memory report `similarity` instead of `score`.
+- LinkedIn tests disabled by default (the site's terms of use forbid automation).
 
-### Corrigido
-- B1: regex de espaços no `index_script.js` (`/\\s+/` → `/\s+/`).
-- B2: índice criado uma única vez, que ficava desatualizado depois de navegar.
-- B3: atributos `data-er-id` antigos não eram removidos ao reindexar.
-- B4: seletor `.inventory_item`, específico do SauceDemo, fixo no código genérico.
-- B5: sinônimos de várias palavras nunca casavam.
-- B6: margem de ambiguidade dependente da escala do score (agora relativa).
-- Contexto dos elementos em listas de cards curtos, que englobava a lista inteira.
-- Dupla contagem do objeto da consulta no rótulo e no contexto do elemento.
+### Fixed
+- B1: the whitespace regex in `index_script.js` (`/\\s+/` → `/\s+/`).
+- B2: the index was built only once, and became outdated after navigating.
+- B3: old `data-er-id` attributes were not removed when reindexing.
+- B4: the `.inventory_item` selector, specific to SauceDemo, was hard-coded in the generic code.
+- B5: multi-word synonyms never matched.
+- B6: the ambiguity margin depended on the score's scale (now relative).
+- The context of elements in lists of short cards covered the whole list.
+- The query's object was counted twice, in the element's label and in its context.
 
-[Não lançado]: https://github.com/LucasDantas2701/smart-rpa/compare/v0.2.1...develop
-[0.2.1]: https://github.com/LucasDantas2701/smart-rpa/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/LucasDantas2701/smart-rpa/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/LucasDantas2701/smart-rpa/releases/tag/v0.1.0
+[Unreleased]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.2.1...develop
+[0.2.1]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.2.0...v0.2.1
+[0.2.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/LucasDantas2701/ANCHOR/releases/tag/v0.1.0
 
 ---
 
-## Como lançar uma versão
+## How to release a version
 
-1. Na `develop`, troque `__version__` em `app/__init__.py` pela versão final (sem `-dev`).
-2. Neste arquivo, renomeie "Não lançado" para a versão e a data, e crie um "Não lançado" vazio acima.
-3. Atualize os links de comparação no fim da lista de versões.
+1. On `develop`, change `__version__` in `anchor/__init__.py` to the final version (without `-dev`).
+2. In this file, rename "Unreleased" to the version and the date, and create an empty "Unreleased" above it.
+3. Update the comparison links at the end of the list of versions.
 4. Commit: `git commit -m "vX.Y.Z"`.
-5. Mergeie na `main`, crie a tag e envie:
+5. Merge into `main`, create the tag and push:
    `git checkout main && git merge develop && git tag -a vX.Y.Z -m "..." && git push origin main --tags`
-6. Volte para a `develop` e suba a versão para a próxima com `-dev` (ex.: `0.3.0-dev`).
+6. Go back to `develop` and bump the version to the next one with `-dev` (e.g. `0.4.0-dev`).

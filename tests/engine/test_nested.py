@@ -1,4 +1,4 @@
-"""Elementos aninhados: um candidato só quando apenas um dos dois é interativo."""
+"""Nested elements: a single candidate when only one of the two is interactive."""
 
 from anchor.engine.action_executor import ActionExecutor
 from anchor.engine.element_resolver import ElementResolver
@@ -9,20 +9,20 @@ PRODUCTS = """<html><body>
 </body></html>"""
 
 
-def test_link_e_nome_dentro_dele_viram_um_candidato(page):
+def test_link_and_the_name_inside_it_become_one_candidate(page):
     page.set_content(PRODUCTS)
     matches = ElementResolver(page).query("Sauce Labs Backpack", k=5, action="extract")
     tags = [m.tag for m in matches if "Backpack" in (m.text or "")]
-    assert tags == ["a"]                      # o link fica; o nome dentro dele sai
+    assert tags == ["a"]                      # the link stays; the name inside it is dropped
 
 
-def test_extracao_nao_fica_ambigua(page):
+def test_extraction_is_not_ambiguous(page):
     page.set_content(PRODUCTS)
     result = ActionExecutor(page).extract_text("Sauce Labs Backpack")
     assert result.status == "success" and result.value == "Sauce Labs Backpack"
 
 
-def test_dois_interativos_aninhados_continuam_distintos(page):
+def test_two_nested_interactive_elements_stay_separate(page):
     page.set_content("""<html><body>
       <div role="button" onclick="window.x='card'" style="cursor:pointer">Caneca azul
         <button onclick="event.stopPropagation(); window.x='add'">Adicionar Caneca azul</button></div>

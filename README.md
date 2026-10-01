@@ -302,8 +302,8 @@ human help, version 0.3.0 in development (i7-7700HQ, 16 GB RAM, GTX 1050 Ti 4 GB
 
 | Model (Ollama) | Tasks done | Done with no unrequested step | Premature ends | Time per task |
 |---|---|---|---|---|
-| Qwen 3.5, 4B | 87% | 80% | 0 | 31.7 s |
-| Qwen 3.5, 9B | 93% | 87% | 0 | 52.1 s |
+| Qwen 3.5, 4B | 93% | 87% | 0 | 36.1 s |
+| Qwen 3.5, 9B | 93% | 80% | 0 | 54.4 s |
 
 These are development numbers: the code and the prompt were tuned looking at these cases. The
 final numbers will come from the closed sets.

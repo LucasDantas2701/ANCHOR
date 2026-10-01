@@ -1,4 +1,4 @@
-"""Testes do comando de revisão da memória (python -m anchor.engine.memory)."""
+"""Tests of the memory review command (python -m anchor.engine.memory)."""
 
 import time
 
@@ -22,7 +22,7 @@ def memory_file(tmp_path):
     path = tmp_path / "memoria.json"
     memory = ChoiceMemory(path)
     memory.remember(URL, "click", "adicionar ao carrinho", sig("button", "Add to cart", "UltraBook 14 $899.00"))
-    time.sleep(1.1)  # "created" tem resolução de segundos: garante a ordem
+    time.sleep(1.1)  # "created" has a resolution of seconds: this guarantees the order
     memory.remember(URL, "click", "marcar a cafeteira como favorita", sig("link", "Wishlist", "TechStore 2 Sign in"))
     return path
 
@@ -34,7 +34,7 @@ def run(argv, answers=()):
     return code, "\n".join(out)
 
 
-def test_listar_mostra_as_escolhas_numeradas(memory_file):
+def test_list_shows_numbered_choices(memory_file):
     code, text = run([memory_file, "listar"])
     assert code == 0
     assert '[1] Step: "adicionar ao carrinho"' in text
@@ -43,7 +43,7 @@ def test_listar_mostra_as_escolhas_numeradas(memory_file):
     assert "near: UltraBook 14 $899.00" in text
 
 
-def test_esquecer_um_item(memory_file):
+def test_forget_one_item(memory_file):
     code, text = run([memory_file, "esquecer", 2])
     assert code == 0
     assert "Forgotten [2]" in text
@@ -51,14 +51,14 @@ def test_esquecer_um_item(memory_file):
     assert [e.description for _, e in remaining] == ["adicionar ao carrinho"]
 
 
-def test_esquecer_numero_invalido_nao_apaga_nada(memory_file):
+def test_forget_invalid_number_deletes_nothing(memory_file):
     code, text = run([memory_file, "esquecer", 7])
     assert code == 1
     assert "Invalid" in text
     assert len(ChoiceMemory(memory_file).entries) == 2
 
 
-def test_limpar_pede_confirmacao(memory_file):
+def test_clear_asks_for_confirmation(memory_file):
     code, text = run([memory_file, "limpar"], answers=["n"])
     assert "Nothing was deleted" in text
     assert len(ChoiceMemory(memory_file).entries) == 2
@@ -68,19 +68,19 @@ def test_limpar_pede_confirmacao(memory_file):
     assert ChoiceMemory(memory_file).entries == {}
 
 
-def test_limpar_sem_confirmacao(memory_file):
+def test_clear_without_confirmation(memory_file):
     run([memory_file, "limpar", "--sim"])
     assert ChoiceMemory(memory_file).entries == {}
 
 
-def test_arquivo_inexistente(tmp_path):
+def test_missing_file(tmp_path):
     code, text = run([tmp_path / "nao_existe.json", "listar"])
     assert code == 1
     assert "not found" in text
 
 
 # --------------------------------------------------------------------------
-# Cenário completo: escolha errada memorizada, corrigida pelo comando.
+# Full scenario: a wrong remembered choice, fixed with the command.
 # --------------------------------------------------------------------------
 
 PAGE = """
@@ -105,27 +105,27 @@ class Scripted:
         pass
 
 
-def test_escolha_errada_e_corrigida_depois_de_esquecida(page, tmp_path):
+def test_wrong_choice_is_fixed_after_being_forgotten(page, tmp_path):
     path = tmp_path / "memoria.json"
     step = "marcar a cafeteira como favorita"
     page.set_content(PAGE)
 
-    # 1ª execução: o usuário escolhe o link errado ("Wishlist" do cabeçalho).
+    # 1st run: the user picks the wrong link ("Wishlist" in the header).
     wrong = Scripted(lambda r: UserChoice("candidate", next(c.number for c in r.candidates if c.name == "Wishlist")))
     ActionExecutor(page, disambiguator=wrong, memory=ChoiceMemory(path)).click(step)
 
-    # 2ª execução: a memória repete o erro, sem perguntar.
+    # 2nd run: the memory repeats the mistake, without asking.
     nobody = Scripted(lambda r: pytest.fail("não deveria perguntar"))
     again = ActionExecutor(page, disambiguator=nobody, memory=ChoiceMemory(path)).click(step)
     assert again.resolved_by == "memory"
     assert again.selected_element.text == "Wishlist"
     assert again.score is None and again.similarity > 0
 
-    # O usuário revisa e esquece a escolha errada.
+    # The user reviews and forgets the wrong choice.
     code, _ = run([path, "esquecer", 1])
     assert code == 0
 
-    # 3ª execução: o assistente volta a perguntar, e o usuário escolhe o certo.
+    # 3rd run: the assistant asks again, and the user picks the right one.
     right = Scripted(lambda r: UserChoice("candidate", next(c.number for c in r.candidates if c.name == "Add to wishlist")))
     fixed = ActionExecutor(page, disambiguator=right, memory=ChoiceMemory(path)).click(step)
     assert right.asked == 1
@@ -133,16 +133,16 @@ def test_escolha_errada_e_corrigida_depois_de_esquecida(page, tmp_path):
     assert fixed.selected_element.label == "Add to wishlist"
 
 
-def test_memoria_descarta_a_escolha_usada_ha_mais_tempo(tmp_path):
+def test_memory_drops_the_least_recently_used_choice(tmp_path):
     memory = ChoiceMemory(tmp_path / "m.json", max_entries=3)
     for i in range(3):
         memory.remember(URL, "click", f"passo {i}", sig("button", f"B{i}"))
         memory.entries[next(k for k in memory.entries if k.endswith(f"passo {i}"))].last_used = f"2026-01-0{i + 1}T00:00:00"
-    memory.mark_used(URL, "click", "passo 0")          # o passo 0 volta a ser o mais recente
+    memory.mark_used(URL, "click", "passo 0")          # step 0 becomes the most recent again
     memory.remember(URL, "click", "passo 3", sig("button", "B3"))
 
     kept = sorted(e.description for e in ChoiceMemory(tmp_path / "m.json").entries.values())
-    assert kept == ["passo 0", "passo 2", "passo 3"]   # saiu o passo 1, o usado há mais tempo
+    assert kept == ["passo 0", "passo 2", "passo 3"]   # step 1, the least recently used, was dropped
 
 
 

@@ -1,6 +1,6 @@
 """
-Testes do cliente da API nativa do Ollama, com um servidor falso local
-que imita o /api/chat e guarda o que recebeu.
+Tests of the client for Ollama's native API, with a fake local server
+that imitates /api/chat and keeps what it received.
 """
 
 import io
@@ -65,7 +65,7 @@ def ollama():
     fake.close()
 
 
-def test_plano_pela_api_nativa_com_raciocinio_desligado(ollama):
+def test_plan_through_the_native_api_with_reasoning_off(ollama):
     client = OllamaClient(ollama.url, think=False, options={"num_ctx": 4096})
     plan = LLMPlanner(client, "qwen3.5:4b").plan("salve", "http://x", ["Botão \"Salvar\""])
 
@@ -76,15 +76,15 @@ def test_plano_pela_api_nativa_com_raciocinio_desligado(ollama):
     assert body["model"] == "qwen3.5:4b" and body["stream"] is False
     assert body["think"] is False
     assert body["options"] == {"num_ctx": 4096, "temperature": 0.0, "seed": 7}
-    assert body["format"]["required"] == ["goals", "steps"]  # o esquema do plano vai em "format"
+    assert body["format"]["required"] == ["goals", "steps"]  # the plan schema goes in "format"
 
 
-def test_endereco_com_v1_tambem_funciona(ollama):
+def test_address_with_v1_also_works(ollama):
     OllamaClient(ollama.url + "/v1").chat.completions.create(model="m", messages=[])
     assert ollama.received[0][0] == "/api/chat"
 
 
-def test_perfil_ollama_monta_o_cliente_nativo(ollama):
+def test_ollama_profile_builds_the_native_client(ollama):
     profile = LLMProfile(name="p", model="qwen3.5:4b", base_url=ollama.url, api="ollama",
                          think=False, options={"num_ctx": 2048})
     planner = profile.planner()
@@ -93,13 +93,13 @@ def test_perfil_ollama_monta_o_cliente_nativo(ollama):
     assert ollama.received[0][1]["options"]["num_ctx"] == 2048
 
 
-def test_aquecimento_carrega_o_modelo(ollama):
+def test_warm_up_loads_the_model(ollama):
     planner = LLMPlanner(OllamaClient(ollama.url), "qwen3.5:4b")
     assert warm_up(planner) >= 0
     assert ollama.received[0][1]["messages"][0]["content"].startswith("Reply")
 
 
-def test_modelo_inexistente_explica_como_conferir():
+def test_missing_model_explains_how_to_check():
     fake = FakeOllama(status=404)
     try:
         with pytest.raises(OllamaError, match="ollama list"):
@@ -108,37 +108,37 @@ def test_modelo_inexistente_explica_como_conferir():
         fake.close()
 
 
-def test_ollama_fechado_explica_o_problema():
+def test_ollama_not_running_explains_the_problem():
     with pytest.raises(OllamaError, match="Ollama app running"):
         OllamaClient("http://127.0.0.1:9", timeout_s=2).chat.completions.create(model="m", messages=[])
 
 
-def test_streaming_avisa_o_progresso_e_monta_a_resposta(ollama):
+def test_streaming_reports_progress_and_builds_the_answer(ollama):
     events = []
     client = OllamaClient(ollama.url, think=True, on_progress=lambda phase, n: events.append((phase, n)))
     plan = LLMPlanner(client, "qwen3.5:4b").plan("salve", "http://x")
 
     assert ollama.received[0][1]["stream"] is True
-    assert plan.steps[0].description == "botão Salvar"   # os pedaços foram juntados
+    assert plan.steps[0].description == "botão Salvar"   # the chunks were joined
     assert plan.tokens_in == 50 and plan.tokens_out == 12
     assert [p for p, _ in events] == ["thinking", "thinking", "writing", "writing"]
     assert [n for _, n in events] == [1, 2, 3, 4]
 
 
-def test_sem_progresso_nao_usa_streaming(ollama):
+def test_without_progress_does_not_stream(ollama):
     OllamaClient(ollama.url).chat.completions.create(model="m", messages=[])
     assert ollama.received[0][1]["stream"] is False
 
 
-def test_indicador_mostra_fase_tokens_e_tempo():
+def test_indicator_shows_phase_tokens_and_time():
     out = io.StringIO()
     progress = Progress("  ", stream=out, interval_s=0.05)
     with progress:
-        time.sleep(0.12)                      # o relógio atualiza sozinho enquanto espera
+        time.sleep(0.12)                      # the clock updates on its own while waiting
         progress.update("thinking", 3)
         progress.update("writing", 40)
     text = out.getvalue()
     assert "waiting for the model... 0 s" in text
     assert "model thinking... 3 tokens" in text
     assert "writing the plan... 40 tokens" in text
-    assert text.endswith("\r")                # a linha é limpa no fim
+    assert text.endswith("\r")                # the line is cleared at the end

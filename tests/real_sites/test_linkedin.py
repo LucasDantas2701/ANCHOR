@@ -1,14 +1,14 @@
 """
-Testes exploratórios no LinkedIn. DESATIVADOS por padrão.
+Exploratory tests on LinkedIn. DISABLED by default.
 
-Os termos de uso do LinkedIn proíbem automação, e a conta usada pode
-ser restringida. Para rodar mesmo assim, por sua conta e risco:
+LinkedIn's terms of use forbid automation, and the account used may be
+restricted. To run them anyway, at your own risk:
 
     set ANCHOR_LINKEDIN=1        (Windows)
     export ANCHOR_LINKEDIN=1     (Linux/macOS)
     pytest tests/real_sites -v
 
-A avaliação do projeto usa apenas sites que permitem automação.
+The project's evaluation only uses sites that allow automation.
 """
 
 import os
@@ -18,7 +18,7 @@ import pytest
 
 pytestmark = pytest.mark.skipif(
     "1" not in (os.environ.get("ANCHOR_LINKEDIN"), os.environ.get("SMART_RPA_LINKEDIN")),
-    reason="LinkedIn proíbe automação; defina ANCHOR_LINKEDIN=1 para rodar",
+    reason="LinkedIn forbids automation; set ANCHOR_LINKEDIN=1 to run",
 )
 
 from anchor.browser.browser import close_browser, start_browser

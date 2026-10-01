@@ -1,5 +1,5 @@
 """
-Verificação do efeito de cada ação (camada 1) e o campo que precisa ser revelado.
+Effect verification of each action (layer 1) and the field that needs to be revealed.
 """
 
 from anchor.agent import Agent
@@ -15,7 +15,7 @@ def agent(page, planner, **kwargs):
     return Agent(page, planner, executor, report=None, **kwargs)
 
 
-def test_clique_com_efeito_visivel_passa(page):
+def test_click_with_visible_effect_passes(page):
     page.set_content("""<html><body>
       <button onclick="document.getElementById('msg').textContent='Cadastro salvo com sucesso'">Salvar</button>
       <p id="msg"></p></body></html>""")
@@ -25,18 +25,18 @@ def test_clique_com_efeito_visivel_passa(page):
     assert 'apareceu na página: "Cadastro salvo com sucesso"' in planner.calls[1]["history"]
 
 
-def test_clique_sem_efeito_e_repetido_uma_vez_e_depois_falha(page):
+def test_click_without_effect_is_retried_once_then_fails(page):
     page.set_content("<html><body><button>Salvar</button><button onclick=\"document.body.dataset.ok=1\">Gravar</button></body></html>")
     planner = ScriptedPlanner([("click", "Salvar", None)], [("click", "Gravar", None)], [])
     result = agent(page, planner).run("salve")
 
-    assert result.ok                                    # o replanejamento achou outro caminho
+    assert result.ok                                    # replanning found another way
     assert result.no_effect == 1 and result.failures == 1
     assert result.records[0].status == "no_effect"
     assert "não teve efeito" in planner.calls[1]["history"][-1]
 
 
-def test_mensagem_de_erro_transforma_o_passo_em_falha(page):
+def test_error_message_turns_the_step_into_a_failure(page):
     page.set_content("""<html><body>
       <label for="cpf">CPF</label><input id="cpf">
       <button onclick="document.getElementById('e').textContent='CPF inválido'">Salvar</button>
@@ -44,12 +44,12 @@ def test_mensagem_de_erro_transforma_o_passo_em_falha(page):
     planner = ScriptedPlanner([("fill", "CPF", "123"), ("click", "Salvar", None)], [])
     result = agent(page, planner).run("salve")
 
-    assert result.status == "cancelled"                 # o planejador não achou outro caminho
+    assert result.status == "cancelled"                 # the planner found no other way
     assert result.records[1].status == "wrong_effect"
     assert 'the message "CPF inválido" appeared' in result.records[1].note
 
 
-def test_campo_que_nao_guarda_o_valor_e_detectado(page):
+def test_field_that_does_not_keep_the_value_is_detected(page):
     page.set_content("""<html><body><label for="n">Nome</label>
       <input id="n" oninput="this.value=''"></body></html>""")
     planner = ScriptedPlanner([("fill", "Nome", "Maria")], [])
@@ -58,7 +58,7 @@ def test_campo_que_nao_guarda_o_valor_e_detectado(page):
     assert 'instead of "Maria"' in result.records[0].note
 
 
-def test_mascara_no_campo_nao_conta_como_erro(page):
+def test_input_mask_does_not_count_as_an_error(page):
     page.set_content("""<html><body><label for="t">Telefone</label>
       <input id="t" oninput="const d=this.value.replace(/\\D/g,''); this.value=d.length===11 ?
         '('+d.slice(0,2)+') '+d.slice(2,7)+'-'+d.slice(7) : d"></body></html>""")
@@ -67,7 +67,7 @@ def test_mascara_no_campo_nao_conta_como_erro(page):
     assert result.ok and page.input_value("#t") == "(92) 99999-0000"
 
 
-def test_escolha_da_memoria_sem_efeito_e_esquecida(page, tmp_path):
+def test_remembered_choice_without_effect_is_forgotten(page, tmp_path):
     html = """<html><body>
       <div><h3>Caneca azul</h3><button {a}>Adicionar</button></div>
       <div><h3>Caneca verde</h3><button onclick="document.body.dataset.v=1">Adicionar</button></div></body></html>"""
@@ -85,7 +85,7 @@ def test_escolha_da_memoria_sem_efeito_e_esquecida(page, tmp_path):
     assert agent(page, ScriptedPlanner([("click", "Adicionar", None)], []), executor=executor).run("x").ok
     assert len(memory.entries) == 1
 
-    page.set_content(html.format(a=""))               # agora o botão da azul não faz nada
+    page.set_content(html.format(a=""))               # now the blue mug's button does nothing
     executor = ActionExecutor(page, memory=memory)
     result = agent(page, ScriptedPlanner([("click", "Adicionar", None)], []), executor=executor).run("x")
     assert result.records[0].status == "no_effect"
@@ -99,7 +99,7 @@ SEARCH = """<html><body>
 </body></html>"""
 
 
-def test_campo_revelado_pela_lupa(page):
+def test_field_revealed_by_the_magnifier(page):
     page.set_content(SEARCH)
     planner = ScriptedPlanner([("fill", "Search /", "Pi Network"), ("press", "Type a coin", "Enter")], [])
     result = agent(page, planner, verify_effect=False).run("pesquise a moeda Pi Network")
@@ -108,7 +108,7 @@ def test_campo_revelado_pela_lupa(page):
     assert result.records[0].resolved_by == "revealed_field"
 
 
-def test_enter_sem_efeito_leva_a_replanejar(page):
+def test_enter_without_effect_leads_to_replanning(page):
     page.set_content("""<html><body><label for="s">Buscar</label><input id="s">
       <button onclick="document.body.dataset.b=1">Ir</button></body></html>""")
     planner = ScriptedPlanner(

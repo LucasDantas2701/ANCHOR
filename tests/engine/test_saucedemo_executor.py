@@ -5,9 +5,9 @@ from anchor.engine.element_resolver import ElementResolver
 
 SAUCEDEMO_URL = "https://www.saucedemo.com"
 
-# Vocabulário específico do site. Antes ficava no constants.py
-# (viés de overfitting); agora é passado ao Resolver, como será
-# feito com os dados de cada automação salva.
+# Site-specific vocabulary. It used to live in constants.py
+# (an overfitting bias); now it is passed to the Resolver, as it
+# will be done with each saved automation's data.
 SAUCEDEMO_VOCAB = {
     "mochila": "backpack",
     "lanterna": "light",
@@ -43,17 +43,17 @@ def saucedemo_page(page):
 
 def test_add_backpack_to_cart(saucedemo_page):
     """
-    Testa o fluxo completo:
+    Tests the full flow:
 
-        página real
+        real page
             ↓
         ElementResolver
             ↓
         ActionExecutor
             ↓
-        botão correto
+        right button
             ↓
-        produto no carrinho
+        product in the cart
     """
 
     executor = ActionExecutor(
@@ -78,8 +78,8 @@ def test_add_backpack_to_cart(saucedemo_page):
 
 def test_find_backpack(saucedemo_page):
     """
-    Testa apenas a capacidade do Resolver de encontrar
-    o produto correto na página real.
+    Tests only the Resolver's ability to find
+    the right product on the real page.
     """
 
     executor = ActionExecutor(
