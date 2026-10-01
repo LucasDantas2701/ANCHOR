@@ -1,0 +1,28 @@
+{
+  "version": "0.3.0-dev",
+  "commit": "eb14cd5",
+  "date": "2026-09-30T23:33:21",
+  "filters": {
+    "split": null,
+    "site": "store",
+    "offline": false
+  },
+  "thresholds": {
+    "min_score": 0.4,
+    "gap": 0.04
+  },
+  "overall": {
+    "n": 13,
+    "recall@1": 0.46153846153846156,
+    "recall@3": 0.6153846153846154,
+    "recall@5": 0.6153846153846154,
+    "recall@10": 0.6923076923076923,
+    "mrr": 0.5512820512820513,
+    "correct": 0.46153846153846156,
+    "silent_error": 0.07692307692307693,
+    "avoidable_refusal": 0.0,
+    "correct_refusal": 0.46153846153846156,
+    "perception_failure": 0.0,
+    "mean_ms": 20.861538461538462
+  }
+}

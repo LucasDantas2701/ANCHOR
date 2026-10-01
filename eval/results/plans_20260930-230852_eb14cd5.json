@@ -1,0 +1,48 @@
+{
+  "version": "0.3.0-dev",
+  "commit": "eb14cd5",
+  "date": "2026-09-30T23:08:52",
+  "page_context": true,
+  "mode": "agent",
+  "prompt_language": "profile",
+  "summary": {
+    "ollama-small": {
+      "tasks": 15,
+      "success": 0.8666666666666667,
+      "clean": 0.8,
+      "unrequested": 1,
+      "plan_valid": 1.0,
+      "checks": 0.918918918918919,
+      "heuristic_refusals": 0,
+      "mean_seconds": 32.528666666666666,
+      "mean_tokens": 3228,
+      "mean_attempts": 0,
+      "mean_llm_calls": 2,
+      "replans": 1,
+      "no_effect": 0,
+      "premature": 1,
+      "goals_done": 0.9523809523809523,
+      "suspicions": 1,
+      "load_s": 25.8
+    },
+    "ollama-medium": {
+      "tasks": 15,
+      "success": 0.9333333333333333,
+      "clean": 0.8,
+      "unrequested": 2,
+      "plan_valid": 0.9333333333333333,
+      "checks": 0.972972972972973,
+      "heuristic_refusals": 0,
+      "mean_seconds": 52.87,
+      "mean_tokens": 2907.5714285714284,
+      "mean_attempts": 0,
+      "mean_llm_calls": 1.8666666666666667,
+      "replans": 0,
+      "no_effect": 0,
+      "premature": 0,
+      "goals_done": 1.0,
+      "suspicions": 2,
+      "load_s": 24.6
+    }
+  }
+}

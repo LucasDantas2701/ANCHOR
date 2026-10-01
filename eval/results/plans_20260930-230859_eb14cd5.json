@@ -1,0 +1,29 @@
+{
+  "version": "0.3.0-dev",
+  "commit": "eb14cd5",
+  "date": "2026-09-30T23:08:59",
+  "page_context": true,
+  "mode": "plan",
+  "prompt_language": "profile",
+  "summary": {
+    "reference": {
+      "tasks": 15,
+      "success": 1.0,
+      "clean": 1.0,
+      "unrequested": 0,
+      "plan_valid": 1.0,
+      "checks": 1.0,
+      "heuristic_refusals": 0,
+      "mean_seconds": 0.0,
+      "mean_tokens": 0,
+      "mean_attempts": 1,
+      "mean_llm_calls": 1,
+      "replans": 0,
+      "no_effect": 0,
+      "premature": 0,
+      "goals_done": null,
+      "suspicions": 0,
+      "load_s": null
+    }
+  }
+}

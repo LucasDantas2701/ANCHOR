@@ -1,0 +1,16 @@
+profile,model,task,split,plan_valid,plan_steps,steps_ok,stopped_at,checks_ok,checks,success,unrequested,unrequested_list,clean,seconds,tokens_in,tokens_out,attempts,error,plan,llm_calls,replans,no_effect,premature,goals,goals_done,suspicions
+reference,reference,p-reg-01,dev,True,7,7,,7,7,True,0,,True,0.0,0,0,1,,"[[""fill"", ""campo Nome completo"", ""Maria Silva""], [""fill"", ""campo CPF"", ""123.456.789-00""], [""fill"", ""campo E-mail corporativo"", ""maria.silva@empresa.com""], [""select"", ""lista Departamento"", ""TI""], [""check"", ""opção PJ"", null], [""check"", ""caixa Li e aceito os termos de uso"", null], [""click"", ""botão Salvar cadastro"", null]]",1,0,0,False,0,0,0
+reference,reference,p-reg-02,dev,True,2,2,,2,2,True,0,,True,0.0,0,0,1,,"[[""fill"", ""campo Telefone"", ""(92) 99999-0000""], [""fill"", ""campo Observações"", ""começa na segunda-feira""]]",1,0,0,False,0,0,0
+reference,reference,p-log-01,dev,True,2,2,,4,4,True,0,,True,0.0,0,0,1,,"[[""fill"", ""campo Username"", ""lucas.dantas""], [""check"", ""caixa Remember me"", null]]",1,0,0,False,0,0,0
+reference,reference,p-log-02,dev,True,1,1,,1,1,True,0,,True,0.0,0,0,1,,"[[""select"", ""lista Language"", ""Português""]]",1,0,0,False,0,0,0
+reference,reference,p-store-01,dev,True,1,1,,1,1,True,0,,True,0.0,0,0,1,,"[[""select"", ""lista Sort by"", ""Price: low to high""]]",1,0,0,False,0,0,0
+reference,reference,p-store-02,dev,True,2,2,,3,3,True,0,,True,0.0,0,0,1,,"[[""click"", ""botão Add to cart do UltraBook 14"", null], [""click"", ""botão Add to cart do QuietMax Headphones"", null]]",1,0,0,False,0,0,0
+reference,reference,p-store-03,dev,True,2,2,,2,2,True,0,,True,0.0,0,0,1,,"[[""fill"", ""campo de busca Search products"", ""teclado mecânico""], [""click"", ""botão Search"", null]]",1,0,0,False,0,0,0
+reference,reference,p-usr-01,dev,True,1,1,,1,1,True,0,,True,0.0,0,0,1,,"[[""select"", ""lista Filtrar por status"", ""Inativos""]]",1,0,0,False,0,0,0
+reference,reference,p-usr-02,dev,True,2,2,,3,3,True,0,,True,0.0,0,0,1,,"[[""check"", ""caixa Selecionar Ana Souza"", null], [""check"", ""caixa Selecionar Carla Mendes"", null]]",1,0,0,False,0,0,0
+reference,reference,p-usr-03,dev,True,1,1,,3,3,True,0,,True,0.0,0,0,1,,"[[""click"", ""botão Excluir do Bruno Lima"", null]]",1,0,0,False,0,0,0
+reference,reference,p-ord-01,dev,True,1,1,,1,1,True,0,,True,0.0,0,0,1,,"[[""click"", ""botão Cancelar pedido do Pedido #1024"", null]]",1,0,0,False,0,0,0
+reference,reference,p-ord-02,dev,True,2,2,,2,2,True,0,,True,0.0,0,0,1,,"[[""click"", ""botão Adicionar ao carrinho da Caneca de cerâmica"", null], [""click"", ""link shopping cart link"", null]]",1,0,0,False,0,0,0
+reference,reference,p-pop-01,dev,True,3,3,,2,2,True,0,,True,0.0,0,0,1,,"[[""click"", ""Search /"", null], [""fill"", ""Search coins"", ""Pi Network""], [""press"", ""Search coins"", ""Enter""]]",1,0,0,False,0,0,0
+reference,reference,p-ent-01,dev,True,2,2,,2,2,True,0,,True,0.0,0,0,1,,"[[""fill"", ""Pesquisar"", ""rpa em manaus""], [""press"", ""Pesquisar"", ""Enter""]]",1,0,0,False,0,0,0
+reference,reference,p-jobs-01,dev,True,2,2,,3,3,True,0,,True,0.0,0,0,1,,"[[""click"", ""Consultor RPA"", null], [""click"", ""Salvar vaga"", null]]",1,0,0,False,0,0,0

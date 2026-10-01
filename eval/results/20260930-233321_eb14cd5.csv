@@ -1,0 +1,14 @@
+suite,case_id,split,action,query,status,rank,target_indexed,outcome,top1_score,runner_up_score,target_score,top1_is_target,top1_desc,n_indexed,ms
+store,store-01,dev,click,adicionar os fones de ouvido ao carrinho,ambiguous,2,True,correct_refusal,0.8167,0.8167,0.8167,False,button 'Add to cart',22,62.2
+store,store-02,dev,click,colocar o UltraBook no carrinho,ambiguous,2,True,correct_refusal,0.6617,0.6417,0.6417,False,link 'UltraBook 14',22,26.1
+store,store-03,dev,click,abrir o carrinho,success,1,True,correct,0.6196,0.5004,0.6196,True,link '2',22,18.1
+store,store-04,dev,fill,campo de busca de produtos,success,1,True,correct,1.35,0.0,1.35,True,searchbox 'Search products',22,12.7
+store,store-05,dev,click,botão de pesquisar,success,1,True,correct,0.7333,0.4667,0.7333,True,button 'Search',22,16.4
+store,store-06,dev,click,favoritar a cafeteira,not_found,,True,correct_refusal,0.375,0.375,,False,link 'TechStore',22,18.6
+store,store-07,dev,click,entrar na minha conta,success,1,True,correct,0.6112,0.1917,0.6112,True,button 'Sign in',22,13.8
+store,store-08,dev,click,ver a categoria de áudio,not_found,,True,correct_refusal,0.333,0.333,,False,link 'TechStore',22,17.9
+store,store-09,dev,select,ordenar por preço,success,1,True,correct,1.1367,0.0,1.1367,True,combobox 'Sort by',22,11.0
+store,store-10,dev,click,página de devoluções,not_found,,True,correct_refusal,0.183,0.183,,False,button 'Search',22,15.0
+store,store-11,dev,extract_text,preço do UltraBook 14,success,6,True,silent_error,0.8083,0.6333,0.225,False,link 'UltraBook 14',29,16.2
+store,store-12,dev,extract_text,nome do produto de fones,not_found,,True,correct_refusal,0.3067,0.1,,False,searchbox 'Search products',29,28.1
+store,store-13,dev,click,abrir a lista de desejos,success,1,True,correct,0.7525,0.4772,0.7525,True,link 'Wishlist',22,15.1
