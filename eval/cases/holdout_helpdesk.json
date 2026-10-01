@@ -1,0 +1,77 @@
+{
+  "site": "holdout_helpdesk",
+  "fixture": "holdout_helpdesk.html",
+  "description": "HOLDOUT — helpdesk in Portuguese. Do not use for development.",
+  "cases": [
+    {
+      "id": "h-help-01",
+      "split": "test",
+      "action": "click",
+      "query": "assumir o chamado da VPN",
+      "expected": "tr.c482 .assumir"
+    },
+    {
+      "id": "h-help-02",
+      "split": "test",
+      "action": "click",
+      "query": "encerrar o chamado da impressora",
+      "expected": "tr.c481 .fechar"
+    },
+    {
+      "id": "h-help-03",
+      "split": "test",
+      "action": "click",
+      "query": "abrir um novo chamado",
+      "expected": "button.novo"
+    },
+    {
+      "id": "h-help-04",
+      "split": "test",
+      "action": "click",
+      "query": "ver os chamados fechados",
+      "expected": ".tab-fechados"
+    },
+    {
+      "id": "h-help-05",
+      "split": "test",
+      "action": "select",
+      "query": "filtrar pela prioridade",
+      "expected": "select.prioridade"
+    },
+    {
+      "id": "h-help-06",
+      "split": "test",
+      "action": "fill",
+      "query": "escrever um comentário",
+      "expected": "#coment"
+    },
+    {
+      "id": "h-help-07",
+      "split": "test",
+      "action": "click",
+      "query": "anexar um arquivo",
+      "expected": "button.anexo"
+    },
+    {
+      "id": "h-help-08",
+      "split": "test",
+      "action": "click",
+      "query": "ver minhas notificações",
+      "expected": "button[title='Notificações']"
+    },
+    {
+      "id": "h-help-09",
+      "split": "test",
+      "action": "extract_text",
+      "query": "prioridade do chamado 482",
+      "expected": "tr.c482 .prio"
+    },
+    {
+      "id": "h-help-10",
+      "split": "test",
+      "action": "extract_text",
+      "query": "prazo de atendimento",
+      "expected": "p.sla"
+    }
+  ]
+}

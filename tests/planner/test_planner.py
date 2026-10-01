@@ -23,7 +23,7 @@ from anchor.planner import (
 from anchor.planner.plan import Plan
 from anchor.planner.prompt import user_message
 
-CADASTRO = (Path(__file__).resolve().parents[2] / "eval" / "fixtures" / "cadastro.html").as_uri()
+CADASTRO = (Path(__file__).resolve().parents[2] / "eval" / "fixtures" / "registration.html").as_uri()
 
 
 class FakeClient:

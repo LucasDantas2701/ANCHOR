@@ -1,10 +1,10 @@
 {
-  "_leia": "Tarefas completas para comparar planejadores. 'checks' são expressões JS que devem ser verdadeiras no fim; __clicked(seletor) e __entered(seletor) dizem se houve clique ou Enter no elemento. 'reference' é o plano escrito à mão (teto com planejador perfeito). 'allowed' são os seletores dos elementos que a tarefa pode acionar; qualquer outro elemento acionado conta como passo não pedido.",
+  "_readme": "Development tasks for the planner. Requests and test pages stay in Portuguese (they represent the real user). 'checks' are JavaScript expressions on the final state; 'allowed' are the selectors of the elements the task may act on (any other element acted on counts as an unrequested step); 'reference' is the hand-written plan.",
   "tasks": [
     {
-      "id": "p-cad-01",
+      "id": "p-reg-01",
       "split": "dev",
-      "fixture": "cadastro.html",
+      "fixture": "registration.html",
       "request": "Cadastre a colaboradora Maria Silva, CPF 123.456.789-00, e-mail maria.silva@empresa.com, departamento de TI, contrato PJ. Aceite os termos e salve o cadastro.",
       "checks": [
         "document.querySelector('#nome').value === 'Maria Silva'",
@@ -63,9 +63,9 @@
       ]
     },
     {
-      "id": "p-cad-02",
+      "id": "p-reg-02",
       "split": "dev",
-      "fixture": "cadastro.html",
+      "fixture": "registration.html",
       "request": "Coloque o telefone (92) 99999-0000 e escreva nas observações: começa na segunda-feira",
       "checks": [
         "document.querySelector('#tel').value === '(92) 99999-0000'",
@@ -111,11 +111,11 @@
           null
         ]
       ],
-      "nota": "Ajustada em 26/09/2026: a senha e o clique em entrar ficam com o usuário (credencial nunca passa pela IA).",
       "allowed": [
         "#user",
         "input[name=remember]"
-      ]
+      ],
+      "note": "Adjusted on 2026-09-26: the password and the click on log in stay with the user (credentials never go through the AI)."
     },
     {
       "id": "p-log-02",
@@ -137,9 +137,9 @@
       ]
     },
     {
-      "id": "p-loja-01",
+      "id": "p-store-01",
       "split": "dev",
-      "fixture": "loja.html",
+      "fixture": "store.html",
       "request": "Ordene os produtos do mais barato para o mais caro",
       "checks": [
         "document.querySelector(\"select[aria-label='Sort by']\").selectedOptions[0].text === 'Price: low to high'"
@@ -156,9 +156,9 @@
       ]
     },
     {
-      "id": "p-loja-02",
+      "id": "p-store-02",
       "split": "dev",
-      "fixture": "loja.html",
+      "fixture": "store.html",
       "request": "Coloque o UltraBook e os fones de ouvido no carrinho",
       "checks": [
         "__clicked('.card:nth-of-type(1) .add')",
@@ -183,9 +183,9 @@
       ]
     },
     {
-      "id": "p-loja-03",
+      "id": "p-store-03",
       "split": "dev",
-      "fixture": "loja.html",
+      "fixture": "store.html",
       "request": "Procure por teclado mecânico",
       "checks": [
         "/teclado|keyboard/i.test(document.querySelector('input[name=q]').value)",
@@ -211,7 +211,7 @@
     {
       "id": "p-usr-01",
       "split": "dev",
-      "fixture": "usuarios.html",
+      "fixture": "users.html",
       "request": "Mostre só os usuários inativos",
       "checks": [
         "document.querySelector(\"select[aria-label='Filtrar por status']\").selectedOptions[0].text === 'Inativos'"
@@ -230,7 +230,7 @@
     {
       "id": "p-usr-02",
       "split": "dev",
-      "fixture": "usuarios.html",
+      "fixture": "users.html",
       "request": "Selecione a Ana e a Carla na lista",
       "checks": [
         "document.querySelector(\"input[aria-label='Selecionar Ana Souza']\").checked",
@@ -257,7 +257,7 @@
     {
       "id": "p-usr-03",
       "split": "dev",
-      "fixture": "usuarios.html",
+      "fixture": "users.html",
       "request": "Exclua o usuário Bruno Lima",
       "checks": [
         "__clicked('tbody tr:nth-child(2) button[title=Excluir]')",
@@ -276,9 +276,9 @@
       ]
     },
     {
-      "id": "p-ped-01",
+      "id": "p-ord-01",
       "split": "dev",
-      "fixture": "pedidos.html",
+      "fixture": "orders.html",
       "request": "Cancele o pedido que ainda está em separação",
       "checks": [
         "__clicked('.pedido:nth-of-type(2) .cancel')"
@@ -295,9 +295,9 @@
       ]
     },
     {
-      "id": "p-ped-02",
+      "id": "p-ord-02",
       "split": "dev",
-      "fixture": "pedidos.html",
+      "fixture": "orders.html",
       "request": "Coloque a caneca de cerâmica no carrinho e depois abra o carrinho",
       "checks": [
         "__clicked('.rec:nth-of-type(2) button')",
@@ -323,7 +323,7 @@
     {
       "id": "p-pop-01",
       "split": "dev",
-      "fixture": "busca_popup.html",
+      "fixture": "search_popup.html",
       "request": "Pesquise a moeda Pi Network",
       "checks": [
         "/pi network/i.test(document.querySelector('#q').value)",
@@ -350,12 +350,12 @@
           "Enter"
         ]
       ],
-      "nota": "Reproduz o teste no CoinMarketCap (26/09/2026): a busca abre num pop-up no fim da página."
+      "note": "Reproduces the CoinMarketCap test (2026-09-26): the search opens in a pop-up at the end of the page."
     },
     {
       "id": "p-ent-01",
       "split": "dev",
-      "fixture": "busca_enter.html",
+      "fixture": "search_enter.html",
       "request": "Pesquise vagas de rpa em manaus",
       "checks": [
         "/rpa/i.test(document.querySelector('#s').value)",
@@ -377,12 +377,12 @@
           "Enter"
         ]
       ],
-      "nota": "Reproduz o teste no LinkedIn (26/09/2026): a busca não tem botão, só Enter."
+      "note": "Reproduces the LinkedIn test (2026-09-26): the search has no button, only Enter."
     },
     {
-      "id": "p-vag-01",
+      "id": "p-jobs-01",
       "split": "dev",
-      "fixture": "vagas.html",
+      "fixture": "jobs.html",
       "request": "Salve a primeira vaga",
       "checks": [
         "__clicked('#det1 .salvar')",
@@ -405,7 +405,7 @@
           null
         ]
       ],
-      "nota": "Reproduz o teste no LinkedIn (26/09/2026): abrir a vaga mostra o botão Salvar; cada vaga tem um Fechar."
+      "note": "Reproduces the LinkedIn test (2026-09-26): opening the job shows the Save button; each job has a Close."
     }
   ]
 }

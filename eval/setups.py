@@ -1,6 +1,6 @@
 """
-Passos de preparação de cada site antes dos casos (login, navegação...).
-Referenciados pelo campo "setup" dos arquivos em eval/cases/.
+Preparation steps for each site before its cases (login, navigation...).
+Referenced by the "setup" field of the files in eval/cases/.
 """
 
 from playwright.sync_api import Page

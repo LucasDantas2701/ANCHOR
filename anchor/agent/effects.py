@@ -5,10 +5,10 @@ An observer on the page counts DOM changes and keeps new messages (errors
 such as "CPF inválido", confirmations such as "Cadastro salvo"). In Python,
 the agent counts requests, new tabs and downloads. After each step:
 
-fill / select / check: the element's state is checked directly;
-click / press:         there is an effect if the URL changed, the DOM changed,
-a request went out, a tab opened or a download started;
-all:                   a new error message turns the step into a failure.
+    fill / select / check: the element's state is checked directly;
+    click / press:         there is an effect if the URL changed, the DOM changed,
+                           a request went out, a tab opened or a download started;
+    all:                   a new error message turns the step into a failure.
 
 The error and confirmation word lists cover Portuguese and English pages.
 """

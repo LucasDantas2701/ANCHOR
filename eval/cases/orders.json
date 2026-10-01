@@ -1,0 +1,42 @@
+{
+  "site": "orders",
+  "fixture": "orders.html",
+  "description": "Dev cases for state (disabled), conflicting verb and CSS-only icon",
+  "cases": [
+    {
+      "id": "ord-01",
+      "split": "dev",
+      "action": "click",
+      "query": "cancelar o pedido",
+      "expected": ".pedido:nth-of-type(2) .cancel"
+    },
+    {
+      "id": "ord-02",
+      "split": "dev",
+      "action": "click",
+      "query": "abrir os detalhes do pedido 1023",
+      "expected": ".pedido:nth-of-type(1) .det"
+    },
+    {
+      "id": "ord-03",
+      "split": "dev",
+      "action": "click",
+      "query": "abrir o carrinho",
+      "expected": "a.cart"
+    },
+    {
+      "id": "ord-04",
+      "split": "dev",
+      "action": "click",
+      "query": "continuar",
+      "expected": "button.cont2"
+    },
+    {
+      "id": "ord-05",
+      "split": "dev",
+      "action": "click",
+      "query": "adicionar a caneca ao carrinho",
+      "expected": ".rec:nth-of-type(2) button"
+    }
+  ]
+}

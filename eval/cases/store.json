@@ -1,0 +1,104 @@
+{
+  "site": "store",
+  "fixture": "store.html",
+  "description": "E-commerce in English, queries in Portuguese",
+  "cases": [
+    {
+      "id": "store-01",
+      "split": "dev",
+      "action": "click",
+      "query": "adicionar os fones de ouvido ao carrinho",
+      "expected": ".card:nth-of-type(2) .add"
+    },
+    {
+      "id": "store-02",
+      "split": "dev",
+      "split_original": "test",
+      "action": "click",
+      "query": "colocar o UltraBook no carrinho",
+      "expected": ".card:nth-of-type(1) .add"
+    },
+    {
+      "id": "store-03",
+      "split": "dev",
+      "action": "click",
+      "query": "abrir o carrinho",
+      "expected": ".cart-link"
+    },
+    {
+      "id": "store-04",
+      "split": "dev",
+      "split_original": "test",
+      "action": "fill",
+      "query": "campo de busca de produtos",
+      "expected": "input[name=q]"
+    },
+    {
+      "id": "store-05",
+      "split": "dev",
+      "action": "click",
+      "query": "botão de pesquisar",
+      "expected": "header button[aria-label=Search]"
+    },
+    {
+      "id": "store-06",
+      "split": "dev",
+      "split_original": "test",
+      "action": "click",
+      "query": "favoritar a cafeteira",
+      "expected": ".card:nth-of-type(3) .fav"
+    },
+    {
+      "id": "store-07",
+      "split": "dev",
+      "action": "click",
+      "query": "entrar na minha conta",
+      "expected": "header button:has-text('Sign in')"
+    },
+    {
+      "id": "store-08",
+      "split": "dev",
+      "split_original": "test",
+      "action": "click",
+      "query": "ver a categoria de áudio",
+      "expected": ".chip:has-text('Audio')"
+    },
+    {
+      "id": "store-09",
+      "split": "dev",
+      "action": "select",
+      "query": "ordenar por preço",
+      "expected": "select[aria-label='Sort by']"
+    },
+    {
+      "id": "store-10",
+      "split": "dev",
+      "split_original": "test",
+      "action": "click",
+      "query": "página de devoluções",
+      "expected": "a[href='/returns']"
+    },
+    {
+      "id": "store-11",
+      "split": "dev",
+      "action": "extract_text",
+      "query": "preço do UltraBook 14",
+      "expected": ".card:nth-of-type(1) .price"
+    },
+    {
+      "id": "store-12",
+      "split": "dev",
+      "split_original": "test",
+      "action": "extract_text",
+      "query": "nome do produto de fones",
+      "expected": ".card:nth-of-type(2) h3, .card:nth-of-type(2) h3 a"
+    },
+    {
+      "id": "store-13",
+      "split": "dev",
+      "action": "click",
+      "query": "abrir a lista de desejos",
+      "expected": "a[href='/wishlist']"
+    }
+  ]
+}

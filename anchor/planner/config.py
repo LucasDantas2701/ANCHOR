@@ -4,9 +4,9 @@ Model profiles (the llm_profiles.json file at the project root).
 Each profile says WHERE the model is and HOW to authenticate, without storing
 the key: "api_key_env" is the NAME of the environment variable holding the key.
 Two kinds of API:
-"openai" (default): the OpenAI API format (OpenAI, or Ollama at /v1).
-"ollama": Ollama's native API, which can turn off reasoning
-("think": false) and set options such as "num_ctx".
+    "openai" (default): the OpenAI API format (OpenAI, or Ollama at /v1).
+    "ollama": Ollama's native API, which can turn off reasoning
+              ("think": false) and set options such as "num_ctx".
 "prompt_language" chooses the planner prompt's language: "pt" (default,
 the measured one) or "en".
 """

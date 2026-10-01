@@ -30,18 +30,18 @@ class ActionExecutor:
 
     Flow:
 
-    description
+        description
             ↓
         ElementResolver
             ↓
         candidates
-        ↓
+            ↓
         minimum score
-        ↓
+            ↓
         ambiguity check
-        ↓
+            ↓
         selected element
-        ↓
+            ↓
         execution
             ↓
         ActionResult
@@ -358,9 +358,9 @@ class ActionExecutor:
         Shows the user only what is worth showing:
 
         ambiguous: candidates whose score is close to the 1st (>= choice_ratio
-        of its score), at least 2 and at most max_choices.
+                   of its score), at least 2 and at most max_choices.
         not_found: at most 3, because the target is most likely not even in
-        the list (the user should click directly on the page).
+                   the list (the user should click directly on the page).
         """
         if not candidates:
             return []

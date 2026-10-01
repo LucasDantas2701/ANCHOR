@@ -3,10 +3,10 @@ A short list of the page's elements, so the planner uses the real names.
 
 The list is sorted by relevance, because on large pages it gets cut:
 
-1. elements in an open pop-up, dialog or menu (marked with [pop-up]);
-2. elements sharing words with the request (e.g. "pesquise" → "Search");
-3. elements visible on the screen;
-4. the rest of the page.
+    1. elements in an open pop-up, dialog or menu (marked with [pop-up]);
+    2. elements sharing words with the request (e.g. "pesquise" → "Search");
+    3. elements visible on the screen;
+    4. the rest of the page.
 
 Elements covered by a pop-up are left out: the user cannot see them and the
 agent cannot use them while the pop-up is open.

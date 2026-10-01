@@ -96,7 +96,7 @@ def test_perfil_ollama_monta_o_cliente_nativo(ollama):
 def test_aquecimento_carrega_o_modelo(ollama):
     planner = LLMPlanner(OllamaClient(ollama.url), "qwen3.5:4b")
     assert warm_up(planner) >= 0
-    assert ollama.received[0][1]["messages"][0]["content"].startswith("Responda")
+    assert ollama.received[0][1]["messages"][0]["content"].startswith("Reply")
 
 
 def test_modelo_inexistente_explica_como_conferir():

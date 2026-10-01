@@ -42,6 +42,19 @@ que quebram compatibilidade também sobem o MINOR.
 - Internal codes renamed: `resolved_by` values `enter_no_campo` → `enter_in_field` and
   `campo_revelado` → `revealed_field`. The agent's result has a new `plan_failed` flag, used by
   `eval/plan_run.py` instead of looking for a Portuguese sentence in the message.
+- English translation, part 3a (the evaluation). The test pages, case files and ids were renamed
+  to English (`cadastro` → `registration`, `loja` → `store`, `pedidos` → `orders`, `usuarios` →
+  `users`, `vagas` → `jobs`, `busca_*` → `search_*`, and the holdout pages `holdout_booking`,
+  `holdout_helpdesk` and `holdout_hr`); in the holdout files, only the file name, the `site` and
+  `fixture` fields and the id prefixes changed, without touching any query (checked: the cases are
+  identical). The pages' content and the requests stay in Portuguese. `eval/plan_run.py` has English
+  options (`--profiles`, `--reference`, `--agent`, `--task`, `--no-page`; the Portuguese ones still
+  work) and English result fields (`success`, `clean`, `unrequested`, `premature`, `goals`...);
+  its result files now start with `plans_`. `eval/run.py` prints in English and its outcomes are
+  `correct`, `silent_error`, `avoidable_refusal`, `correct_refusal` and `perception_failure`.
+  Older result files keep the old names; `eval/README.md` (now in English) has the mapping. Both
+  evaluations give the same numbers as before.
+- `eval/plan_run.py --prompt-language en|pt` runs the planner with the chosen prompt language.
 - The memory commands are now `list`, `forget` and `clear` (with `--yes`); the Portuguese ones
   (`listar`, `esquecer`, `limpar`, `--sim`) still work.
 

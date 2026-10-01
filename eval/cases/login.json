@@ -1,15 +1,67 @@
 {
   "site": "login",
   "fixture": "login.html",
-  "description": "Tela de login em inglês, consultas em português",
+  "description": "Login screen in English, queries in Portuguese",
   "cases": [
-    {"id": "login-01", "split": "dev",  "action": "fill",  "query": "campo de usuário", "expected": "#user"},
-    {"id": "login-02", "split": "dev", "split_original": "test", "action": "fill",  "query": "digitar a senha", "expected": "#pwd"},
-    {"id": "login-03", "split": "dev",  "action": "click", "query": "botão de entrar", "expected": "#login-btn"},
-    {"id": "login-04", "split": "dev", "split_original": "test", "action": "check", "query": "marcar lembrar de mim", "expected": "input[name=remember]"},
-    {"id": "login-05", "split": "dev",  "action": "click", "query": "esqueci minha senha", "expected": "a[href='/forgot']"},
-    {"id": "login-06", "split": "dev", "split_original": "test", "action": "click", "query": "criar uma conta nova", "expected": "a[href='/signup']"},
-    {"id": "login-07", "split": "dev",  "action": "click", "query": "mostrar a senha", "expected": ".toggle-pwd"},
-    {"id": "login-08", "split": "dev", "split_original": "test", "action": "select", "query": "trocar o idioma", "expected": "select[name=lang]"}
+    {
+      "id": "login-01",
+      "split": "dev",
+      "action": "fill",
+      "query": "campo de usuário",
+      "expected": "#user"
+    },
+    {
+      "id": "login-02",
+      "split": "dev",
+      "split_original": "test",
+      "action": "fill",
+      "query": "digitar a senha",
+      "expected": "#pwd"
+    },
+    {
+      "id": "login-03",
+      "split": "dev",
+      "action": "click",
+      "query": "botão de entrar",
+      "expected": "#login-btn"
+    },
+    {
+      "id": "login-04",
+      "split": "dev",
+      "split_original": "test",
+      "action": "check",
+      "query": "marcar lembrar de mim",
+      "expected": "input[name=remember]"
+    },
+    {
+      "id": "login-05",
+      "split": "dev",
+      "action": "click",
+      "query": "esqueci minha senha",
+      "expected": "a[href='/forgot']"
+    },
+    {
+      "id": "login-06",
+      "split": "dev",
+      "split_original": "test",
+      "action": "click",
+      "query": "criar uma conta nova",
+      "expected": "a[href='/signup']"
+    },
+    {
+      "id": "login-07",
+      "split": "dev",
+      "action": "click",
+      "query": "mostrar a senha",
+      "expected": ".toggle-pwd"
+    },
+    {
+      "id": "login-08",
+      "split": "dev",
+      "split_original": "test",
+      "action": "select",
+      "query": "trocar o idioma",
+      "expected": "select[name=lang]"
+    }
   ]
 }

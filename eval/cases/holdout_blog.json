@@ -1,19 +1,91 @@
 {
   "site": "holdout_blog",
   "fixture": "holdout_blog.html",
-  "description": "HOLDOUT — painel de blog em inglês, consultas em português. Não usar para desenvolvimento.",
+  "description": "HOLDOUT — blog panel in English, queries in Portuguese. Do not use for development.",
   "cases": [
-    {"id": "h-blg-01", "split": "test", "action": "click", "query": "criar um novo post", "expected": "button.new"},
-    {"id": "h-blg-02", "split": "test", "action": "click", "query": "editar o post dos estagiários", "expected": "tr.p2 .edit"},
-    {"id": "h-blg-03", "split": "test", "action": "click", "query": "pré-visualizar o post de resultados", "expected": "tr.p1 .preview"},
-    {"id": "h-blg-04", "split": "test", "action": "click", "query": "mandar o post dos resultados para a lixeira", "expected": "tr.p1 .del"},
-    {"id": "h-blg-05", "split": "test", "action": "fill", "query": "título do post", "expected": "#ptitle"},
-    {"id": "h-blg-06", "split": "test", "action": "fill", "query": "conteúdo do texto", "expected": ".body"},
-    {"id": "h-blg-07", "split": "test", "action": "fill", "query": "adicionar tags", "expected": "#tags"},
-    {"id": "h-blg-08", "split": "test", "action": "click", "query": "permitir comentários", "expected": "[role=switch]"},
-    {"id": "h-blg-09", "split": "test", "action": "click", "query": "salvar como rascunho", "expected": "button.draft"},
-    {"id": "h-blg-10", "split": "test", "action": "click", "query": "publicar", "expected": "button.publish"},
-    {"id": "h-blg-11", "split": "test", "action": "click", "query": "abrir a biblioteca de mídia", "expected": "a[href='/media']"},
-    {"id": "h-blg-12", "split": "test", "action": "extract_text", "query": "quando foi a última edição", "expected": "p.edited"}
+    {
+      "id": "h-blg-01",
+      "split": "test",
+      "action": "click",
+      "query": "criar um novo post",
+      "expected": "button.new"
+    },
+    {
+      "id": "h-blg-02",
+      "split": "test",
+      "action": "click",
+      "query": "editar o post dos estagiários",
+      "expected": "tr.p2 .edit"
+    },
+    {
+      "id": "h-blg-03",
+      "split": "test",
+      "action": "click",
+      "query": "pré-visualizar o post de resultados",
+      "expected": "tr.p1 .preview"
+    },
+    {
+      "id": "h-blg-04",
+      "split": "test",
+      "action": "click",
+      "query": "mandar o post dos resultados para a lixeira",
+      "expected": "tr.p1 .del"
+    },
+    {
+      "id": "h-blg-05",
+      "split": "test",
+      "action": "fill",
+      "query": "título do post",
+      "expected": "#ptitle"
+    },
+    {
+      "id": "h-blg-06",
+      "split": "test",
+      "action": "fill",
+      "query": "conteúdo do texto",
+      "expected": ".body"
+    },
+    {
+      "id": "h-blg-07",
+      "split": "test",
+      "action": "fill",
+      "query": "adicionar tags",
+      "expected": "#tags"
+    },
+    {
+      "id": "h-blg-08",
+      "split": "test",
+      "action": "click",
+      "query": "permitir comentários",
+      "expected": "[role=switch]"
+    },
+    {
+      "id": "h-blg-09",
+      "split": "test",
+      "action": "click",
+      "query": "salvar como rascunho",
+      "expected": "button.draft"
+    },
+    {
+      "id": "h-blg-10",
+      "split": "test",
+      "action": "click",
+      "query": "publicar",
+      "expected": "button.publish"
+    },
+    {
+      "id": "h-blg-11",
+      "split": "test",
+      "action": "click",
+      "query": "abrir a biblioteca de mídia",
+      "expected": "a[href='/media']"
+    },
+    {
+      "id": "h-blg-12",
+      "split": "test",
+      "action": "extract_text",
+      "query": "quando foi a última edição",
+      "expected": "p.edited"
+    }
   ]
 }

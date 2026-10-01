@@ -1,25 +1,24 @@
 """
-Avaliação do ElementResolver + validação do Executor (Peça 10).
+Evaluation of the ElementResolver + the Executor's validation.
 
-Para cada caso (página + consulta + elemento esperado), mede:
+For each case (page + query + expected element), it measures:
 
-    - em que posição o elemento certo ficou no ranking;
-    - o que o Executor decidiria (success / ambiguous / not_found);
-    - se a falha foi de percepção (alvo nem indexado) ou de ranqueamento.
+    - the position of the right element in the ranking;
+    - what the Executor would decide (success / ambiguous / not_found);
+    - whether a failure came from perception (target not even indexed) or ranking.
 
-Uso (na raiz do projeto):
+Usage (from the project root):
 
-    python -m eval.run                  # todos os casos
-    python -m eval.run --split dev      # só os casos de desenvolvimento
-    python -m eval.run --offline        # pula sites reais
-    python -m eval.run --site loja -v   # um site, mostrando cada caso
-    python -m eval.run --sweep          # varre score mínimo × gap
-    python -m eval.run --check          # só confere os seletores esperados (inclui o holdout)
-    python -m eval.run --final          # roda o HOLDOUT (split "test"). Uma vez, no fim.
+    python -m eval.run                   # all cases
+    python -m eval.run --split dev       # only the development cases
+    python -m eval.run --offline         # skips real sites
+    python -m eval.run --site store -v   # one site, showing each case
+    python -m eval.run --sweep           # sweeps minimum score × gap
+    python -m eval.run --check           # only checks the expected selectors (holdout included)
+    python -m eval.run --final           # runs the HOLDOUT (split "test"). Once, at the end.
 
-O split "test" é o conjunto fechado (holdout): fica fora de todas as
-execuções, a menos que --final seja usado. Não olhe esses resultados
-durante o desenvolvimento.
+The "test" split is the closed set (holdout): it is left out of every run
+unless --final is used. Do not look at these results during development.
 """
 
 from __future__ import annotations
@@ -58,10 +57,10 @@ class CaseResult:
     split: str
     action: str
     query: str
-    status: str               # decisão do Executor
-    rank: int | None          # posição do alvo (1 = primeiro); None = fora do top-10
-    target_indexed: bool      # o alvo estava entre os elementos indexados?
-    outcome: str              # ver classify()
+    status: str               # the Executor's decision
+    rank: int | None          # target position (1 = first); None = outside the top 10
+    target_indexed: bool      # was the target among the indexed elements?
+    outcome: str              # see classify()
     top1_score: float
     runner_up_score: float
     target_score: float | None
@@ -72,11 +71,11 @@ class CaseResult:
 
 
 # ----------------------------------------------------------------------
-# Carregamento
+# Loading
 # ----------------------------------------------------------------------
 
 def check_selectors(suites: list[dict]) -> None:
-    """Confere se cada seletor esperado encontra elemento(s). Não calcula scores."""
+    """Checks that each expected selector finds element(s). Does not compute scores."""
     problems = 0
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -87,13 +86,13 @@ def check_selectors(suites: list[dict]) -> None:
                 n = page.locator(case["expected"]).count()
                 if n == 0:
                     problems += 1
-                    print(f"  [SEM ALVO] {case['id']}: {case['expected']}")
+                    print(f"  [NO TARGET] {case['id']}: {case['expected']}")
                 elif n > 1:
-                    print(f"  [aviso] {case['id']}: seletor casa com {n} elementos (todos aceitos)")
+                    print(f"  [warning] {case['id']}: the selector matches {n} elements (all accepted)")
             page.close()
         browser.close()
     total = sum(len(s["cases"]) for s in suites)
-    print(f"{total} casos conferidos, {problems} com seletor quebrado.")
+    print(f"{total} cases checked, {problems} with a broken selector.")
 
 
 def load_suites(site: str | None, offline: bool) -> list[dict]:
@@ -118,7 +117,7 @@ def open_suite(page: Page, suite: dict) -> None:
 
 
 def target_ids(page: Page, selector: str) -> tuple[int, set[str]]:
-    """Quantos elementos o seletor esperado encontra e quais foram indexados."""
+    """How many elements the expected selector finds, and which of them were indexed."""
     ids = page.locator(selector).evaluate_all(
         "els => els.map(e => e.getAttribute('data-er-id'))"
     )
@@ -126,22 +125,22 @@ def target_ids(page: Page, selector: str) -> tuple[int, set[str]]:
 
 
 # ----------------------------------------------------------------------
-# Avaliação de um caso
+# Evaluating one case
 # ----------------------------------------------------------------------
 
 def classify(status: str, rank: int | None, indexed: bool) -> str:
     """
-    acerto            Executor decidiu e escolheu o alvo.
-    erro_silencioso   Executor decidiu, mas escolheu o elemento ERRADO (o pior caso).
-    recusa_evitavel   Alvo estava em 1º, mas o Executor recusou (limiar conservador demais).
-    recusa_correta    Executor recusou e o 1º não era o alvo (evitou um erro).
-    falha_percepcao   O alvo nem foi indexado pelo script.
+    correct              The Executor decided and chose the target.
+    silent_error         The Executor decided, but chose the WRONG element (the worst case).
+    avoidable_refusal    The target was 1st, but the Executor refused (threshold too conservative).
+    correct_refusal      The Executor refused and the 1st was not the target (it avoided an error).
+    perception_failure   The target was not even indexed by the script.
     """
     if not indexed:
-        return "falha_percepcao"
+        return "perception_failure"
     if status == "success":
-        return "acerto" if rank == 1 else "erro_silencioso"
-    return "recusa_evitavel" if rank == 1 else "recusa_correta"
+        return "correct" if rank == 1 else "silent_error"
+    return "avoidable_refusal" if rank == 1 else "correct_refusal"
 
 
 def run_case(page: Page, suite: dict, case: dict) -> CaseResult:
@@ -156,7 +155,7 @@ def run_case(page: Page, suite: dict, case: dict) -> CaseResult:
 
     n_expected, expected = target_ids(page, case["expected"])
     if n_expected == 0:
-        raise ValueError(f"{case['id']}: seletor esperado não encontra nada: {case['expected']}")
+        raise ValueError(f"{case['id']}: the expected selector finds nothing: {case['expected']}")
 
     rank = next((i for i, m in enumerate(matches, 1) if m.id in expected), None)
     target = matches[rank - 1] if rank else None
@@ -183,7 +182,7 @@ def run_case(page: Page, suite: dict, case: dict) -> CaseResult:
 
 
 # ----------------------------------------------------------------------
-# Métricas
+# Metrics
 # ----------------------------------------------------------------------
 
 def summarize(results: list[CaseResult]) -> dict:
@@ -194,20 +193,20 @@ def summarize(results: list[CaseResult]) -> dict:
     for k in KS:
         s[f"recall@{k}"] = sum(r.rank is not None and r.rank <= k for r in results) / n
     s["mrr"] = sum(1 / r.rank for r in results if r.rank) / n
-    for outcome in ("acerto", "erro_silencioso", "recusa_evitavel", "recusa_correta", "falha_percepcao"):
+    for outcome in ("correct", "silent_error", "avoidable_refusal", "correct_refusal", "perception_failure"):
         s[outcome] = sum(r.outcome == outcome for r in results) / n
-    s["ms_medio"] = sum(r.ms for r in results) / n
+    s["mean_ms"] = sum(r.ms for r in results) / n
     return s
 
 
 def sweep(results: list[CaseResult]) -> list[dict]:
-    """Simula o Executor com outros limiares, usando os scores já calculados."""
+    """Simulates the Executor with other thresholds, using the scores already computed."""
     rows = []
     for min_score in (0.15, 0.20, 0.30, 0.40, 0.50, 0.60):
         for gap in (0.02, 0.04, 0.06, 0.08, 0.12, 0.16, 0.20, 0.30):
             ok = err = refused = 0
             for r in results:
-                # Mesma regra do Executor: gap relativo ao score do 1º.
+                # Same rule as the Executor: gap relative to the 1st score.
                 margin = (r.top1_score - r.runner_up_score) / r.top1_score if r.top1_score else 0.0
                 decided = r.top1_score >= min_score and margin >= gap
                 if not decided:
@@ -218,12 +217,12 @@ def sweep(results: list[CaseResult]) -> list[dict]:
                     err += 1
             n = len(results)
             rows.append({"min_score": min_score, "gap": gap,
-                         "acerto": ok / n, "erro_silencioso": err / n, "recusa": refused / n})
+                         "correct": ok / n, "silent_error": err / n, "refused": refused / n})
     return rows
 
 
 # ----------------------------------------------------------------------
-# Saída
+# Output
 # ----------------------------------------------------------------------
 
 def pct(x: float) -> str:
@@ -236,10 +235,10 @@ def print_summary(title: str, s: dict) -> None:
     print(f"\n{title}  (n={s['n']})")
     print(f"  recall@1 {pct(s['recall@1'])}   @3 {pct(s['recall@3'])}   "
           f"@5 {pct(s['recall@5'])}   @10 {pct(s['recall@10'])}   MRR {s['mrr']:.3f}")
-    print(f"  Executor: acerto {pct(s['acerto'])} | erro silencioso {pct(s['erro_silencioso'])} | "
-          f"recusa evitável {pct(s['recusa_evitavel'])} | recusa correta {pct(s['recusa_correta'])} | "
-          f"falha de percepção {pct(s['falha_percepcao'])}")
-    print(f"  tempo médio por consulta: {s['ms_medio']:.0f} ms")
+    print(f"  Executor: correct {pct(s['correct'])} | silent error {pct(s['silent_error'])} | "
+          f"avoidable refusal {pct(s['avoidable_refusal'])} | correct refusal {pct(s['correct_refusal'])} | "
+          f"perception failure {pct(s['perception_failure'])}")
+    print(f"  mean time per query: {s['mean_ms']:.0f} ms")
 
 
 def git_commit() -> str:
@@ -247,7 +246,7 @@ def git_commit() -> str:
         return subprocess.run(["git", "rev-parse", "--short", "HEAD"],
                               capture_output=True, text=True, check=True).stdout.strip()
     except Exception:
-        return "sem-git"
+        return "no-git"
 
 
 def save(results: list[CaseResult], summary: dict, args) -> Path:
@@ -260,12 +259,12 @@ def save(results: list[CaseResult], summary: dict, args) -> Path:
         w.writeheader()
         w.writerows(asdict(r) for r in results)
     meta = {
-        "versao": __version__,
+        "version": __version__,
         "commit": git_commit(),
-        "data": datetime.now().isoformat(timespec="seconds"),
-        "filtros": {"split": args.split, "site": args.site, "offline": args.offline},
-        "limiares": {"min_score": DEFAULT_MIN_SCORE, "gap": DEFAULT_AMBIGUITY_GAP},
-        "geral": summary,
+        "date": datetime.now().isoformat(timespec="seconds"),
+        "filters": {"split": args.split, "site": args.site, "offline": args.offline},
+        "thresholds": {"min_score": DEFAULT_MIN_SCORE, "gap": DEFAULT_AMBIGUITY_GAP},
+        "overall": summary,
     }
     (out / f"{stem}.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     return out / f"{stem}.csv"
@@ -276,15 +275,15 @@ def save(results: list[CaseResult], summary: dict, args) -> Path:
 # ----------------------------------------------------------------------
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Avaliação do Resolver")
+    ap = argparse.ArgumentParser(description="Resolver evaluation")
     ap.add_argument("--split", choices=["dev", "test"])
     ap.add_argument("--site")
-    ap.add_argument("--offline", action="store_true", help="pula casos que exigem internet")
-    ap.add_argument("--sweep", action="store_true", help="varre score mínimo × gap")
-    ap.add_argument("-v", "--verbose", action="store_true", help="mostra cada caso")
+    ap.add_argument("--offline", action="store_true", help="skips cases that need the internet")
+    ap.add_argument("--sweep", action="store_true", help="sweeps minimum score × gap")
+    ap.add_argument("-v", "--verbose", action="store_true", help="shows each case")
     ap.add_argument("--headed", action="store_true")
-    ap.add_argument("--check", action="store_true", help="só confere os seletores esperados")
-    ap.add_argument("--final", action="store_true", help="roda o holdout (split test)")
+    ap.add_argument("--check", action="store_true", help="only checks the expected selectors")
+    ap.add_argument("--final", action="store_true", help="runs the holdout (split test)")
     args = ap.parse_args()
 
     if args.check:
@@ -292,10 +291,10 @@ def main() -> None:
         return
 
     if args.split == "test" and not args.final:
-        ap.error('o split "test" é o holdout; use --final (uma vez, no fim do desenvolvimento)')
+        ap.error('the "test" split is the holdout; use --final (once, at the end of development)')
     if args.final:
         args.split = "test"
-        print("*** HOLDOUT: execução final. Registre a data e o commit desta rodada. ***")
+        print("*** HOLDOUT: final run. Record the date and the commit of this run. ***")
 
     results: list[CaseResult] = []
     with sync_playwright() as p:
@@ -308,41 +307,41 @@ def main() -> None:
                 if args.split and split != args.split:
                     continue
                 if not args.split and split == "test":
-                    continue  # holdout fica fora por padrão
+                    continue  # the holdout is left out by default
                 r = run_case(page, suite, case)
                 results.append(r)
                 if args.verbose:
-                    mark = {"acerto": "OK ", "erro_silencioso": "ERR", "falha_percepcao": "PER"}.get(r.outcome, "REC")
+                    mark = {"correct": "OK ", "silent_error": "ERR", "perception_failure": "PER"}.get(r.outcome, "REC")
                     print(f"[{mark}] {r.case_id:9} rank={str(r.rank):4} {r.status:9} "
-                          f"top1={r.top1_score:.2f} 2º={r.runner_up_score:.2f}  "
+                          f"top1={r.top1_score:.2f} 2nd={r.runner_up_score:.2f}  "
                           f"{r.query!r} → {r.top1_desc}")
             page.close()
         browser.close()
 
     if not results:
-        print("Nenhum caso selecionado.")
+        print("No cases selected.")
         return
 
     summary = summarize(results)
-    print_summary("GERAL", summary)
+    print_summary("OVERALL", summary)
 
     by = defaultdict(list)
     for r in results:
         by[f"site: {r.suite}"].append(r)
-        by[f"ação: {r.action}"].append(r)
+        by[f"action: {r.action}"].append(r)
     for key in sorted(by):
         print_summary(key, summarize(by[key]))
 
     if args.sweep:
-        print("\nVARREDURA DE LIMIARES (menor erro silencioso primeiro, depois maior acerto)")
-        print("  min_score   gap (relativo)   acerto   erro silencioso   recusa")
-        rows = sorted(sweep(results), key=lambda x: (x["erro_silencioso"], -x["acerto"]))
+        print("\nTHRESHOLD SWEEP (lowest silent error first, then highest correct)")
+        print("  min_score   gap (relative)   correct   silent error   refused")
+        rows = sorted(sweep(results), key=lambda x: (x["silent_error"], -x["correct"]))
         for row in rows[:12]:
-            print(f"    {row['min_score']:.2f}     {row['gap']:.2f}   {pct(row['acerto'])}      "
-                  f"{pct(row['erro_silencioso'])}       {pct(row['recusa'])}")
+            print(f"    {row['min_score']:.2f}     {row['gap']:.2f}   {pct(row['correct'])}      "
+                  f"{pct(row['silent_error'])}       {pct(row['refused'])}")
 
     path = save(results, summary, args)
-    print(f"\nResultados salvos em {path.relative_to(ROOT.parent)} (+ .json com o resumo)")
+    print(f"\nResults saved to {path.relative_to(ROOT.parent)} (+ .json with the summary)")
 
 
 if __name__ == "__main__":

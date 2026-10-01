@@ -10,11 +10,11 @@ hints, data-testid and context), not by its position: it keeps working
 if the order of the items changes. A CSS path is kept as plan B.
 
 So that future runs are not contaminated:
-- if the action fails with an element from memory, the entry is deleted;
-- if the element is not found `max_misses` times in a row
-(the site changed), the entry is also deleted;
-- the memory keeps at most `max_entries` choices (500 by default);
-beyond that, the least recently used one is dropped.
+    - if the action fails with an element from memory, the entry is deleted;
+    - if the element is not found `max_misses` times in a row
+      (the site changed), the entry is also deleted;
+    - the memory keeps at most `max_entries` choices (500 by default);
+      beyond that, the least recently used one is dropped.
 """
 
 from __future__ import annotations

@@ -195,7 +195,7 @@ isort app eval tests examples                # corrige
 ### Agente: um pedido de ponta a ponta
 
 ```bash
-python -m anchor.agent --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
+python -m anchor.agent --perfil ollama-pequeno --url eval/fixtures/registration.html "cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
 ```
 
 O navegador abre visível. O agente planeja, executa cada passo, pergunta no terminal quando a
@@ -247,8 +247,8 @@ setx OPENAI_API_KEY "sua-chave"        # Windows; abra um terminal novo depois
 Gerar um plano, e executá-lo no navegador:
 
 ```bash
-python -m anchor.planner --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva no departamento de TI"
-python -m anchor.planner --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva no departamento de TI" --executar
+python -m anchor.planner --perfil ollama-pequeno --url eval/fixtures/registration.html "cadastre a Maria Silva no departamento de TI"
+python -m anchor.planner --perfil ollama-pequeno --url eval/fixtures/registration.html "cadastre a Maria Silva no departamento de TI" --executar
 ```
 
 Comparar os modelos em tarefas completas (pedido → plano → execução → estado final):

@@ -22,9 +22,9 @@ def fresh(page):
 def test_plano_do_modelo_cumpre_a_tarefa(page):
     client = FakeClient(as_json(TASK["reference"]))
     r = run_task(fresh(page), LLMPlanner(client, "falso"), "falso", TASK, use_page=True)
-    assert r.sucesso and r.plano_valido
-    assert r.passos_ok == r.passos_plano == 2
-    assert r.tokens_entrada == 100 and r.tokens_saida == 20
+    assert r.success and r.plan_valid
+    assert r.steps_ok == r.plan_steps == 2
+    assert r.tokens_in == 100 and r.tokens_out == 20
     assert "Selecionar Ana Souza" in client.calls[0]["messages"][1]["content"]  # recebeu a página
 
 
@@ -34,17 +34,17 @@ def test_plano_errado_nao_cumpre(page):
                                  ["check", "caixa Selecionar Carla Mendes", None],
                                  ["check", "caixa Selecionar Bruno Lima", None]]))
     r = run_task(fresh(page), LLMPlanner(client, "falso"), "falso", TASK, use_page=True)
-    assert r.plano_valido and not r.sucesso
-    assert r.verificacoes_ok < r.verificacoes
+    assert r.plan_valid and not r.success
+    assert r.checks_ok < r.checks
 
 
 def test_modelo_sem_resposta_valida_e_registrado(page):
     client = FakeClient("não sei", "também não")
     r = run_task(fresh(page), LLMPlanner(client, "falso"), "falso", TASK, use_page=True)
-    assert not r.plano_valido and not r.sucesso
-    assert "PlanError" in r.erro
+    assert not r.plan_valid and not r.success
+    assert "PlanError" in r.error
     s = summarize([r])
-    assert s["plano_valido"] == 0 and s["sucesso"] == 0
+    assert s["plan_valid"] == 0 and s["success"] == 0
 
 
 TASKS_ALL = json.loads(TASKS.read_text(encoding="utf-8"))["tasks"]
@@ -54,18 +54,18 @@ FILTER_TASK = next(t for t in TASKS_ALL if t["id"] == "p-usr-01")
 def test_passo_nao_pedido_e_contado(page):
     plan = [["select", "Filtrar por status", "Inativos"], ["click", "Exportar planilha", None]]
     r = run_task(fresh(page), LLMPlanner(FakeClient(as_json(plan)), "falso"), "falso", FILTER_TASK, use_page=True)
-    assert r.sucesso                      # o que foi pedido aconteceu...
-    assert not r.limpa                    # ...mas com uma ação a mais
-    assert r.nao_pedidos == 1
-    assert "Exportar planilha" in r.nao_pedidos_lista
+    assert r.success                      # o que foi pedido aconteceu...
+    assert not r.clean                    # ...mas com uma ação a mais
+    assert r.unrequested == 1
+    assert "Exportar planilha" in r.unrequested_list
     s = summarize([r])
-    assert s["sucesso"] == 1 and s["limpas"] == 0 and s["nao_pedidos"] == 1
+    assert s["success"] == 1 and s["clean"] == 0 and s["unrequested"] == 1
 
 
 def test_plano_sem_passos_a_mais_e_limpo(page):
     plan = [["select", "Filtrar por status", "Inativos"]]
     r = run_task(fresh(page), LLMPlanner(FakeClient(as_json(plan)), "falso"), "falso", FILTER_TASK, use_page=True)
-    assert r.sucesso and r.limpa and r.nao_pedidos == 0
+    assert r.success and r.clean and r.unrequested == 0
 
 
 def test_check_aponta_tarefas_com_problema(capsys, browser):
@@ -88,9 +88,9 @@ def test_modo_agente_confere_o_fim_e_conta_as_chamadas(page):
     plan = as_json([["select", "Filtrar por status", "Inativos"]])
     client = FakeClient(plan, as_json([]))          # plano + conferência do fim (nada falta)
     r = run_task_agent(fresh(page), LLMPlanner(client, "falso"), "falso", FILTER_TASK)
-    assert r.sucesso and r.limpa
-    assert r.chamadas_llm == 2 and r.replanejamentos == 0
-    assert r.tokens_entrada == 200
+    assert r.success and r.clean
+    assert r.llm_calls == 2 and r.replans == 0
+    assert r.tokens_in == 200
     assert "O que já aconteceu" in client.calls[1]["messages"][1]["content"]
 
 
@@ -103,9 +103,9 @@ def test_termino_prematuro_e_contado(page):
     client = FakeClient(as_json([["check", "Selecionar Ana Souza", None],
                                  ["hover", "Selecionar Carla Mendes", None]]), as_json([]))
     r = run_task_agent(fresh(page), LLMPlanner(client, "falso"), "falso", task)
-    assert r.prematuro and not r.sucesso
+    assert r.premature and not r.success
     s = summarize([r])
-    assert s["prematuros"] == 1
+    assert s["premature"] == 1
 
 
 def test_modo_agente_registra_metas_e_suspeitas(page):
@@ -115,12 +115,12 @@ def test_modo_agente_registra_metas_e_suspeitas(page):
                        "goal": "g1", "expect": "Mostrando 1 usuário inativo"}]}
     client = FakeClient(json.dumps(plan), json.dumps({"goals": [], "steps": []}))
     r = run_task_agent(fresh(page), LLMPlanner(client, "falso"), "falso", FILTER_TASK)
-    assert r.sucesso and r.metas == 1 and r.metas_cumpridas == 1
-    assert r.suspeitas == 1                    # a página de teste não mostra esse texto
+    assert r.success and r.goals == 1 and r.goals_done == 1
+    assert r.suspicions == 1                    # a página de teste não mostra esse texto
 
 
 def test_modo_agente_marca_plano_invalido_em_qualquer_idioma(page):
     from eval.plan_run import run_task_agent
     client = FakeClient("isto não é JSON", "nem isto")
     r = run_task_agent(fresh(page), LLMPlanner(client, "falso"), "falso", FILTER_TASK)
-    assert not r.plano_valido and not r.sucesso
+    assert not r.plan_valid and not r.success

@@ -1,0 +1,112 @@
+{
+  "site": "registration",
+  "fixture": "registration.html",
+  "description": "Corporate form in Portuguese",
+  "cases": [
+    {
+      "id": "reg-01",
+      "split": "dev",
+      "action": "fill",
+      "query": "nome completo",
+      "expected": "#nome"
+    },
+    {
+      "id": "reg-02",
+      "split": "dev",
+      "split_original": "test",
+      "action": "fill",
+      "query": "preencher o CPF",
+      "expected": "#cpf"
+    },
+    {
+      "id": "reg-03",
+      "split": "dev",
+      "action": "fill",
+      "query": "data de nascimento",
+      "expected": "#nasc"
+    },
+    {
+      "id": "reg-04",
+      "split": "dev",
+      "split_original": "test",
+      "action": "fill",
+      "query": "e-mail da empresa",
+      "expected": "#mail"
+    },
+    {
+      "id": "reg-05",
+      "split": "dev",
+      "action": "fill",
+      "query": "telefone",
+      "expected": "#tel"
+    },
+    {
+      "id": "reg-06",
+      "split": "dev",
+      "split_original": "test",
+      "action": "select",
+      "query": "escolher o departamento",
+      "expected": "#dep"
+    },
+    {
+      "id": "reg-07",
+      "split": "dev",
+      "action": "check",
+      "query": "contrato PJ",
+      "expected": "input[value=pj]"
+    },
+    {
+      "id": "reg-08",
+      "split": "dev",
+      "split_original": "test",
+      "action": "fill",
+      "query": "campo de observações",
+      "expected": "#obs"
+    },
+    {
+      "id": "reg-09",
+      "split": "dev",
+      "action": "check",
+      "query": "aceitar os termos",
+      "expected": "#termos"
+    },
+    {
+      "id": "reg-10",
+      "split": "dev",
+      "split_original": "test",
+      "action": "click",
+      "query": "salvar o cadastro",
+      "expected": "button.save"
+    },
+    {
+      "id": "reg-11",
+      "split": "dev",
+      "action": "click",
+      "query": "cancelar",
+      "expected": "button.cancel"
+    },
+    {
+      "id": "reg-12",
+      "split": "dev",
+      "split_original": "test",
+      "action": "click",
+      "query": "imprimir a página",
+      "expected": "button[aria-label=Imprimir]"
+    },
+    {
+      "id": "reg-13",
+      "split": "dev",
+      "action": "click",
+      "query": "baixar o formulário",
+      "expected": ".tb button:nth-of-type(2)"
+    },
+    {
+      "id": "reg-14",
+      "split": "dev",
+      "split_original": "test",
+      "action": "extract_text",
+      "query": "data do último salvamento",
+      "expected": "p.status"
+    }
+  ]
+}

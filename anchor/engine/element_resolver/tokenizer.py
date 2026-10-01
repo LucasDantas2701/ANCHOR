@@ -4,12 +4,12 @@ Text normalization for the Resolver.
 All text (the query, the elements' content and context, the dictionaries)
 goes through the same pipeline, so both sides are comparable:
 
-text
-↓  lowercase + accent removal            "Devoluções" → "devolucoes"
-↓  compound expressions (B5)             "lista de desejos" → "wishlist"
-↓  tokenization
-↓  light PT/EN stem                      "devolucoes" → "devoluca"
-tokens
+    text
+      ↓  lowercase + accent removal            "Devoluções" → "devolucoes"
+      ↓  compound expressions (B5)             "lista de desejos" → "wishlist"
+      ↓  tokenization
+      ↓  light PT/EN stem                      "devolucoes" → "devoluca"
+    tokens
 
 The stemmer is simple on purpose (inspired by RSLP, Orengo & Huyck, 2001):
 it removes the plural and then one verb/noun ending. It does not need to
@@ -162,8 +162,8 @@ def normalize_tokens(
     Replaces each token with its synonym(s).
 
     extra:
-    Vocabulary specific to an automation/site
-    (e.g. "mochila" → backpack), already normalized with build_synonyms().
+        Vocabulary specific to an automation/site
+        (e.g. "mochila" → backpack), already normalized with build_synonyms().
     """
     normalized: set[str] = set()
     for token in tokens:

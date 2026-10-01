@@ -1,0 +1,77 @@
+{
+  "site": "holdout_booking",
+  "fixture": "holdout_booking.html",
+  "description": "HOLDOUT — room booking in Portuguese. Do not use for development.",
+  "cases": [
+    {
+      "id": "h-book-01",
+      "split": "test",
+      "action": "select",
+      "query": "escolher a sala",
+      "expected": "#sala"
+    },
+    {
+      "id": "h-book-02",
+      "split": "test",
+      "action": "fill",
+      "query": "horário de início",
+      "expected": "#ini"
+    },
+    {
+      "id": "h-book-03",
+      "split": "test",
+      "action": "fill",
+      "query": "horário de término",
+      "expected": "#fim"
+    },
+    {
+      "id": "h-book-04",
+      "split": "test",
+      "action": "fill",
+      "query": "adicionar participantes",
+      "expected": "#part"
+    },
+    {
+      "id": "h-book-05",
+      "split": "test",
+      "action": "uncheck",
+      "query": "não enviar convite por e-mail",
+      "expected": "#convite"
+    },
+    {
+      "id": "h-book-06",
+      "split": "test",
+      "action": "click",
+      "query": "reservar a sala",
+      "expected": "button.reservar"
+    },
+    {
+      "id": "h-book-07",
+      "split": "test",
+      "action": "click",
+      "query": "excluir a reserva da entrevista",
+      "expected": ".res2 .excluir"
+    },
+    {
+      "id": "h-book-08",
+      "split": "test",
+      "action": "click",
+      "query": "editar a reunião de planejamento",
+      "expected": ".res1 .editar"
+    },
+    {
+      "id": "h-book-09",
+      "split": "test",
+      "action": "click",
+      "query": "mostrar só salas com videoconferência",
+      "expected": ".chip.video"
+    },
+    {
+      "id": "h-book-10",
+      "split": "test",
+      "action": "extract_text",
+      "query": "horário da reserva na sala Negro",
+      "expected": ".res2"
+    }
+  ]
+}

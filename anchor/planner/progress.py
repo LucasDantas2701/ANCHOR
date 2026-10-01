@@ -1,9 +1,9 @@
 """
 Progress indicator in the terminal, on a single line that updates itself:
 
-waiting for the model... 12 s
-model thinking... 85 tokens, 20 s
-writing the plan... 140 tokens, 27 s
+    waiting for the model... 12 s
+    model thinking... 85 tokens, 20 s
+    writing the plan... 140 tokens, 27 s
 
 A background clock updates the line every second, even when nothing
 arrives from the model (for example, while it is being loaded).

@@ -1,0 +1,77 @@
+{
+  "site": "holdout_hr",
+  "fixture": "holdout_hr.html",
+  "description": "HOLDOUT — HR portal in English, queries in Portuguese. Do not use for development.",
+  "cases": [
+    {
+      "id": "h-hr-01",
+      "split": "test",
+      "action": "click",
+      "query": "registrar a saída",
+      "expected": "button.clock-out"
+    },
+    {
+      "id": "h-hr-02",
+      "split": "test",
+      "action": "select",
+      "query": "tipo de afastamento",
+      "expected": "#ltype"
+    },
+    {
+      "id": "h-hr-03",
+      "split": "test",
+      "action": "fill",
+      "query": "data de início das férias",
+      "expected": "#start"
+    },
+    {
+      "id": "h-hr-04",
+      "split": "test",
+      "action": "fill",
+      "query": "data final",
+      "expected": "#end"
+    },
+    {
+      "id": "h-hr-05",
+      "split": "test",
+      "action": "fill",
+      "query": "observações para o gestor",
+      "expected": "#notes"
+    },
+    {
+      "id": "h-hr-06",
+      "split": "test",
+      "action": "check",
+      "query": "marcar meio período",
+      "expected": "#halfday"
+    },
+    {
+      "id": "h-hr-07",
+      "split": "test",
+      "action": "click",
+      "query": "enviar a solicitação",
+      "expected": "button.submit"
+    },
+    {
+      "id": "h-hr-08",
+      "split": "test",
+      "action": "click",
+      "query": "cancelar o pedido pendente",
+      "expected": "li.r2 .cancel"
+    },
+    {
+      "id": "h-hr-09",
+      "split": "test",
+      "action": "click",
+      "query": "abrir meus contracheques",
+      "expected": "a[href='/payslips']"
+    },
+    {
+      "id": "h-hr-10",
+      "split": "test",
+      "action": "extract_text",
+      "query": "saldo de férias",
+      "expected": "p.balance"
+    }
+  ]
+}

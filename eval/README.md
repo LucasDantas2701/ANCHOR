@@ -1,111 +1,155 @@
-# Avaliação do Resolver (Peça 10)
+# Evaluation
 
-Rodar, na raiz do projeto:
+Two evaluations live here:
 
-    python -m eval.run --offline -v     # só as páginas locais, mostrando cada caso
-    python -m eval.run                  # inclui sites reais (SauceDemo)
-    python -m eval.run --split test     # só o conjunto de teste
-    python -m eval.run --sweep          # testa combinações de score mínimo × gap
+- **`eval/run.py`** measures the element resolver case by case (page + query + expected element).
+- **`eval/plan_run.py`** measures complete tasks (request → plan → execution → final state),
+  with the planner alone or through the full agent loop.
 
-Cada execução grava `results/<data>_<commit>.csv` (um caso por linha) e um `.json` com o resumo.
+The test pages (`fixtures/`) and the requests stay in Portuguese: they represent the real user.
 
-## Formato de um arquivo de casos (`cases/<site>.json`)
+## Resolver evaluation
+
+From the project root:
+
+    python -m eval.run --offline -v     # local pages only, showing each case
+    python -m eval.run                  # includes real sites (SauceDemo)
+    python -m eval.run --sweep          # tries combinations of minimum score × gap
+    python -m eval.run --check          # only checks that the expected selectors exist
+
+Each run writes `results/<date>_<commit>.csv` (one case per line) and a `.json` with the summary.
+
+### Case file format (`cases/<site>.json`)
 
     {
-      "site": "loja",
-      "fixture": "loja.html",           // página local em fixtures/  (ou "url": "https://...")
-      "setup": "saucedemo_login",       // opcional: função em setups.py
+      "site": "store",
+      "fixture": "store.html",           // local page in fixtures/  (or "url": "https://...")
+      "setup": "saucedemo_login",        // optional: a function in setups.py
       "requires_network": false,
       "cases": [
-        {"id": "loja-01", "split": "dev", "action": "click",
+        {"id": "store-01", "split": "dev", "action": "click",
          "query": "adicionar os fones de ouvido ao carrinho",
          "expected": ".card:nth-of-type(2) .add"}
       ]
     }
 
-- `action`: nome da ação do Executor (click, fill, check, select, extract_text...).
-- `expected`: seletor CSS (ou do Playwright, como `:has-text()`) do elemento certo.
-  Se mais de um elemento for aceitável, o seletor pode casar com vários.
-- `split`: `dev` para ajustar pesos e sinônimos; `test` só para medir.
-- `synonyms` (opcional, no nível do site): vocabulário específico, passado ao Resolver.
+- `action`: the Executor action (click, fill, check, select, extract_text...).
+- `expected`: a CSS selector (or a Playwright one, such as `:has-text()`) for the right element.
+  If more than one element is acceptable, the selector may match several.
+- `split`: `dev` to tune weights and synonyms; `test` only to measure.
+- `synonyms` (optional, at site level): site-specific vocabulary, passed to the resolver.
 
-## Regra de ouro
+### Golden rule
 
-Ajuste pesos, sinônimos e heurísticas olhando **apenas** o `dev`.
-O número que vai para o artigo é o do `test`. Se você melhorar o código
-olhando os casos de teste, o resultado deixa de medir generalização.
+Tune weights, synonyms and heuristics looking **only** at `dev`. The number that goes into the
+article is the `test` one. If the code is improved by looking at the test cases, the result no
+longer measures generalization.
 
-## Resultados por caso (`outcome`)
+### Per-case outcome (`outcome`)
 
-| valor | significado |
+| value | meaning |
 |---|---|
-| `acerto` | o Executor decidiu e escolheu o elemento certo |
-| `erro_silencioso` | o Executor decidiu, mas escolheu o elemento **errado** (o pior caso) |
-| `recusa_evitavel` | o certo estava em 1º, mas o Executor recusou (limiar conservador) |
-| `recusa_correta` | o Executor recusou e o 1º estava errado (evitou um erro) |
-| `falha_percepcao` | o elemento certo nem foi indexado pelo `index_script.js` |
+| `correct` | the Executor decided and chose the right element |
+| `silent_error` | the Executor decided, but chose the **wrong** element (the worst case) |
+| `avoidable_refusal` | the right one was 1st, but the Executor refused (conservative threshold) |
+| `correct_refusal` | the Executor refused and the 1st was wrong (it avoided an error) |
+| `perception_failure` | the right element was not even indexed by `index_script.js` |
 
-## Holdout (conjunto de teste fechado)
+Result files from before 2026-09-30 use the Portuguese names (`acerto`, `erro_silencioso`,
+`recusa_evitavel`, `recusa_correta`, `falha_percepcao`).
 
-Os arquivos `cases/holdout_*.json` (split `test`) formam o conjunto fechado,
-criado em 25/09/2026 **antes** das correções de verbo conflitante e da
-recalibração dos limiares. Os casos do antigo split `test` viraram `dev`
-(campo `split_original: "test"`), porque já tinham sido consultados.
+### Holdout (the closed test set)
 
-Regras:
+The `cases/holdout_*.json` files (split `test`) form the closed set, created on 2026-09-25,
+**before** the conflicting-verb fixes and the threshold recalibration. The cases of the old
+`test` split became `dev` (field `split_original: "test"`), because they had already been looked at.
 
-1. `python -m eval.run` nunca roda o holdout. Só `--final` roda, e o
-   resultado sai com o sufixo `_FINAL` no nome do arquivo.
-2. Rode `--final` **uma vez**, quando o desenvolvimento do Resolver estiver
-   encerrado. Os números do artigo vêm dessa rodada.
-3. Se algo for alterado depois de olhar o holdout, registre isso no artigo.
-4. `--check` pode ser usado a qualquer momento: só confere se os seletores
-   esperados existem, sem calcular scores.
+Rules:
 
-### Consultas de colegas (recomendado)
+1. `python -m eval.run` never runs the holdout. Only `--final` does, and the result file gets the
+   `_FINAL` suffix.
+2. Run `--final` **once**, when the resolver's development is over. The article's numbers come
+   from that run.
+3. If anything is changed after looking at the holdout, record it in the article.
+4. `--check` can be used at any time: it only checks that the expected selectors exist, without
+   computing scores.
 
-As consultas do holdout foram escritas pelo mesmo autor das heurísticas
-(viés de autoria). Para reduzir esse viés, peça a 2 ou 3 pessoas que:
+#### Queries from colleagues (recommended)
 
-1. abram cada página de `fixtures/holdout_*.html` no navegador;
-2. escrevam, para 8 a 10 elementos, como pediriam aquela ação a um
-   assistente ("quero cancelar o pedido do dia 3 de novembro");
-3. sem ver o código nem os casos existentes.
+The holdout queries were written by the same author as the heuristics (authorship bias). To
+reduce it, ask 2 or 3 people to:
 
-Adicione essas consultas como novos casos `split: "test"`, com ids
-`h-<pagina>-cNN`, e reporte os dois grupos separadamente no artigo.
+1. open each page of `fixtures/holdout_*.html` in the browser;
+2. write, for 8 to 10 elements, how they would ask an assistant for that action
+   ("quero cancelar o pedido do dia 3 de novembro");
+3. without seeing the code or the existing cases.
 
+Add those queries as new `split: "test"` cases, with ids `h-<page>-cNN`, and report both groups
+separately in the article.
 
-## Conjunto fechado de tarefas do planejador
+## Task evaluation
 
-As tarefas de `plans/tasks.json` foram usadas para ajustar o prompt do planejador, então os
-números delas são de desenvolvimento. Os números finais vêm de `plans/holdout_tasks.json`
-(split `test`), que só roda com `python -m eval.plan_run --final`, uma única vez.
+    python -m eval.plan_run --reference                      # hand-written plans (ceiling, no LLM)
+    python -m eval.plan_run --profiles ollama-small ollama-medium -v
+    python -m eval.plan_run --agent --profiles ollama-small  # through the full agent loop
+    python -m eval.plan_run --check                          # checks the tasks, without calling models
 
-Como montar o conjunto:
+Each run writes `results/plans_<date>_<commit>.csv` and a `.json` with the summary (files from
+before 2026-09-30 start with `planos_` and use Portuguese field names). The comparison table
+shows, per model: tasks done, **clean** tasks (done with no unrequested step), unrequested steps,
+valid plans, checks passed, heuristic refusals, time and tokens; with `--agent`, also model calls,
+replans, actions with no effect, premature ends, goals fulfilled and suspicions.
 
-1. **Pedidos escritos por outras pessoas.** Peça a 2 ou 3 colegas que abram as páginas de
-   `fixtures/` no navegador e escrevam, para cada uma, 5 a 8 pedidos como fariam a um
-   assistente ("quero reservar a sala Amazonas para amanhã às 10h"), sem ver o código nem as
-   tarefas existentes. A meta é chegar a 30 ou 40 pedidos.
-2. **Metade em páginas novas, metade nas antigas.** Use as páginas `holdout_*.html` (nunca
-   vistas pelo planejador) e as de desenvolvimento, com pedidos novos. Assim, o artigo separa
-   a generalização para pedidos novos da generalização para páginas novas. As `holdout_*`
-   também são o conjunto fechado do Resolver, e os dois `--final` rodam no fim.
-3. **Transformar cada pedido em tarefa**, no formato de `tasks.json`: `checks` (o estado final
-   esperado), `allowed` (os elementos que a tarefa pode acionar), `reference` (o plano certo,
-   escrito à mão) e `"split": "test"`. Pedidos ambíguos ou impossíveis na página podem ficar,
-   com o `checks` descrevendo o comportamento certo (por exemplo, nenhum clique).
-4. **Conferir sem rodar nada:** `python -m eval.plan_run --check` valida campos, páginas,
-   seletores e verificações, sem chamar modelos nem a heurística.
-5. **Não rodar os modelos nessas tarefas nem ajustar o prompt olhando para elas** até a
-   rodada final. Se algo mudar depois de olhar, registre no artigo.
+`--prompt-language en` runs the planner with the English prompt; the measured results so far use
+the Portuguese one (the default).
 
+### Closed set of planner tasks
 
-## Resposta visível nas páginas de teste (`fixtures/feedback.js`)
+The tasks in `plans/tasks.json` were used to tune the planner prompt, so their numbers are
+development numbers. The final numbers come from `plans/holdout_tasks.json` (split `test`),
+which only runs with `python -m eval.plan_run --final`, a single time.
 
-As páginas de teste não têm servidor, então muitos botões não produziriam nenhum efeito
-visível. Como o agente verifica o efeito de cada ação, o `feedback.js` mostra um aviso discreto
-("Ação registrada") a cada clique e a cada Enter num campo, como um site real responderia. O
-aviso não é interativo e não entra no índice; os resultados do Resolver não mudam. Ele foi
-incluído também nas páginas `holdout_*`, sem alterar o conteúdo delas (26/09/2026).
+How to build the set:
+
+1. **Requests written by other people.** Ask 2 or 3 colleagues to open the pages in `fixtures/`
+   in the browser and write, for each one, 5 to 8 requests as they would ask an assistant
+   ("quero reservar a sala Amazonas para amanhã às 10h"), without seeing the code or the
+   existing tasks. The goal is 30 to 40 requests.
+2. **Half on new pages, half on old ones.** Use the `holdout_*.html` pages (never seen by the
+   planner) and the development ones, with new requests. This way the article separates
+   generalization to new requests from generalization to new pages. The `holdout_*` pages are
+   also the resolver's closed set, and both `--final` runs happen at the end.
+3. **Turn each request into a task**, in the `tasks.json` format: `checks` (the expected final
+   state), `allowed` (the elements the task may act on), `reference` (the right plan, written by
+   hand) and `"split": "test"`. Ambiguous requests, or requests impossible on the page, may stay,
+   with `checks` describing the right behavior (for example, no click).
+4. **Check without running anything:** `python -m eval.plan_run --check` validates fields, pages,
+   selectors and checks, without calling models or the heuristic.
+5. **Do not run the models on these tasks, and do not tune the prompt looking at them,** until
+   the final run. If something changes after looking, record it in the article.
+
+## Visible feedback on the test pages (`fixtures/feedback.js`)
+
+The test pages have no server, so many buttons would produce no visible effect. Since the agent
+checks the effect of each action, `feedback.js` shows a discreet notice ("Ação registrada") on
+each click and on each Enter in a field, as a real site would respond. The notice is not
+interactive and is not indexed; the resolver's results do not change. It was also included in the
+`holdout_*` pages, without changing their content (2026-09-26).
+
+## File names (renamed on 2026-09-30)
+
+The pages, case files and ids were renamed to English; only labels changed, and the content of
+the cases is identical. Older result files use the old names:
+
+| old | new | case ids |
+|---|---|---|
+| `cadastro` | `registration` | `cad-` → `reg-` |
+| `loja` | `store` | `loja-` → `store-` |
+| `pedidos` | `orders` | `ped-` → `ord-` |
+| `usuarios` | `users` | `usr-` (unchanged) |
+| `vagas`, `busca_popup`, `busca_enter` | `jobs`, `search_popup`, `search_enter` | |
+| `holdout_agenda` | `holdout_booking` | `h-age-` → `h-book-` |
+| `holdout_chamados` | `holdout_helpdesk` | `h-cha-` → `h-help-` |
+| `holdout_rh` | `holdout_hr` | `h-rh-` → `h-hr-` |
+
+Task ids: `p-cad-` → `p-reg-`, `p-loja-` → `p-store-`, `p-ped-` → `p-ord-`, `p-vag-` → `p-jobs-`.

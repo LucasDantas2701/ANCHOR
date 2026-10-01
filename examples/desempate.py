@@ -23,7 +23,7 @@ from anchor.engine.disambiguation import TerminalDisambiguator
 from anchor.engine.memory import ChoiceMemory
 
 ROOT = Path(__file__).resolve().parent.parent
-PAGE = ROOT / "eval" / "fixtures" / "loja.html"
+PAGE = ROOT / "eval" / "fixtures" / "store.html"
 MEMORY = ROOT / "memory" / "demo.json"
 
 STEPS = [
