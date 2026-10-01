@@ -59,7 +59,7 @@ def test_fim_com_meta_pendente_nao_e_sucesso(page):
     planner = GoalPlanner((G, FULL[:2]), ([], []))     # o modelo "esquece" de salvar e diz que acabou
     result = run(page, planner)
     assert result.status == "cancelled"
-    assert "metas pendentes: g3 (cadastro salvo)" in result.message
+    assert "pending goals: g3 (cadastro salvo)" in result.message
 
 
 def test_texto_esperado_que_nao_aparece_e_suspeita_nao_falha(page):
@@ -67,7 +67,7 @@ def test_texto_esperado_que_nao_aparece_e_suspeita_nao_falha(page):
     planner = GoalPlanner((G, FULL), ([], []))
     result = run(page, planner)
     assert result.ok and result.suspicions == 1
-    assert "esperava ver" in result.records[2].note
+    assert "expected to see" in result.records[2].note
     assert any(h.startswith("suspeita:") for h in planner.calls[1]["history"])
 
 
@@ -163,7 +163,7 @@ def test_enter_no_elemento_errado_vai_para_o_ultimo_campo(page):
     goals = [Goal("g1", "busca feita", True)]
     steps = [("fill", "Coins", "pi", "g1", None), ("press", "Search /", "Enter", "g1", None)]
     result = run(page, GoalPlanner((goals, steps), ([], [])), request="pesquise pi")
-    assert result.ok and result.records[1].resolved_by == "enter_no_campo"
+    assert result.ok and result.records[1].resolved_by == "enter_in_field"
 
 
 # --------------------------------------------------------------------------
@@ -216,7 +216,7 @@ def test_clique_de_foco_nao_cumpre_a_meta(page):
     goals = [Goal("g1", "produtos ordenados", True)]
     planner = GoalPlanner((goals, [("click", "Sort by", None, "g1", None)]), ([], []))
     result = run(page, planner, request="ordene por preço")
-    assert result.status == "cancelled" and "metas pendentes" in result.message
+    assert result.status == "cancelled" and "pending goals" in result.message
 
 
 

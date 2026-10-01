@@ -28,10 +28,30 @@ que quebram compatibilidade também sobem o MINOR.
   after (Python and JavaScript): the code itself did not change, and the evaluation results are
   identical. The Portuguese vocabulary of the resolver stays, since it is data for understanding
   Portuguese requests.
+- English translation, part 2 (the planner and the agent). Everything the model reads (the
+  prompt, the user message, the page summary, the plan errors sent back for correction, the
+  execution history, the goals' status and the failure reasons) moved to a catalog,
+  `anchor/planner/language.py`, with the Portuguese texts kept exactly as they were: comparing
+  every call the tests make to the planner, before and after, all 99 are identical. What the user
+  reads (the agent's reports and final messages, the command-line tools, the progress indicator,
+  the Ollama and profile errors) follows the interface language.
+- Command-line options are in English: `--profile`, `--url`, `--memory`, `--browser-profile`,
+  `--max-attempts`, `--run` and `--no-page`. The old Portuguese options still work, hidden from
+  `--help`. The model profiles are now `ollama-small` and `ollama-medium` (the old names still
+  work), and the `"_leia"` note in `llm_profiles.json` became `"_readme"`.
+- Internal codes renamed: `resolved_by` values `enter_no_campo` → `enter_in_field` and
+  `campo_revelado` → `revealed_field`. The agent's result has a new `plan_failed` flag, used by
+  `eval/plan_run.py` instead of looking for a Portuguese sentence in the message.
 - The memory commands are now `list`, `forget` and `clear` (with `--yes`); the Portuguese ones
   (`listar`, `esquecer`, `limpar`, `--sim`) still work.
 
 ### Added
+- Planner prompt in English, as an option: `"prompt_language": "en"` in the model profile, or
+  `--prompt-language en` in the command-line tools. Portuguese stays the default, since it is the
+  measured one; the English prompt must be measured on the dev set before being used. With
+  English, everything the model reads is in English, including the element kinds in the page
+  summary and the execution history.
+- `--lang en|pt` in the command-line tools, for the interface language (overrides `ANCHOR_LANG`).
 - `anchor/i18n.py`: user-facing messages in English (default) or Portuguese, chosen with the
   `ANCHOR_LANG` environment variable (`en` or `pt`). The terminal disambiguation, the memory
   commands, the login messages and the demo use it. To skip a step, both `S` and `P` work. What

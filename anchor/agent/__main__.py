@@ -1,12 +1,13 @@
 """
-Executa um pedido de ponta a ponta: plano, execução, replanejamento e fim.
+Runs a request end to end: plan, execution, replanning and end.
 
-    python -m anchor.agent --perfil ollama-pequeno --url eval/fixtures/cadastro.html "cadastre a Maria Silva no TI"
-    python -m anchor.agent --perfil ollama-pequeno --url https://www.saucedemo.com --perfil-navegador profiles/user_001 \\
-        --memoria memory/saucedemo.json "adicione a mochila ao carrinho e abra o carrinho"
+    python -m anchor.agent --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria Silva no TI"
+    python -m anchor.agent --profile ollama-small --url https://www.saucedemo.com --browser-profile profiles/user_001 \\
+        --memory memory/saucedemo.json "adicione a mochila ao carrinho e abra o carrinho"
 
-O navegador fica visível: quando a heurística não tem certeza, o terminal
-pergunta e os candidatos aparecem numerados na página.
+The browser stays visible: when the heuristic is not sure, the terminal asks
+and the candidates appear numbered on the page. The old Portuguese options
+(--perfil, --memoria, --perfil-navegador, --max-tentativas) still work.
 """
 
 import argparse
@@ -15,10 +16,12 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
+from anchor.cli import apply_language, language_options, option, require
 from anchor.engine.action_executor import ActionExecutor
 from anchor.engine.disambiguation import TerminalDisambiguator
 from anchor.engine.element_resolver import ElementResolver
 from anchor.engine.memory import ChoiceMemory
+from anchor.i18n import t
 from anchor.planner import ConfigError, get_profile
 from anchor.planner.progress import Progress
 
@@ -31,10 +34,15 @@ def to_url(value: str) -> str:
 
 
 class ProgressPlanner:
-    """Mostra o progresso do modelo em cada chamada ao planejador."""
+    """Shows the model's progress on each call to the planner."""
 
     def __init__(self, planner, progress: Progress):
         self.planner, self.progress = planner, progress
+
+    @property
+    def language(self) -> str:
+        # The agent writes the history in the planner's language: pass it through.
+        return self.planner.language
 
     def plan(self, *args, **kwargs):
         with self.progress:
@@ -43,25 +51,29 @@ class ProgressPlanner:
 
 def main() -> int:
     ap = argparse.ArgumentParser(prog="python -m anchor.agent")
-    ap.add_argument("pedido")
-    ap.add_argument("--perfil", required=True, help="perfil do modelo em llm_profiles.json")
-    ap.add_argument("--url", required=True, help="link do site ou caminho de um arquivo .html")
-    ap.add_argument("--memoria", default="memory/agente.json", help="arquivo da memória das escolhas")
-    ap.add_argument("--perfil-navegador", help="pasta de um perfil persistente (sistemas com login)")
-    ap.add_argument("--max-tentativas", type=int, default=3)
+    ap.add_argument("request", help="what to do, in natural language")
+    option(ap, "--profile", "--perfil", help="model profile in llm_profiles.json")
+    option(ap, "--url", help="the site's link or the path of an .html file")
+    option(ap, "--memory", "--memoria", default="memory/agent.json", help="choice memory file")
+    option(ap, "--browser-profile", "--perfil-navegador", help="folder of a persistent profile (systems with login)")
+    option(ap, "--max-attempts", "--max-tentativas", type=int, default=3, help="failures before cancelling")
+    language_options(ap)
     args = ap.parse_args()
+    require(ap, args, "--profile", "--url")
+    apply_language(args)
 
     try:
-        profile = get_profile(args.perfil)
+        profile = get_profile(args.profile)
         progress = Progress("    ")
-        planner = ProgressPlanner(profile.planner(on_progress=progress.update), progress)
+        planner = ProgressPlanner(profile.planner(on_progress=progress.update,
+                                                  prompt_language=args.prompt_language), progress)
     except ConfigError as exc:
-        print(f"Erro de configuração: {exc}")
+        print(t("cli.config_error", error=exc))
         return 1
 
     with sync_playwright() as p:
-        if args.perfil_navegador:
-            context = p.chromium.launch_persistent_context(args.perfil_navegador, headless=False)
+        if args.browser_profile:
+            context = p.chromium.launch_persistent_context(args.browser_profile, headless=False)
             page = context.pages[0] if context.pages else context.new_page()
         else:
             context = p.chromium.launch(headless=False).new_context()
@@ -73,22 +85,21 @@ def main() -> int:
             resolver=ElementResolver(page),
             disambiguator=TerminalDisambiguator(),
             can_point=True,
-            memory=ChoiceMemory(args.memoria),
+            memory=ChoiceMemory(args.memory),
         )
         try:
-            result = Agent(page, planner, executor, max_failures=args.max_tentativas).run(args.pedido)
+            result = Agent(page, planner, executor, max_failures=args.max_attempts).run(args.request)
         except KeyboardInterrupt:
-            print("\n\nExecução interrompida pelo usuário.")
+            print("\n\n" + t("cli.interrupted"))
             context.close()
             return 130
 
-        print(f"\nResultado: {result.status} — {result.message}")
-        print(f"Passos executados: {sum(r.status == 'success' for r in result.records)} | "
-              f"chamadas ao modelo: {result.llm_calls} | replanejamentos: {result.replans} | "
-              f"falhas: {result.failures} | intervenções do usuário: {result.interventions} | "
-              f"tokens: {result.tokens_in}+{result.tokens_out} | tempo: {result.seconds} s")
+        print("\n" + t("cli.result", status=result.status, message=result.message))
+        print(t("cli.summary", steps=sum(r.status == "success" for r in result.records), calls=result.llm_calls,
+                replans=result.replans, failures=result.failures, interventions=result.interventions,
+                tokens_in=result.tokens_in, tokens_out=result.tokens_out, seconds=result.seconds))
         try:
-            input("\nEnter para fechar o navegador...")
+            input("\n" + t("cli.close_browser"))
         except KeyboardInterrupt:
             pass
         context.close()

@@ -140,7 +140,7 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict) -> TaskRe
     return TaskResult(
         perfil=profile_name, modelo=getattr(planner, "model", ""), tarefa=task["id"],
         split=task.get("split", "dev"),
-        plano_valido=not result.message.startswith("não foi possível gerar o plano"),
+        plano_valido=not result.plan_failed,
         passos_plano=len(result.records), passos_ok=len(done), parou_em=stopped,
         verificacoes_ok=sum(checks), verificacoes=len(checks), sucesso=success,
         nao_pedidos=len(unrequested), nao_pedidos_lista="; ".join(unrequested),

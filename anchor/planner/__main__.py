@@ -1,8 +1,10 @@
 """
-Gera (e opcionalmente executa) um plano a partir de um pedido e um link.
+Generates (and optionally runs) a plan from a request and a link.
 
-    python -m anchor.planner --perfil ollama-pequeno --url https://www.saucedemo.com "adicione a mochila ao carrinho"
-    python -m anchor.planner --perfil openai --url eval/fixtures/cadastro.html "cadastre a Maria no RH" --executar
+    python -m anchor.planner --profile ollama-small --url https://www.saucedemo.com "adicione a mochila ao carrinho"
+    python -m anchor.planner --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria no RH" --run
+
+The old Portuguese options (--perfil, --executar, --sem-pagina) still work.
 """
 
 import argparse
@@ -11,9 +13,11 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
+from anchor.cli import apply_language, language_options, option, require
 from anchor.engine.action_executor import ActionExecutor
 from anchor.engine.disambiguation import TerminalDisambiguator
 from anchor.engine.element_resolver import ElementResolver
+from anchor.i18n import t
 
 from .config import ConfigError, get_profile
 from .execute import run_plan
@@ -29,55 +33,59 @@ def to_url(value: str) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser(prog="python -m anchor.planner")
-    ap.add_argument("pedido")
-    ap.add_argument("--perfil", required=True, help="nome do perfil em llm_profiles.json")
-    ap.add_argument("--url", required=True, help="link do site ou caminho de um arquivo .html")
-    ap.add_argument("--executar", action="store_true", help="executa o plano no navegador")
-    ap.add_argument("--sem-pagina", action="store_true", help="não envia a lista de elementos ao modelo")
+    ap.add_argument("request", help="what to do, in natural language")
+    option(ap, "--profile", "--perfil", help="profile name in llm_profiles.json")
+    option(ap, "--url", help="the site's link or the path of an .html file")
+    option(ap, "--run", "--executar", action="store_true", help="runs the plan in the browser")
+    option(ap, "--no-page", "--sem-pagina", action="store_true", help="does not send the list of elements to the model")
+    language_options(ap)
     args = ap.parse_args()
+    require(ap, args, "--profile", "--url")
+    apply_language(args)
 
     try:
-        profile = get_profile(args.perfil)
+        profile = get_profile(args.profile)
         progress = Progress("  ")
-        planner = profile.planner(on_progress=progress.update)
+        planner = profile.planner(on_progress=progress.update, prompt_language=args.prompt_language)
     except ConfigError as exc:
-        print(f"Erro de configuração: {exc}")
+        print(t("cli.config_error", error=exc))
         return 1
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=not args.executar)
+        browser = p.chromium.launch(headless=not args.run)
         page = browser.new_page()
         page.goto(to_url(args.url))
         resolver = ElementResolver(page)
-        elements = None if args.sem_pagina else page_elements(resolver, request=args.pedido)
+        elements = None if args.no_page else page_elements(resolver, request=args.request, language=planner.language)
 
-        print(f"Gerando o plano com {profile.model} (na primeira vez, inclui carregar o modelo)...")
+        print(t("planner_cli.generating", model=profile.model))
         try:
             with progress:
-                plan = planner.plan(args.pedido, page.url, elements)
+                plan = planner.plan(args.request, page.url, elements)
         except PlanError as exc:
-            print(f"O modelo não gerou um plano válido: {exc}")
+            print(t("planner_cli.invalid", error=exc))
             return 1
-        except Exception as exc:  # conexão, autenticação, modelo inexistente...
-            print(f"Falha ao chamar o modelo: {type(exc).__name__}: {exc}")
+        except Exception as exc:  # connection, authentication, missing model...
+            print(t("planner_cli.call_failed", kind=type(exc).__name__, error=exc))
             return 1
 
-        print(f"\nPlano ({len(plan.steps)} passos, {plan.latency_s}s, "
-              f"{plan.tokens_in}+{plan.tokens_out} tokens, {plan.attempts} tentativa(s)):")
+        print("\n" + t("planner_cli.header", steps=len(plan.steps), seconds=plan.latency_s,
+                       tokens_in=plan.tokens_in, tokens_out=plan.tokens_out, attempts=plan.attempts))
         for g in plan.goals:
-            print(f"  meta {g.id}: {g.description}" + ("  (conclusiva)" if g.conclusive else ""))
+            print(t("planner_cli.goal", id=g.id, description=g.description)
+                  + (t("planner_cli.conclusive") if g.conclusive else ""))
         for i, s in enumerate(plan.steps, 1):
             value = f' = "{s.value}"' if s.value is not None else ""
             goal = f"  [{s.goal}]" if s.goal else ""
-            expect = f'  → espera "{s.expect}"' if s.expect else ""
+            expect = t("planner_cli.expects", text=s.expect) if s.expect else ""
             print(f"  {i}. {s.action:12} {s.description}{value}{goal}{expect}")
 
-        if args.executar and plan.steps:
+        if args.run and plan.steps:
             executor = ActionExecutor(page, resolver=resolver, disambiguator=TerminalDisambiguator(), can_point=True)
             print()
             for step, result in run_plan(executor, plan):
-                print(f"- {step.description}: {result.status} (por: {result.resolved_by})")
-            input("\nEnter para fechar o navegador...")
+                print(t("demo.step", description=step.description, status=result.status, by=result.resolved_by))
+            input("\n" + t("cli.close_browser"))
         browser.close()
     return 0
 
@@ -86,5 +94,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     except KeyboardInterrupt:
-        print("\n\nInterrompido pelo usuário.")
+        print("\n\n" + t("cli.interrupted"))
         sys.exit(130)

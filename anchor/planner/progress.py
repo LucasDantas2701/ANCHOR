@@ -1,12 +1,12 @@
 """
-Indicador de progresso no terminal, numa única linha que se atualiza:
+Progress indicator in the terminal, on a single line that updates itself:
 
-    carregando/aguardando o modelo... 12 s
-    modelo pensando... 85 tokens, 20 s
-    escrevendo o plano... 140 tokens, 27 s
+waiting for the model... 12 s
+model thinking... 85 tokens, 20 s
+writing the plan... 140 tokens, 27 s
 
-Um relógio em segundo plano atualiza a linha a cada segundo, mesmo
-quando nada chega do modelo (por exemplo, enquanto ele é carregado).
+A background clock updates the line every second, even when nothing
+arrives from the model (for example, while it is being loaded).
 """
 
 from __future__ import annotations
@@ -15,11 +15,9 @@ import sys
 import threading
 import time
 
-PHASES = {
-    "waiting": "aguardando o modelo",
-    "thinking": "modelo pensando",
-    "writing": "escrevendo o plano",
-}
+from anchor.i18n import t
+
+PHASES = {"waiting": "progress.waiting", "thinking": "progress.thinking", "writing": "progress.writing"}
 
 
 class Progress:
@@ -50,7 +48,7 @@ class Progress:
         self.clear()
 
     def update(self, phase: str, tokens: int) -> None:
-        """Chamado a cada pedaço de resposta que chega do modelo."""
+        """Called for each chunk of the answer that arrives from the model."""
         with self._lock:
             self.phase, self.tokens = phase, tokens
         self._render()
@@ -62,7 +60,7 @@ class Progress:
     def _render(self):
         with self._lock:
             elapsed = time.perf_counter() - self._start
-            text = f"{self.prefix}{PHASES.get(self.phase, self.phase)}..."
+            text = f"{self.prefix}{t(PHASES[self.phase]) if self.phase in PHASES else self.phase}..."
             text += f" {self.tokens} tokens," if self.tokens else ""
             text += f" {elapsed:.0f} s"
             pad = max(0, self._last_len - len(text))

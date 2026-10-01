@@ -1,12 +1,14 @@
 """
-Perfis de modelo (arquivo llm_profiles.json na raiz do projeto).
+Model profiles (the llm_profiles.json file at the project root).
 
-Cada perfil diz ONDE está o modelo e COMO autenticar, sem guardar a
-chave: "api_key_env" é o NOME da variável de ambiente com a chave.
-Dois tipos de API:
-    "openai" (padrão): formato da API da OpenAI (OpenAI, ou o Ollama em /v1).
-    "ollama": API nativa do Ollama, que permite desligar o raciocínio
-              ("think": false) e ajustar opções como "num_ctx".
+Each profile says WHERE the model is and HOW to authenticate, without storing
+the key: "api_key_env" is the NAME of the environment variable holding the key.
+Two kinds of API:
+"openai" (default): the OpenAI API format (OpenAI, or Ollama at /v1).
+"ollama": Ollama's native API, which can turn off reasoning
+("think": false) and set options such as "num_ctx".
+"prompt_language" chooses the planner prompt's language: "pt" (default,
+the measured one) or "en".
 """
 
 from __future__ import annotations
@@ -18,6 +20,8 @@ from pathlib import Path
 from typing import Optional
 
 from openai import OpenAI
+
+from anchor.i18n import t
 
 from .ollama_client import OllamaClient
 
@@ -32,54 +36,58 @@ class ConfigError(RuntimeError):
 class LLMProfile:
     name: str
     model: str
-    base_url: Optional[str] = None       # None = API da OpenAI
-    api_key_env: Optional[str] = None    # None = sem chave (ex.: Ollama local)
+    base_url: Optional[str] = None       # None = the OpenAI API
+    api_key_env: Optional[str] = None    # None = no key (e.g. local Ollama)
     temperature: float = 0.0
     timeout_s: float = 180.0
-    extra_body: Optional[dict] = None    # parâmetros extras repassados ao servidor
-    api: str = "openai"                  # "openai" ou "ollama" (API nativa)
-    think: Optional[bool] = False        # só na API "ollama": raciocínio dos modelos "thinking"
-    options: Optional[dict] = None       # só na API "ollama": ex. {"num_ctx": 4096}
+    extra_body: Optional[dict] = None    # extra parameters passed to the server
+    api: str = "openai"                  # "openai" or "ollama" (native API)
+    think: Optional[bool] = False        # "ollama" API only: reasoning of "thinking" models
+    options: Optional[dict] = None       # "ollama" API only: e.g. {"num_ctx": 4096}
+    prompt_language: str = "pt"          # planner prompt language: "pt" (measured) or "en"
 
-    def planner(self, on_progress=None):
-        """Planejador pronto para este perfil (on_progress: ver OllamaClient)."""
+    def planner(self, on_progress=None, prompt_language: Optional[str] = None):
+        """A planner ready for this profile (on_progress: see OllamaClient; prompt_language overrides the profile's)."""
         from .planner import LLMPlanner
         return LLMPlanner(self.client(on_progress), self.model, temperature=self.temperature,
-                          extra_body=self.extra_body)
+                          extra_body=self.extra_body, language=prompt_language or self.prompt_language)
 
     def api_key(self) -> str:
         if not self.api_key_env:
-            return "sem-chave"  # o Ollama ignora a chave, mas o SDK exige uma
+            return "no-key"  # Ollama ignores the key, but the SDK requires one
         key = os.environ.get(self.api_key_env)
         if not key:
-            raise ConfigError(
-                f'O perfil "{self.name}" precisa da variável de ambiente {self.api_key_env}.\n'
-                f'No Windows: setx {self.api_key_env} "sua-chave" (e abra um terminal novo).'
-            )
+            raise ConfigError(t("config.needs_key", profile=self.name, env=self.api_key_env))
         return key
 
     def client(self, on_progress=None):
-        if not self.model or self.model.startswith("COLOQUE"):
-            raise ConfigError(f'Defina o campo "model" do perfil "{self.name}" em llm_profiles.json.')
+        if not self.model or self.model.startswith(("COLOQUE", "PUT_")):
+            raise ConfigError(t("config.no_model", profile=self.name))
         if self.api == "ollama":
             return OllamaClient(self.base_url, self.timeout_s, think=self.think, options=self.options,
                                 on_progress=on_progress)
         if self.api != "openai":
-            raise ConfigError(f'Perfil "{self.name}": "api" deve ser "openai" ou "ollama", não "{self.api}".')
-        # max_retries=0: sem novas tentativas escondidas do SDK; um tempo esgotado aparece na hora.
+            raise ConfigError(t("config.bad_api", profile=self.name, api=self.api))
+        # max_retries=0: no hidden SDK retries; a timeout shows up right away.
         return OpenAI(api_key=self.api_key(), base_url=self.base_url, timeout=self.timeout_s, max_retries=0)
 
 
 def load_profiles(path: Path | str = DEFAULT_FILE) -> dict[str, LLMProfile]:
     path = Path(path)
     if not path.exists():
-        raise ConfigError(f"Arquivo de perfis não encontrado: {path}")
+        raise ConfigError(t("config.no_file", path=path))
     data = json.loads(path.read_text(encoding="utf-8"))
     return {p["name"]: LLMProfile(**p) for p in data["profiles"]}
 
 
+# Old profile names, still accepted.
+PROFILE_ALIASES = {"ollama-pequeno": "ollama-small", "ollama-medio": "ollama-medium"}
+
+
 def get_profile(name: str, path: Path | str = DEFAULT_FILE) -> LLMProfile:
     profiles = load_profiles(path)
+    if name not in profiles and PROFILE_ALIASES.get(name) in profiles:
+        name = PROFILE_ALIASES[name]
     if name not in profiles:
-        raise ConfigError(f'Perfil "{name}" não existe. Disponíveis: {", ".join(profiles)}')
+        raise ConfigError(t("config.unknown_profile", profile=name, available=", ".join(profiles)))
     return profiles[name]

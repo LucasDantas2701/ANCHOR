@@ -1,36 +1,38 @@
-"""Executa um plano com o ActionExecutor, passo a passo."""
+"""Runs a plan with the ActionExecutor, step by step."""
 
 from __future__ import annotations
 
 import re
 
 from anchor.engine.action_executor import ActionExecutor, ActionResult
-from anchor.engine.disambiguation.describe import KIND
+from anchor.engine.disambiguation.describe import kinds
+from anchor.i18n import SUPPORTED
 
 from .plan import Plan, Step
 
-# Rótulos de tipo com várias palavras que o resumo da página usa ("Campo de texto",
-# "Caixa de marcação"...). Os modelos tendem a copiá-los na descrição, e palavras
-# como "texto" casam com todos os campos da página. Os de uma palavra ("Botão",
-# "Link") ficam: ajudam a heurística.
-_MULTIWORD_KINDS = sorted({k for k in KIND.values() if " " in k}, key=len, reverse=True)
+# Multi-word kind labels used by the page summary ("Campo de texto", "Text field",
+# "Caixa de marcação"...), in both languages. Models tend to copy them into the
+# description, and words like "texto" match every field on the page. One-word
+# labels ("Botão", "Link") stay: they help the heuristic.
+_MULTIWORD_KINDS = sorted({k for lang in SUPPORTED for k in kinds(lang).values() if " " in k},
+                          key=len, reverse=True)
 _KIND_RE = re.compile(r"^(?:" + "|".join(re.escape(k) for k in _MULTIWORD_KINDS) + r")\s+", re.IGNORECASE)
 _QUOTES_RE = re.compile(r"[\"“”]")
 _POPUP_RE = re.compile(r"\s*\[pop-up\]", re.IGNORECASE)
 
 
 def clean_description(text: str) -> str:
-    """Tira rótulos de tipo e a marca [pop-up] copiados do resumo da página, e aspas."""
+    """Removes kind labels and the [pop-up] mark copied from the page summary, and quotes."""
     cleaned = _QUOTES_RE.sub("", _KIND_RE.sub("", _POPUP_RE.sub("", text).strip())).strip()
     return cleaned or text
 
 
 def clean_value(value):
-    """Tira colchetes, aspas e o rótulo "opções:" copiados do resumo da página."""
+    """Removes brackets, quotes and the "opções:"/"options:" label copied from the page summary."""
     if value is None:
         return None
     cleaned = value.strip()
-    cleaned = re.sub(r"^\[?\s*opç(ões|oes):\s*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"^\[?\s*(opç(ões|oes)|options):\s*", "", cleaned, flags=re.IGNORECASE)
     cleaned = cleaned.strip("[]\"“” ").strip()
     return cleaned or value
 
@@ -41,8 +43,8 @@ def run_step(executor: ActionExecutor, step: Step) -> ActionResult:
         return executor.fill(d, v)
     if a == "select":
         result = executor.select(d, label=v)
-        # "select" que não deu certo pode ser um botão de opção ou uma caixa de
-        # marcação descrita como "opção": tenta marcar e só usa se funcionar.
+        # A "select" that did not work may be a radio button or a checkbox
+        # described as an "option": try checking it, and use it only if it works.
         if result.status != "success":
             checked = executor.check(d)
             if checked.status == "success":

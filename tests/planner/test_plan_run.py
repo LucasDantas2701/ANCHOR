@@ -117,3 +117,10 @@ def test_modo_agente_registra_metas_e_suspeitas(page):
     r = run_task_agent(fresh(page), LLMPlanner(client, "falso"), "falso", FILTER_TASK)
     assert r.sucesso and r.metas == 1 and r.metas_cumpridas == 1
     assert r.suspeitas == 1                    # a página de teste não mostra esse texto
+
+
+def test_modo_agente_marca_plano_invalido_em_qualquer_idioma(page):
+    from eval.plan_run import run_task_agent
+    client = FakeClient("isto não é JSON", "nem isto")
+    r = run_task_agent(fresh(page), LLMPlanner(client, "falso"), "falso", FILTER_TASK)
+    assert not r.plano_valido and not r.sucesso

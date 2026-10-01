@@ -1,24 +1,29 @@
 """
-Verificação do efeito de cada ação (camada 1, sem LLM).
+Checking the effect of each action (layer 1, no LLM).
 
-Um observador na página conta mudanças no DOM e guarda mensagens novas
-(erros como "CPF inválido", confirmações como "Cadastro salvo"). No Python,
-o agente conta requisições, abas novas e downloads. Depois de cada passo:
+An observer on the page counts DOM changes and keeps new messages (errors
+such as "CPF inválido", confirmations such as "Cadastro salvo"). In Python,
+the agent counts requests, new tabs and downloads. After each step:
 
-    fill / select / check: o estado do elemento é conferido diretamente;
-    click / press:         há efeito se a URL mudou, o DOM mudou, uma
-                           requisição saiu, uma aba abriu ou um download começou;
-    todos:                 uma mensagem de erro nova transforma o passo em falha.
+fill / select / check: the element's state is checked directly;
+click / press:         there is an effect if the URL changed, the DOM changed,
+a request went out, a tab opened or a download started;
+all:                   a new error message turns the step into a failure.
+
+The error and confirmation word lists cover Portuguese and English pages.
 """
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from typing import Optional
 
 from playwright.sync_api import Page
 
-# Mudanças feitas pelo próprio ANCHOR (índice, destaque do desempate) não contam.
+from anchor.planner.language import Reason
+
+# Changes made by ANCHOR itself (the index, disambiguation highlights) do not count.
 OBSERVER_JS = r"""
 () => {
     if (window.__er_obs) return true;
@@ -81,7 +86,7 @@ class Effect:
 
 
 class EffectWatcher:
-    """Conta os sinais de efeito de uma página ao longo da execução."""
+    """Counts a page's effect signals throughout the run."""
 
     IGNORED_RESOURCES = {"image", "stylesheet", "font", "media"}
 
@@ -132,8 +137,8 @@ def _digits(text: str) -> str:
     return re.sub(r"\D", "", text or "")
 
 
-def state_problem(action: str, value: str | None, locator) -> str:
-    """Motivo, se o elemento não ficou no estado que a ação pedia; vazio se ficou."""
+def state_problem(action: str, value: str | None, locator) -> Optional[Reason]:
+    """The reason, if the element did not end up in the state the action asked for; None if it did."""
     try:
         if action == "fill":
             try:
@@ -142,19 +147,19 @@ def state_problem(action: str, value: str | None, locator) -> str:
                 actual = locator.inner_text()
             want, got = " ".join((value or "").split()), " ".join((actual or "").split())
             if got == want or (want and _digits(want) and _digits(want) == _digits(got)) or (want and want in got):
-                return ""
-            return f'o campo ficou com "{got[:60]}" em vez de "{want[:60]}"'
+                return None
+            return Reason("why.field_value", got=got[:60], want=want[:60])
         if action == "select":
             chosen = locator.evaluate(
                 "e => e.selectedOptions && e.selectedOptions[0] ? [e.selectedOptions[0].text, e.value] : ['', '']")
             if any((value or "").strip().lower() == (c or "").strip().lower() for c in chosen):
-                return ""
-            return f'a lista ficou com "{chosen[0]}" em vez de "{value}"'
+                return None
+            return Reason("why.list_value", got=chosen[0], want=value)
         if action in ("check", "uncheck"):
             checked = locator.is_checked()
             if checked == (action == "check"):
-                return ""
-            return "a caixa não ficou marcada" if action == "check" else "a caixa continuou marcada"
+                return None
+            return Reason("why.not_checked" if action == "check" else "why.still_checked")
     except Exception:
-        return ""  # o elemento sumiu ou mudou (ex.: navegação): não dá para conferir
-    return ""
+        return None  # the element disappeared or changed (e.g. navigation): cannot check
+    return None

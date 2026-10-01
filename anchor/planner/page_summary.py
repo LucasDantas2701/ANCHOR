@@ -1,15 +1,18 @@
 """
-Lista curta dos elementos da página, para o planejador usar os nomes reais.
+A short list of the page's elements, so the planner uses the real names.
 
-A lista é ordenada por relevância, porque em páginas grandes ela é cortada:
+The list is sorted by relevance, because on large pages it gets cut:
 
-    1. elementos num pop-up, diálogo ou menu aberto (marcados com [pop-up]);
-    2. elementos com palavras em comum com o pedido (ex.: "pesquise" → "Search");
-    3. elementos visíveis na tela;
-    4. o restante da página.
+1. elements in an open pop-up, dialog or menu (marked with [pop-up]);
+2. elements sharing words with the request (e.g. "pesquise" → "Search");
+3. elements visible on the screen;
+4. the rest of the page.
 
-Elementos cobertos por um pop-up ficam de fora: o usuário não os vê e o
-agente não consegue usá-los enquanto o pop-up estiver aberto.
+Elements covered by a pop-up are left out: the user cannot see them and the
+agent cannot use them while the pop-up is open.
+
+The summary goes to the model, so it is written in the planner prompt's
+language (Portuguese by default), not in the interface language.
 """
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ from anchor.engine.element_resolver.tokenizer import (
     normalize_tokens,
     tokenize,
 )
+from anchor.planner.language import DEFAULT_PROMPT_LANGUAGE, mt
 
 POPUP_MARK = "[pop-up]"
 
@@ -33,7 +37,8 @@ def _words(text: str) -> set[str]:
     return (tokens | normalize_tokens(tokens)) - STOPWORDS_N - STRUCTURAL_WORDS_N
 
 
-def page_elements(resolver: ElementResolver, limit: int = 80, request: str | None = None) -> list[str]:
+def page_elements(resolver: ElementResolver, limit: int = 80, request: str | None = None,
+                  language: str = DEFAULT_PROMPT_LANGUAGE) -> list[str]:
     resolver.index("interactive")
     records = [r for r in resolver.records if not r.get("obscured")]
     wanted = _words(request) if request else set()
@@ -47,20 +52,19 @@ def page_elements(resolver: ElementResolver, limit: int = 80, request: str | Non
             return 2
         return 3
 
-    records.sort(key=priority)  # ordenação estável: mantém a ordem da página em cada grupo
+    records.sort(key=priority)  # stable sort: keeps the page order within each group
 
-    # The summary goes to the model: element kinds in the planner prompt's language
-    # (Portuguese, the measured default), not in the interface language.
-    views = [describe(resolver.to_match(r), 0, language="pt") for r in records]
+    # Element kinds in the planner prompt's language.
+    views = [describe(resolver.to_match(r), 0, language=language) for r in records]
     repeated = Counter((v.kind, v.name) for v in views)
 
     lines, seen = [], set()
     for record, v in zip(records, views):
         line = f'{v.kind} "{v.name}"'
-        # Listas de opções levam as opções: o modelo precisa do texto exato.
+        # Dropdowns carry their options: the model needs the exact text.
         if record.get("options"):
-            line += " [opções: " + " | ".join(record["options"][:10]) + "]"
-        # Nomes repetidos (ex.: vários "Add to cart") levam o texto ao redor.
+            line += mt("summary.options", language, options=" | ".join(record["options"][:10]))
+        # Repeated names (e.g. several "Add to cart") carry the surrounding text.
         if repeated[(v.kind, v.name)] > 1 and v.near:
             line += f" ({v.near[:40]})"
         if record.get("layer"):

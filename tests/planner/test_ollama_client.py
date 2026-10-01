@@ -109,7 +109,7 @@ def test_modelo_inexistente_explica_como_conferir():
 
 
 def test_ollama_fechado_explica_o_problema():
-    with pytest.raises(OllamaError, match="aplicativo do Ollama está aberto"):
+    with pytest.raises(OllamaError, match="Ollama app running"):
         OllamaClient("http://127.0.0.1:9", timeout_s=2).chat.completions.create(model="m", messages=[])
 
 
@@ -138,7 +138,7 @@ def test_indicador_mostra_fase_tokens_e_tempo():
         progress.update("thinking", 3)
         progress.update("writing", 40)
     text = out.getvalue()
-    assert "aguardando o modelo... 0 s" in text
-    assert "modelo pensando... 3 tokens" in text
-    assert "escrevendo o plano... 40 tokens" in text
+    assert "waiting for the model... 0 s" in text
+    assert "model thinking... 3 tokens" in text
+    assert "writing the plan... 40 tokens" in text
     assert text.endswith("\r")                # a linha é limpa no fim

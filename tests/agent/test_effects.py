@@ -46,7 +46,7 @@ def test_mensagem_de_erro_transforma_o_passo_em_falha(page):
 
     assert result.status == "cancelled"                 # o planejador não achou outro caminho
     assert result.records[1].status == "wrong_effect"
-    assert 'apareceu a mensagem "CPF inválido"' in result.records[1].note
+    assert 'the message "CPF inválido" appeared' in result.records[1].note
 
 
 def test_campo_que_nao_guarda_o_valor_e_detectado(page):
@@ -55,7 +55,7 @@ def test_campo_que_nao_guarda_o_valor_e_detectado(page):
     planner = ScriptedPlanner([("fill", "Nome", "Maria")], [])
     result = agent(page, planner).run("preencha")
     assert result.records[0].status == "wrong_effect"
-    assert 'em vez de "Maria"' in result.records[0].note
+    assert 'instead of "Maria"' in result.records[0].note
 
 
 def test_mascara_no_campo_nao_conta_como_erro(page):
@@ -105,7 +105,7 @@ def test_campo_revelado_pela_lupa(page):
     result = agent(page, planner, verify_effect=False).run("pesquise a moeda Pi Network")
 
     assert result.ok and page.evaluate("window.buscou") == "Pi Network"
-    assert result.records[0].resolved_by == "campo_revelado"
+    assert result.records[0].resolved_by == "revealed_field"
 
 
 def test_enter_sem_efeito_leva_a_replanejar(page):

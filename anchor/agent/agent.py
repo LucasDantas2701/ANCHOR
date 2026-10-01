@@ -1,15 +1,19 @@
 """
-Loop do agente: pedido → plano → execução passo a passo → replanejamento → fim.
+The agent loop: request → plan → step-by-step execution → replanning → end.
 
-O LLM só planeja. Cada passo é executado pelo ActionExecutor, que usa a
-memória das escolhas, a heurística e, quando ela recusa, o desempate pelo
-usuário. O agente volta ao planejador em três situações:
+The LLM only plans. Each step is run by the ActionExecutor, which uses the
+choice memory, the heuristic and, when the heuristic refuses, the user's
+disambiguation. The agent goes back to the planner in three situations:
 
-    1. a página mudou (navegação): pede os passos que faltam na página nova;
-    2. um passo falhou: informa o que foi feito e o motivo da falha;
-    3. o plano acabou: pergunta se falta algo; lista vazia = objetivo atingido.
+    1. the page changed (navigation, pop-up): asks for the remaining steps;
+    2. a step failed: reports what was done and why it failed;
+    3. the plan ended: asks whether anything is left; empty list = goal reached.
 
-Três falhas cancelam a execução, com um relato ao usuário.
+Three failures cancel the run, with a report to the user.
+
+Two languages are in play: what the model reads (the history, the goals'
+status, the failure reasons) follows the planner prompt's language; what the
+user reads (the reports and the final message) follows the interface language.
 """
 
 from __future__ import annotations
@@ -28,22 +32,24 @@ from anchor.engine.element_resolver.tokenizer import (
     normalize_tokens,
     tokenize,
 )
+from anchor.i18n import get_language, t
 from anchor.planner import Plan, Step, page_elements, run_step
 from anchor.planner.execute import clean_description, clean_value
+from anchor.planner.language import DEFAULT_PROMPT_LANGUAGE, Reason, mt
 
 from .effects import EffectWatcher, state_problem
 
-# Radicais de "pesquisar", "buscar", "procurar", "search", "find", "ir", "go":
-# um clique desses sem botão, logo depois de preencher um campo, vira Enter.
+# Stems of "pesquisar", "buscar", "procurar", "search", "find", "go": such a click
+# with no button, right after filling in a field, becomes Enter.
 SUBMIT_STEMS = {"pesquis", "busc", "procur", "search", "find", "go", "lupa"}
 
 
 @dataclass
 class StepRecord:
     step: Step
-    status: str                  # success, not_found, ambiguous, error, skipped
+    status: str                  # success, not_found, ambiguous, error, skipped, loop, blocked...
     resolved_by: str = ""
-    note: str = ""
+    note: str = ""               # the reason, in the interface language
 
 
 @dataclass
@@ -54,11 +60,12 @@ class AgentResult:
     llm_calls: int = 0
     replans: int = 0
     failures: int = 0
-    interventions: int = 0       # passos em que o usuário escolheu o elemento
-    no_effect: int = 0           # ações que não tiveram efeito na página
-    goals_total: int = 0         # metas definidas pelo planejador
-    goals_done: int = 0          # metas cumpridas no fim
-    suspicions: int = 0          # passos em que o texto esperado não apareceu
+    interventions: int = 0       # steps in which the user chose the element
+    no_effect: int = 0           # actions with no effect on the page
+    goals_total: int = 0         # goals defined by the planner
+    goals_done: int = 0          # goals fulfilled at the end
+    suspicions: int = 0          # steps in which the expected text did not appear
+    plan_failed: bool = False    # the initial plan could not be generated
     tokens_in: int = 0
     tokens_out: int = 0
     seconds: float = 0.0
@@ -77,25 +84,26 @@ def describe_step(step: Step) -> str:
     return f"{step.action} {step.description}{value}"
 
 
-def failure_reason(result: ActionResult) -> str:
-    """Motivo da falha em palavras que ajudam o planejador a tentar outro caminho."""
+def failure_reason(result: ActionResult) -> Reason:
+    """The failure reason, in words that help the planner try another way."""
     element = result.selected_element
     if element is not None and getattr(element, "obscured", False):
-        return "o elemento está coberto por outro (um modal, aviso ou banner); feche-o antes"
+        return Reason("why.obscured")
     if result.status == "not_found":
-        return "nenhum elemento da página corresponde a essa descrição"
+        return Reason("why.not_found")
     if result.status == "ambiguous":
-        return "mais de um elemento corresponde a essa descrição; seja mais específico"
+        return Reason("why.ambiguous")
     if result.status == "error":
         first_line = (result.error or "").strip().splitlines()[0][:120] if result.error else ""
-        return f"a ação não pôde ser executada ({first_line})" if first_line else "a ação não pôde ser executada"
-    return result.status
+        return Reason("why.error", detail=first_line) if first_line else Reason("why.error_plain")
+    return Reason("why.status", status=result.status)
 
 
 class Agent:
     """
-    planner: qualquer objeto com plan(request, url, page_elements, history) → Plan.
-    report: função chamada com uma linha de texto a cada acontecimento (padrão: print).
+    planner: any object with plan(request, url, page_elements, history) → Plan. Its
+             "language" attribute (default "pt") sets the language the model reads.
+    report: a function called with one line of text on each event (default: print).
     """
 
     def __init__(
@@ -120,6 +128,7 @@ class Agent:
         self.max_end_checks = max_end_checks
         self.max_repeats = max_repeats
         self.watcher = EffectWatcher(page) if verify_effect else None
+        self.language = getattr(planner, "language", DEFAULT_PROMPT_LANGUAGE)
         self.report = report or (lambda _: None)
 
     # ------------------------------------------------------------------
@@ -131,22 +140,22 @@ class Agent:
         .filter(t => t.length > 1 && t.length <= 160).slice(0, 5)"""
 
     def _context_lines(self) -> list[str]:
-        """O estado das metas e as mensagens visíveis, para o planejador (não fica no histórico)."""
+        """The goals' status and the visible messages, for the planner (not kept in the history)."""
         lines = []
         if self._goals:
-            labels = {"done": "cumprida", "pending": "pendente", "dropped": "descartada ou substituída"}
-            lines.append("metas: " + "; ".join(
-                f"{g.id} ({g.description}): {labels[self._goal_status[g.id]]}" for g in self._goals.values()))
+            lines.append(mt("ctx.goals", self.language, goals="; ".join(
+                f"{g.id} ({g.description}): {mt('goal.' + self._goal_status[g.id], self.language)}"
+                for g in self._goals.values())))
         try:
             visible = self.page.evaluate(self._VISIBLE_MESSAGES_JS)
         except Exception:
             visible = []
         if visible:
-            lines.append("mensagens visíveis na página agora: " + " | ".join(f'"{m}"' for m in visible))
+            lines.append(mt("ctx.messages", self.language, messages=" | ".join(f'"{m}"' for m in visible)))
         return lines
 
     def _plan(self, request: str, history: list[str], result: AgentResult) -> Plan:
-        elements = page_elements(self.executor.resolver, request=request)
+        elements = page_elements(self.executor.resolver, request=request, language=self.language)
         context = history + self._context_lines() if history else []
         extra = {"known_goals": set(self._goals)} if self._goals else {}
         plan = self.planner.plan(request, self.page.url, elements, context or None, **extra)
@@ -161,11 +170,11 @@ class Agent:
         return plan
 
     def _pending_goals(self) -> list[str]:
-        """Metas que ainda impedem o fim (as descartadas e as substituídas não impedem)."""
+        """Goals that still prevent the end (dropped and replaced ones do not)."""
         return [f"{g.id} ({g.description})" for g in self._goals.values() if self._goal_status[g.id] == "pending"]
 
     def _supersede(self, failed_goal, queue) -> None:
-        """Depois de uma falha, se o novo plano não tem passos da meta, ela foi substituída."""
+        """After a failure, if the new plan has no steps for the goal, it was replaced."""
         if (failed_goal in self._goal_status and self._goal_status[failed_goal] == "pending"
                 and not any(s.goal == failed_goal for s in queue)):
             self._goal_status[failed_goal] = "dropped"
@@ -180,8 +189,8 @@ class Agent:
 
     def _expected_missing(self, step: Step, words_before: set[str]) -> bool:
         """
-        O texto esperado não apareceu depois do passo? (suspeita, não falha)
-        Só conta o texto novo: o que já estava na página antes não confirma nada.
+        Did the expected text fail to appear after the step? (suspicion, not failure)
+        Only new text counts: what was already on the page confirms nothing.
         """
         if not step.expect:
             return False
@@ -190,19 +199,20 @@ class Agent:
         return bool(want) and len(want & new) / len(want) < 0.5
 
     def _finish(self, result: AgentResult, status: str, message: str, start: float) -> AgentResult:
+        """message: already written in the interface language."""
         if status == "success" and self._pending_goals():
             status = "cancelled"
-            message = "o planejador encerrou com metas pendentes: " + ", ".join(self._pending_goals())
+            message = t("end.pending_goals", goals=", ".join(self._pending_goals()))
         result.goals_done = sum(s == "done" for s in self._goal_status.values())
         result.status, result.message = status, message
         result.seconds = round(time.perf_counter() - start, 2)
-        self.report(f"{'Concluído' if status == 'success' else 'Encerrado'}: {message}")
+        self.report(t("agent.done" if status == "success" else "agent.ended", message=message))
         return result
 
     # ------------------------------------------------------------------
 
     def _layer_count(self) -> int:
-        """Quantos elementos estão num pop-up, diálogo ou menu aberto."""
+        """How many elements are in an open pop-up, dialog or menu."""
         return sum(1 for r in self.executor.resolver.records if r.get("layer"))
 
     @staticmethod
@@ -212,8 +222,8 @@ class Agent:
 
     def _unrequested_destructive(self, request: str, step: Step) -> bool:
         """
-        O passo fecha, exclui, remove, oculta ou cancela algo que o pedido não mencionou?
-        Fechar um pop-up (aviso, diálogo) não conta: é navegação, não descarte.
+        Does the step close, delete, remove, hide or cancel something the request did not
+        mention? Closing a pop-up (notice, dialog) does not count: it is navigation.
         """
         if step.action != "click" or self._destructive(request):
             return False
@@ -224,10 +234,10 @@ class Agent:
         return not (found is not None and found.layer)
 
     def _execute(self, step: Step, last_fill) -> ActionResult:
-        """Executa um passo, com as redes de segurança do Enter e do campo a revelar."""
+        """Runs a step, with the Enter and field-reveal safety nets."""
         description = clean_description(step.description)
 
-        # Enter no lugar de um botão de busca que não existe.
+        # Enter instead of a search button that does not exist.
         if self._is_submit(step) and last_fill is not None:
             status, found, _ = self.executor._resolve(description, "click")
             record = next((r for r in self.executor.resolver.records
@@ -235,13 +245,13 @@ class Agent:
             if status != "success" or (record is not None and accepts(record, "fill")):
                 try:
                     last_fill.locator.press("Enter")
-                    self.report("    sem botão de busca: Enter no campo preenchido")
+                    self.report(t("agent.enter"))
                     return ActionResult(status="success", action="press", description=step.description,
-                                        selected_element=last_fill, resolved_by="enter_no_campo")
+                                        selected_element=last_fill, resolved_by="enter_in_field")
                 except Exception as exc:
                     return ActionResult(status="error", action="press", description=step.description, error=str(exc))
 
-        # Enter num elemento que não é campo de texto: vai para o último campo preenchido.
+        # Enter on an element that is not a text field: goes to the last filled field.
         if step.action == "press" and (step.value or "").lower() == "enter" and last_fill is not None:
             status, found, _ = self.executor._resolve(description, "click")
             record = next((r for r in self.executor.resolver.records
@@ -250,11 +260,11 @@ class Agent:
                 try:
                     last_fill.locator.press("Enter")
                     return ActionResult(status="success", action="press", description=step.description,
-                                        selected_element=last_fill, resolved_by="enter_no_campo")
+                                        selected_element=last_fill, resolved_by="enter_in_field")
                 except Exception:
                     pass
 
-        # Campo que só aparece depois de um clique (ex.: a lupa que abre a busca).
+        # A field that only appears after a click (e.g. the magnifier that opens the search).
         if step.action == "fill":
             status, _, _ = self.executor._resolve(description, "fill")
             if status == "not_found":
@@ -273,11 +283,11 @@ class Agent:
             self.page.wait_for_timeout(400)
         except Exception:
             return None
-        self.report(f'    campo não encontrado: clicou em "{description}" para revelá-lo')
+        self.report(t("agent.revealed", description=description))
 
         status, target, _ = self.executor._resolve(description, "fill")
         if status != "success" or target is None:
-            # O campo revelado costuma receber o foco (ex.: o campo de um pop-up de busca).
+            # The revealed field usually gets the focus (e.g. the field in a search pop-up).
             focused = self.page.locator(":focus")
             try:
                 editable = focused.count() == 1 and focused.evaluate(
@@ -294,76 +304,76 @@ class Agent:
         except Exception as exc:
             return ActionResult(status="error", action="fill", description=step.description, error=str(exc))
         return ActionResult(status="success", action="fill", description=step.description,
-                            selected_element=target, resolved_by="campo_revelado")
+                            selected_element=target, resolved_by="revealed_field")
 
-    def _verify(self, step: Step, outcome: ActionResult, before) -> tuple[str, list[str]]:
+    def _verify(self, step: Step, outcome: ActionResult, before):
         """
-        Confere o efeito de um passo que foi executado. Devolve (problema, mensagens):
-        problema vazio = efeito ok; "no_effect" = nada aconteceu; outro texto = o motivo.
+        Checks the effect of a step that was run. Returns (problem, messages):
+        None = effect ok; "no_effect" = nothing happened; "focus_only" = a click that only
+        gives the focus; a Reason = what went wrong.
         """
         action = outcome.action if outcome.action in ("fill", "select", "check", "uncheck", "press") else step.action
         if action in ("hover", "extract_text"):
-            return "", []
+            return None, []
         effect = self.watcher.effect_since(before)
         errors = effect.errors
         others = [m for m in effect.new_messages if m not in errors]
         if errors:
-            return f'apareceu a mensagem "{errors[0]}"', others
+            return Reason("why.error_message", message=errors[0]), others
         element = outcome.selected_element
         if action in ("fill", "select", "check", "uncheck") and element is not None:
             return state_problem(action, clean_value(step.value), element.locator), others
         if action == "click" and element is not None:
             record = next((r for r in self.executor.resolver.records if r["id"] == element.id), None) or {}
             if accepts(record, "check"):
-                # Clicar numa caixa ou opção muda o estado dela, não a estrutura da página.
+                # Clicking a checkbox or option changes its state, not the page structure.
                 was = bool((element.state or {}).get("checked"))
                 try:
                     now = element.locator.is_checked()
                 except Exception:
-                    return "", others
-                return ("" if now != was or record.get("role") == "radio" and now else "no_effect"), others
+                    return None, others
+                return (None if now != was or record.get("role") == "radio" and now else "no_effect"), others
             if accepts(record, "fill") or accepts(record, "select"):
-                return "focus_only", others   # clicar num campo ou numa lista só dá o foco
+                return "focus_only", others   # clicking a field or a list only gives the focus
         if action in ("click", "press") and not effect.changed:
             return "no_effect", others
-        return "", others
+        return None, others
 
     def _is_submit(self, step: Step) -> bool:
         return step.action == "click" and bool(tokenize(clean_description(step.description)) & SUBMIT_STEMS)
 
     def _replan(self, request, history, result, start, why):
-        """Replaneja; devolve a nova fila, ou um AgentResult se não for possível."""
-        self.report(f"  {why}; replanejando...")
+        """Replans; returns the new queue, or an AgentResult if that is not possible."""
+        self.report(t("agent.replanning", why=why))
         try:
             queue = list(self._plan(request, history, result).steps)
-        except Exception as exc:  # plano inválido, conexão, modelo inexistente...
-            return self._finish(result, "failed", f"falha ao replanejar: {exc}", start)
+        except Exception as exc:  # invalid plan, connection, missing model...
+            return self._finish(result, "failed", t("end.replan_failed", error=exc), start)
         result.replans += 1
         return queue
 
     def _fail(self, request, history, result, start, step, status, resolved_by, reason):
-        """Registra uma falha e replaneja, ou cancela depois de max_failures."""
+        """Records a failure and replans, or cancels after max_failures. reason: a Reason."""
         if step.goal in self._goal_status and status != "loop":
             self._goal_status[step.goal] = "pending"
+        ui_reason = reason.render(get_language())
         result.failures += 1
-        result.records.append(StepRecord(step, status, resolved_by, reason))
-        history.append(f"falhou: {describe_step(step)} — {reason}")
-        self.report(f"    falhou: {reason}")
+        result.records.append(StepRecord(step, status, resolved_by, ui_reason))
+        history.append(mt("hist.failed", self.language, step=describe_step(step), reason=reason.render(self.language)))
+        self.report(t("agent.failed_step", reason=ui_reason))
         if result.failures >= self.max_failures:
             return self._finish(
                 result, "cancelled",
-                f"{self.max_failures} tentativas sem sucesso; último problema: "
-                f"{describe_step(step)} — {reason}",
+                t("end.max_failures", max=self.max_failures, step=describe_step(step), reason=ui_reason),
                 start,
             )
         queue = self._replan(request, history, result, start,
-                             f"Tentativa {result.failures + 1} de {self.max_failures}")
+                             t("agent.why_attempt", n=result.failures + 1, max=self.max_failures))
         if isinstance(queue, AgentResult):
             return queue
         self._supersede(step.goal, queue)
         if not queue:
-            return self._finish(result, "cancelled",
-                                f"o planejador não encontrou outro caminho depois de: {reason}", start)
+            return self._finish(result, "cancelled", t("end.no_other_way", reason=ui_reason), start)
         return queue
 
     def run(self, request: str) -> AgentResult:
@@ -374,56 +384,54 @@ class Agent:
         history: list[str] = []
         end_checks = 0
         done_count: dict[tuple, int] = {}
-        last_done: Optional[tuple] = None   # último passo executado com sucesso
-        after_replan = False                # a fila atual acabou de ser replanejada
-        last_fill = None                    # elemento do último "fill", para o Enter
-        blocked: set[tuple] = set()         # passos destrutivos barrados
+        last_done: Optional[tuple] = None   # last step performed successfully
+        after_replan = False                # the current queue was just replanned
+        last_fill = None                    # element of the last "fill", for the Enter
+        blocked: set[tuple] = set()         # blocked destructive steps
 
         try:
-            self.report("Planejando...")
+            self.report(t("agent.planning"))
             queue = list(self._plan(request, history, result).steps)
-        except Exception as exc:  # plano inválido, conexão, modelo inexistente...
-            return self._finish(result, "failed", f"não foi possível gerar o plano: {exc}", start)
+        except Exception as exc:  # invalid plan, connection, missing model...
+            result.plan_failed = True
+            return self._finish(result, "failed", t("end.no_plan", error=exc), start)
 
         if not queue:
-            return self._finish(result, "cancelled", "o pedido não pode ser feito nesta página", start)
+            return self._finish(result, "cancelled", t("end.cannot"), start)
 
         while True:
-            # ---------------------------------------------------- fim do plano
+            # ---------------------------------------------------- end of the plan
             if not queue:
                 if not self.verify_end:
-                    return self._finish(result, "success", "todos os passos foram executados", start)
+                    return self._finish(result, "success", t("end.all_steps"), start)
                 if end_checks >= self.max_end_checks:
-                    return self._finish(
-                        result, "cancelled",
-                        "a conferência do fim continuou encontrando passos; confira o resultado", start)
+                    return self._finish(result, "cancelled", t("end.end_checks"), start)
                 end_checks += 1
-                self.report("Conferindo se falta algo...")
+                self.report(t("agent.checking_end"))
                 try:
                     queue = list(self._plan(request, history, result).steps)
                 except Exception as exc:
-                    return self._finish(result, "failed", f"falha ao conferir o fim: {exc}", start)
-                # Passos já feitos que a conferência propõe de novo: o modelo não percebeu
-                # que estavam feitos. Descarta; se não sobrar nada, o objetivo foi atingido.
+                    return self._finish(result, "failed", t("end.check_failed", error=exc), start)
+                # Steps already done that the check proposes again: the model did not notice
+                # they were done. Drop them; if nothing is left, the goal was reached.
                 queue = [s for s in queue if step_key(s) not in done_count]
                 if not queue:
-                    return self._finish(result, "success", "objetivo atingido", start)
+                    return self._finish(result, "success", t("end.goal_reached"), start)
                 result.replans += 1
                 after_replan = True
                 continue
 
             if len(result.records) >= self.max_steps:
-                return self._finish(result, "failed", f"limite de {self.max_steps} passos atingido", start)
+                return self._finish(result, "failed", t("end.max_steps", max=self.max_steps), start)
 
             step = queue.pop(0)
             key = step_key(step)
 
-            # ---------------------------------------------------- laço
+            # ---------------------------------------------------- loop
             repeated_now = after_replan and key == last_done
             if repeated_now or done_count.get(key, 0) >= self.max_repeats:
-                reason = ("este passo acabou de ser executado com sucesso; não o repita"
-                          if repeated_now else
-                          f"este passo já foi executado {done_count[key]} vezes; o plano está repetindo")
+                reason = (Reason("why.repeated_now") if repeated_now
+                          else Reason("why.repeated", count=done_count[key]))
                 self.report(f"  ↺ {describe_step(step)}")
                 after_replan = False
                 outcome = self._fail(request, history, result, start, step, "loop", "", reason)
@@ -433,10 +441,10 @@ class Agent:
                 continue
             after_replan = False
 
-            # ---------------------------------------------------- ação destrutiva não pedida
+            # ---------------------------------------------------- unrequested destructive action
             if self._unrequested_destructive(request, step):
-                reason = "o pedido não pede para fechar, excluir, remover, ocultar ou cancelar; não inclua esse passo"
-                self.report(f"  ✕ {describe_step(step)} (barrado: ação destrutiva não pedida)")
+                reason = Reason("why.destructive")
+                self.report(t("agent.blocked", step=describe_step(step)))
                 if key in blocked:
                     outcome = self._fail(request, history, result, start, step, "blocked", "", reason)
                     if isinstance(outcome, AgentResult):
@@ -446,9 +454,10 @@ class Agent:
                 blocked.add(key)
                 if self._goal_status.get(step.goal) == "pending" and not any(
                         r.status == "success" and r.step.goal == step.goal for r in result.records):
-                    self._goal_status[step.goal] = "dropped"   # meta que só tinha a ação barrada
-                result.records.append(StepRecord(step, "blocked", "", reason))
-                history.append(f"barrado: {describe_step(step)} — {reason}")
+                    self._goal_status[step.goal] = "dropped"   # a goal that only had the blocked action
+                result.records.append(StepRecord(step, "blocked", "", reason.render(get_language())))
+                history.append(mt("hist.blocked", self.language, step=describe_step(step),
+                                  reason=reason.render(self.language)))
                 continue
 
             url_before = self.page.url
@@ -461,26 +470,26 @@ class Agent:
             if outcome.resolved_by == "user":
                 result.interventions += 1
 
-            # ---------------------------------------------------- verificação do efeito
+            # ---------------------------------------------------- effect check
             messages: list[str] = []
             focus_only = False
             if outcome.status == "success" and self.watcher is not None:
                 problem, messages = self._verify(step, outcome, before)
                 if problem == "no_effect":
-                    self.report("    sem efeito visível; tentando mais uma vez")
+                    self.report(t("agent.retry_no_effect"))
                     before = self.watcher.snapshot()
                     outcome = self._execute(step, last_fill)
                     if outcome.status == "success":
                         problem, messages = self._verify(step, outcome, before)
                 focus_only = problem == "focus_only"
                 if focus_only:
-                    problem = ""
+                    problem = None
                 if outcome.status == "success" and problem:
-                    history.extend(f'apareceu na página: "{m}"' for m in messages)
+                    history.extend(mt("hist.message", self.language, message=m) for m in messages)
                     status = "no_effect" if problem == "no_effect" else "wrong_effect"
-                    reason = "a ação não teve efeito visível na página" if problem == "no_effect" else problem
+                    reason = Reason("why.no_effect") if problem == "no_effect" else problem
                     if outcome.resolved_by == "memory" and self.executor.memory is not None:
-                        # A escolha memorizada não serve mais: esquece.
+                        # The remembered choice no longer works: forget it.
                         self.executor.memory.forget(url_before, outcome.action, clean_description(step.description))
                     result.no_effect += problem == "no_effect"
                     outcome_q = self._fail(request, history, result, start, step, status,
@@ -490,18 +499,18 @@ class Agent:
                     queue, after_replan = outcome_q, True
                     continue
 
-            # ---------------------------------------------------- sucesso
+            # ---------------------------------------------------- success
             if outcome.status == "success":
                 result.records.append(StepRecord(step, "success", outcome.resolved_by))
-                history.append(f"feito: {describe_step(step)}")
-                history.extend(f'apareceu na página: "{m}"' for m in messages)
+                history.append(mt("hist.done", self.language, step=describe_step(step)))
+                history.extend(mt("hist.message", self.language, message=m) for m in messages)
                 if step.goal in self._goal_status and not (self.watcher is not None and focus_only):
-                    # Um clique que só dá o foco não cumpre a meta.
+                    # A click that only gives the focus does not fulfill the goal.
                     self._goal_status[step.goal] = "done"
                 if self.watcher is not None and self._expected_missing(step, words_before):
                     result.suspicions += 1
-                    result.records[-1].note = f'esperava ver "{step.expect}", e não apareceu'
-                    history.append(f'suspeita: depois de "{describe_step(step)}", esperava ver "{step.expect}", e não apareceu')
+                    result.records[-1].note = mt("why.expected_missing", get_language(), expect=step.expect)
+                    history.append(mt("hist.suspicion", self.language, step=describe_step(step), expect=step.expect))
                 done_count[key] = done_count.get(key, 0) + 1
                 last_done = key
                 if step.action == "fill" and outcome.selected_element is not None:
@@ -510,16 +519,16 @@ class Agent:
                 layers_before = self._layer_count()
                 if self.page.url != url_before:
                     self.page.wait_for_load_state()
-                    why = "A página mudou"
+                    why = t("agent.why_page")
                 elif step.action == "fill":
-                    # Sugestões que aparecem enquanto se digita são efeito normal da
-                    # digitação: não justificam replanejar.
+                    # Suggestions that appear while typing are a normal effect of
+                    # typing: they do not justify replanning.
                     why = ""
                 else:
                     self.executor.resolver.index("interactive")
                     layers_after = self._layer_count()
-                    why = ("Abriu um pop-up" if layers_after > layers_before
-                           else "Fechou um pop-up" if layers_after < layers_before
+                    why = (t("agent.why_popup_opened") if layers_after > layers_before
+                           else t("agent.why_popup_closed") if layers_after < layers_before
                            else "")
                 if why:
                     queue = self._replan(request, history, result, start, why)
@@ -528,14 +537,14 @@ class Agent:
                     after_replan = True
                 continue
 
-            # ---------------------------------------------------- pulado pelo usuário
+            # ---------------------------------------------------- skipped by the user
             if outcome.resolved_by == "user_skipped":
                 result.records.append(StepRecord(step, "skipped", "user_skipped"))
-                history.append(f"pulado pelo usuário: {describe_step(step)}")
-                self.report("    pulado pelo usuário")
+                history.append(mt("hist.skipped", self.language, step=describe_step(step)))
+                self.report(t("agent.skipped"))
                 continue
 
-            # ---------------------------------------------------- falha
+            # ---------------------------------------------------- failure
             outcome_q = self._fail(request, history, result, start, step,
                                    outcome.status, outcome.resolved_by, failure_reason(outcome))
             if isinstance(outcome_q, AgentResult):

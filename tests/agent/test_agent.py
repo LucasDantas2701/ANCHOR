@@ -52,7 +52,7 @@ def test_executa_o_plano_e_confere_o_fim(page):
     )
     result = run(page, planner)
 
-    assert result.ok and result.message == "objetivo atingido"
+    assert result.ok and result.message == "goal reached"
     assert page.input_value("#nome") == "Maria" and page.evaluate("window.salvo") is True
     assert result.llm_calls == 2 and result.replans == 0 and result.failures == 0
     assert result.tokens_in == 200 and result.tokens_out == 40
@@ -124,7 +124,7 @@ def test_tres_falhas_cancelam_e_relatam(page):
     result = run(page, ScriptedPlanner(bad, bad, bad))
 
     assert result.status == "cancelled" and result.failures == 3
-    assert "3 tentativas sem sucesso" in result.message
+    assert "3 failed attempts" in result.message
     assert "Botão que não existe" in result.message
 
 
@@ -151,13 +151,13 @@ def test_modal_cobrindo_o_botao_e_fechado_no_replanejamento(page):
 def test_plano_vazio_no_inicio_cancela(page):
     page.set_content(FORM)
     result = run(page, ScriptedPlanner([]))
-    assert result.status == "cancelled" and "não pode ser feito" in result.message
+    assert result.status == "cancelled" and "cannot be done" in result.message
 
 
 def test_replanejamento_sem_saida_cancela(page):
     page.set_content(FORM)
     result = run(page, ScriptedPlanner([("click", "Botão que não existe", None)], []))
-    assert result.status == "cancelled" and "não encontrou outro caminho" in result.message
+    assert result.status == "cancelled" and "found no other way" in result.message
 
 
 def test_erro_do_modelo_encerra_com_mensagem(page):
@@ -170,7 +170,7 @@ def test_limite_de_passos(page):
     page.set_content(FORM)
     loop = [("fill", "Nome", f"Maria {i}") for i in range(10)]
     result = run(page, ScriptedPlanner(loop), max_steps=4)
-    assert result.status == "failed" and "limite de 4 passos" in result.message
+    assert result.status == "failed" and "limit of 4 steps" in result.message
 
 
 class ChooseSecond:
@@ -245,7 +245,7 @@ def test_busca_sem_botao_usa_enter_no_campo(page):
     result = run(page, planner)
 
     assert result.ok and page.evaluate("window.buscou") == "rpa em manaus"
-    assert result.records[1].resolved_by == "enter_no_campo"
+    assert result.records[1].resolved_by == "enter_in_field"
     assert result.interventions == 0
 
 
@@ -293,7 +293,7 @@ def test_conferencia_do_fim_tem_limite(page):
         [("click", "Salvar", None)],            # 2ª conferência: acha mais
     )
     result = run(page, planner)
-    assert result.status == "cancelled" and "conferência do fim" in result.message
+    assert result.status == "cancelled" and "end check" in result.message
     assert page.evaluate("window.salvo") is True
 
 
@@ -312,7 +312,7 @@ def test_conferencia_que_so_repete_passos_feitos_conta_como_fim(page):
     page.set_content(FORM)
     planner = ScriptedPlanner([("click", "Salvar", None)], [("click", "Salvar", None)])
     result = run(page, planner)
-    assert result.ok and result.message == "objetivo atingido" and result.failures == 0
+    assert result.ok and result.message == "goal reached" and result.failures == 0
 
 
 def test_acao_destrutiva_nao_pedida_e_barrada(page):

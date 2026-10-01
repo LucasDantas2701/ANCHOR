@@ -75,7 +75,7 @@ def test_plano_invalido_recebe_o_erro_e_corrige():
 
 def test_desiste_depois_das_tentativas():
     client = FakeClient("isso não é json", "nem isso")
-    with pytest.raises(PlanError, match="2 tentativas"):
+    with pytest.raises(PlanError, match="2 attempts"):
         LLMPlanner(client, "m").plan("x", "http://x")
 
 
@@ -139,7 +139,7 @@ def test_perfil_sem_chave_explica_como_configurar(monkeypatch):
 
 
 def test_perfil_com_modelo_nao_preenchido():
-    with pytest.raises(ConfigError, match='campo "model"'):
+    with pytest.raises(ConfigError, match='"model" field'):
         LLMProfile(name="p", model="COLOQUE_O_MODELO").client()
 
 

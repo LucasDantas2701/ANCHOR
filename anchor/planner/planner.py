@@ -1,4 +1,4 @@
-"""Planejador: pedido do usuário → lista de passos, usando um LLM."""
+"""Planner: user request → list of steps, using an LLM."""
 
 from __future__ import annotations
 
@@ -9,8 +9,11 @@ from typing import Optional, Protocol
 
 from openai import BadRequestError
 
+from anchor.i18n import t
+
+from .language import DEFAULT_PROMPT_LANGUAGE, PROMPT_LANGUAGES, mt
 from .plan import PLAN_SCHEMA, Plan, PlanError, check_goals, check_request, parse_goals, parse_plan
-from .prompt import SYSTEM, user_message
+from .prompt import system_prompt, user_message
 
 
 class Planner(Protocol):
@@ -24,10 +27,10 @@ class Planner(Protocol):
     ) -> Plan: ...
 
 
-def _extract_json(text: str) -> object:
-    """Aceita JSON puro ou dentro de ```json ... ``` (modelos locais às vezes fazem isso)."""
+def _extract_json(text: str, language: str = DEFAULT_PROMPT_LANGUAGE) -> object:
+    """Accepts plain JSON or JSON inside ```json ... ``` (local models sometimes do this)."""
     text = (text or "").strip()
-    # Modelos "thinking" às vezes põem o raciocínio na resposta: descarta.
+    # "Thinking" models sometimes put their reasoning in the answer: drop it.
     text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
     fenced = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL)
     if fenced:
@@ -35,19 +38,24 @@ def _extract_json(text: str) -> object:
     try:
         return json.loads(text)
     except json.JSONDecodeError as exc:
-        raise PlanError(f"a resposta não é um JSON válido ({exc.msg})") from exc
+        raise PlanError(mt("plan.not_json", language, msg=exc.msg)) from exc
 
 
 class LLMPlanner:
     """
-    client: um cliente com a interface do SDK da OpenAI (client.chat.completions.create).
-    max_attempts: se o modelo devolver um plano inválido, ele recebe o erro e tenta de novo.
-    extra_body: parâmetros extras repassados ao servidor em cada chamada
-                (ex.: para desligar o raciocínio de um modelo "thinking").
+    client: a client with the OpenAI SDK interface (client.chat.completions.create).
+    max_attempts: if the model returns an invalid plan, it gets the error and tries again.
+    extra_body: extra parameters passed to the server on every call
+                (e.g. to turn off the reasoning of a "thinking" model).
+    language: the prompt's language, "pt" (default, the measured one) or "en". The
+              agent writes the execution history for the model in this language too.
     """
 
     def __init__(self, client, model: str, temperature: float = 0.0, max_attempts: int = 2, seed: int = 7,
-                 extra_body: Optional[dict] = None):
+                 extra_body: Optional[dict] = None, language: str = DEFAULT_PROMPT_LANGUAGE):
+        if language not in PROMPT_LANGUAGES:
+            raise ValueError(f"unsupported prompt language {language!r}; use one of {', '.join(PROMPT_LANGUAGES)}")
+        self.language = language
         self.client = client
         self.model = model
         self.temperature = temperature
@@ -68,7 +76,7 @@ class LLMPlanner:
                                      "json_schema": {"name": "plano", "schema": PLAN_SCHEMA, "strict": True}},
                 )
             except BadRequestError:
-                self._schema_supported = False  # servidor sem suporte a esquema: pede só JSON
+                self._schema_supported = False  # server without schema support: ask for plain JSON
         return self.client.chat.completions.create(**kwargs, response_format={"type": "json_object"})
 
     def plan(
@@ -80,12 +88,12 @@ class LLMPlanner:
         known_goals: Optional[set[str]] = None,
     ) -> Plan:
         """
-        history: o que já aconteceu na execução (passos feitos e falhas), para replanejar.
-        known_goals: ids das metas já definidas na execução (um replanejamento pode citá-las).
+        history: what already happened in the run (steps done and failures), for replanning.
+        known_goals: ids of the goals already defined in the run (a replan may refer to them).
         """
         messages = [
-            {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": user_message(request, url, page_elements, history)},
+            {"role": "system", "content": system_prompt(self.language)},
+            {"role": "user", "content": user_message(request, url, page_elements, history, self.language)},
         ]
         tokens_in = tokens_out = 0
         start = time.perf_counter()
@@ -98,19 +106,20 @@ class LLMPlanner:
             tokens_out += getattr(usage, "completion_tokens", 0) or 0
             raw = response.choices[0].message.content or ""
             try:
-                data = _extract_json(raw)
-                steps = parse_plan(data)
-                goals = parse_goals(data)
-                check_goals(steps, goals, known_goals)
+                data = _extract_json(raw, self.language)
+                steps = parse_plan(data, self.language)
+                goals = parse_goals(data, self.language)
+                check_goals(steps, goals, known_goals, self.language)
                 if not history and steps:
-                    check_request(steps, goals, request)   # só o plano inicial cobre o pedido todo
+                    # Only the initial plan covers the whole request.
+                    check_request(steps, goals, request, self.language)
                 return Plan(steps=steps, goals=goals, model=self.model, latency_s=round(time.perf_counter() - start, 2),
                             tokens_in=tokens_in, tokens_out=tokens_out, attempts=attempt, raw=raw)
             except PlanError as exc:
                 last_error = exc
                 messages += [
                     {"role": "assistant", "content": raw},
-                    {"role": "user", "content": f"Plano inválido: {exc}. Corrija e responda só com o JSON."},
+                    {"role": "user", "content": mt("plan.retry", self.language, error=exc)},
                 ]
 
-        raise PlanError(f"plano inválido depois de {self.max_attempts} tentativas: {last_error}")
+        raise PlanError(t("planner.gave_up", attempts=self.max_attempts, error=last_error))

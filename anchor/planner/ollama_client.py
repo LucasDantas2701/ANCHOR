@@ -1,10 +1,10 @@
 """
-Cliente da API nativa do Ollama (/api/chat) com a mesma interface do SDK
-da OpenAI (client.chat.completions.create), para o planejador não mudar.
+Client for Ollama's native API (/api/chat) with the same interface as the
+OpenAI SDK (client.chat.completions.create), so the planner does not change.
 
-Por que usar a API nativa: ela permite desligar o raciocínio dos modelos
-"thinking" ("think": false) e ajustar opções como o tamanho do contexto
-("num_ctx"), o que o formato da OpenAI não garante.
+Why the native API: it can turn off the reasoning of "thinking" models
+("think": false) and set options such as the context size ("num_ctx"),
+which the OpenAI format does not guarantee.
 """
 
 from __future__ import annotations
@@ -14,6 +14,8 @@ from types import SimpleNamespace
 from typing import Callable, Optional
 
 import requests
+
+from anchor.i18n import t
 
 
 class OllamaError(RuntimeError):
@@ -30,11 +32,11 @@ class OllamaClient:
         on_progress: Optional[Callable[[str, int], None]] = None,
     ):
         """
-        on_progress(fase, tokens): chamado a cada pedaço da resposta, com
-        fase "thinking" ou "writing". Com ele, a resposta chega em streaming.
+        on_progress(phase, tokens): called for each chunk of the answer, with
+        phase "thinking" or "writing". With it, the answer is streamed.
         """
         base = (base_url or "http://localhost:11434").rstrip("/")
-        if base.endswith("/v1"):  # aceita o endereço do formato OpenAI por engano
+        if base.endswith("/v1"):  # accepts the OpenAI-format address by mistake
             base = base[:-3]
         self.url = base + "/api/chat"
         self.timeout_s = timeout_s
@@ -70,14 +72,14 @@ class OllamaClient:
         try:
             response = requests.post(self.url, json=body, timeout=self.timeout_s, stream=streaming)
         except requests.ConnectionError as exc:
-            raise OllamaError(f"não consegui falar com o Ollama em {self.url}. O aplicativo do Ollama está aberto?") from exc
+            raise OllamaError(t("ollama.unreachable", url=self.url)) from exc
         except requests.Timeout as exc:
-            raise OllamaError(f"o modelo não respondeu em {self.timeout_s:.0f} s") from exc
+            raise OllamaError(t("ollama.timeout", seconds=f"{self.timeout_s:.0f}")) from exc
 
         if response.status_code == 404:
-            raise OllamaError(f'modelo "{model}" não encontrado no Ollama; confira o nome com "ollama list"')
+            raise OllamaError(t("ollama.no_model", model=model))
         if response.status_code >= 400:
-            raise OllamaError(f"o Ollama devolveu erro {response.status_code}: {response.text[:200]}")
+            raise OllamaError(t("ollama.http_error", status=response.status_code, text=response.text[:200]))
 
         data = self._read_stream(response) if streaming else response.json()
         return SimpleNamespace(
@@ -90,7 +92,7 @@ class OllamaClient:
         )
 
     def _read_stream(self, response) -> dict:
-        """Junta os pedaços da resposta, avisando o progresso a cada um."""
+        """Joins the chunks of the answer, reporting progress on each one."""
         content, tokens, last = [], 0, {}
         try:
             for line in response.iter_lines():
@@ -109,5 +111,5 @@ class OllamaClient:
                     last = chunk
                     break
         except requests.RequestException as exc:
-            raise OllamaError(f"a conexão com o Ollama caiu durante a resposta: {exc}") from exc
+            raise OllamaError(t("ollama.dropped", error=exc)) from exc
         return {**last, "message": {"content": "".join(content)}}
