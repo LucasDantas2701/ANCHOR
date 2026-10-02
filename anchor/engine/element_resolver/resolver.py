@@ -25,6 +25,8 @@ def accepts(record: dict, action: str | None) -> bool:
         fill:   text fields (text inputs, textareas, editable elements)
         select: native lists (<select>)
         check:  checkboxes, radio buttons and switches
+        extract (text): anything except checkboxes, radio buttons and switches,
+                        which have no text to extract (only a state)
     """
     tag, role = record.get("tag", ""), record.get("role", "")
     kind = (record.get("type") or "").lower()
@@ -34,9 +36,12 @@ def accepts(record: dict, action: str | None) -> bool:
                 or (tag != "input" and role in ("textbox", "searchbox")))
     if action == "select":
         return tag == "select"
+    is_toggle = ((tag == "input" and kind in ("checkbox", "radio"))
+                 or role in ("checkbox", "radio", "switch", "menuitemcheckbox", "menuitemradio"))
     if action == "check":
-        return ((tag == "input" and kind in ("checkbox", "radio"))
-                or role in ("checkbox", "radio", "switch", "menuitemcheckbox", "menuitemradio"))
+        return is_toggle
+    if action == "extract":
+        return not is_toggle
     return True
 
 

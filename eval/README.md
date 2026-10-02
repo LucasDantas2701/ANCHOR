@@ -16,6 +16,7 @@ From the project root:
     python -m eval.run                  # includes real sites (SauceDemo)
     python -m eval.run --sweep          # tries combinations of minimum score × gap
     python -m eval.run --check          # only checks that the expected selectors exist
+    python -m eval.run --language en    # only the English cases (pt or en; default: both)
 
 Each run writes `results/<date>_<commit>.csv` (one case per line) and a `.json` with the summary.
 
@@ -38,6 +39,9 @@ Each run writes `results/<date>_<commit>.csv` (one case per line) and a `.json` 
   If more than one element is acceptable, the selector may match several.
 - `split`: `dev` to tune weights and synonyms; `test` only to measure.
 - `synonyms` (optional, at site level): site-specific vocabulary, passed to the resolver.
+- `language` (optional, at site level): the queries' language, `pt` (default) or `en`. The English
+  sets (`*_en.json`) mirror the Portuguese ones, on English pages; results are reported per
+  language. Tune the resolver looking only at the development cases of each language.
 
 ### Golden rule
 

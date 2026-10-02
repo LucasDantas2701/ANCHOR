@@ -1,0 +1,66 @@
+{
+  "site": "saucedemo_en",
+  "url": "https://www.saucedemo.com",
+  "setup": "saucedemo_login",
+  "requires_network": true,
+  "description": "Real site (SauceDemo) with queries in English, needs the internet",
+  "language": "en",
+  "cases": [
+    {
+      "id": "en-sauce-01",
+      "split": "dev",
+      "action": "click",
+      "query": "button to add the backpack to the cart",
+      "expected": "[data-test='add-to-cart-sauce-labs-backpack']"
+    },
+    {
+      "id": "en-sauce-02",
+      "split": "dev",
+      "action": "click",
+      "query": "add the bike light to the cart",
+      "expected": "[data-test='add-to-cart-sauce-labs-bike-light']"
+    },
+    {
+      "id": "en-sauce-03",
+      "split": "dev",
+      "action": "click",
+      "query": "add the red t-shirt",
+      "expected": "[data-test='add-to-cart-test.allthethings()-t-shirt-(red)']"
+    },
+    {
+      "id": "en-sauce-04",
+      "split": "dev",
+      "action": "click",
+      "query": "open the cart",
+      "expected": "[data-test='shopping-cart-link']"
+    },
+    {
+      "id": "en-sauce-05",
+      "split": "dev",
+      "action": "click",
+      "query": "open the side menu",
+      "expected": "#react-burger-menu-btn"
+    },
+    {
+      "id": "en-sauce-06",
+      "split": "dev",
+      "action": "select",
+      "query": "sort products by price",
+      "expected": "[data-test='product-sort-container']"
+    },
+    {
+      "id": "en-sauce-07",
+      "split": "dev",
+      "action": "extract_text",
+      "query": "Sauce Labs Backpack",
+      "expected": "[data-test='inventory-item-name']:has-text('Backpack'), a:has([data-test='inventory-item-name']:has-text('Backpack'))"
+    },
+    {
+      "id": "en-sauce-08",
+      "split": "dev",
+      "action": "extract_text",
+      "query": "price of the jacket",
+      "expected": "[data-test='inventory-item']:has-text('Fleece Jacket') [data-test='inventory-item-price']"
+    }
+  ]
+}

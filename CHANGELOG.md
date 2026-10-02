@@ -18,6 +18,15 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- English evaluation, part 1 (the resolver): English versions of the Portuguese test pages
+  (`registration_en`, `users_en`, `orders_en`, `jobs_en`, `search_enter_en`, with the same structure)
+  and 52 English development cases (`eval/cases/*_en.json`, field `"language": "en"`), mirroring the
+  Portuguese ones. `eval/run.py` reports the results per language and accepts `--language pt|en`.
+  First measurement: recall@1 88.5% and silent error 7.7% in English, against 82.7% and 1.9% in
+  Portuguese.
+- Table cells now carry their column header ("E-mail", "Status") as a hint, since a cell's text
+  alone often does not say what it is ("brian@company.com"); only for non-interactive cells.
+- `eval/fixtures/feedback.js` follows the page's language.
 - Before declaring success, the agent checks what was actually **done** against the request,
   with the same check the initial plan goes through (conclusive verbs in a click or key press,
   the request's data in some step). Until now, a goal counted as fulfilled as soon as one of its
@@ -83,6 +92,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   redistribution; copyright by the author. "Responsible use" section in the README.
 
 ### Changed
+- Text extraction no longer targets checkboxes, radio buttons or switches, which have no text.
+  With the column header, on the local development sets: Portuguese recall@1 82.7% → 86.5% and
+  correct 78.8% → 82.7% (silent error unchanged, 1.9%); English recall@1 88.5% → 90.4%, correct
+  86.5% → 88.5% and silent error 7.7% → 5.8%. The three silent errors left in English (a price
+  extraction, "favorite" vs. "Add to wishlist", and a status cell losing to the name cell) are
+  recorded as limitations rather than fixed with case-specific rules.
 - The project is now called **ANCHOR** (Adaptive Natural-language Control with Human
   Oversight and Recovery); repository and package name `anchor-rpa`. The Python package moved
   from `app/` to `anchor/`, so commands become `python -m anchor.agent`, `python -m

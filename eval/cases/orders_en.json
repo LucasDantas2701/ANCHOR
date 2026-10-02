@@ -1,0 +1,43 @@
+{
+  "site": "orders_en",
+  "fixture": "orders_en.html",
+  "description": "Orders page in English, queries in English",
+  "language": "en",
+  "cases": [
+    {
+      "id": "en-ord-01",
+      "split": "dev",
+      "action": "click",
+      "query": "cancel the order",
+      "expected": ".pedido:nth-of-type(2) .cancel"
+    },
+    {
+      "id": "en-ord-02",
+      "split": "dev",
+      "action": "click",
+      "query": "open the details of order 1023",
+      "expected": ".pedido:nth-of-type(1) .det"
+    },
+    {
+      "id": "en-ord-03",
+      "split": "dev",
+      "action": "click",
+      "query": "open the cart",
+      "expected": "a.cart"
+    },
+    {
+      "id": "en-ord-04",
+      "split": "dev",
+      "action": "click",
+      "query": "continue",
+      "expected": "button.cont2"
+    },
+    {
+      "id": "en-ord-05",
+      "split": "dev",
+      "action": "click",
+      "query": "add the mug to the cart",
+      "expected": ".rec:nth-of-type(2) button"
+    }
+  ]
+}

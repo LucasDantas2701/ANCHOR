@@ -1,10 +1,11 @@
 // Visible feedback for actions, as a real site would give. The test pages have no
 // server, so many buttons would do nothing visible; without this, the agent's effect
 // check would report "no effect" for actions that, on a real site, would have one.
-// The notice is not interactive and is not indexed by ANCHOR. Its texts are in
-// Portuguese, like the rest of the test pages.
+// The notice is not interactive and is not indexed by ANCHOR. Its texts follow the
+// page's language (Portuguese or English).
 (() => {
     let count = 0;
+    const en = (document.documentElement.lang || "").startsWith("en");
     const show = (text) => {
         let box = document.getElementById("__feedback");
         if (!box) {
@@ -19,9 +20,9 @@
     };
     const ACTIONABLE = "a, button, summary, [role=button], [role=option], [role=tab], [role=switch], [onclick], .chip, .lupa";
     document.addEventListener("click", (e) => {
-        if (e.target.closest && e.target.closest(ACTIONABLE)) show("Ação registrada");
+        if (e.target.closest && e.target.closest(ACTIONABLE)) show(en ? "Action recorded" : "Ação registrada");
     });
     document.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && e.target.matches && e.target.matches("input, textarea")) show("Tecla Enter recebida");
+        if (e.key === "Enter" && e.target.matches && e.target.matches("input, textarea")) show(en ? "Enter key received" : "Tecla Enter recebida");
     });
 })();

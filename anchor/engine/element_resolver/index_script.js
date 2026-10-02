@@ -278,6 +278,20 @@
         return container ? clean(innerTextOf(container), 300) : "";
     }
 
+    // Header of a table cell's column ("E-mail", "Status"): it says what the cell's
+    // text is, which the text alone often does not ("brian@company.com").
+    function columnHeader(el) {
+        const cell = el.closest("td, th");
+        const table = cell && cell.closest("table");
+        if (!cell || !table) return "";
+        const row = cell.parentElement;
+        const index = [...row.children].indexOf(cell);
+        const headerRow = (table.tHead && table.tHead.rows[0]) || table.rows[0];
+        const header = headerRow && headerRow.cells[index];
+        if (!header || header === cell || header.tagName.toLowerCase() !== "th") return "";
+        return clean(header.innerText, 40);
+    }
+
     // Layer open on top of the page: a dialog, menu, suggestion list, or a fixed
     // element covering a large part of the screen (pop-ups without an ARIA role).
     const LAYER_SEL = "dialog[open], [role=dialog], [role=alertdialog], [aria-modal=true], [role=listbox], [role=menu]";
@@ -348,7 +362,9 @@
         const label = accessibleName(el);
         const text = visibleText(el, tag);
         const value = valueOf(el, tag);
-        const hint = visualHint(el);
+        const isInteractive = el.matches(INTERACTIVE) || pointerOnly.has(el);
+        const column = isInteractive ? "" : columnHeader(el);
+        const hint = [visualHint(el), column].filter(Boolean).join(" ");
         const type = tag === "input" || tag === "button" ? el.type : "";
         const href = el.href ? clean(el.getAttribute("href"), 150) : "";
         const testId = el.getAttribute("data-testid") || el.getAttribute("data-test") || el.getAttribute("data-qa") || "";
@@ -366,7 +382,8 @@
             // Closest indexed element that contains this one (visited earlier, in document
             // order), and whether this one is interactive: used to merge nested elements.
             parentId: el.parentElement?.closest(`[${ATTR}]`)?.getAttribute(ATTR) || "",
-            interactive: el.matches(INTERACTIVE) || pointerOnly.has(el),
+            interactive: isInteractive,
+            column,
             context: contextOf(el),
             content,
             ...geometry(el),

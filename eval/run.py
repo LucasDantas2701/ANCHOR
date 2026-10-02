@@ -13,6 +13,7 @@ Usage (from the project root):
     python -m eval.run --split dev       # only the development cases
     python -m eval.run --offline         # skips real sites
     python -m eval.run --site store -v   # one site, showing each case
+    python -m eval.run --language en     # only the English cases (pt or en; default: both)
     python -m eval.run --sweep           # sweeps minimum score × gap
     python -m eval.run --check           # only checks the expected selectors (holdout included)
     python -m eval.run --final           # runs the HOLDOUT (split "test"). Once, at the end.
@@ -53,6 +54,7 @@ MAX_K = max(KS)
 @dataclass
 class CaseResult:
     suite: str
+    language: str             # the queries' language ("pt" or "en")
     case_id: str
     split: str
     action: str
@@ -95,11 +97,13 @@ def check_selectors(suites: list[dict]) -> None:
     print(f"{total} cases checked, {problems} with a broken selector.")
 
 
-def load_suites(site: str | None, offline: bool) -> list[dict]:
+def load_suites(site: str | None, offline: bool, language: str | None = None) -> list[dict]:
     suites = []
     for path in sorted((ROOT / "cases").glob("*.json")):
         suite = json.loads(path.read_text(encoding="utf-8"))
         if site and suite["site"] != site:
+            continue
+        if language and suite.get("language", "pt") != language:
             continue
         if offline and suite.get("requires_network"):
             continue
@@ -163,6 +167,7 @@ def run_case(page: Page, suite: dict, case: dict) -> CaseResult:
 
     return CaseResult(
         suite=suite["site"],
+        language=suite.get("language", "pt"),
         case_id=case["id"],
         split=case.get("split", "dev"),
         action=case["action"],
@@ -262,7 +267,7 @@ def save(results: list[CaseResult], summary: dict, args) -> Path:
         "version": __version__,
         "commit": git_commit(),
         "date": datetime.now().isoformat(timespec="seconds"),
-        "filters": {"split": args.split, "site": args.site, "offline": args.offline},
+        "filters": {"split": args.split, "site": args.site, "offline": args.offline, "language": args.language},
         "thresholds": {"min_score": DEFAULT_MIN_SCORE, "gap": DEFAULT_AMBIGUITY_GAP},
         "overall": summary,
     }
@@ -280,6 +285,7 @@ def main() -> None:
     ap.add_argument("--site")
     ap.add_argument("--offline", action="store_true", help="skips cases that need the internet")
     ap.add_argument("--sweep", action="store_true", help="sweeps minimum score × gap")
+    ap.add_argument("--language", choices=("pt", "en"), help="only the cases in this language (default: both)")
     ap.add_argument("-v", "--verbose", action="store_true", help="shows each case")
     ap.add_argument("--headed", action="store_true")
     ap.add_argument("--check", action="store_true", help="only checks the expected selectors")
@@ -287,7 +293,7 @@ def main() -> None:
     args = ap.parse_args()
 
     if args.check:
-        check_selectors(load_suites(args.site, args.offline))
+        check_selectors(load_suites(args.site, args.offline, args.language))
         return
 
     if args.split == "test" and not args.final:
@@ -299,7 +305,7 @@ def main() -> None:
     results: list[CaseResult] = []
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not args.headed)
-        for suite in load_suites(args.site, args.offline):
+        for suite in load_suites(args.site, args.offline, args.language):
             page = browser.new_page()
             open_suite(page, suite)
             for case in suite["cases"]:
@@ -328,6 +334,7 @@ def main() -> None:
     by = defaultdict(list)
     for r in results:
         by[f"site: {r.suite}"].append(r)
+        by[f"language: {r.language}"].append(r)
         by[f"action: {r.action}"].append(r)
     for key in sorted(by):
         print_summary(key, summarize(by[key]))

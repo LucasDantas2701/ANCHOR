@@ -1,0 +1,106 @@
+{
+  "site": "registration_en",
+  "fixture": "registration_en.html",
+  "description": "Corporate form in English, queries in English",
+  "language": "en",
+  "cases": [
+    {
+      "id": "en-reg-01",
+      "split": "dev",
+      "action": "fill",
+      "query": "full name",
+      "expected": "#nome"
+    },
+    {
+      "id": "en-reg-02",
+      "split": "dev",
+      "action": "fill",
+      "query": "enter the tax ID",
+      "expected": "#cpf"
+    },
+    {
+      "id": "en-reg-03",
+      "split": "dev",
+      "action": "fill",
+      "query": "date of birth",
+      "expected": "#nasc"
+    },
+    {
+      "id": "en-reg-04",
+      "split": "dev",
+      "action": "fill",
+      "query": "company e-mail",
+      "expected": "#mail"
+    },
+    {
+      "id": "en-reg-05",
+      "split": "dev",
+      "action": "fill",
+      "query": "phone number",
+      "expected": "#tel"
+    },
+    {
+      "id": "en-reg-06",
+      "split": "dev",
+      "action": "select",
+      "query": "choose the department",
+      "expected": "#dep"
+    },
+    {
+      "id": "en-reg-07",
+      "split": "dev",
+      "action": "check",
+      "query": "contractor contract",
+      "expected": "input[value=pj]"
+    },
+    {
+      "id": "en-reg-08",
+      "split": "dev",
+      "action": "fill",
+      "query": "notes field",
+      "expected": "#obs"
+    },
+    {
+      "id": "en-reg-09",
+      "split": "dev",
+      "action": "check",
+      "query": "accept the terms",
+      "expected": "#termos"
+    },
+    {
+      "id": "en-reg-10",
+      "split": "dev",
+      "action": "click",
+      "query": "save the registration",
+      "expected": "button.save"
+    },
+    {
+      "id": "en-reg-11",
+      "split": "dev",
+      "action": "click",
+      "query": "cancel",
+      "expected": "button.cancel"
+    },
+    {
+      "id": "en-reg-12",
+      "split": "dev",
+      "action": "click",
+      "query": "print the page",
+      "expected": "button[aria-label=Print]"
+    },
+    {
+      "id": "en-reg-13",
+      "split": "dev",
+      "action": "click",
+      "query": "download the form",
+      "expected": ".tb button:nth-of-type(2)"
+    },
+    {
+      "id": "en-reg-14",
+      "split": "dev",
+      "action": "extract_text",
+      "query": "last saved date",
+      "expected": "p.status"
+    }
+  ]
+}

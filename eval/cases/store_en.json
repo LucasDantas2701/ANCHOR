@@ -1,0 +1,99 @@
+{
+  "site": "store_en",
+  "fixture": "store.html",
+  "description": "E-commerce in English, queries in English",
+  "language": "en",
+  "cases": [
+    {
+      "id": "en-store-01",
+      "split": "dev",
+      "action": "click",
+      "query": "add the headphones to the cart",
+      "expected": ".card:nth-of-type(2) .add"
+    },
+    {
+      "id": "en-store-02",
+      "split": "dev",
+      "action": "click",
+      "query": "put the UltraBook in the cart",
+      "expected": ".card:nth-of-type(1) .add"
+    },
+    {
+      "id": "en-store-03",
+      "split": "dev",
+      "action": "click",
+      "query": "open the cart",
+      "expected": ".cart-link"
+    },
+    {
+      "id": "en-store-04",
+      "split": "dev",
+      "action": "fill",
+      "query": "product search field",
+      "expected": "input[name=q]"
+    },
+    {
+      "id": "en-store-05",
+      "split": "dev",
+      "action": "click",
+      "query": "search button",
+      "expected": "header button[aria-label=Search]"
+    },
+    {
+      "id": "en-store-06",
+      "split": "dev",
+      "action": "click",
+      "query": "favorite the coffee maker",
+      "expected": ".card:nth-of-type(3) .fav"
+    },
+    {
+      "id": "en-store-07",
+      "split": "dev",
+      "action": "click",
+      "query": "sign in to my account",
+      "expected": "header button:has-text('Sign in')"
+    },
+    {
+      "id": "en-store-08",
+      "split": "dev",
+      "action": "click",
+      "query": "see the audio category",
+      "expected": ".chip:has-text('Audio')"
+    },
+    {
+      "id": "en-store-09",
+      "split": "dev",
+      "action": "select",
+      "query": "sort by price",
+      "expected": "select[aria-label='Sort by']"
+    },
+    {
+      "id": "en-store-10",
+      "split": "dev",
+      "action": "click",
+      "query": "returns page",
+      "expected": "a[href='/returns']"
+    },
+    {
+      "id": "en-store-11",
+      "split": "dev",
+      "action": "extract_text",
+      "query": "price of the UltraBook 14",
+      "expected": ".card:nth-of-type(1) .price"
+    },
+    {
+      "id": "en-store-12",
+      "split": "dev",
+      "action": "extract_text",
+      "query": "name of the headphones product",
+      "expected": ".card:nth-of-type(2) h3, .card:nth-of-type(2) h3 a"
+    },
+    {
+      "id": "en-store-13",
+      "split": "dev",
+      "action": "click",
+      "query": "open the wishlist",
+      "expected": "a[href='/wishlist']"
+    }
+  ]
+}

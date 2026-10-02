@@ -1,0 +1,92 @@
+{
+  "site": "users_en",
+  "fixture": "users_en.html",
+  "description": "Admin panel in English with actions repeated per row",
+  "language": "en",
+  "cases": [
+    {
+      "id": "en-usr-01",
+      "split": "dev",
+      "action": "click",
+      "query": "edit the user Brian Lee",
+      "expected": "tbody tr:nth-child(2) button[title=Edit]"
+    },
+    {
+      "id": "en-usr-02",
+      "split": "dev",
+      "action": "click",
+      "query": "delete Carol Miller",
+      "expected": "tbody tr:nth-child(3) button[title=Delete]"
+    },
+    {
+      "id": "en-usr-03",
+      "split": "dev",
+      "action": "click",
+      "query": "remove Anna's user",
+      "expected": "tbody tr:nth-child(1) button[title=Delete]"
+    },
+    {
+      "id": "en-usr-04",
+      "split": "dev",
+      "action": "check",
+      "query": "select Brian",
+      "expected": "input[aria-label='Select Brian Lee']"
+    },
+    {
+      "id": "en-usr-05",
+      "split": "dev",
+      "action": "check",
+      "query": "select all users",
+      "expected": "input[aria-label='Select all']"
+    },
+    {
+      "id": "en-usr-06",
+      "split": "dev",
+      "action": "fill",
+      "query": "search for a user",
+      "expected": "input[aria-label='Search users']"
+    },
+    {
+      "id": "en-usr-07",
+      "split": "dev",
+      "action": "select",
+      "query": "filter by status",
+      "expected": "select[aria-label='Filter by status']"
+    },
+    {
+      "id": "en-usr-08",
+      "split": "dev",
+      "action": "click",
+      "query": "register a new user",
+      "expected": "button.primary"
+    },
+    {
+      "id": "en-usr-09",
+      "split": "dev",
+      "action": "click",
+      "query": "export to excel",
+      "expected": "button[title='Export spreadsheet']"
+    },
+    {
+      "id": "en-usr-10",
+      "split": "dev",
+      "action": "click",
+      "query": "go to the next page",
+      "expected": "a[href='?p=2']"
+    },
+    {
+      "id": "en-usr-11",
+      "split": "dev",
+      "action": "extract_text",
+      "query": "Brian Lee's e-mail",
+      "expected": "tbody tr:nth-child(2) td:nth-child(3)"
+    },
+    {
+      "id": "en-usr-12",
+      "split": "dev",
+      "action": "extract_text",
+      "query": "Carol Miller's status",
+      "expected": "tbody tr:nth-child(3) td:nth-child(4)"
+    }
+  ]
+}

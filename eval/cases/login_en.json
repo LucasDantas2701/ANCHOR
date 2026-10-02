@@ -1,0 +1,64 @@
+{
+  "site": "login_en",
+  "fixture": "login.html",
+  "description": "Login screen in English, queries in English",
+  "language": "en",
+  "cases": [
+    {
+      "id": "en-login-01",
+      "split": "dev",
+      "action": "fill",
+      "query": "username field",
+      "expected": "#user"
+    },
+    {
+      "id": "en-login-02",
+      "split": "dev",
+      "action": "fill",
+      "query": "type the password",
+      "expected": "#pwd"
+    },
+    {
+      "id": "en-login-03",
+      "split": "dev",
+      "action": "click",
+      "query": "log in button",
+      "expected": "#login-btn"
+    },
+    {
+      "id": "en-login-04",
+      "split": "dev",
+      "action": "check",
+      "query": "tick remember me",
+      "expected": "input[name=remember]"
+    },
+    {
+      "id": "en-login-05",
+      "split": "dev",
+      "action": "click",
+      "query": "I forgot my password",
+      "expected": "a[href='/forgot']"
+    },
+    {
+      "id": "en-login-06",
+      "split": "dev",
+      "action": "click",
+      "query": "create a new account",
+      "expected": "a[href='/signup']"
+    },
+    {
+      "id": "en-login-07",
+      "split": "dev",
+      "action": "click",
+      "query": "show the password",
+      "expected": ".toggle-pwd"
+    },
+    {
+      "id": "en-login-08",
+      "split": "dev",
+      "action": "select",
+      "query": "change the language",
+      "expected": "select[name=lang]"
+    }
+  ]
+}

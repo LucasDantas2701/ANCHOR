@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Employee Registration</title>
+<style>.tb i{display:inline-block;width:18px;height:18px}</style></head><body>
+<div class="tb">
+  <button aria-label="Print"><i class="fa fa-print"></i></button>
+  <button><i class="fa fa-download"></i></button>
+  <a href="/help"><i class="fa fa-circle-question"></i></a>
+</div>
+<h1>Employee registration</h1>
+<form>
+  <fieldset><legend>Personal details</legend>
+    <label for="nome">Full name</label><input id="nome" name="name">
+    <label for="cpf">Tax ID</label><input id="cpf" name="tax_id" placeholder="000-00-0000">
+    <label for="nasc">Date of birth</label><input id="nasc" type="date">
+    <label for="mail">Work e-mail</label><input id="mail" type="email">
+    <label for="tel">Phone</label><input id="tel" type="tel">
+  </fieldset>
+  <fieldset><legend>Contract</legend>
+    <label for="dep">Department</label>
+    <select id="dep"><option>Select</option><option>Finance</option><option>IT</option><option>HR</option></select>
+    <span>Contract type:</span>
+    <label><input type="radio" name="tipo" value="clt"> Employee</label>
+    <label><input type="radio" name="tipo" value="pj"> Contractor</label>
+    <label for="obs">Notes</label><textarea id="obs"></textarea>
+  </fieldset>
+  <label><input type="checkbox" id="termos"> I have read and accept the terms of use</label>
+  <button type="button" class="cancel">Cancel</button>
+  <button type="submit" class="save">Save registration</button>
+  <button type="button" disabled>Send for approval</button>
+</form>
+<p class="status">Last saved: 09/25/2026 2:32 PM</p>
+<script src="feedback.js"></script>
+</body></html>
