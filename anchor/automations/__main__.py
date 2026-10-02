@@ -16,6 +16,7 @@ Saved automations from the terminal.
     python -m anchor.automations recoveries register-employee   # how it recovered when the site changed
     python -m anchor.automations undo register-employee 2       # undo recovery #2
     python -m anchor.automations notes register-employee        # the notes sent to the planner
+    python -m anchor.automations confirmations register-employee   # your decisions on sensitive actions
     python -m anchor.automations notes register-employee --add "o botão Salvar fica no fim da página"
 """
 
@@ -33,6 +34,7 @@ from anchor.engine.action_executor import ActionExecutor
 from anchor.engine.disambiguation import TerminalDisambiguator
 from anchor.engine.element_resolver import ElementResolver
 from anchor.engine.memory import ChoiceMemory
+from anchor.engine.sensitive import TerminalConfirmer
 from anchor.i18n import t
 from anchor.planner import ConfigError, get_profile
 from anchor.planner.progress import Progress
@@ -124,7 +126,8 @@ def cmd_run(store: AutomationStore, args) -> int:
             try:
                 result, mode, run_id = run_automation(store, args.name, page, executor, make_planner,
                                                       relearn=args.relearn and number == 1,
-                                                      heal=not args.no_heal, params=values)
+                                                      heal=not args.no_heal, params=values,
+                                                      confirm=None if args.allow_sensitive else TerminalConfirmer())
             except (ConfigError, AutomationError) as exc:
                 print(t("auto.error", error=exc))
                 if len(rows) == 1:
@@ -168,6 +171,24 @@ def ask_for_note(store: AutomationStore, name: str, run_id: str = "") -> None:
     if text:
         note = store.add_note(name, text, run=run_id)
         print(t("auto.note_saved", number=note["number"]))
+
+
+def cmd_confirmations(store: AutomationStore, args) -> int:
+    store.load(args.name)
+    if args.forget is not None:
+        if not store.forget_confirmation(args.name, args.forget):
+            print(t("auto.error", error=t("confirm.no_decision", number=args.forget)))
+            return 1
+        print(t("confirm.forgotten", number=args.forget))
+        return 0
+    items = store.confirmations(args.name)
+    if not items:
+        print(t("confirm.none"))
+        return 0
+    for i in items:
+        print(t("confirm.item", number=i["number"], date=i["date"].replace("T", " "),
+                decision=t("confirm." + i["decision"]), category=i["category"], element=i["element"]))
+    return 0
 
 
 def cmd_notes(store: AutomationStore, args) -> int:
@@ -260,6 +281,8 @@ def main(argv=None) -> int:
     run.add_argument("--relearn", action="store_true", help="plans again with the LLM, replacing the approved plan")
     run.add_argument("--no-heal", action="store_true",
                      help="if a saved step stops working, stop instead of recovering with the LLM")
+    run.add_argument("--allow-sensitive", action="store_true",
+                     help="does not ask before sensitive actions, and does not save decisions")
     values = run.add_mutually_exclusive_group()
     values.add_argument("--param", action="append", default=[], metavar="NAME=VALUE",
                         help="the value of a parameter for this run (repeat for each one)")
@@ -274,6 +297,10 @@ def main(argv=None) -> int:
     undo = sub.add_parser("undo", help="undoes a recovery (by the number shown by 'recoveries')")
     undo.add_argument("name")
     undo.add_argument("number", type=int)
+    confirmations = sub.add_parser("confirmations", help="lists or forgets your decisions on sensitive actions")
+    confirmations.add_argument("name")
+    confirmations.add_argument("--forget", type=int, metavar="NUMBER",
+                               help="forgets a decision: the next run asks again")
     notes = sub.add_parser("notes", help="lists, adds or removes the notes sent to the planner")
     notes.add_argument("name")
     notes_action = notes.add_mutually_exclusive_group()
@@ -284,7 +311,8 @@ def main(argv=None) -> int:
     apply_language(args)
     store = AutomationStore(Path(args.root))
     commands = {"create": cmd_create, "run": cmd_run, "list": cmd_list, "show": cmd_show,
-                "recoveries": cmd_recoveries, "undo": cmd_undo, "notes": cmd_notes}
+                "recoveries": cmd_recoveries, "undo": cmd_undo, "notes": cmd_notes,
+                "confirmations": cmd_confirmations}
     try:
         return commands[args.command](store, args)
     except AutomationError as exc:

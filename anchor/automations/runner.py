@@ -69,11 +69,14 @@ def run_automation(
     relearn: bool = False,
     heal: bool = True,
     params: Optional[dict[str, str]] = None,
+    confirm=None,
     **agent_options,
 ) -> tuple[AgentResult, str, str]:
     """
     Runs the automation; returns (result, mode, run id). mode: "learn" or "replay".
     params: the values of the automation's parameters for this run ({"nome": "Maria"}).
+    confirm: whatever asks the user about sensitive actions (e.g. TerminalConfirmer); each
+             decision is saved in the automation and not asked again.
     """
     automation = store.load(name)
     values = dict(params or {})
@@ -84,6 +87,9 @@ def run_automation(
     approved = None if relearn else store.load_plan(name)
     say = report or (lambda _: None)
     notes = store.recent_notes(name)
+    if confirm is not None:
+        from .confirmations import AutomationConfirmer
+        executor.confirmer = AutomationConfirmer(store, name, values, confirm, report=say)
     memory_before = set(executor.memory.entries) if executor.memory is not None else set()
 
     if approved is not None:
@@ -112,6 +118,7 @@ def run_automation(
     run_id = store.save_run(name, {
         "version": __version__, "mode": mode, "status": result.status, "message": result.message,
         "healed": healed and result.ok,
+        "denied": result.denied,
         "parameters": automation.parameters,     # the names only: the values may be personal data
         "steps": [{"action": r.step.action, "description": templatize(r.step.description, values),
                    "value": templatize(r.step.value, values), "status": r.status,

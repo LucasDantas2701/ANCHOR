@@ -17,6 +17,7 @@ from anchor.cli import apply_language, language_options, option, require
 from anchor.engine.action_executor import ActionExecutor
 from anchor.engine.disambiguation import TerminalDisambiguator
 from anchor.engine.element_resolver import ElementResolver
+from anchor.engine.sensitive import TerminalConfirmer
 from anchor.i18n import t
 
 from .config import ConfigError, get_profile
@@ -38,6 +39,8 @@ def main() -> int:
     option(ap, "--url", help="the site's link or the path of an .html file")
     option(ap, "--run", "--executar", action="store_true", help="runs the plan in the browser")
     option(ap, "--no-page", "--sem-pagina", action="store_true", help="does not send the list of elements to the model")
+    option(ap, "--allow-sensitive", action="store_true",
+           help="with --run: does not ask before sensitive actions (delete, save, send, pay, download, upload)")
     language_options(ap)
     args = ap.parse_args()
     require(ap, args, "--profile", "--url")
@@ -81,7 +84,8 @@ def main() -> int:
             print(f"  {i}. {s.action:12} {s.description}{value}{goal}{expect}")
 
         if args.run and plan.steps:
-            executor = ActionExecutor(page, resolver=resolver, disambiguator=TerminalDisambiguator(), can_point=True)
+            executor = ActionExecutor(page, resolver=resolver, disambiguator=TerminalDisambiguator(), can_point=True,
+                                      confirmer=None if args.allow_sensitive else TerminalConfirmer())
             print()
             for step, result in run_plan(executor, plan):
                 print(t("demo.step", description=step.description, status=result.status, by=result.resolved_by))

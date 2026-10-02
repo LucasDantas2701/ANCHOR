@@ -55,6 +55,7 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration.h
 | `--memory` | File of the choice memory. Default: `memory/agent.json`. |
 | `--browser-profile` | Folder of a persistent browser profile, for systems with login (e.g. `profiles/user_001`). |
 | `--max-attempts` | Failures before the run is cancelled. Default: 3. |
+| `--allow-sensitive` | Does not ask before sensitive actions. By default, before deleting, saving or submitting, sending, paying, downloading or uploading, the agent shows the element and asks; a denial stops the run. |
 | `--lang` | Interface language: `en` (default) or `pt`. Overrides `ANCHOR_LANG`. |
 | `--prompt-language` | Planner prompt language: `pt` (default, the measured one), `en`, or `auto` (follows the request). |
 
@@ -74,6 +75,7 @@ python -m anchor.planner --profile ollama-small --url eval/fixtures/registration
 | `--url` | The site's link, or the path of a local `.html` file. Required. |
 | `--run` | Runs the plan in a visible browser, with disambiguation in the terminal. |
 | `--no-page` | Does not send the list of the page's elements to the model. |
+| `--allow-sensitive` | With `--run`: does not ask before sensitive actions. |
 | `--lang` | Interface language: `en` or `pt`. |
 | `--prompt-language` | Planner prompt language: `pt`, `en` or `auto`. |
 
@@ -118,6 +120,7 @@ Options that come **before** the command:
 | `name` (positional) | The automation to run. The first run learns the plan; the next ones replay it. |
 | `--relearn` | Plans again with the LLM, replacing the approved plan. |
 | `--no-heal` | If a saved step stops working, stops instead of recovering with the LLM. |
+| `--allow-sensitive` | Does not ask before sensitive actions, and does not save decisions. |
 | `--param` | The value of a parameter for this run, as `name=value` (repeat it for each parameter). |
 | `--csv` | Runs once per row of a CSV file whose columns are the parameters (`,` or `;` as separator). Cannot be used with `--param`. |
 
@@ -145,7 +148,7 @@ placeholders (`fill CPF = {cpf}`), so the next runs work with any values. The ru
 the placeholders, not the values, since they may be personal data. Every parameter needs a
 value in every run; an unknown parameter is refused.
 
-### `list`, `show`, `recoveries`, `undo`, `notes`
+### `list`, `show`, `recoveries`, `undo`, `notes`, `confirmations`
 
 | Command | Meaning |
 |---|---|
@@ -154,6 +157,20 @@ value in every run; an unknown parameter is refused.
 | `recoveries name` | Lists how the automation recovered when the site changed: what failed, what replaced it, how it was solved, whether the effect was confirmed, the confidence; and the elements you picked during replays. |
 | `undo name number` | Undoes a recovery: a plan correction brings the previous plan back (and undoes the later corrections); a choice of yours is forgotten, and the next run asks again. |
 | `notes name` | Lists your notes about the automation. The 5 most recent go to the planner when it learns or heals the plan. |
+
+| `confirmations name` | Lists your decisions on sensitive actions (allowed or denied). |
+
+`confirmations` options:
+
+| Option | Meaning |
+|---|---|
+| `--forget` | Forgets the decision with this number: the next run asks again. |
+
+Sensitive actions (deleting, saving or submitting, sending, paying, downloading, uploading) are
+asked about once, when the element is found and before acting. An action you allowed is not
+asked again (nor in the next rows of a spreadsheet); an action you denied stops the run, in that
+run and in the next ones, until you forget the decision. With no terminal to answer, the answer
+is no.
 
 `notes` options:
 

@@ -21,6 +21,7 @@ from anchor.engine.action_executor import ActionExecutor
 from anchor.engine.disambiguation import TerminalDisambiguator
 from anchor.engine.element_resolver import ElementResolver
 from anchor.engine.memory import ChoiceMemory
+from anchor.engine.sensitive import TerminalConfirmer
 from anchor.i18n import t
 from anchor.planner import ConfigError, get_profile
 from anchor.planner.progress import Progress
@@ -60,6 +61,8 @@ def main() -> int:
     option(ap, "--memory", "--memoria", default="memory/agent.json", help="choice memory file")
     option(ap, "--browser-profile", "--perfil-navegador", help="folder of a persistent profile (systems with login)")
     option(ap, "--max-attempts", "--max-tentativas", type=int, default=3, help="failures before cancelling")
+    option(ap, "--allow-sensitive", action="store_true",
+           help="does not ask before sensitive actions (delete, save, send, pay, download, upload)")
     language_options(ap)
     args = ap.parse_args()
     require(ap, args, "--profile", "--url")
@@ -89,6 +92,7 @@ def main() -> int:
             disambiguator=TerminalDisambiguator(),
             can_point=True,
             memory=ChoiceMemory(args.memory),
+            confirmer=None if args.allow_sensitive else TerminalConfirmer(),
         )
         try:
             result = Agent(page, planner, executor, max_failures=args.max_attempts).run(args.request)

@@ -18,6 +18,17 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Confirmation of sensitive actions** (`anchor/engine/sensitive.py`). A click is sensitive
+  when the step's description (outside parentheses) or the name of the element the resolver
+  chose has a verb of deleting, saving or submitting, sending, paying, downloading or uploading,
+  in Portuguese or English; looking at the element catches vague steps on a "Delete" button.
+  The Executor asks after finding the element and before acting; a denied action is not
+  performed, and the agent stops without replanning (the model could look for another way to
+  do what was denied). In saved automations, each decision is asked once and saved
+  (`confirmations.json`): an allowed action is not asked again, a denied one stops the next runs
+  too, until `python -m anchor.automations confirmations <name> --forget N`. With no terminal to
+  answer, the answer is no. `--allow-sensitive` (agent, `planner --run`, `automations run`)
+  turns the question off. Without a confirmer (evaluations, tests), nothing changes.
 - Saved automations, part 4: **the user's notes**. After a run that did not work, `run` asks
   whether you want to leave a note for the next runs (with `--csv`, once, at the end); the 5 most
   recent notes go to the planner, in their own section of the message, when it learns or heals

@@ -60,6 +60,7 @@ class ActionExecutor:
         choice_ratio: float = 0.70,
         point_timeout_s: float = 120,
         memory: Optional[ChoiceMemory] = None,
+        confirmer=None,
     ):
         """
         disambiguator:
@@ -74,6 +75,12 @@ class ActionExecutor:
         memory:
             Memory of the user's choices. With it, a step that was already
             disambiguated is resolved directly, without asking again.
+
+        confirmer:
+            Whatever asks the user to approve a sensitive action (delete, save,
+            send, pay, download, upload), after the element is found and before
+            the action. A denied action is not performed (status "denied").
+            Without it, nothing is asked.
         """
         self.page = page
 
@@ -92,6 +99,7 @@ class ActionExecutor:
         self.choice_ratio = choice_ratio
         self.point_timeout_s = point_timeout_s
         self.memory = memory
+        self.confirmer = confirmer
 
     def _resolve(
         self,
@@ -165,6 +173,9 @@ class ActionExecutor:
 
             if found is not None:
                 remembered, similarity = found
+                denied = self._denied(action_name, description, remembered)
+                if denied is not None:
+                    return denied
                 try:
                     value = fn(remembered)
                 except Exception as exc:
@@ -233,6 +244,10 @@ class ActionExecutor:
             else None
         )
 
+        denied = self._denied(action_name, description, match, resolved_by)
+        if denied is not None:
+            return denied
+
         try:
             value = fn(match)
 
@@ -261,6 +276,27 @@ class ActionExecutor:
             value=value,
             resolved_by=resolved_by,
         )
+
+    # ------------------------------------------------------------------
+    # Sensitive actions
+    # ------------------------------------------------------------------
+
+    def _denied(self, action_name: str, description: str, match: Match,
+                resolved_by: str = "memory") -> Optional[ActionResult]:
+        """Asks the confirmer about a sensitive action; the refusal, if it was denied."""
+        if self.confirmer is None:
+            return None
+        from anchor.engine.sensitive import ConfirmationRequest, classify
+
+        element = " ".join(x for x in (match.text, match.label, match.hint) if x).strip()
+        category = classify(action_name, description, element)
+        if category is None:
+            return None
+        request = ConfirmationRequest(action_name, description, element or description, category, self.page.url)
+        if self.confirmer.confirm(request):
+            return None
+        return ActionResult(status="denied", action=action_name, description=description,
+                            selected_element=match, score=match.score, resolved_by=resolved_by)
 
     # ------------------------------------------------------------------
     # Memory

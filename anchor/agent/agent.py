@@ -67,6 +67,7 @@ class AgentResult:
     goals_done: int = 0          # goals fulfilled at the end
     suspicions: int = 0          # steps in which the expected text did not appear
     plan_failed: bool = False    # the initial plan could not be generated
+    denied: bool = False         # the user denied a sensitive action
     tokens_in: int = 0
     tokens_out: int = 0
     seconds: float = 0.0
@@ -578,6 +579,13 @@ class Agent:
                         return queue
                     after_replan = True
                 continue
+
+            # ---------------------------------------------------- sensitive action denied
+            if outcome.status == "denied":
+                result.records.append(StepRecord(step, "denied", outcome.resolved_by))
+                result.denied = True
+                # No replanning: the model could look for another way to do what was denied.
+                return self._finish(result, "cancelled", t("end.denied", step=describe_step(step)), start)
 
             # ---------------------------------------------------- skipped by the user
             if outcome.resolved_by == "user_skipped":

@@ -439,3 +439,55 @@ def test_notes_command(tmp_path, capsys):
     assert "fica no fim" in capsys.readouterr().out
     assert main(["--root", root, "notes", "demo", "--remove", "1"]) == 0
     assert main(["--root", root, "notes", "demo", "--remove", "1"]) == 1
+
+
+# --------------------------------------------------------------------------
+# Sensitive actions in saved automations: each decision is asked once and saved
+# --------------------------------------------------------------------------
+
+class Answer:
+    def __init__(self, answer):
+        self.answer, self.asked = answer, 0
+
+    def confirm(self, request):
+        self.asked += 1
+        return self.answer
+
+
+def test_an_allowed_action_is_not_asked_again(page, store):
+    page.set_content(FORM.format(save="Salvar"))
+    ask = Answer(True)
+    result, _, _ = run(store, page, lambda _: LearningPlanner((GOALS, PLAN), ([], [])), confirm=ask)
+    assert result.ok and ask.asked == 1
+    assert store.confirmations("register")[0]["decision"] == "allowed"
+    page.set_content(FORM.format(save="Salvar"))
+    result, _, _ = run(store, page, no_llm, confirm=ask)
+    assert result.ok and ask.asked == 1                       # not asked again
+
+
+def test_a_denied_action_stops_this_run_and_the_next_ones(page, store):
+    page.set_content(FORM.format(save="Salvar"))
+    run(store, page, lambda _: LearningPlanner((GOALS, PLAN), ([], [])), confirm=Answer(True))
+    store.forget_confirmation("register", 1)
+    page.set_content(FORM.format(save="Salvar"))
+    ask = Answer(False)
+    result, _, _ = run(store, page, no_llm, confirm=ask)
+    assert result.status == "cancelled" and result.denied and ask.asked == 1
+    assert "Cadastro salvo" not in page.inner_text("body")
+    page.set_content(FORM.format(save="Salvar"))
+    result, _, _ = run(store, page, no_llm, confirm=Answer(True))
+    assert result.denied                                      # the saved denial still holds
+    assert store.runs("register")[-1]["denied"] is True
+
+
+def test_confirmations_command(tmp_path, capsys):
+    from anchor.automations.__main__ import main
+    root = str(tmp_path)
+    main(["--root", root, "create", "demo", "salve", "--url", "x", "--profile", "p"])
+    store = AutomationStore(tmp_path)
+    store.add_confirmation("demo", {"action": "click", "element": "Salvar", "category": "submit", "decision": "denied"})
+    main(["--root", root, "confirmations", "demo"])
+    assert "Salvar" in capsys.readouterr().out
+    assert main(["--root", root, "confirmations", "demo", "--forget", "1"]) == 0
+    assert store.confirmations("demo") == []
+    assert main(["--root", root, "confirmations", "demo", "--forget", "1"]) == 1

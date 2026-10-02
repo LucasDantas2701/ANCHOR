@@ -7,6 +7,7 @@ How a saved automation is stored: one folder per automation.
         memory.json       the choice memory of this automation
         recoveries.json   how the automation recovered when the site changed (reviewable, undoable)
         notes.json        the user's notes after runs that did not work, sent to the planner
+        confirmations.json  the user's decisions on sensitive actions (allowed or denied)
         runs/             one record per run, with its metrics
 
 The folder is usage data and stays out of Git, like memory/.
@@ -162,6 +163,25 @@ class AutomationStore:
 
     def recent_notes(self, name: str) -> list[str]:
         return [n["text"] for n in self.notes(name)[-self.NOTES_SENT:]]
+
+    # ------------------------------------------------------------ sensitive actions
+    def confirmations(self, name: str) -> list[dict]:
+        path = self.folder(name) / "confirmations.json"
+        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+
+    def add_confirmation(self, name: str, decision: dict) -> dict:
+        items = self.confirmations(name)
+        record = {"number": max((i["number"] for i in items), default=0) + 1,
+                  "date": datetime.now().isoformat(timespec="seconds"), **decision}
+        items.append(record)
+        self._write_list(self.folder(name) / "confirmations.json", items)
+        return record
+
+    def forget_confirmation(self, name: str, number: int) -> bool:
+        items = self.confirmations(name)
+        kept = [i for i in items if i["number"] != number]
+        self._write_list(self.folder(name) / "confirmations.json", kept)
+        return len(kept) < len(items)
 
     # ------------------------------------------------------------ runs
     def save_run(self, name: str, record: dict) -> str:

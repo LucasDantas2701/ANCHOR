@@ -224,6 +224,9 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
 * `--browser-profile profiles/<name>` uses a persistent browser profile, for systems with login:
   log in by hand once, and the session stays on your computer.
 * `--lang pt` shows the messages in Portuguese (or set `ANCHOR_LANG=pt`).
+* Before a sensitive action (deleting, saving or submitting, sending, paying, downloading,
+  uploading), the agent shows the element and asks; a denial stops the run. `--allow-sensitive`
+  turns the question off.
 * `--prompt-language` chooses the planner prompt's language: `pt` (default), `en`, or `auto` (it
   follows the request). Requests can be in English or Portuguese either way: the default
   Portuguese prompt did better than the English one on the English tasks too.
@@ -374,7 +377,7 @@ final numbers will come from the closed sets.
       the fix is kept, with a reviewable (and undoable) record of what changed
     - [x] Parameters, and one run per row of a spreadsheet
     - [x] The user's notes after a failed run, sent to the planner
-    - [ ] Confirmation of sensitive actions (delete, send, save, download, upload, pay)
+    - [x] Confirmation of sensitive actions (delete, send, save, download, upload, pay), saved per automation
     - [ ] Defense against instructions injected by page content
     - [ ] Screenshot analysis by a vision model, when the other checks disagree
     - [ ] Intervention experiment with a simulated user
@@ -460,8 +463,8 @@ would be if they performed the same actions by hand. Before automating a site:
 * **Respect data-protection laws** (such as the LGPD in Brazil) **and your company's rules**:
   automate only what you are allowed to do by hand.
 * **Review sensitive actions.** The system blocks destructive actions the request did not
-  mention and, from version 0.3.0 on, asks for confirmation before deleting, sending, saving,
-  downloading, uploading files or paying.
+  mention, and asks for confirmation before deleting, saving or submitting, sending, paying,
+  downloading or uploading files; in a saved automation, each decision is asked once and kept.
 * **Keep the browser profiles (`profiles/`) on your computer.** They hold the systems' sessions
   and work like passwords; they are kept out of Git.
 
