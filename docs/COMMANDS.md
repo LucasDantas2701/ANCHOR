@@ -117,6 +117,32 @@ Options that come **before** the command:
 | `name` (positional) | The automation to run. The first run learns the plan; the next ones replay it. |
 | `--relearn` | Plans again with the LLM, replacing the approved plan. |
 | `--no-heal` | If a saved step stops working, stops instead of recovering with the LLM. |
+| `--param` | The value of a parameter for this run, as `name=value` (repeat it for each parameter). |
+| `--csv` | Runs once per row of a CSV file whose columns are the parameters (`,` or `;` as separator). Cannot be used with `--param`. |
+
+### Parameters
+
+The parts of the request that change from run to run go in braces when the automation is
+created; `create` finds them, and `show` lists them:
+
+```sh
+python -m anchor.automations create register --url eval/fixtures/registration.html --profile ollama-small "cadastre {nome}, CPF {cpf}, no TI e salve"
+python -m anchor.automations run register --param nome="Maria Silva" --param cpf=123.456.789-00
+python -m anchor.automations run register --csv employees.csv
+```
+
+A CSV file for this automation:
+
+```text
+nome;cpf
+Maria Silva;123.456.789-00
+João Souza;987.654.321-00
+```
+
+The model plans with the real values of the first run; the approved plan is saved with the
+placeholders (`fill CPF = {cpf}`), so the next runs work with any values. The run records keep
+the placeholders, not the values, since they may be personal data. Every parameter needs a
+value in every run; an unknown parameter is refused.
 
 ### `list`, `show`, `recoveries`, `undo`
 

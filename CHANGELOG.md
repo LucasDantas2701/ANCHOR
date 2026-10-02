@@ -18,6 +18,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- Saved automations, part 3: **parameters**. The parts of the request that change go in braces
+  (`"cadastre {nome}, CPF {cpf}, no TI e salve"`), and each run gives their values with
+  `run --param nome="Maria Silva"`, or runs once per row of a CSV file with `run --csv file.csv`
+  (`,` or `;`). The model plans with the real values; the approved plan, and any healed plan, is
+  saved with the placeholders back in place of the values, so it works for any value. The run
+  and recovery records keep the placeholders, not the values, which may be personal data.
 - `docs/COMMANDS.md`: the complete reference of the commands: setup and Ollama, every option of
   every tool, the demos, the model profile fields and the environment variables. A test
   (`tests/test_docs.py`) keeps it complete: it runs each tool's `--help` and fails if an option or

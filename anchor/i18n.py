@@ -256,4 +256,9 @@ MESSAGES: dict[str, dict[str, str]] = {
                          "pt": "Recuperação #{number} desfeita: o plano anterior a ela voltou."},
     "auto.undo_user": {"en": 'Recovery #{number} undone: the choice for "{description}" was forgotten; the next run asks again.',
                        "pt": 'Recuperação #{number} desfeita: a escolha para "{description}" foi esquecida; a próxima execução pergunta de novo.'},
+    "auto.parameters": {"en": "Parameters: {names} (give them with --param name=value, or --csv file.csv)",
+                        "pt": "Parâmetros: {names} (informe com --param nome=valor, ou --csv arquivo.csv)"},
+    "auto.row": {"en": "=== Row {number} of {total}", "pt": "=== Linha {number} de {total}"},
+    "auto.csv_empty": {"en": "the file {path} has no rows", "pt": "o arquivo {path} não tem linhas"},
+    "auto.csv_summary": {"en": "Rows done: {done} of {total}.", "pt": "Linhas cumpridas: {done} de {total}."},
 }

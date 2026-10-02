@@ -274,3 +274,110 @@ def test_replay_messages_do_not_talk_about_planning(page, healing_store):
     run_heal(healing_store, page, no_llm, reports)
     text = "\n".join(reports)
     assert "Replaying the approved plan" in text and "Planning..." not in text
+
+
+# --------------------------------------------------------------------------
+# Parameters: {nome} in the request; the saved plan keeps the placeholders
+# --------------------------------------------------------------------------
+
+from anchor.automations.params import (  # noqa: E402
+    find_parameters,
+    read_rows,
+    render,
+    templatize_steps,
+)
+
+PEOPLE = """<html><body><label for="n">Nome</label><input id="n"><label for="c">CPF</label><input id="c">
+  <button onclick="document.getElementById('m').textContent='Cadastro salvo de ' + document.getElementById('n').value">Salvar</button>
+  <p id="m" role="status"></p></body></html>"""
+P_GOALS = [Goal("g1", "{nome} cadastrada", True)]
+
+
+@pytest.fixture
+def param_store(tmp_path):
+    s = AutomationStore(tmp_path / "automations")
+    s.create(Automation(name="person", request="cadastre {nome}, CPF {cpf}, e salve", url="x", profile="x"))
+    return s
+
+
+def run_person(store, page, make_planner, values):
+    page.set_default_timeout(1500)
+    page.set_content(PEOPLE)
+    executor = ActionExecutor(page, memory=ChoiceMemory(store.memory_path("person")))
+    return run_automation(store, "person", page, executor, make_planner, report=None, params=values)
+
+
+def learned_plan(nome, cpf):
+    return [("fill", "Nome", nome, "g1", None), ("fill", "CPF", cpf, "g1", None), ("click", "Salvar", None, "g1", None)]
+
+
+def test_create_finds_the_parameters(param_store):
+    assert param_store.load("person").parameters == ["nome", "cpf"]
+    assert find_parameters("salve {a} e {b} e {a}") == ["a", "b"]
+
+
+def test_the_model_plans_with_the_real_values_and_the_plan_is_saved_with_placeholders(page, param_store):
+    planner = LearningPlanner((P_GOALS, learned_plan("Maria Silva", "123.456.789-00")), ([], []))
+    seen = []
+    original = planner.plan
+    planner.plan = lambda request, *a, **k: (seen.append(request), original(request, *a, **k))[1]
+    result, _, _ = run_person(param_store, page, lambda _: planner, {"nome": "Maria Silva", "cpf": "123.456.789-00"})
+    assert result.ok and seen[0] == "cadastre Maria Silva, CPF 123.456.789-00, e salve"
+    steps = param_store.load_plan("person").steps
+    assert [(s.description, s.value) for s in steps] == [("Nome", "{nome}"), ("CPF", "{cpf}"), ("Salvar", None)]
+
+
+def test_replay_fills_the_placeholders_with_the_values_of_the_run(page, param_store):
+    run_person(param_store, page, lambda _: LearningPlanner((P_GOALS, learned_plan("Maria Silva", "111")), ([], [])),
+               {"nome": "Maria Silva", "cpf": "111"})
+    result, mode, _ = run_person(param_store, page, no_llm, {"nome": "João Souza", "cpf": "222"})
+    assert result.ok and mode == "replay" and result.llm_calls == 0
+    assert page.input_value("#n") == "João Souza" and page.input_value("#c") == "222"
+    assert "Cadastro salvo de João Souza" in page.inner_text("body")
+
+
+def test_missing_and_unknown_parameters_are_refused(page, param_store):
+    with pytest.raises(AutomationError, match="missing value for: cpf"):
+        run_person(param_store, page, no_llm, {"nome": "Maria"})
+    with pytest.raises(AutomationError, match="unknown parameter: idade"):
+        run_person(param_store, page, no_llm, {"nome": "Maria", "cpf": "1", "idade": "30"})
+
+
+def test_run_records_keep_the_placeholders_not_the_values(page, param_store):
+    run_person(param_store, page, lambda _: LearningPlanner((P_GOALS, learned_plan("Maria Silva", "123.456.789-00")), ([], [])),
+               {"nome": "Maria Silva", "cpf": "123.456.789-00"})
+    text = (param_store.folder("person") / "runs").glob("*.json").__next__().read_text(encoding="utf-8")
+    assert "123.456.789-00" not in text and "Maria Silva" not in text and "{cpf}" in text
+
+
+def test_one_run_per_csv_row(page, param_store, tmp_path):
+    (tmp_path / "people.csv").write_text("nome;cpf\nAna Lima;111\nBruno Reis;222\n", encoding="utf-8")
+    rows = read_rows(tmp_path / "people.csv")
+    assert rows == [{"nome": "Ana Lima", "cpf": "111"}, {"nome": "Bruno Reis", "cpf": "222"}]
+    first = LearningPlanner((P_GOALS, learned_plan("Ana Lima", "111")), ([], []))
+    results = [run_person(param_store, page, (lambda _: first) if i == 0 else no_llm, row)[0] for i, row in enumerate(rows)]
+    assert all(r.ok for r in results) and results[1].llm_calls == 0
+    assert page.input_value("#n") == "Bruno Reis"
+
+
+def test_a_healed_plan_is_saved_with_placeholders(page, param_store):
+    run_person(param_store, page, lambda _: LearningPlanner((P_GOALS, learned_plan("Ana Lima", "111")), ([], [])),
+               {"nome": "Ana Lima", "cpf": "111"})
+    page.set_default_timeout(1500)
+    page.set_content(PEOPLE.replace('for="n">Nome', 'for="n">Funcionário'))     # the field was renamed
+    healer = LearningPlanner(([], [("fill", "Funcionário", "Bruno Reis", "g1", None), ("fill", "CPF", "222", "g1", None),
+                                   ("click", "Salvar", None, "g1", None)]), ([], []))
+    executor = ActionExecutor(page, memory=ChoiceMemory(param_store.memory_path("person")))
+    result, _, _ = run_automation(param_store, "person", page, executor, lambda _: healer, report=None,
+                                  params={"nome": "Bruno Reis", "cpf": "222"})
+    assert result.ok
+    values = [(s.description, s.value) for s in param_store.load_plan("person").steps]
+    assert ("Funcionário", "{nome}") in values and ("CPF", "{cpf}") in values
+    record = param_store.recoveries("person")[0]
+    assert all("Bruno" not in str(s) and "222" not in str(s) for s in record["replaced_by"])
+
+
+def test_templatize_puts_placeholders_in_descriptions_too():
+    steps = templatize_steps([Step("check", "Selecionar Ana Lima", None)], {"nome": "Ana Lima"})
+    assert steps[0].description == "Selecionar {nome}"
+    assert render("Excluir {nome}", {"nome": "Ana"}) == "Excluir Ana"

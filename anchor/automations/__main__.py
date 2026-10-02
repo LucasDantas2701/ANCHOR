@@ -6,6 +6,11 @@ Saved automations from the terminal.
     python -m anchor.automations run register-employee          # 1st time: learns; then: replays
     python -m anchor.automations run register-employee --relearn
     python -m anchor.automations run register-employee --no-heal  # stop instead of healing
+
+    With parameters, in braces in the request:
+    python -m anchor.automations create register --url ... --profile ollama-small "cadastre {nome}, CPF {cpf}, no TI e salve"
+    python -m anchor.automations run register --param nome="Maria Silva" --param cpf=123.456.789-00
+    python -m anchor.automations run register --csv employees.csv          # one run per row
     python -m anchor.automations list
     python -m anchor.automations show register-employee
     python -m anchor.automations recoveries register-employee   # how it recovered when the site changed
@@ -31,6 +36,7 @@ from anchor.planner import ConfigError, get_profile
 from anchor.planner.progress import Progress
 
 from .model import Automation, AutomationError, AutomationStore
+from .params import ParameterError, parse_assignments, read_rows
 from .runner import run_automation, undo_recovery
 
 
@@ -38,7 +44,10 @@ def cmd_create(store: AutomationStore, args) -> int:
     url = to_url(args.url)
     store.create(Automation(name=args.name, request=args.request, url=url, profile=args.profile,
                             browser_profile=args.browser_profile, prompt_language=args.prompt_language))
+    created = store.load(args.name)
     print(t("auto.created", name=args.name, folder=store.folder(args.name)))
+    if created.parameters:
+        print(t("auto.parameters", names=", ".join(created.parameters)))
     return 0
 
 
@@ -59,6 +68,8 @@ def cmd_show(store: AutomationStore, args) -> int:
     print(t("auto.show_request", request=automation.request))
     print(t("auto.show_url", url=automation.url))
     print(t("auto.show_profile", profile=automation.profile))
+    if automation.parameters:
+        print(t("auto.parameters", names=", ".join(automation.parameters)))
     if plan:
         print(t("auto.show_plan", approved=plan.approved.replace("T", " ")))
         for i, s in enumerate(plan.steps, 1):
@@ -76,6 +87,16 @@ def cmd_show(store: AutomationStore, args) -> int:
 
 def cmd_run(store: AutomationStore, args) -> int:
     automation = store.load(args.name)
+    try:
+        if args.csv:
+            rows = read_rows(args.csv)
+            if not rows:
+                raise ParameterError(t("auto.csv_empty", path=args.csv))
+        else:
+            rows = [parse_assignments(args.param)]
+    except (ParameterError, OSError) as exc:
+        print(t("auto.error", error=exc))
+        return 1
     progress = Progress("    ")
 
     def make_planner(auto: Automation):
@@ -83,6 +104,7 @@ def cmd_run(store: AutomationStore, args) -> int:
         return ProgressPlanner(profile.planner(on_progress=progress.update,
                                                prompt_language=auto.prompt_language), progress)
 
+    outcomes = []
     with sync_playwright() as p:
         if automation.browser_profile:
             context = p.chromium.launch_persistent_context(automation.browser_profile, headless=False)
@@ -90,30 +112,44 @@ def cmd_run(store: AutomationStore, args) -> int:
         else:
             context = p.chromium.launch(headless=False).new_context()
             page = context.new_page()
-        page.goto(automation.url)
         executor = ActionExecutor(page, resolver=ElementResolver(page), disambiguator=TerminalDisambiguator(),
                                   can_point=True, memory=ChoiceMemory(store.memory_path(args.name)))
-        try:
-            result, mode, run_id = run_automation(store, args.name, page, executor, make_planner,
-                                                  relearn=args.relearn, heal=not args.no_heal)
-        except ConfigError as exc:
-            print(t("cli.config_error", error=exc))
-            context.close()
-            return 1
-        except KeyboardInterrupt:
-            print("\n\n" + t("cli.interrupted"))
-            context.close()
-            return 130
-        print("\n" + t("cli.result", status=result.status, message=result.message))
-        print(t("cli.summary", steps=sum(r.status == "success" for r in result.records), calls=result.llm_calls,
-                replans=result.replans, failures=result.failures, interventions=result.interventions,
-                tokens_in=result.tokens_in, tokens_out=result.tokens_out, seconds=result.seconds))
+        for number, values in enumerate(rows, 1):
+            if len(rows) > 1:
+                print("\n" + t("auto.row", number=number, total=len(rows)))
+            page.goto(automation.url)
+            try:
+                result, mode, run_id = run_automation(store, args.name, page, executor, make_planner,
+                                                      relearn=args.relearn and number == 1,
+                                                      heal=not args.no_heal, params=values)
+            except (ConfigError, AutomationError) as exc:
+                print(t("auto.error", error=exc))
+                if len(rows) == 1:
+                    context.close()
+                    return 1
+                outcomes.append((number, "error", str(exc)))
+                continue
+            except KeyboardInterrupt:
+                print("\n\n" + t("cli.interrupted"))
+                context.close()
+                return 130
+            print("\n" + t("cli.result", status=result.status, message=result.message))
+            print(t("cli.summary", steps=sum(r.status == "success" for r in result.records), calls=result.llm_calls,
+                    replans=result.replans, failures=result.failures, interventions=result.interventions,
+                    tokens_in=result.tokens_in, tokens_out=result.tokens_out, seconds=result.seconds))
+            outcomes.append((number, result.status, result.message))
+        if len(rows) > 1:
+            done = sum(status == "success" for _, status, _ in outcomes)
+            print("\n" + t("auto.csv_summary", done=done, total=len(rows)))
+            for number, status, message in outcomes:
+                if status != "success":
+                    print(f"    {number:4}  {status:10} {message[:80]}")
         try:
             input("\n" + t("cli.close_browser"))
         except KeyboardInterrupt:
             pass
         context.close()
-    return 0 if result.ok else 1
+    return 0 if all(status == "success" for _, status, _ in outcomes) else 1
 
 
 def _confidence(items: list) -> str:
@@ -183,6 +219,11 @@ def main(argv=None) -> int:
     run.add_argument("--relearn", action="store_true", help="plans again with the LLM, replacing the approved plan")
     run.add_argument("--no-heal", action="store_true",
                      help="if a saved step stops working, stop instead of recovering with the LLM")
+    values = run.add_mutually_exclusive_group()
+    values.add_argument("--param", action="append", default=[], metavar="NAME=VALUE",
+                        help="the value of a parameter for this run (repeat for each one)")
+    values.add_argument("--csv", metavar="FILE",
+                        help="runs once per row of a CSV file, whose columns are the parameters")
 
     sub.add_parser("list", help="lists the automations")
     show = sub.add_parser("show", help="shows an automation, its approved plan and its last runs")

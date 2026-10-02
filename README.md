@@ -239,6 +239,15 @@ python -m anchor.automations show register-maria      # approved plan and last r
 python -m anchor.automations run register-maria --relearn
 ```
 
+The parts of the request that change from run to run go in braces, and each run gives their
+values, or one run per row of a spreadsheet:
+
+```sh
+python -m anchor.automations create register --url eval/fixtures/registration.html --profile ollama-small "cadastre {nome}, CPF {cpf}, no TI e salve"
+python -m anchor.automations run register --param nome="Maria Silva" --param cpf=123.456.789-00
+python -m anchor.automations run register --csv employees.csv
+```
+
 If the site changes and a saved step no longer works, the automation **heals itself**: the LLM
 plans the rest from the page as it is now and, if the run succeeds, the saved plan is corrected.
 Every recovery is recorded, and you can review it and undo it:
@@ -355,7 +364,8 @@ final numbers will come from the closed sets.
     - [x] English translation, with the planner prompt in Portuguese or English
     - [x] Saved automations that **heal themselves**: when a saved plan breaks and is recovered,
       the fix is kept, with a reviewable (and undoable) record of what changed
-    - [ ] Parameters and runs from a spreadsheet, and the user's notes after a failed run
+    - [x] Parameters, and one run per row of a spreadsheet
+    - [ ] The user's notes after a failed run, sent to the planner
     - [ ] Confirmation of sensitive actions (delete, send, save, download, upload, pay)
     - [ ] Defense against instructions injected by page content
     - [ ] Screenshot analysis by a vision model, when the other checks disagree
@@ -467,6 +477,9 @@ requests and page contents do not leave the computer or the company network.
   Portuguese prompt does better, so it stays the default.
 * In English, the resolver gets more elements right first but also makes more silent errors,
   mostly in data extraction.
+* The check of what was done treats capitalized words and acronyms in the request ("CPF", "TI")
+  as data some step must use. If the site renames a field the request names by its acronym, the
+  run may end as not fulfilled even when it was (a false "not fulfilled", never a false success).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

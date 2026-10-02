@@ -21,12 +21,23 @@ from anchor.agent import Agent, AgentResult
 from anchor.engine.action_executor import ActionExecutor
 from anchor.i18n import t
 
-from .model import ApprovedPlan, Automation, AutomationStore
+from .model import ApprovedPlan, Automation, AutomationError, AutomationStore
+from .params import ParameterError, check_values, render, render_steps, templatize, templatize_steps
 from .replay import ReplayPlanner
 
 
 def _step_dict(step) -> dict:
     return asdict(step)
+
+
+def _render_goals(goals, values):
+    from dataclasses import replace
+    return [replace(g, description=render(g.description, values)) for g in goals]
+
+
+def _templatize_goals(goals, values):
+    from dataclasses import replace
+    return [replace(g, description=templatize(g.description, values)) for g in goals]
 
 
 def run_automation(
@@ -38,17 +49,27 @@ def run_automation(
     report: Optional[Callable[[str], None]] = print,
     relearn: bool = False,
     heal: bool = True,
+    params: Optional[dict[str, str]] = None,
     **agent_options,
 ) -> tuple[AgentResult, str, str]:
-    """Runs the automation; returns (result, mode, run id). mode: "learn" or "replay"."""
+    """
+    Runs the automation; returns (result, mode, run id). mode: "learn" or "replay".
+    params: the values of the automation's parameters for this run ({"nome": "Maria"}).
+    """
     automation = store.load(name)
+    values = dict(params or {})
+    try:
+        check_values(automation.parameters, values)
+    except ParameterError as exc:
+        raise AutomationError(str(exc)) from exc
     approved = None if relearn else store.load_plan(name)
     say = report or (lambda _: None)
     memory_before = set(executor.memory.entries) if executor.memory is not None else set()
 
     if approved is not None:
         mode = "replay"
-        planner = ReplayPlanner(approved.steps, approved.goals, approved.language,
+        planner = ReplayPlanner(render_steps(approved.steps, values), _render_goals(approved.goals, values),
+                                approved.language,
                                 make_healer=(lambda: make_planner(automation)) if heal else None, report=say)
         say(t("auto.replaying", name=name, steps=len(approved.steps)))
     else:
@@ -58,7 +79,7 @@ def run_automation(
 
     # The caller opens the automation's link (page.goto(automation.url)) before running it.
     agent = Agent(page, planner, executor, report=report, **agent_options)
-    result = agent.run(automation.request)
+    result = agent.run(render(automation.request, values))
 
     healed = mode == "replay" and planner.broken and planner.healer is not None
     if mode == "replay" and planner.broken and not result.ok:
@@ -70,8 +91,10 @@ def run_automation(
     run_id = store.save_run(name, {
         "version": __version__, "mode": mode, "status": result.status, "message": result.message,
         "healed": healed and result.ok,
-        "steps": [{"action": r.step.action, "description": r.step.description, "value": r.step.value,
-                   "status": r.status, "resolved_by": r.resolved_by, "note": r.note, "score": r.score}
+        "parameters": automation.parameters,     # the names only: the values may be personal data
+        "steps": [{"action": r.step.action, "description": templatize(r.step.description, values),
+                   "value": templatize(r.step.value, values), "status": r.status,
+                   "resolved_by": r.resolved_by, "note": templatize(r.note, values), "score": r.score}
                   for r in result.records],
         "llm_calls": result.llm_calls, "replans": result.replans, "failures": result.failures,
         "interventions": result.interventions, "no_effect": result.no_effect, "seconds": result.seconds,
@@ -79,26 +102,27 @@ def run_automation(
 
     done = [r for r in result.records if r.status == "success"]
     if mode == "learn" and result.ok:
-        steps = [r.step for r in done]
+        steps = templatize_steps([r.step for r in done], values)
         used = {s.goal for s in steps if s.goal}
-        goals = [g for g in agent._goals.values() if g.id in used]
+        goals = _templatize_goals([g for g in agent._goals.values() if g.id in used], values)
         store.save_plan(name, ApprovedPlan(steps=steps, goals=goals, source_run=run_id, language=agent.language))
         say(t("auto.approved", steps=len(steps)))
 
     if healed and result.ok:
         failed = next((r for r in result.records if r.status != "success" and r.status != "skipped"), None)
         new_steps = [r for r in done][planner.broken_at:]
-        steps = [r.step for r in done]
+        steps = templatize_steps([r.step for r in done], values)
         used = {s.goal for s in steps if s.goal}
-        goals = [g for g in agent._goals.values() if g.id in used] or approved.goals
+        goals = _templatize_goals([g for g in agent._goals.values() if g.id in used], values) or approved.goals
         store.save_plan(name, ApprovedPlan(steps=steps, goals=goals, source_run=run_id, language=approved.language))
         record = store.add_recovery(name, {
             "run": run_id, "method": "replan",
             "failed_step": _step_dict(approved.steps[planner.broken_at]) if planner.broken_at < len(approved.steps) else None,
-            "reason": failed.note if failed else planner.broken_reason,
-            "replaced_by": [_step_dict(r.step) for r in new_steps],
+            "reason": templatize(failed.note if failed else planner.broken_reason, values),
+            "replaced_by": [_step_dict(s) for s in templatize_steps([r.step for r in new_steps], values)],
             "effect_confirmed": agent.watcher is not None,
-            "confidence": [{"step": r.step.description, "resolved_by": r.resolved_by, "score": r.score} for r in new_steps],
+            "confidence": [{"step": templatize(r.step.description, values), "resolved_by": r.resolved_by,
+                            "score": r.score} for r in new_steps],
             "previous_plan": {"steps": [_step_dict(s) for s in approved.steps],
                               "goals": [asdict(g) for g in approved.goals]},
         })
@@ -109,7 +133,7 @@ def run_automation(
             entry = executor.memory.entries[key]
             record = store.add_recovery(name, {
                 "run": run_id, "method": "user", "memory_key": key,
-                "step": {"action": entry.action, "description": entry.description},
+                "step": {"action": entry.action, "description": templatize(entry.description, values)},
                 "effect_confirmed": agent.watcher is not None,
             })
             say(t("auto.user_recovery", number=record["number"], description=entry.description))

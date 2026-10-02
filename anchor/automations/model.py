@@ -38,6 +38,7 @@ class Automation:
     profile: str
     browser_profile: Optional[str] = None
     prompt_language: Optional[str] = None     # None: the model profile's
+    parameters: list[str] = field(default_factory=list)   # placeholders of the request: {nome}, {cpf}
     created: str = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))
     version: int = FORMAT_VERSION
 
@@ -71,6 +72,8 @@ class AutomationStore:
         folder = self.folder(automation.name)
         if (folder / "automation.json").exists():
             raise AutomationError(f"automation {automation.name!r} already exists")
+        from .params import find_parameters
+        automation.parameters = find_parameters(automation.request)
         (folder / "runs").mkdir(parents=True, exist_ok=True)
         self._write(folder / "automation.json", asdict(automation))
         return automation
