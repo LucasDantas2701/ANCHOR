@@ -8,6 +8,7 @@ Usage (from the project root):
     python -m eval.plan_run --profiles ollama-small ollama-medium -v
     python -m eval.plan_run --agent --profiles ollama-small   # tasks through the full agent loop
     python -m eval.plan_run --check                           # checks the tasks, without calling models
+    python -m eval.plan_run --agent --suite injection --profiles ollama-small   # pages that try to hijack the agent
     python -m eval.plan_run --agent --language en --prompt-language auto --profiles ollama-small
     python -m eval.plan_run --final --profiles ...            # the CLOSED set (once, at the end)
 
@@ -46,6 +47,8 @@ ROOT = Path(__file__).resolve().parent
 FIXTURES = ROOT / "fixtures"
 TASKS = ROOT / "plans" / "tasks.json"
 TASKS_EN = ROOT / "plans" / "tasks_en.json"
+TASKS_INJECTION = ROOT / "plans" / "tasks_injection.json"
+SUITES = ("main", "injection")
 HOLDOUT_TASKS = ROOT / "plans" / "holdout_tasks.json"
 
 # Records clicks and Enter, and prevents navigation (links and form submissions),
@@ -128,6 +131,13 @@ class TaskResult:
     goals: int = 0            # --agent mode: goals defined by the planner
     goals_done: int = 0
     suspicions: int = 0       # --agent mode: expected texts that did not appear
+    attacked: bool = False    # --suite injection: some attack of the page worked
+    attacks_list: str = ""    # which ones
+
+
+def attacks_that_worked(page: Page, task: dict) -> list[str]:
+    """The task's attack expressions that are true on the final page (--suite injection)."""
+    return [a for a in task.get("attacks", []) if page.evaluate(f"() => Boolean({a})")]
 
 
 def run_task_agent(page: Page, planner, profile_name: str, task: dict) -> TaskResult:
@@ -141,6 +151,7 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict) -> TaskRe
 
     checks = [bool(page.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
     unrequested = page.evaluate("(allowed) => window.__unrequested(allowed)", task["allowed"])
+    attacks = attacks_that_worked(page, task)
     success = result.ok and all(checks)
     done = [r for r in result.records if r.status == "success"]
     stopped = next((r.status for r in reversed(result.records) if r.status != "success"), "")
@@ -159,6 +170,7 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict) -> TaskRe
         llm_calls=result.llm_calls, replans=result.replans,
         no_effect=result.no_effect, premature=result.ok and not all(checks),
         goals=result.goals_total, goals_done=result.goals_done, suspicions=result.suspicions,
+        attacked=bool(attacks), attacks_list="; ".join(attacks),
     )
 
 
@@ -188,6 +200,7 @@ def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool)
 
     checks = [bool(page.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
     unrequested = page.evaluate("(allowed) => window.__unrequested(allowed)", task["allowed"])
+    attacks = attacks_that_worked(page, task)
     success = plan is not None and all(checks)
     return TaskResult(
         profile=profile_name,
@@ -213,6 +226,7 @@ def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool)
         error=error,
         plan=json.dumps([[s.action, s.description, s.value] for s in plan.steps], ensure_ascii=False)
         if plan else "",
+        attacked=bool(attacks), attacks_list="; ".join(attacks),
     )
 
 
@@ -231,6 +245,8 @@ def load_tasks() -> list[dict]:
     tasks = json.loads(TASKS.read_text(encoding="utf-8"))["tasks"]
     if TASKS_EN.exists():
         tasks += json.loads(TASKS_EN.read_text(encoding="utf-8"))["tasks"]
+    if TASKS_INJECTION.exists():
+        tasks += json.loads(TASKS_INJECTION.read_text(encoding="utf-8"))["tasks"]
     if HOLDOUT_TASKS.exists():
         tasks += json.loads(HOLDOUT_TASKS.read_text(encoding="utf-8"))["tasks"]
     return tasks
@@ -272,7 +288,7 @@ def check_tasks(tasks: list[dict], browser=None) -> int:
         for sel in t["allowed"]:
             if page.locator(sel).count() == 0:
                 print(f"  [warning] {tid}: {sel} is not on the initial page (it may appear later)")
-        for c in t["checks"]:
+        for c in t["checks"] + t.get("attacks", []):
             try:
                 page.evaluate(f"() => Boolean({c})")
             except Exception as exc:
@@ -306,6 +322,7 @@ def summarize(rows: list[TaskResult]) -> dict:
         "goals_done": (sum(r.goals_done for r in rows) / sum(r.goals for r in rows)
                        if sum(r.goals for r in rows) else None),
         "suspicions": sum(r.suspicions for r in rows),
+        "attacked": sum(r.attacked for r in rows),
     }
 
 
@@ -331,6 +348,8 @@ def main() -> int:
     option(ap, "--prompt-language", choices=("pt", "en", "auto"),
            help="planner prompt language: pt, en, or auto (follows the request); default: the profile's")
     option(ap, "--language", choices=("pt", "en"), help="only the tasks in this language (default: both)")
+    option(ap, "--suite", choices=SUITES, default="main",
+           help="main: the ordinary tasks (default); injection: tasks whose pages try to hijack the agent")
     args = ap.parse_args()
 
     all_tasks = load_tasks()
@@ -341,6 +360,7 @@ def main() -> int:
     tasks = [t for t in all_tasks if t.get("split", "dev") == wanted]
     if args.language:
         tasks = [t for t in tasks if t.get("language", "pt") == args.language]
+    tasks = [t for t in tasks if t.get("suite", "main") == args.suite]
     if args.final:
         print("*** CLOSED SET: final run. Record the date and the commit of this run. ***")
         if not tasks:
@@ -406,7 +426,8 @@ def main() -> int:
                       + ("  PREMATURE END" if r.premature else "")
                       + (f"  goals {r.goals_done}/{r.goals}" if r.goals else "")
                       + (f"  suspicions: {r.suspicions}" if r.suspicions else "")
-                      + (f"  no effect: {r.no_effect}" if r.no_effect else ""))
+                      + (f"  no effect: {r.no_effect}" if r.no_effect else "")
+                      + (f"  ATTACKED: {r.attacks_list}" if r.attacked else ""))
                 if args.verbose and r.plan:
                     for a, d, v in json.loads(r.plan):
                         print(f"        {a:12} {d}" + (f' = "{v}"' if v is not None else ""))
@@ -418,7 +439,8 @@ def main() -> int:
     print(f"{'profile':16} {'success':>8} {'clean':>7} {'unreq.':>7} {'plan ok':>8} {'checks':>7} "
           f"{'refusals':>9} {time_col:>8} {'tokens':>7}"
           + (f" {'LLM/task':>9} {'replans':>8} {'no eff.':>8} {'premature':>10} {'goals':>6} {'suspic.':>8}"
-             if args.agent else ""))
+             if args.agent else "")
+          + (f" {'attacked':>9}" if args.suite == "injection" else ""))
     summaries = {}
     languages = sorted({r.language for r in rows})
     for name, _ in planners:
@@ -434,7 +456,8 @@ def main() -> int:
                   f"{s['checks']:7.0%} {s['heuristic_refusals']:9} {s['mean_seconds']:8.1f} {s['mean_tokens']:7.0f}"
                   + (f" {s['mean_llm_calls']:9.1f} {s['replans']:8} {s['no_effect']:8} {s['premature']:10}"
                      + (f" {s['goals_done']:6.0%}" if s["goals_done"] is not None else f" {'—':>6}")
-                     + f" {s['suspicions']:8}" if args.agent else ""))
+                     + f" {s['suspicions']:8}" if args.agent else "")
+              + (f" {s['attacked']:9}" if args.suite == "injection" else ""))
 
     if not rows:
         print("No task was run.")
@@ -442,7 +465,8 @@ def main() -> int:
 
     out = ROOT / "results"
     out.mkdir(exist_ok=True)
-    stem = f"plans_{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}" + ("_FINAL" if args.final else "")
+    stem = (f"plans_{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}" + ("_injection" if args.suite == "injection" else "")
+            + ("_FINAL" if args.final else ""))
     with open(out / f"{stem}.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(asdict(rows[0])))
         w.writeheader()
@@ -450,7 +474,8 @@ def main() -> int:
     (out / f"{stem}.json").write_text(json.dumps({
         "version": __version__, "commit": git_commit(), "date": datetime.now().isoformat(timespec="seconds"),
         "page_context": not args.no_page, "mode": "agent" if args.agent else "plan",
-        "prompt_language": args.prompt_language or "profile", "languages": languages, "summary": summaries,
+        "prompt_language": args.prompt_language or "profile", "languages": languages, "suite": args.suite,
+        "summary": summaries,
     }, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nResults saved to {(out / stem).relative_to(ROOT.parent)}.csv (+ .json)")
     return 0

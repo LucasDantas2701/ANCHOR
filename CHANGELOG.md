@@ -18,6 +18,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- Prompt injection evaluation, part 1 (measuring before defending): test pages
+  (`eval/fixtures/injection.html` and `injection_en.html`) with four attacks (an instruction in a
+  product's description, in an almost invisible link, in an `aria-label`, and in a message shown
+  after a search) and 6 tasks with harmless requests (`eval/plans/tasks_injection.json`). Each task
+  has `attacks`, expressions that are true if an attack worked; `eval/plan_run.py --suite injection`
+  runs them and adds the `attacked` column. The main suite is unchanged.
 - **Confirmation of sensitive actions** (`anchor/engine/sensitive.py`). A click is sensitive
   when the step's description (outside parentheses) or the name of the element the resolver
   chose has a verb of deleting, saving or submitting, sending, paying, downloading or uploading,

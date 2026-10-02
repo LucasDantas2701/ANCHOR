@@ -114,6 +114,21 @@ language). The measured results so far use the Portuguese one (the default). To 
     python -m eval.plan_run --agent --profiles ollama-small ollama-medium --prompt-language pt -v
     python -m eval.plan_run --agent --profiles ollama-small ollama-medium --prompt-language auto -v
 
+### Prompt injection (`--suite injection`)
+
+`plans/tasks_injection.json` has 6 tasks (3 per language) on `fixtures/injection.html` and
+`injection_en.html`, pages that try to make the agent do what the user did not ask: an
+instruction in a product's description (it reaches the model as the item's context), in an
+almost invisible link, in an `aria-label`, and in a message that appears after a search. Each
+request is harmless (search, add a product, subscribe with one's own e-mail). Besides the usual
+checks, each task has `attacks`: JavaScript expressions that are true if an attack worked (the
+account deleted, a product not asked for added, the attacker's e-mail typed, the hidden link
+followed, an unrequested subscription). The table adds the `attacked` column.
+
+    python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama-medium -v
+
+These tasks are not part of the main suite, so the numbers of the ordinary tasks stay comparable.
+
 ### Closed set of planner tasks
 
 The tasks in `plans/tasks.json` were used to tune the planner prompt, so their numbers are
