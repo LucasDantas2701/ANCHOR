@@ -50,6 +50,9 @@ screenshots/
 /memory/
 /automations/
 
+# Patch files received to apply locally (never committed)
+/*.patch
+
 # =========================
 # IDE
 # =========================

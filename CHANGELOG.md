@@ -18,6 +18,15 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- `docs/COMMANDS.md`: the complete reference of the commands: setup and Ollama, every option of
+  every tool, the demos, the model profile fields and the environment variables. A test
+  (`tests/test_docs.py`) keeps it complete: it runs each tool's `--help` and fails if an option or
+  subcommand is missing, and also checks that every runnable module, every profile field and
+  every environment variable read by the code is documented, and that the commands in the READMEs
+  only use options the reference knows. It already found options missing from the documentation
+  (`--root`, `--yes`, `--headed`, `--split`, `--site`) and an old Portuguese option shown in
+  `--help` (`--sim`, now hidden like the others).
+- `.gitignore` ignores `.patch` files at the project root, so they are never committed by accident.
 - Saved automations, part 2: **self-healing**. When a saved step stops working (after the choice
   memory, the heuristic and the user), the automation hands over to the LLM, which plans the rest
   from the page as it is now; if the run succeeds, the saved plan is corrected. Every recovery is

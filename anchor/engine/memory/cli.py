@@ -60,7 +60,8 @@ def main(argv: list[str] | None = None, input_fn=input, out: Callable[[str], Non
     forget = sub.add_parser("forget", aliases=["esquecer"], help=t("mem.help_forget"))
     forget.add_argument("numbers", type=int, nargs="+")
     clear = sub.add_parser("clear", aliases=["limpar"], help=t("mem.help_clear"))
-    clear.add_argument("--yes", "--sim", action="store_true", help=t("mem.help_yes"))
+    clear.add_argument("--yes", action="store_true", help=t("mem.help_yes"))
+    clear.add_argument("--sim", dest="yes", action="store_true", help=argparse.SUPPRESS)  # old Portuguese name
     args = ap.parse_args([str(a) for a in argv] if argv is not None else None)
     command = COMMANDS[args.command]
 

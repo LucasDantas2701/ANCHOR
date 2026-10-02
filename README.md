@@ -211,6 +211,9 @@ tokens and time.
 <!-- USAGE -->
 ## Usage
 
+The main commands are below; **every** command and option is in the
+[command reference](docs/COMMANDS.md).
+
 **Run a request end to end** (plan, execution, replanning and end):
 
 ```sh
@@ -415,6 +418,7 @@ ANCHOR/
 │   ├── main.py                    # end-to-end example on SauceDemo, with a fixed plan
 │   └── automations/               # saved automations: learn once, replay, heal
 ├── eval/                          # evaluation: test pages, cases, tasks, results, closed sets
+├── docs/COMMANDS.md               # the complete command reference
 ├── examples/                      # demos (and legacy_saucedemo.py, fixed selectors: the "before")
 ├── tests/
 ├── profiles/                      # browser profiles (not in Git)
