@@ -18,6 +18,15 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- English evaluation, part 2 (the planner): 15 English development tasks
+  (`eval/plans/tasks_en.json`, on the English pages), mirroring the Portuguese ones.
+  `eval/plan_run.py` loads them, accepts `--language pt|en`, and reports each profile per
+  language. The reference plans complete all 30 tasks, in both modes.
+- `"prompt_language": "auto"` (or `--prompt-language auto`): the planner prompt follows each
+  request's language, detected from typical words, command verbs and accents (`detect_language`
+  in `anchor/planner/language.py`); on a tie, Portuguese, the measured default. It gets all 30
+  task requests right. The agent writes the history for the model in the detected language.
+  Portuguese stays the default until the English prompt is measured.
 - English evaluation, part 1 (the resolver): English versions of the Portuguese test pages
   (`registration_en`, `users_en`, `orders_en`, `jobs_en`, `search_enter_en`, with the same structure)
   and 52 English development cases (`eval/cases/*_en.json`, field `"language": "en"`), mirroring the
@@ -92,6 +101,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   redistribution; copyright by the author. "Responsible use" section in the README.
 
 ### Changed
+- The check of the request's data no longer requires English capitalized common words
+  (languages, weekdays, months: "Portuguese", "Monday"), which the page may show in another form
+  (the option "Português"); found with the English task `en-log-02`.
+- The identical-name rule also ignores the English summary's kinds ("Dropdown", "Checkbox"...);
+  no resolver case changed.
 - Text extraction no longer targets checkboxes, radio buttons or switches, which have no text.
   With the column header, on the local development sets: Portuguese recall@1 82.7% → 86.5% and
   correct 78.8% → 82.7% (silent error unchanged, 1.9%); English recall@1 88.5% → 90.4%, correct

@@ -191,13 +191,23 @@ _NUMBER = _re.compile(r"\d[\d.()\-/ ]{2,}\d")
 _NAME = _re.compile(r"(?<![.!?]\s)(?<!^)\b([A-ZÀ-Ý][\wÀ-ÿ]*(?:\s+(?:de|da|do|dos|das)?\s*[A-ZÀ-Ý][\wÀ-ÿ]*)*)")
 
 
+# English capitalizes languages, weekdays and months, which are not data the plan must
+# copy: the page may show them in another form ("Portuguese" → the option "Português").
+_CAPITALIZED_COMMON = {
+    "english", "portuguese", "spanish", "french", "german", "italian", "chinese", "japanese",
+    "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+    "january", "february", "march", "april", "may", "june", "july", "august", "september",
+    "october", "november", "december",
+}
+
+
 def request_values(request: str) -> list[str]:
     """Data the request brings and the plan needs to use."""
     text = request.strip()
     found = _QUOTED.findall(text) + _EMAIL.findall(text) + _NUMBER.findall(text)
     first_word = text.split()[0] if text.split() else ""
     for name in _NAME.findall(text):
-        if name != first_word and len(name) > 1:
+        if name != first_word and len(name) > 1 and name.lower() not in _CAPITALIZED_COMMON:
             found.append(name)
     return list(dict.fromkeys(v.strip() for v in found if v.strip()))
 

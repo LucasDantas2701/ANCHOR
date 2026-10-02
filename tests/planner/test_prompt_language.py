@@ -75,3 +75,60 @@ def test_agent_history_follows_the_prompt_language(page):
 def test_unknown_prompt_language_is_rejected():
     with pytest.raises(ValueError):
         LLMPlanner(FakeClient(), "falso", language="fr")
+
+
+# --------------------------------------------------------------------------
+# "auto": the prompt follows the request's language
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize("request_text, expected", [
+    ("Cadastre a Maria Silva no TI e salve", "pt"),
+    ("Register Maria Silva in IT and save", "en"),
+    ("Salve", "pt"),
+    ("Save", "en"),
+    ("Pesquise rpa", "pt"),
+    ("Search rpa", "en"),
+    ("abrir o carrinho", "pt"),
+    ("open cart", "en"),
+    ("login", "pt"),                       # a tie stays with Portuguese, the measured default
+])
+def test_detect_language(request_text, expected):
+    from anchor.planner.language import detect_language
+    assert detect_language(request_text) == expected
+
+
+def test_detection_gets_every_task_request_right():
+    import json
+    from pathlib import Path
+
+    from anchor.planner.language import detect_language
+    plans = Path(__file__).resolve().parents[2] / "eval" / "plans"
+    for name, lang in (("tasks.json", "pt"), ("tasks_en.json", "en")):
+        for task in json.loads((plans / name).read_text(encoding="utf-8"))["tasks"]:
+            assert detect_language(task["request"]) == lang, task["request"]
+
+
+def test_auto_picks_the_prompt_per_request():
+    client = FakeClient(plan_json(), plan_json())
+    planner = LLMPlanner(client, "falso", language="auto")
+    planner.plan("cancele o pedido", "http://x")
+    planner.plan("cancel the order", "http://x")
+    assert client.calls[0]["messages"][0]["content"] == SYSTEM
+    assert client.calls[1]["messages"][0]["content"] == SYSTEM_EN
+
+
+def test_agent_history_follows_the_detected_language(page):
+    page.set_content(FORM)
+    page.set_default_timeout(1500)
+    client = FakeClient(plan_json(("fill", "Nome", "Ana", None)), plan_json())
+    result = Agent(page, LLMPlanner(client, "falso", language="auto"), ActionExecutor(page),
+                   report=None, verify_effect=False).run("fill in the name with Ana")
+    assert result.ok
+    assert '- done: fill Nome = "Ana"' in client.calls[1]["messages"][1]["content"]
+
+
+def test_english_capitalized_common_words_are_not_required_values():
+    from anchor.planner.plan import request_values
+    assert request_values("Change the page language to Portuguese") == []
+    assert request_values("write in the notes: starts on Monday") == []
+    assert request_values("Select Anna and Carol") == ["Anna", "Carol"]

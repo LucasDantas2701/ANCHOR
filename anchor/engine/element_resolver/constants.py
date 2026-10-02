@@ -332,6 +332,9 @@ KIND_WORDS = [
     "botão", "botao", "link", "campo", "texto", "busca", "caixa", "marcação", "marcacao",
     "opção", "opcao", "opções", "lista", "chave", "aba", "item", "menu", "área", "area",
     "clicável", "clicavel", "elemento", "sugestão", "sugestao", "option", "button", "field",
+    # the English summary's kinds ("Dropdown", "Checkbox", "Text field"...)
+    "dropdown", "checkbox", "tab", "slider", "toggle", "switch", "clickable", "area", "element",
+    "link", "text", "search", "number",
 ]
 EXACT_NAME_BONUS = 0.15         # element text = exactly what the request names
 DESTRUCTIVE_DAMPING = 0.80       # request with no verb; the element announces a destructive action

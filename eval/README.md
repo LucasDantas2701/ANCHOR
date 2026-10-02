@@ -104,8 +104,15 @@ shows, per model: tasks done, **clean** tasks (done with no unrequested step), u
 valid plans, checks passed, heuristic refusals, time and tokens; with `--agent`, also model calls,
 replans, actions with no effect, premature ends, goals fulfilled and suspicions.
 
-`--prompt-language en` runs the planner with the English prompt; the measured results so far use
-the Portuguese one (the default).
+The English tasks (`plans/tasks_en.json`, field `"language": "en"`) mirror the Portuguese ones on
+the English pages. `--language pt|en` runs only one of them; by default both run, and the table
+shows each profile per language.
+
+`--prompt-language` chooses the planner prompt: `pt`, `en`, or `auto` (it follows each request's
+language). The measured results so far use the Portuguese one (the default). To compare:
+
+    python -m eval.plan_run --agent --profiles ollama-small ollama-medium --prompt-language pt -v
+    python -m eval.plan_run --agent --profiles ollama-small ollama-medium --prompt-language auto -v
 
 ### Closed set of planner tasks
 

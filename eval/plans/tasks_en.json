@@ -1,0 +1,423 @@
+{
+  "_readme": "Development tasks for the planner, in English (requests and pages), mirroring tasks.json. Same format; 'language': 'en'.",
+  "tasks": [
+    {
+      "id": "en-reg-01",
+      "split": "dev",
+      "language": "en",
+      "fixture": "registration_en.html",
+      "request": "Register the employee Maria Silva, tax ID 123-45-6789, e-mail maria.silva@company.com, IT department, contractor. Accept the terms and save the registration.",
+      "checks": [
+        "document.querySelector('#nome').value === 'Maria Silva'",
+        "document.querySelector('#cpf').value === '123-45-6789'",
+        "document.querySelector('#mail').value === 'maria.silva@company.com'",
+        "document.querySelector('#dep').selectedOptions[0].text === 'IT'",
+        "document.querySelector('input[value=pj]').checked",
+        "document.querySelector('#termos').checked",
+        "__clicked('button.save')"
+      ],
+      "allowed": [
+        "#nome",
+        "#cpf",
+        "#mail",
+        "#dep",
+        "input[value=pj]",
+        "#termos",
+        "button.save"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Full name",
+          "Maria Silva"
+        ],
+        [
+          "fill",
+          "Tax ID",
+          "123-45-6789"
+        ],
+        [
+          "fill",
+          "Work e-mail",
+          "maria.silva@company.com"
+        ],
+        [
+          "select",
+          "Department",
+          "IT"
+        ],
+        [
+          "check",
+          "Contractor",
+          null
+        ],
+        [
+          "check",
+          "I have read and accept the terms of use",
+          null
+        ],
+        [
+          "click",
+          "Save registration",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "en-reg-02",
+      "split": "dev",
+      "language": "en",
+      "fixture": "registration_en.html",
+      "request": "Set the phone to (555) 123-4567 and write in the notes: starts on Monday",
+      "checks": [
+        "document.querySelector('#tel').value === '(555) 123-4567'",
+        "document.querySelector('#obs').value.toLowerCase().includes('monday')"
+      ],
+      "allowed": [
+        "#tel",
+        "#obs"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Phone",
+          "(555) 123-4567"
+        ],
+        [
+          "fill",
+          "Notes",
+          "starts on Monday"
+        ]
+      ]
+    },
+    {
+      "id": "en-log-01",
+      "split": "dev",
+      "language": "en",
+      "fixture": "login.html",
+      "request": "Fill in the username lucas.dantas and tick remember me",
+      "checks": [
+        "document.querySelector('#user').value === 'lucas.dantas'",
+        "document.querySelector('input[name=remember]').checked",
+        "document.querySelector('#pwd').value === ''",
+        "!__clicked('#login-btn')"
+      ],
+      "allowed": [
+        "#user",
+        "input[name=remember]"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Username",
+          "lucas.dantas"
+        ],
+        [
+          "check",
+          "Remember me",
+          null
+        ]
+      ],
+      "note": "Like p-log-01: the password and the click on log in stay with the user."
+    },
+    {
+      "id": "en-log-02",
+      "split": "dev",
+      "language": "en",
+      "fixture": "login.html",
+      "request": "Change the page language to Portuguese",
+      "checks": [
+        "document.querySelector('select[name=lang]').selectedOptions[0].text === 'Português'"
+      ],
+      "allowed": [
+        "select[name=lang]"
+      ],
+      "reference": [
+        [
+          "select",
+          "Language",
+          "Português"
+        ]
+      ]
+    },
+    {
+      "id": "en-store-01",
+      "split": "dev",
+      "language": "en",
+      "fixture": "store.html",
+      "request": "Sort the products from cheapest to most expensive",
+      "checks": [
+        "document.querySelector(\"select[aria-label='Sort by']\").selectedOptions[0].text === 'Price: low to high'"
+      ],
+      "allowed": [
+        "select[aria-label='Sort by']"
+      ],
+      "reference": [
+        [
+          "select",
+          "Sort by",
+          "Price: low to high"
+        ]
+      ]
+    },
+    {
+      "id": "en-store-02",
+      "split": "dev",
+      "language": "en",
+      "fixture": "store.html",
+      "request": "Put the UltraBook and the headphones in the cart",
+      "checks": [
+        "__clicked('.card:nth-of-type(1) .add')",
+        "__clicked('.card:nth-of-type(2) .add')",
+        "!__clicked('.card:nth-of-type(3) .add')"
+      ],
+      "allowed": [
+        ".card:nth-of-type(1) .add",
+        ".card:nth-of-type(2) .add"
+      ],
+      "reference": [
+        [
+          "click",
+          "Add to cart of UltraBook 14",
+          null
+        ],
+        [
+          "click",
+          "Add to cart of QuietMax Headphones",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "en-store-03",
+      "split": "dev",
+      "language": "en",
+      "fixture": "store.html",
+      "request": "Search for mechanical keyboard",
+      "checks": [
+        "/keyboard/i.test(document.querySelector('input[name=q]').value)",
+        "__clicked(\"header button[aria-label=Search]\") || __entered('input[name=q]')"
+      ],
+      "allowed": [
+        "input[name=q]",
+        "header button[aria-label=Search]"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Search products",
+          "mechanical keyboard"
+        ],
+        [
+          "click",
+          "Search",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "en-usr-01",
+      "split": "dev",
+      "language": "en",
+      "fixture": "users_en.html",
+      "request": "Show only the inactive users",
+      "checks": [
+        "document.querySelector(\"select[aria-label='Filter by status']\").selectedOptions[0].text === 'Inactive'"
+      ],
+      "allowed": [
+        "select[aria-label='Filter by status']"
+      ],
+      "reference": [
+        [
+          "select",
+          "Filter by status",
+          "Inactive"
+        ]
+      ]
+    },
+    {
+      "id": "en-usr-02",
+      "split": "dev",
+      "language": "en",
+      "fixture": "users_en.html",
+      "request": "Select Anna and Carol in the list",
+      "checks": [
+        "document.querySelector(\"input[aria-label='Select Anna Smith']\").checked",
+        "document.querySelector(\"input[aria-label='Select Carol Miller']\").checked",
+        "!document.querySelector(\"input[aria-label='Select Brian Lee']\").checked"
+      ],
+      "allowed": [
+        "input[aria-label='Select Anna Smith']",
+        "input[aria-label='Select Carol Miller']"
+      ],
+      "reference": [
+        [
+          "check",
+          "Select Anna Smith",
+          null
+        ],
+        [
+          "check",
+          "Select Carol Miller",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "en-usr-03",
+      "split": "dev",
+      "language": "en",
+      "fixture": "users_en.html",
+      "request": "Delete the user Brian Lee",
+      "checks": [
+        "__clicked('tbody tr:nth-child(2) button[title=Delete]')",
+        "!__clicked('tbody tr:nth-child(1) button[title=Delete]')",
+        "!__clicked('tbody tr:nth-child(3) button[title=Delete]')"
+      ],
+      "allowed": [
+        "tbody tr:nth-child(2) button[title=Delete]"
+      ],
+      "reference": [
+        [
+          "click",
+          "Delete of Brian Lee",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "en-ord-01",
+      "split": "dev",
+      "language": "en",
+      "fixture": "orders_en.html",
+      "request": "Cancel the order that is still being packed",
+      "checks": [
+        "__clicked('.pedido:nth-of-type(2) .cancel')"
+      ],
+      "allowed": [
+        ".pedido:nth-of-type(2) .cancel"
+      ],
+      "reference": [
+        [
+          "click",
+          "Cancel order of Order #1024",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "en-ord-02",
+      "split": "dev",
+      "language": "en",
+      "fixture": "orders_en.html",
+      "request": "Put the ceramic mug in the cart and then open the cart",
+      "checks": [
+        "__clicked('.rec:nth-of-type(2) button')",
+        "__clicked('a.cart')"
+      ],
+      "allowed": [
+        ".rec:nth-of-type(2) button",
+        "a.cart"
+      ],
+      "reference": [
+        [
+          "click",
+          "Add to cart of Ceramic mug",
+          null
+        ],
+        [
+          "click",
+          "shopping cart link",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "en-pop-01",
+      "split": "dev",
+      "language": "en",
+      "fixture": "search_popup.html",
+      "request": "Search for the Pi Network coin",
+      "checks": [
+        "/pi network/i.test(document.querySelector('#q').value)",
+        "__entered('#q')"
+      ],
+      "allowed": [
+        ".lupa",
+        "#q"
+      ],
+      "reference": [
+        [
+          "click",
+          "Search /",
+          null
+        ],
+        [
+          "fill",
+          "Search coins",
+          "Pi Network"
+        ],
+        [
+          "press",
+          "Search coins",
+          "Enter"
+        ]
+      ]
+    },
+    {
+      "id": "en-ent-01",
+      "split": "dev",
+      "language": "en",
+      "fixture": "search_enter_en.html",
+      "request": "Search for rpa jobs in manaus",
+      "checks": [
+        "/rpa/i.test(document.querySelector('#s').value)",
+        "__entered('#s') || __clicked('[role=option]')"
+      ],
+      "allowed": [
+        "#s",
+        "[role=option]"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Search",
+          "rpa in manaus"
+        ],
+        [
+          "press",
+          "Search",
+          "Enter"
+        ]
+      ]
+    },
+    {
+      "id": "en-jobs-01",
+      "split": "dev",
+      "language": "en",
+      "fixture": "jobs_en.html",
+      "request": "Save the first job",
+      "checks": [
+        "__clicked('#det1 .salvar')",
+        "!__clicked('.fechar')",
+        "!__clicked('.candidatar')"
+      ],
+      "allowed": [
+        ".job1 a",
+        "#det1 .salvar"
+      ],
+      "reference": [
+        [
+          "click",
+          "RPA Consultant",
+          null
+        ],
+        [
+          "click",
+          "Save job",
+          null
+        ]
+      ]
+    }
+  ]
+}

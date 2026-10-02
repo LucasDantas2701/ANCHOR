@@ -44,6 +44,9 @@ class ProgressPlanner:
         # The agent writes the history in the planner's language: pass it through.
         return self.planner.language
 
+    def language_for(self, request: str) -> str:
+        return self.planner.language_for(request)
+
     def plan(self, *args, **kwargs):
         with self.progress:
             return self.planner.plan(*args, **kwargs)

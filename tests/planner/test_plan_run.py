@@ -124,3 +124,10 @@ def test_agent_mode_flags_invalid_plan_in_any_language(page):
     client = FakeClient("isto não é JSON", "nem isto")
     r = run_task_agent(fresh(page), LLMPlanner(client, "falso"), "falso", FILTER_TASK)
     assert not r.plan_valid and not r.success
+
+
+def test_english_tasks_are_loaded_with_their_language():
+    from eval.plan_run import load_tasks
+    tasks = load_tasks()
+    english = [t for t in tasks if t.get("language") == "en"]
+    assert len(english) == 15 and all(t["id"].startswith("en-") for t in english)

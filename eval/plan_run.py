@@ -8,6 +8,7 @@ Usage (from the project root):
     python -m eval.plan_run --profiles ollama-small ollama-medium -v
     python -m eval.plan_run --agent --profiles ollama-small   # tasks through the full agent loop
     python -m eval.plan_run --check                           # checks the tasks, without calling models
+    python -m eval.plan_run --agent --language en --prompt-language auto --profiles ollama-small
     python -m eval.plan_run --final --profiles ...            # the CLOSED set (once, at the end)
 
 The tasks in eval/plans/holdout_tasks.json (split "test") form the closed set:
@@ -44,6 +45,7 @@ from anchor.planner.progress import Progress
 ROOT = Path(__file__).resolve().parent
 FIXTURES = ROOT / "fixtures"
 TASKS = ROOT / "plans" / "tasks.json"
+TASKS_EN = ROOT / "plans" / "tasks_en.json"
 HOLDOUT_TASKS = ROOT / "plans" / "holdout_tasks.json"
 
 # Records clicks and Enter, and prevents navigation (links and form submissions),
@@ -99,6 +101,7 @@ class ReferencePlanner:
 @dataclass
 class TaskResult:
     profile: str
+    language: str             # the request's language ("pt" or "en")
     model: str
     task: str
     split: str
@@ -142,7 +145,7 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict) -> TaskRe
     done = [r for r in result.records if r.status == "success"]
     stopped = next((r.status for r in reversed(result.records) if r.status != "success"), "")
     return TaskResult(
-        profile=profile_name, model=getattr(planner, "model", ""), task=task["id"],
+        profile=profile_name, language=task.get("language", "pt"), model=getattr(planner, "model", ""), task=task["id"],
         split=task.get("split", "dev"),
         plan_valid=not result.plan_failed,
         plan_steps=len(result.records), steps_ok=len(done), stopped_at=stopped,
@@ -162,7 +165,7 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict) -> TaskRe
 def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool) -> TaskResult:
     page.goto((FIXTURES / task["fixture"]).as_uri())
     resolver = ElementResolver(page)
-    language = getattr(planner, "language", "pt")
+    language = planner.language_for(task["request"]) if hasattr(planner, "language_for") else "pt"
     elements = page_elements(resolver, request=task["request"], language=language) if use_page else None
 
     if isinstance(planner, ReferencePlanner):
@@ -188,6 +191,7 @@ def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool)
     success = plan is not None and all(checks)
     return TaskResult(
         profile=profile_name,
+        language=task.get("language", "pt"),
         model=getattr(planner, "model", ""),
         task=task["id"],
         split=task.get("split", "dev"),
@@ -225,6 +229,8 @@ def warm_up(planner) -> float:
 
 def load_tasks() -> list[dict]:
     tasks = json.loads(TASKS.read_text(encoding="utf-8"))["tasks"]
+    if TASKS_EN.exists():
+        tasks += json.loads(TASKS_EN.read_text(encoding="utf-8"))["tasks"]
     if HOLDOUT_TASKS.exists():
         tasks += json.loads(HOLDOUT_TASKS.read_text(encoding="utf-8"))["tasks"]
     return tasks
@@ -322,7 +328,9 @@ def main() -> int:
     ap.add_argument("--final", action="store_true", help="runs the CLOSED set (split test)")
     option(ap, "--agent", "--agente", action="store_true",
            help="runs the tasks through the agent loop (replanning and end check)")
-    option(ap, "--prompt-language", choices=("pt", "en"), help="planner prompt language (default: the profile's)")
+    option(ap, "--prompt-language", choices=("pt", "en", "auto"),
+           help="planner prompt language: pt, en, or auto (follows the request); default: the profile's")
+    option(ap, "--language", choices=("pt", "en"), help="only the tasks in this language (default: both)")
     args = ap.parse_args()
 
     all_tasks = load_tasks()
@@ -331,6 +339,8 @@ def main() -> int:
 
     wanted = "test" if args.final else "dev"
     tasks = [t for t in all_tasks if t.get("split", "dev") == wanted]
+    if args.language:
+        tasks = [t for t in tasks if t.get("language", "pt") == args.language]
     if args.final:
         print("*** CLOSED SET: final run. Record the date and the commit of this run. ***")
         if not tasks:
@@ -410,18 +420,21 @@ def main() -> int:
           + (f" {'LLM/task':>9} {'replans':>8} {'no eff.':>8} {'premature':>10} {'goals':>6} {'suspic.':>8}"
              if args.agent else ""))
     summaries = {}
+    languages = sorted({r.language for r in rows})
     for name, _ in planners:
-        profile_rows = [r for r in rows if r.profile == name]
-        if not profile_rows:
-            continue
-        s = summarize(profile_rows)
-        s["load_s"] = warm.get(name)
-        summaries[name] = s
-        print(f"{name:16} {s['success']:8.0%} {s['clean']:7.0%} {s['unrequested']:7} {s['plan_valid']:8.0%} "
-              f"{s['checks']:7.0%} {s['heuristic_refusals']:9} {s['mean_seconds']:8.1f} {s['mean_tokens']:7.0f}"
-              + (f" {s['mean_llm_calls']:9.1f} {s['replans']:8} {s['no_effect']:8} {s['premature']:10}"
-                 + (f" {s['goals_done']:6.0%}" if s["goals_done"] is not None else f" {'—':>6}")
-                 + f" {s['suspicions']:8}" if args.agent else ""))
+        for lang in languages:
+            profile_rows = [r for r in rows if r.profile == name and r.language == lang]
+            if not profile_rows:
+                continue
+            s = summarize(profile_rows)
+            s["load_s"] = warm.get(name)
+            label = f"{name} [{lang}]" if len(languages) > 1 else name
+            summaries[label] = s
+            print(f"{label:16} {s['success']:8.0%} {s['clean']:7.0%} {s['unrequested']:7} {s['plan_valid']:8.0%} "
+                  f"{s['checks']:7.0%} {s['heuristic_refusals']:9} {s['mean_seconds']:8.1f} {s['mean_tokens']:7.0f}"
+                  + (f" {s['mean_llm_calls']:9.1f} {s['replans']:8} {s['no_effect']:8} {s['premature']:10}"
+                     + (f" {s['goals_done']:6.0%}" if s["goals_done"] is not None else f" {'—':>6}")
+                     + f" {s['suspicions']:8}" if args.agent else ""))
 
     if not rows:
         print("No task was run.")
@@ -437,7 +450,7 @@ def main() -> int:
     (out / f"{stem}.json").write_text(json.dumps({
         "version": __version__, "commit": git_commit(), "date": datetime.now().isoformat(timespec="seconds"),
         "page_context": not args.no_page, "mode": "agent" if args.agent else "plan",
-        "prompt_language": args.prompt_language or "profile", "summary": summaries,
+        "prompt_language": args.prompt_language or "profile", "languages": languages, "summary": summaries,
     }, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nResults saved to {(out / stem).relative_to(ROOT.parent)}.csv (+ .json)")
     return 0

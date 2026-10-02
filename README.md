@@ -221,7 +221,8 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
 * `--browser-profile profiles/<name>` uses a persistent browser profile, for systems with login:
   log in by hand once, and the session stays on your computer.
 * `--lang pt` shows the messages in Portuguese (or set `ANCHOR_LANG=pt`).
-* `--prompt-language en` uses the English planner prompt (not measured yet; Portuguese is the default).
+* `--prompt-language auto` makes the planner prompt follow the request's language (`en` or `pt`
+  force one of them). Portuguese is the default until the English prompt is measured.
 
 **Only generate a plan**, and optionally run it:
 
@@ -286,16 +287,16 @@ python -m eval.plan_run --agent --profiles ollama-small ollama-medium -v   # com
 Every result is saved with the version and the commit. The closed test sets (holdout) only run
 with `--final`, once, at the end of development. Details in [`eval/README.md`](eval/README.md).
 
-**Element resolver** — development set, 60 cases on 7 pages (6 local pages and SauceDemo),
-version 0.2.1:
+**Element resolver** — development set, 60 cases per language on 7 pages (6 local pages and
+SauceDemo), version 0.3.0 in development:
 
-| Metric | Value |
-|---|---|
-| Right element first (recall@1) | 85.0% |
-| Right element among the first 5 (recall@5) | 90.0% |
-| The Executor decides and gets it right | 78.3% |
-| The Executor decides and gets it wrong (silent error) | 1.7% |
-| The Executor refuses and asks the user | 20.0% |
+| Metric | Portuguese | English |
+|---|---|---|
+| Right element first (recall@1) | 88.3% | 91.7% |
+| Right element among the first 5 (recall@5) | 91.7% | 96.7% |
+| The Executor decides and gets it right | 81.7% | 86.7% |
+| The Executor decides and gets it wrong (silent error) | 1.7% | 5.0% |
+| The Executor refuses and asks the user | 16.7% | 8.3% |
 
 **Complete tasks** — 15 development tasks on 8 local pages, through the full agent loop, with no
 human help, version 0.3.0 in development (i7-7700HQ, 16 GB RAM, GTX 1050 Ti 4 GB):
@@ -430,8 +431,10 @@ requests and page contents do not leave the computer or the company network.
 * Iframes and closed shadow DOM are not read.
 * When the heuristic is wrong with confidence (a silent error), the user is not asked.
 * Unattended runs stop when there is an ambiguity, until the memory learns the answer.
-* The measured results use the Portuguese planner prompt and Portuguese requests; the English
-  prompt has not been measured yet.
+* The planner's measured results use the Portuguese prompt and Portuguese requests; the English
+  prompt and the English tasks have not been measured with the models yet.
+* In English, the resolver gets more elements right first but also makes more silent errors,
+  mostly in data extraction.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

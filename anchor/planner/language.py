@@ -15,6 +15,51 @@ from __future__ import annotations
 
 PROMPT_LANGUAGES = ("pt", "en")
 DEFAULT_PROMPT_LANGUAGE = "pt"
+AUTO = "auto"   # the prompt follows the request's language (see detect_language)
+
+# Words that are common in one language and rare in the other. Ambiguous ones
+# ("a", "e", "do" in English, "no") are left out.
+_PT_WORDS = {
+    "o", "os", "as", "da", "das", "dos", "de", "em", "na", "nas", "nos", "para", "pra", "com", "que",
+    "um", "uma", "ao", "aos", "pelo", "pela", "não", "nao", "meu", "minha", "seu", "sua", "depois",
+    "todos", "todas", "também", "tambem", "só", "so", "isso", "esse", "essa", "este", "esta",
+}
+_EN_WORDS = {
+    "the", "to", "and", "of", "in", "for", "with", "my", "your", "is", "are", "it", "this", "that",
+    "then", "only", "all", "from", "by", "an", "at", "please", "into", "on",
+}
+# Command verbs: a request almost always starts with one.
+_EN_VERBS = {
+    "save", "search", "find", "add", "put", "delete", "remove", "open", "click", "fill", "type", "enter",
+    "select", "choose", "pick", "register", "sign", "cancel", "show", "sort", "change", "set", "tick",
+    "check", "uncheck", "create", "send", "submit", "export", "download", "upload", "edit", "update",
+    "close", "go", "log", "filter", "accept", "confirm", "write", "buy", "pay", "book", "list", "display",
+}
+_PT_VERBS = {
+    "salve", "salvar", "pesquise", "pesquisar", "procure", "busque", "adicione", "coloque", "exclua",
+    "apague", "remova", "abra", "clique", "preencha", "digite", "selecione", "escolha", "cadastre",
+    "entre", "cancele", "mostre", "ordene", "troque", "mude", "marque", "desmarque", "crie", "envie",
+    "exporte", "baixe", "edite", "atualize", "feche", "vá", "va", "filtre", "aceite", "confirme",
+    "escreva", "compre", "pague", "reserve", "liste", "mostra", "cancela", "salva", "pesquisa",
+}
+_ACCENTS = set("áàâãéêíóôõúç")
+
+
+def detect_language(text: str) -> str:
+    """
+    "pt" or "en", for the planner prompt. Counts words typical of each language
+    (and accents, which only Portuguese has here). On a tie, Portuguese, the
+    measured default.
+    """
+    import re
+
+    words = re.findall(r"[a-záàâãéêíóôõúç]+", (text or "").lower())
+    pt = sum(w in _PT_WORDS for w in words) + (2 if _ACCENTS & set((text or "").lower()) else 0)
+    en = sum(w in _EN_WORDS for w in words)
+    if words:
+        pt += words[0] in _PT_VERBS
+        en += words[0] in _EN_VERBS
+    return "en" if en > pt else "pt"
 
 
 def mt(key: str, language: str = DEFAULT_PROMPT_LANGUAGE, **values) -> str:

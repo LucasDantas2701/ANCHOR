@@ -56,7 +56,7 @@ def main() -> int:
         page = browser.new_page()
         page.goto(to_url(args.url))
         resolver = ElementResolver(page)
-        elements = None if args.no_page else page_elements(resolver, request=args.request, language=planner.language)
+        elements = None if args.no_page else page_elements(resolver, request=args.request, language=planner.language_for(args.request))
 
         print(t("planner_cli.generating", model=profile.model))
         try:

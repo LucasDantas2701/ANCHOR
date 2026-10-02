@@ -44,7 +44,7 @@ class LLMProfile:
     api: str = "openai"                  # "openai" or "ollama" (native API)
     think: Optional[bool] = False        # "ollama" API only: reasoning of "thinking" models
     options: Optional[dict] = None       # "ollama" API only: e.g. {"num_ctx": 4096}
-    prompt_language: str = "pt"          # planner prompt language: "pt" (measured) or "en"
+    prompt_language: str = "pt"          # planner prompt language: "pt" (measured), "en" or "auto"
 
     def planner(self, on_progress=None, prompt_language: Optional[str] = None):
         """A planner ready for this profile (on_progress: see OllamaClient; prompt_language overrides the profile's)."""

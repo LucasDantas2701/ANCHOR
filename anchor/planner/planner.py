@@ -11,7 +11,7 @@ from openai import BadRequestError
 
 from anchor.i18n import t
 
-from .language import DEFAULT_PROMPT_LANGUAGE, PROMPT_LANGUAGES, mt
+from .language import AUTO, DEFAULT_PROMPT_LANGUAGE, PROMPT_LANGUAGES, detect_language, mt
 from .plan import PLAN_SCHEMA, Plan, PlanError, check_goals, check_request, parse_goals, parse_plan
 from .prompt import system_prompt, user_message
 
@@ -47,14 +47,16 @@ class LLMPlanner:
     max_attempts: if the model returns an invalid plan, it gets the error and tries again.
     extra_body: extra parameters passed to the server on every call
                 (e.g. to turn off the reasoning of a "thinking" model).
-    language: the prompt's language, "pt" (default, the measured one) or "en". The
-              agent writes the execution history for the model in this language too.
+    language: the prompt's language, "pt" (default, the measured one), "en", or "auto"
+              (it follows each request's language). The agent writes the execution
+              history for the model in the same language (see language_for).
     """
 
     def __init__(self, client, model: str, temperature: float = 0.0, max_attempts: int = 2, seed: int = 7,
                  extra_body: Optional[dict] = None, language: str = DEFAULT_PROMPT_LANGUAGE):
-        if language not in PROMPT_LANGUAGES:
-            raise ValueError(f"unsupported prompt language {language!r}; use one of {', '.join(PROMPT_LANGUAGES)}")
+        if language not in PROMPT_LANGUAGES + (AUTO,):
+            raise ValueError(f"unsupported prompt language {language!r}; "
+                             f"use one of {', '.join(PROMPT_LANGUAGES + (AUTO,))}")
         self.language = language
         self.client = client
         self.model = model
@@ -79,6 +81,10 @@ class LLMPlanner:
                 self._schema_supported = False  # server without schema support: ask for plain JSON
         return self.client.chat.completions.create(**kwargs, response_format={"type": "json_object"})
 
+    def language_for(self, request: str) -> str:
+        """The prompt language used for this request ("pt" or "en")."""
+        return detect_language(request) if self.language == AUTO else self.language
+
     def plan(
         self,
         request: str,
@@ -91,9 +97,10 @@ class LLMPlanner:
         history: what already happened in the run (steps done and failures), for replanning.
         known_goals: ids of the goals already defined in the run (a replan may refer to them).
         """
+        language = self.language_for(request)
         messages = [
-            {"role": "system", "content": system_prompt(self.language)},
-            {"role": "user", "content": user_message(request, url, page_elements, history, self.language)},
+            {"role": "system", "content": system_prompt(language)},
+            {"role": "user", "content": user_message(request, url, page_elements, history, language)},
         ]
         tokens_in = tokens_out = 0
         start = time.perf_counter()
@@ -106,20 +113,20 @@ class LLMPlanner:
             tokens_out += getattr(usage, "completion_tokens", 0) or 0
             raw = response.choices[0].message.content or ""
             try:
-                data = _extract_json(raw, self.language)
-                steps = parse_plan(data, self.language)
-                goals = parse_goals(data, self.language)
-                check_goals(steps, goals, known_goals, self.language)
+                data = _extract_json(raw, language)
+                steps = parse_plan(data, language)
+                goals = parse_goals(data, language)
+                check_goals(steps, goals, known_goals, language)
                 if not history and steps:
                     # Only the initial plan covers the whole request.
-                    check_request(steps, goals, request, self.language)
+                    check_request(steps, goals, request, language)
                 return Plan(steps=steps, goals=goals, model=self.model, latency_s=round(time.perf_counter() - start, 2),
                             tokens_in=tokens_in, tokens_out=tokens_out, attempts=attempt, raw=raw)
             except PlanError as exc:
                 last_error = exc
                 messages += [
                     {"role": "assistant", "content": raw},
-                    {"role": "user", "content": mt("plan.retry", self.language, error=exc)},
+                    {"role": "user", "content": mt("plan.retry", language, error=exc)},
                 ]
 
         raise PlanError(t("planner.gave_up", attempts=self.max_attempts, error=last_error))

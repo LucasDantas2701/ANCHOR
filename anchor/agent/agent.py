@@ -395,6 +395,9 @@ class Agent:
         return queue
 
     def run(self, request: str) -> AgentResult:
+        # The language the model reads: the planner may choose it per request ("auto").
+        if hasattr(self.planner, "language_for"):
+            self.language = self.planner.language_for(request)
         self._goals = {}
         self._goal_status = {}
         start = time.perf_counter()

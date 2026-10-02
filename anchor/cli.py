@@ -10,7 +10,7 @@ from __future__ import annotations
 import argparse
 
 from anchor.i18n import SUPPORTED, set_language
-from anchor.planner.language import PROMPT_LANGUAGES
+from anchor.planner.language import AUTO, PROMPT_LANGUAGES
 
 
 def option(parser: argparse.ArgumentParser, name: str, *old_names: str, **kwargs) -> None:
@@ -25,8 +25,8 @@ def option(parser: argparse.ArgumentParser, name: str, *old_names: str, **kwargs
 def language_options(parser: argparse.ArgumentParser, prompt: bool = True) -> None:
     option(parser, "--lang", choices=SUPPORTED, help="interface language (default: ANCHOR_LANG or en)")
     if prompt:
-        option(parser, "--prompt-language", choices=PROMPT_LANGUAGES,
-               help="planner prompt language (default: the profile's, usually pt)")
+        option(parser, "--prompt-language", choices=PROMPT_LANGUAGES + (AUTO,),
+               help="planner prompt language: pt, en, or auto (follows the request); default: the profile's")
 
 
 def apply_language(args: argparse.Namespace) -> None:
