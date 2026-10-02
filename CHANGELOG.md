@@ -18,6 +18,15 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- Saved automations, part 2: **self-healing**. When a saved step stops working (after the choice
+  memory, the heuristic and the user), the automation hands over to the LLM, which plans the rest
+  from the page as it is now; if the run succeeds, the saved plan is corrected. Every recovery is
+  recorded in `recoveries.json` (what failed, the original step, what replaced it, how it was
+  solved, whether the effect was confirmed, and the confidence of each new step), and so is every
+  element the user picks during a replay. `python -m anchor.automations recoveries <name>` lists
+  them and `undo <name> <number>` undoes one: a plan correction brings the previous plan back, a
+  user choice is forgotten from the memory. `run --no-heal` stops instead of recovering.
+- The agent records each step's confidence (the heuristic's score or the memory's similarity).
 - Saved automations, part 1 (`anchor/automations`, `python -m anchor.automations`): describe a task
   once (`create`), and run it whenever you want (`run`). The first run learns: the agent plans
   with the LLM, and if the run succeeds, the steps that worked become the approved plan. The next
@@ -110,6 +119,8 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   redistribution; copyright by the author. "Responsible use" section in the README.
 
 ### Changed
+- While a saved plan is replayed without the LLM, the agent's messages say so ("Replaying the
+  approved plan...", "continuing with the saved plan...") instead of talking about planning.
 - Effect check: if the whole document is replaced without a new window (as some single-page apps
   do), the page observer now watches the new document; before, it kept watching the old one and
   every action looked like it had no effect (found when replaying an automation).

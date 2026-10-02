@@ -236,8 +236,15 @@ python -m anchor.automations show register-maria      # approved plan and last r
 python -m anchor.automations run register-maria --relearn
 ```
 
-If the site changes and a saved step no longer works, the replay stops and says so (automatic
-healing of the saved plan is coming in the next part of version 0.3.0).
+If the site changes and a saved step no longer works, the automation **heals itself**: the LLM
+plans the rest from the page as it is now and, if the run succeeds, the saved plan is corrected.
+Every recovery is recorded, and you can review it and undo it:
+
+```sh
+python -m anchor.automations recoveries register-maria   # what failed, what replaced it, how, confidence
+python -m anchor.automations undo register-maria 1       # bring the previous plan back
+python -m anchor.automations run register-maria --no-heal
+```
 
 **Only generate a plan**, and optionally run it:
 
@@ -343,8 +350,9 @@ final numbers will come from the closed sets.
 - [ ] **0.3** — Reliability and saved automations
     - [x] Effect verification of each action, goals, and checking the plan against the request
     - [x] English translation, with the planner prompt in Portuguese or English
-    - [ ] Saved automations that **heal themselves**: when a saved plan breaks and is recovered,
+    - [x] Saved automations that **heal themselves**: when a saved plan breaks and is recovered,
       the fix is kept, with a reviewable (and undoable) record of what changed
+    - [ ] Parameters and runs from a spreadsheet, and the user's notes after a failed run
     - [ ] Confirmation of sensitive actions (delete, send, save, download, upload, pay)
     - [ ] Defense against instructions injected by page content
     - [ ] Screenshot analysis by a vision model, when the other checks disagree

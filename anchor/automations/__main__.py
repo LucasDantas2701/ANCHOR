@@ -5,8 +5,11 @@ Saved automations from the terminal.
         --profile ollama-small "cadastre a Maria Silva no TI e salve"
     python -m anchor.automations run register-employee          # 1st time: learns; then: replays
     python -m anchor.automations run register-employee --relearn
+    python -m anchor.automations run register-employee --no-heal  # stop instead of healing
     python -m anchor.automations list
     python -m anchor.automations show register-employee
+    python -m anchor.automations recoveries register-employee   # how it recovered when the site changed
+    python -m anchor.automations undo register-employee 2       # undo recovery #2
 """
 
 from __future__ import annotations
@@ -28,7 +31,7 @@ from anchor.planner import ConfigError, get_profile
 from anchor.planner.progress import Progress
 
 from .model import Automation, AutomationError, AutomationStore
-from .runner import run_automation
+from .runner import run_automation, undo_recovery
 
 
 def cmd_create(store: AutomationStore, args) -> int:
@@ -92,7 +95,7 @@ def cmd_run(store: AutomationStore, args) -> int:
                                   can_point=True, memory=ChoiceMemory(store.memory_path(args.name)))
         try:
             result, mode, run_id = run_automation(store, args.name, page, executor, make_planner,
-                                                  relearn=args.relearn)
+                                                  relearn=args.relearn, heal=not args.no_heal)
         except ConfigError as exc:
             print(t("cli.config_error", error=exc))
             context.close()
@@ -113,6 +116,54 @@ def cmd_run(store: AutomationStore, args) -> int:
     return 0 if result.ok else 1
 
 
+def _confidence(items: list) -> str:
+    scores = [i["score"] for i in items if i.get("score") is not None]
+    by = sorted({i["resolved_by"] for i in items if i.get("resolved_by")})
+    return (f"{min(scores):.2f}" if scores else "—") + (f" ({', '.join(by)})" if by else "")
+
+
+def _step_text(step) -> str:
+    if not step:
+        return "—"
+    value = f' = "{step["value"]}"' if step.get("value") is not None else ""
+    return f'{step["action"]} {step["description"]}{value}'
+
+
+def cmd_recoveries(store: AutomationStore, args) -> int:
+    store.load(args.name)
+    records = store.recoveries(args.name)
+    if not records:
+        print(t("auto.no_recoveries"))
+        return 0
+    for r in records:
+        undone = t("auto.undone_mark") if r["undone"] else ""
+        date = r["date"].replace("T", " ")
+        if r["method"] == "replan":
+            print(t("auto.recovery_replan", number=r["number"], date=date, undone=undone,
+                    failed=_step_text(r.get("failed_step")), reason=r.get("reason", ""),
+                    replaced="; ".join(_step_text(s) for s in r.get("replaced_by", [])) or "—",
+                    effect=t("auto.yes") if r.get("effect_confirmed") else t("auto.no"),
+                    confidence=_confidence(r.get("confidence", []))))
+        else:
+            print(t("auto.recovery_user", number=r["number"], date=date, undone=undone,
+                    description=r["step"]["description"]))
+    return 0
+
+
+def cmd_undo(store: AutomationStore, args) -> int:
+    store.load(args.name)
+    try:
+        record = undo_recovery(store, args.name, args.number, memory=ChoiceMemory(store.memory_path(args.name)))
+    except ValueError as exc:
+        print(t("auto.error", error=exc))
+        return 1
+    if record["method"] == "replan":
+        print(t("auto.undo_replan", number=record["number"]))
+    else:
+        print(t("auto.undo_user", number=record["number"], description=record["step"]["description"]))
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="python -m anchor.automations")
     option(ap, "--root", default="automations", help="folder of the saved automations")
@@ -130,15 +181,23 @@ def main(argv=None) -> int:
     run = sub.add_parser("run", help="runs an automation (the first time, it learns the plan)")
     run.add_argument("name")
     run.add_argument("--relearn", action="store_true", help="plans again with the LLM, replacing the approved plan")
+    run.add_argument("--no-heal", action="store_true",
+                     help="if a saved step stops working, stop instead of recovering with the LLM")
 
     sub.add_parser("list", help="lists the automations")
     show = sub.add_parser("show", help="shows an automation, its approved plan and its last runs")
     show.add_argument("name")
+    recoveries = sub.add_parser("recoveries", help="lists how the automation recovered when the site changed")
+    recoveries.add_argument("name")
+    undo = sub.add_parser("undo", help="undoes a recovery (by the number shown by 'recoveries')")
+    undo.add_argument("name")
+    undo.add_argument("number", type=int)
 
     args = ap.parse_args(argv)
     apply_language(args)
     store = AutomationStore(Path(args.root))
-    commands = {"create": cmd_create, "run": cmd_run, "list": cmd_list, "show": cmd_show}
+    commands = {"create": cmd_create, "run": cmd_run, "list": cmd_list, "show": cmd_show,
+                "recoveries": cmd_recoveries, "undo": cmd_undo}
     try:
         return commands[args.command](store, args)
     except AutomationError as exc:

@@ -5,6 +5,7 @@ How a saved automation is stored: one folder per automation.
         automation.json   request, link, model and browser profiles, prompt language
         plan.json         the approved plan (goals and steps), once learned
         memory.json       the choice memory of this automation
+        recoveries.json   how the automation recovered when the site changed (reviewable, undoable)
         runs/             one record per run, with its metrics
 
 The folder is usage data and stays out of Git, like memory/.
@@ -114,6 +115,26 @@ class AutomationStore:
             return True
         return False
 
+    # ------------------------------------------------------------ recoveries
+    def recoveries(self, name: str) -> list[dict]:
+        path = self.folder(name) / "recoveries.json"
+        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+
+    def add_recovery(self, name: str, record: dict) -> dict:
+        items = self.recoveries(name)
+        record = {"number": len(items) + 1, "date": datetime.now().isoformat(timespec="seconds"),
+                  "undone": False, **record}
+        items.append(record)
+        self._write_list(self.folder(name) / "recoveries.json", items)
+        return record
+
+    def mark_undone(self, name: str, numbers: set[int]) -> None:
+        items = self.recoveries(name)
+        for item in items:
+            if item["number"] in numbers:
+                item["undone"] = True
+        self._write_list(self.folder(name) / "recoveries.json", items)
+
     # ------------------------------------------------------------ runs
     def save_run(self, name: str, record: dict) -> str:
         run_id = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
@@ -123,6 +144,11 @@ class AutomationStore:
     def runs(self, name: str) -> list[dict]:
         folder = self.folder(name) / "runs"
         return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(folder.glob("*.json"))]
+
+    @staticmethod
+    def _write_list(path: Path, data: list) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     @staticmethod
     def _write(path: Path, data: dict) -> None:

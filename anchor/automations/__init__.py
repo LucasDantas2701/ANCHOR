@@ -9,7 +9,7 @@ checks and goals as the agent.
 
 from .model import Automation, AutomationError, AutomationStore
 from .replay import ReplayPlanner, SavedPlanBroken
-from .runner import run_automation
+from .runner import run_automation, undo_recovery
 
 __all__ = ["Automation", "AutomationError", "AutomationStore", "ReplayPlanner", "SavedPlanBroken",
-           "run_automation"]
+           "run_automation", "undo_recovery"]

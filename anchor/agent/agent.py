@@ -50,6 +50,7 @@ class StepRecord:
     status: str                  # success, not_found, ambiguous, error, skipped, loop, blocked...
     resolved_by: str = ""
     note: str = ""               # the reason, in the interface language
+    score: Optional[float] = None    # confidence: heuristic score, or memory similarity
 
 
 @dataclass
@@ -164,7 +165,7 @@ class Agent:
                 self._goals[goal.id] = goal
                 self._goal_status[goal.id] = "pending"
         result.goals_total = len(self._goals)
-        if getattr(self.planner, "uses_llm", True):
+        if self._uses_llm():
             result.llm_calls += 1
         result.tokens_in += plan.tokens_in
         result.tokens_out += plan.tokens_out
@@ -187,6 +188,10 @@ class Agent:
             except PlanError as ui_error:
                 return str(model_error), str(ui_error)
             return str(model_error), str(model_error)
+
+    def _uses_llm(self) -> bool:
+        """False while a saved plan is replayed without the LLM (for the messages and the metrics)."""
+        return getattr(self.planner, "uses_llm", True)
 
     def _pending_goals(self) -> list[str]:
         """Goals that still prevent the end (dropped and replaced ones do not)."""
@@ -363,7 +368,7 @@ class Agent:
 
     def _replan(self, request, history, result, start, why):
         """Replans; returns the new queue, or an AgentResult if that is not possible."""
-        self.report(t("agent.replanning", why=why))
+        self.report(t("agent.replanning" if self._uses_llm() else "agent.continuing", why=why))
         try:
             queue = list(self._plan(request, history, result).steps)
         except Exception as exc:  # invalid plan, connection, missing model...
@@ -413,7 +418,7 @@ class Agent:
         blocked: set[tuple] = set()         # blocked destructive steps
 
         try:
-            self.report(t("agent.planning"))
+            self.report(t("agent.planning" if self._uses_llm() else "agent.replaying"))
             queue = list(self._plan(request, history, result).steps)
         except Exception as exc:  # invalid plan, connection, missing model...
             result.plan_failed = True
@@ -430,7 +435,7 @@ class Agent:
                 if end_checks >= self.max_end_checks:
                     return self._finish(result, "cancelled", t("end.end_checks"), start)
                 end_checks += 1
-                self.report(t("agent.checking_end"))
+                self.report(t("agent.checking_end" if self._uses_llm() else "agent.checking_end_replay"))
                 try:
                     queue = list(self._plan(request, history, result).steps)
                 except Exception as exc:
@@ -537,7 +542,8 @@ class Agent:
 
             # ---------------------------------------------------- success
             if outcome.status == "success":
-                result.records.append(StepRecord(step, "success", outcome.resolved_by))
+                result.records.append(StepRecord(step, "success", outcome.resolved_by, score=(
+                    outcome.score if outcome.score is not None else getattr(outcome, "similarity", None))))
                 history.append(mt("hist.done", self.language, step=describe_step(step)))
                 history.extend(mt("hist.message", self.language, message=m) for m in messages)
                 if step.goal in self._goal_status and not (self.watcher is not None and focus_only):

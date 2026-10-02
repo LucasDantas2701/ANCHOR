@@ -134,3 +134,143 @@ def test_replay_survives_a_renamed_button_with_the_same_meaning(page, store):
     page.set_content(FORM.format(save="Gravar dados"))      # "gravar" means "salvar"
     result, mode, _ = run(store, page, no_llm)
     assert result.ok and mode == "replay"
+
+
+# --------------------------------------------------------------------------
+# Self-healing: when a saved step stops working, the automation recovers,
+# corrects its saved plan and records the recovery, which can be undone
+# --------------------------------------------------------------------------
+
+from anchor.automations import undo_recovery  # noqa: E402
+
+PAGE_V1 = """<html><body><label for="n">Nome</label><input id="n">
+  <button onclick="document.getElementById('m').textContent='Pronto'">Enviar</button><p id="m" role="status"></p></body></html>"""
+PAGE_V2 = PAGE_V1.replace(">Enviar<", ">Concluir cadastro<")     # the site changed the button
+
+
+@pytest.fixture
+def healing_store(tmp_path):
+    s = AutomationStore(tmp_path / "automations")
+    s.create(Automation(name="heal", request="cadastre a Maria", url="x", profile="x"))
+    return s
+
+
+def run_heal(store, page, make_planner, reports=None, **kw):
+    page.set_default_timeout(1500)
+    executor = ActionExecutor(page, memory=ChoiceMemory(store.memory_path("heal")))
+    report = reports.append if reports is not None else None
+    return run_automation(store, "heal", page, executor, make_planner, report=report, **kw)
+
+
+HEAL_GOALS = [Goal("g1", "cadastro feito", True)]
+HEAL_PLAN = [("fill", "Nome", "Maria", "g1", None), ("click", "Enviar", None, "g1", None)]
+
+
+def learn(store, page):
+    page.set_content(PAGE_V1)
+    result, _, _ = run_heal(store, page, lambda _: LearningPlanner((HEAL_GOALS, HEAL_PLAN), ([], [])))
+    assert result.ok
+
+
+def test_broken_step_is_healed_and_the_saved_plan_corrected(page, healing_store):
+    learn(healing_store, page)
+    page.set_content(PAGE_V2)
+    healer = LearningPlanner(([], [("click", "Concluir cadastro", None, "g1", None)]), ([], []))
+    reports = []
+    result, mode, run_id = run_heal(healing_store, page, lambda _: healer, reports)
+
+    assert result.ok and mode == "replay" and result.llm_calls == 2
+    assert any("planning the rest" in r for r in reports)
+    plan = healing_store.load_plan("heal")
+    assert [s.description for s in plan.steps] == ["Nome", "Concluir cadastro"]
+    record = healing_store.recoveries("heal")[0]
+    assert record["method"] == "replan" and record["run"] == run_id
+    assert record["failed_step"]["description"] == "Enviar"
+    assert [s["description"] for s in record["replaced_by"]] == ["Concluir cadastro"]
+    assert record["effect_confirmed"] is True and record["confidence"][0]["resolved_by"] == "heuristic"
+    assert [s["description"] for s in record["previous_plan"]["steps"]] == ["Nome", "Enviar"]
+
+
+def test_after_healing_the_next_run_replays_the_corrected_plan_without_the_llm(page, healing_store):
+    learn(healing_store, page)
+    page.set_content(PAGE_V2)
+    run_heal(healing_store, page, lambda _: LearningPlanner(([], [("click", "Concluir cadastro", None, "g1", None)]), ([], [])))
+    page.set_content(PAGE_V2)
+    result, mode, _ = run_heal(healing_store, page, no_llm)
+    assert result.ok and mode == "replay" and result.llm_calls == 0
+
+
+def test_failed_healing_keeps_the_saved_plan(page, healing_store):
+    learn(healing_store, page)
+    page.set_content(PAGE_V2)
+    bad = [("click", "Botão que não existe", None, "g1", None)]
+    result, _, _ = run_heal(healing_store, page, lambda _: LearningPlanner(([], bad), ([], bad), ([], bad)))
+    assert not result.ok and result.message.startswith("the saved plan stopped working and the recovery did not succeed")
+    assert [s.description for s in healing_store.load_plan("heal").steps] == ["Nome", "Enviar"]
+    assert healing_store.recoveries("heal") == []
+
+
+def test_no_heal_stops_like_before(page, healing_store):
+    learn(healing_store, page)
+    page.set_content(PAGE_V2)
+    result, _, _ = run_heal(healing_store, page, no_llm, heal=False)
+    assert result.status == "failed" and result.message.startswith("the saved plan stopped working")
+
+
+def test_undoing_a_correction_brings_the_previous_plan_back(page, healing_store):
+    learn(healing_store, page)
+    page.set_content(PAGE_V2)
+    run_heal(healing_store, page, lambda _: LearningPlanner(([], [("click", "Concluir cadastro", None, "g1", None)]), ([], [])))
+    undo_recovery(healing_store, "heal", 1)
+    assert [s.description for s in healing_store.load_plan("heal").steps] == ["Nome", "Enviar"]
+    assert healing_store.recoveries("heal")[0]["undone"] is True
+    with pytest.raises(ValueError, match="already undone"):
+        undo_recovery(healing_store, "heal", 1)
+    with pytest.raises(ValueError, match="no recovery #9"):
+        undo_recovery(healing_store, "heal", 9)
+
+
+class PickGreen:
+    def choose(self, request):
+        from anchor.engine.disambiguation import UserChoice
+        return UserChoice("candidate", next(c.number for c in request.candidates if "verde" in c.near))
+
+    def notify(self, message):
+        pass
+
+
+MUGS = """<html><body>
+  <div><h3>Caneca azul</h3><button onclick="document.body.dataset.a=1">Adicionar</button></div>
+  <div><h3>Caneca verde</h3><button onclick="document.body.dataset.v=1">Adicionar</button></div></body></html>"""
+
+
+def test_user_choice_during_a_replay_is_recorded_and_can_be_undone(page, tmp_path):
+    store = AutomationStore(tmp_path / "automations")
+    store.create(Automation(name="mug", request="adicione a caneca", url="x", profile="x"))
+    goals, plan = [Goal("g1", "caneca adicionada", True)], [("click", "Adicionar", None, "g1", None)]
+    memory = ChoiceMemory(store.memory_path("mug"))
+    page.set_default_timeout(1500)
+
+    page.set_content(MUGS)
+    executor = ActionExecutor(page, disambiguator=PickGreen(), memory=memory)
+    run_automation(store, "mug", page, executor, lambda _: LearningPlanner((goals, plan), ([], [])), report=None)
+    memory.clear()                                             # forget the learning run's choice
+
+    page.set_content(MUGS)
+    executor = ActionExecutor(page, disambiguator=PickGreen(), memory=memory)
+    result, mode, _ = run_automation(store, "mug", page, executor, no_llm, report=None)
+    assert result.ok and mode == "replay" and result.interventions == 1
+    record = store.recoveries("mug")[0]
+    assert record["method"] == "user" and record["step"]["description"] == "Adicionar"
+
+    undo_recovery(store, "mug", 1, memory=memory)
+    assert memory.entries == {}
+
+
+def test_replay_messages_do_not_talk_about_planning(page, healing_store):
+    learn(healing_store, page)
+    page.set_content(PAGE_V1)
+    reports = []
+    run_heal(healing_store, page, no_llm, reports)
+    text = "\n".join(reports)
+    assert "Replaying the approved plan" in text and "Planning..." not in text
