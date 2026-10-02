@@ -36,6 +36,7 @@ from anchor.i18n import get_language, t
 from anchor.planner import Plan, PlanError, Step, check_request, page_elements, run_step
 from anchor.planner.execute import clean_description, clean_value
 from anchor.planner.language import DEFAULT_PROMPT_LANGUAGE, Reason, mt
+from anchor.planner.untrusted import looks_like_instruction
 
 from .effects import EffectWatcher, state_problem
 
@@ -153,7 +154,8 @@ class Agent:
         except Exception:
             visible = []
         if visible:
-            lines.append(mt("ctx.messages", self.language, messages=" | ".join(f'"{m}"' for m in visible)))
+            lines.append(mt("ctx.messages", self.language,
+                            messages=" | ".join(f'"{m}"' for m in self._safe_messages(visible))))
         return lines
 
     def _plan(self, request: str, history: list[str], result: AgentResult) -> Plan:
@@ -189,6 +191,10 @@ class Agent:
             except PlanError as ui_error:
                 return str(model_error), str(ui_error)
             return str(model_error), str(model_error)
+
+    def _safe_messages(self, messages: list[str]) -> list[str]:
+        """Page messages that look like instructions to the assistant are left out (page content is data)."""
+        return [mt("summary.suspicious", self.language) if looks_like_instruction(m) else m for m in messages]
 
     def _uses_llm(self) -> bool:
         """False while a saved plan is replayed without the LLM (for the messages and the metrics)."""
@@ -527,7 +533,7 @@ class Agent:
                 if focus_only:
                     problem = None
                 if outcome.status == "success" and problem:
-                    history.extend(mt("hist.message", self.language, message=m) for m in messages)
+                    history.extend(mt("hist.message", self.language, message=m) for m in self._safe_messages(messages))
                     status = "no_effect" if problem == "no_effect" else "wrong_effect"
                     reason = Reason("why.no_effect") if problem == "no_effect" else problem
                     if outcome.resolved_by == "memory" and self.executor.memory is not None:
@@ -546,7 +552,7 @@ class Agent:
                 result.records.append(StepRecord(step, "success", outcome.resolved_by, score=(
                     outcome.score if outcome.score is not None else getattr(outcome, "similarity", None))))
                 history.append(mt("hist.done", self.language, step=describe_step(step)))
-                history.extend(mt("hist.message", self.language, message=m) for m in messages)
+                history.extend(mt("hist.message", self.language, message=m) for m in self._safe_messages(messages))
                 if step.goal in self._goal_status and not (self.watcher is not None and focus_only):
                     # A click that only gives the focus does not fulfill the goal.
                     self._goal_status[step.goal] = "done"

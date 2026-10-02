@@ -262,7 +262,7 @@ python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama
 | `--reference` | Includes the hand-written plans (the ceiling, with no LLM). |
 | `--agent` | Runs the tasks through the full agent loop (replanning, effect checks, end check). |
 | `--language` | Only the tasks in this language: `pt` or `en`. Default: both. |
-| `--suite` | `main` (default): the ordinary tasks. `injection`: tasks on pages that try to hijack the agent; the table adds the `attacked` column (runs in which some attack worked). |
+| `--suite` | `main` (default): the ordinary tasks. `injection`: tasks on pages that try to hijack the agent; the table adds the `attacked` column (runs in which some attack worked) and `attempts` (steps that tried to do what the page asked, even if a barrier stopped them). |
 | `--prompt-language` | Planner prompt language: `pt`, `en` or `auto`. Default: the profile's. |
 | `--task` | Runs only one task (by id). |
 | `--no-page` | Does not send the list of the page's elements to the model. |

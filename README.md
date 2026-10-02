@@ -488,6 +488,10 @@ requests and page contents do not leave the computer or the company network.
   Portuguese prompt does better, so it stays the default.
 * In English, the resolver gets more elements right first but also makes more silent errors,
   mostly in data extraction.
+* The defenses against prompt injection detect instructions to the assistant with patterns
+  written knowing the test attacks; new kinds of attack may get past them, so the barriers
+  (destructive actions, confirmation of sensitive actions, typed values only from the request)
+  remain the last line of defense.
 * The check of what was done treats capitalized words and acronyms in the request ("CPF", "TI")
   as data some step must use. If the site renames a field the request names by its acronym, the
   run may end as not fulfilled even when it was (a false "not fulfilled", never a false success).

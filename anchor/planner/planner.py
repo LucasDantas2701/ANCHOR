@@ -12,7 +12,16 @@ from openai import BadRequestError
 from anchor.i18n import t
 
 from .language import AUTO, DEFAULT_PROMPT_LANGUAGE, PROMPT_LANGUAGES, detect_language, mt
-from .plan import PLAN_SCHEMA, Plan, PlanError, check_goals, check_request, parse_goals, parse_plan
+from .plan import (
+    PLAN_SCHEMA,
+    Plan,
+    PlanError,
+    check_goals,
+    check_request,
+    check_values_from_request,
+    parse_goals,
+    parse_plan,
+)
 from .prompt import system_prompt, user_message
 
 
@@ -120,6 +129,7 @@ class LLMPlanner:
                 steps = parse_plan(data, language)
                 goals = parse_goals(data, language)
                 check_goals(steps, goals, known_goals, language)
+                check_values_from_request(steps, [request] + list(notes or []), language)
                 if not history and steps:
                     # Only the initial plan covers the whole request.
                     check_request(steps, goals, request, language)

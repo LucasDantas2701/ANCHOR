@@ -28,6 +28,7 @@ from anchor.engine.element_resolver.tokenizer import (
     tokenize,
 )
 from anchor.planner.language import DEFAULT_PROMPT_LANGUAGE, mt
+from anchor.planner.untrusted import looks_like_instruction, without_instructions
 
 POPUP_MARK = "[pop-up]"
 
@@ -60,13 +61,14 @@ def page_elements(resolver: ElementResolver, limit: int = 80, request: str | Non
 
     lines, seen = [], set()
     for record, v in zip(records, views):
-        line = f'{v.kind} "{v.name}"'
+        name, near = _safe_name(v.name, record, language), without_instructions(v.near or "")
+        line = f'{v.kind} "{name}"'
         # Dropdowns carry their options: the model needs the exact text.
         if record.get("options"):
             line += mt("summary.options", language, options=" | ".join(record["options"][:10]))
         # Repeated names (e.g. several "Add to cart") carry the surrounding text.
-        if repeated[(v.kind, v.name)] > 1 and v.near:
-            line += f" ({v.near[:40]})"
+        if repeated[(v.kind, v.name)] > 1 and near:
+            line += f" ({near[:40]})"
         if record.get("layer"):
             line += f" {POPUP_MARK}"
         if line not in seen:
@@ -75,3 +77,17 @@ def page_elements(resolver: ElementResolver, limit: int = 80, request: str | Non
         if len(lines) >= limit:
             break
     return lines
+
+
+def _safe_name(name: str, record: dict, language: str) -> str:
+    """
+    The element's name, unless it looks like an instruction to the assistant (page content
+    is data, not orders). A button whose aria-label is an instruction but whose visible text
+    is ordinary ("Assinar") keeps the visible text; otherwise, the name is left out.
+    """
+    if not looks_like_instruction(name):
+        return name
+    visible = " ".join((record.get("text") or "").split())
+    if visible and not looks_like_instruction(visible):
+        return visible
+    return mt("summary.suspicious", language)

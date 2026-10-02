@@ -54,7 +54,7 @@ GOOD = plan_json(("fill", "campo Nome completo", "Maria Silva"), ("click", "bot�
 
 def test_valid_plan():
     client = FakeClient(GOOD)
-    plan = LLMPlanner(client, "modelo-x").plan("cadastre a Maria", "http://x", ["Campo de texto \"Nome completo\""])
+    plan = LLMPlanner(client, "modelo-x").plan("cadastre a Maria Silva e salve", "http://x", ["Campo de texto \"Nome completo\""])
     assert [s.action for s in plan.steps] == ["fill", "click"]
     assert plan.steps[0].value == "Maria Silva"
     assert plan.attempts == 1 and plan.tokens_in == 100 and plan.tokens_out == 20
@@ -67,7 +67,7 @@ def test_valid_plan():
 def test_invalid_plan_gets_the_error_and_is_fixed():
     bad = plan_json(("fill", "campo Nome", None))  # fill without a value
     client = FakeClient(bad, GOOD)
-    plan = LLMPlanner(client, "m").plan("cadastre a Maria", "http://x")
+    plan = LLMPlanner(client, "m").plan("cadastre a Maria Silva e salve", "http://x")
     assert plan.attempts == 2 and plan.tokens_in == 200
     feedback = client.calls[1]["messages"][-1]["content"]
     assert "precisa de um valor" in feedback
@@ -76,28 +76,28 @@ def test_invalid_plan_gets_the_error_and_is_fixed():
 def test_gives_up_after_the_attempts():
     client = FakeClient("isso não é json", "nem isso")
     with pytest.raises(PlanError, match="2 attempts"):
-        LLMPlanner(client, "m").plan("x", "http://x")
+        LLMPlanner(client, "m").plan("cadastre a Maria Silva e salve", "http://x")
 
 
 def test_accepts_json_inside_a_code_block():
     client = FakeClient("Claro! Aqui está:\n```json\n" + GOOD + "\n```")
-    assert len(LLMPlanner(client, "m").plan("x", "http://x").steps) == 2
+    assert len(LLMPlanner(client, "m").plan("cadastre a Maria Silva e salve", "http://x").steps) == 2
 
 
 def test_ignores_the_reasoning_of_thinking_models():
     client = FakeClient("<think>O usuário quer cadastrar... vou usar fill.</think>\n" + GOOD)
-    assert len(LLMPlanner(client, "m").plan("x", "http://x").steps) == 2
+    assert len(LLMPlanner(client, "m").plan("cadastre a Maria Silva e salve", "http://x").steps) == 2
 
 
 def test_profile_extra_parameters_go_to_the_server():
     client = FakeClient(GOOD)
-    LLMPlanner(client, "m", extra_body={"opcao": False}).plan("x", "http://x")
+    LLMPlanner(client, "m", extra_body={"opcao": False}).plan("cadastre a Maria Silva e salve", "http://x")
     assert client.calls[0]["extra_body"] == {"opcao": False}
 
 
 def test_without_extra_parameters_nothing_is_sent():
     client = FakeClient(GOOD)
-    LLMPlanner(client, "m").plan("x", "http://x")
+    LLMPlanner(client, "m").plan("cadastre a Maria Silva e salve", "http://x")
     assert "extra_body" not in client.calls[0]
 
 
@@ -106,7 +106,7 @@ def test_server_without_json_schema_uses_plain_json():
     no_schema = openai.BadRequestError("json_schema não suportado",
                                        response=httpx2.Response(400, request=request), body=None)
     client = FakeClient(no_schema, GOOD)
-    plan = LLMPlanner(client, "m").plan("x", "http://x")
+    plan = LLMPlanner(client, "m").plan("cadastre a Maria Silva e salve", "http://x")
     assert len(plan.steps) == 2
     assert client.calls[1]["response_format"] == {"type": "json_object"}
 

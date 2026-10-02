@@ -251,3 +251,40 @@ def check_request(steps: list[Step], goals: list[Goal], request: str,
         need = words(value)
         if need and len(need & plan_words) / len(need) < 0.5:
             raise PlanError(mt("plan.missing_value", language, value=value))
+
+
+# --------------------------------------------------------------------------
+# Typed values must come from the request (checked on every plan)
+# --------------------------------------------------------------------------
+
+def _plain(text: str) -> str:
+    import unicodedata
+    text = unicodedata.normalize("NFKD", (text or "").lower())
+    return "".join(c for c in text if not unicodedata.combining(c))
+
+
+def _alnum(text: str) -> str:
+    return _re.sub(r"[^a-z0-9]+", "", _plain(text))
+
+
+def _tokens(text: str) -> set[str]:
+    return set(_re.findall(r"[a-z0-9]+", _plain(text)))
+
+
+def check_values_from_request(steps: list[Step], sources: list[str],
+                              language: str = DEFAULT_PROMPT_LANGUAGE) -> None:
+    """
+    What a plan types (fill) must come from the request (or the user's notes), never from the
+    page: a page may try to make the agent type data it chose, such as an attacker's e-mail.
+    A value is accepted if, ignoring case, accents and punctuation, it is part of the sources,
+    or all its words are in them.
+    """
+    text = " ".join(s for s in sources if s)
+    flat, words = _alnum(text), _tokens(text)
+    for i, step in enumerate(steps, 1):
+        if step.action != "fill" or not step.value:
+            continue
+        value = step.value
+        if _alnum(value) and (_alnum(value) in flat or _tokens(value) <= words):
+            continue
+        raise PlanError(mt("plan.value_not_in_request", language, i=i, value=value))

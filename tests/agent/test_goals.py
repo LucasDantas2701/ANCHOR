@@ -98,7 +98,7 @@ def test_replanning_uses_the_known_goals(page):
                                       "goal": "g2", "expect": None}]}
     end = {"goals": [], "steps": []}
     client = FakeClient(json.dumps(first), json.dumps(replan), json.dumps(end))
-    result = run(page, LLMPlanner(client, "falso"))
+    result = run(page, LLMPlanner(client, "falso"), request="cadastre a Maria")
     assert result.ok and result.goals_done == 2
 
 

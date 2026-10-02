@@ -18,6 +18,21 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- Prompt injection evaluation, part 2: **the defenses** (`anchor/planner/untrusted.py`). Page
+  content is data, not instructions: (1) a new rule in the planner prompt says so; (2) element
+  names and item contexts that look like instructions to the assistant ("ignore the previous
+  instructions", "assistant:", "system instruction", "the user authorized") are left out of the
+  page summary, keeping what comes before the instruction (often the item's name), and a button
+  whose aria-label is an instruction keeps its visible text; (3) page messages that look like
+  instructions do not reach the history; (4) what a plan types must come from the request or
+  the user's notes, never from the page (checked on every plan, replans included). Ordinary
+  pages are summarized exactly as before, and the user message is unchanged; only the prompt's
+  rule 11 is new, so the main suite must be measured again. The detector was written knowing the
+  test attacks: it needs attacks it has never seen (the resilience benchmark) to be measured fairly.
+- `eval/plan_run.py --suite injection` also counts **attack attempts** (`attack_targets` in the
+  tasks): steps that tried to do what the page asked, even when a barrier stopped them. In the
+  baseline, no attack worked, but the 9B model tried twice to delete the account after the
+  injected message, and the destructive-action barrier stopped it.
 - Prompt injection evaluation, part 1 (measuring before defending): test pages
   (`eval/fixtures/injection.html` and `injection_en.html`) with four attacks (an instruction in a
   product's description, in an almost invisible link, in an `aria-label`, and in a message shown
