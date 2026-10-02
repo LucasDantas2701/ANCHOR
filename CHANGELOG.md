@@ -101,6 +101,16 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   redistribution; copyright by the author. "Responsible use" section in the README.
 
 ### Changed
+- The query's action words now come only from outside parentheses: text in parentheses is the
+  context the model copies from the page summary to identify the item, and it may contain the
+  names of neighbouring elements ("Cancel order (Order #1024 · Being packed View details)"), whose
+  verbs are not the requested action. It made "View details" tie with "Cancel order" in the
+  English task `en-ord-01`, with both prompts and both models; in Portuguese the same problem was
+  hidden, because "ver" is not in the action words. No resolver case changed.
+- Measured with the models (dev, 15 tasks per language): on the English tasks, the Portuguese
+  prompt did better than the English one (4B: 80% done, 67% clean, against 73% and 53%; 9B: 93%
+  and 87%, against 87% and 80%). The English prompt is a translation that was never tuned, and it
+  brought back failures the Portuguese one had fixed. The default stays `pt`; `auto` remains an option.
 - The check of the request's data no longer requires English capitalized common words
   (languages, weekdays, months: "Portuguese", "Monday"), which the page may show in another form
   (the option "Português"); found with the English task `en-log-02`.

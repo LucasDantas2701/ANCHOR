@@ -1,3 +1,4 @@
+import re
 from typing import Callable
 
 from playwright.sync_api import Page
@@ -215,9 +216,13 @@ class ElementResolver:
             self._synonyms,
         )
 
-        # Action words present in the query.
+        # Action words present in the query, outside parentheses: text in
+        # parentheses is the context that identifies the item, copied from the page
+        # summary ("Cancel order (Order #1024 · Being packed View details)"), and the
+        # verbs of neighbouring elements in it ("View") are not the requested action.
+        outside = re.sub(r"\([^)]*\)", " ", query)
         action_query_tokens = (
-            normalized_query_tokens & ACTION_WORDS_N
+            normalize_tokens(tokenize(outside), self._synonyms) & ACTION_WORDS_N
             if action
             else set()
         )

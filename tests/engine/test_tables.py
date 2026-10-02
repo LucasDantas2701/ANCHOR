@@ -37,3 +37,13 @@ def test_extraction_never_targets_a_checkbox(page):
     page.set_content(TABLE)
     matches = ElementResolver(page).query("Select Carol Miller", k=10, action="extract")
     assert all(m.role != "checkbox" for m in matches)
+
+
+def test_verbs_inside_parentheses_are_context_not_the_action(page):
+    """The model copies the item's context from the page summary, with the neighbours' names."""
+    page.set_content("""<html><body>
+      <div class="o"><strong>Order #1023</strong> · Delivered <button>View details</button> <button disabled>Cancel order</button></div>
+      <div class="o"><strong>Order #1024</strong> · Being packed <button>View details</button> <button>Cancel order</button></div>
+    </body></html>""")
+    top = ElementResolver(page).query("Cancel order (Order #1024 · Being packed View details)", k=2, action="click")
+    assert top[0].text == "Cancel order" and top[0].score > top[1].score * 1.5

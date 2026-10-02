@@ -221,8 +221,9 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
 * `--browser-profile profiles/<name>` uses a persistent browser profile, for systems with login:
   log in by hand once, and the session stays on your computer.
 * `--lang pt` shows the messages in Portuguese (or set `ANCHOR_LANG=pt`).
-* `--prompt-language auto` makes the planner prompt follow the request's language (`en` or `pt`
-  force one of them). Portuguese is the default until the English prompt is measured.
+* `--prompt-language` chooses the planner prompt's language: `pt` (default), `en`, or `auto` (it
+  follows the request). Requests can be in English or Portuguese either way: the default
+  Portuguese prompt did better than the English one on the English tasks too.
 
 **Only generate a plan**, and optionally run it:
 
@@ -298,13 +299,18 @@ SauceDemo), version 0.3.0 in development:
 | The Executor decides and gets it wrong (silent error) | 1.7% | 5.0% |
 | The Executor refuses and asks the user | 16.7% | 8.3% |
 
-**Complete tasks** — 15 development tasks on 8 local pages, through the full agent loop, with no
-human help, version 0.3.0 in development (i7-7700HQ, 16 GB RAM, GTX 1050 Ti 4 GB):
+**Complete tasks** — 15 development tasks per language, on local pages, through the full agent
+loop, with no human help and the default (Portuguese) planner prompt, version 0.3.0 in development
+(i7-7700HQ, 16 GB RAM, GTX 1050 Ti 4 GB):
 
-| Model (Ollama) | Tasks done | Done with no unrequested step | Premature ends | Time per task |
+| Model (Ollama) | Requests | Tasks done | Done with no unrequested step | Premature ends |
 |---|---|---|---|---|
-| Qwen 3.5, 4B | 93% | 87% | 0 | 36.1 s |
-| Qwen 3.5, 9B | 93% | 80% | 0 | 54.4 s |
+| Qwen 3.5, 4B | Portuguese | 93% | 87% | 0 |
+| Qwen 3.5, 4B | English | 80% | 67% | 0 |
+| Qwen 3.5, 9B | Portuguese | 93% | 80% | 0 |
+| Qwen 3.5, 9B | English | 93% | 87% | 0 |
+
+A task takes about 35 s with the 4B model and 55 s with the 9B one.
 
 These are development numbers: the code and the prompt were tuned looking at these cases. The
 final numbers will come from the closed sets.
@@ -431,8 +437,8 @@ requests and page contents do not leave the computer or the company network.
 * Iframes and closed shadow DOM are not read.
 * When the heuristic is wrong with confidence (a silent error), the user is not asked.
 * Unattended runs stop when there is an ambiguity, until the memory learns the answer.
-* The planner's measured results use the Portuguese prompt and Portuguese requests; the English
-  prompt and the English tasks have not been measured with the models yet.
+* The English planner prompt is a translation that was not tuned; on English requests, the default
+  Portuguese prompt does better, so it stays the default.
 * In English, the resolver gets more elements right first but also makes more silent errors,
   mostly in data extraction.
 
