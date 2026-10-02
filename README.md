@@ -258,6 +258,14 @@ python -m anchor.automations undo register-maria 1       # bring the previous pl
 python -m anchor.automations run register-maria --no-heal
 ```
 
+After a run that did not work, you can leave a note ("the Save button is at the end of the page"),
+which the planner reads the next time it learns or heals the plan:
+
+```sh
+python -m anchor.automations notes register-maria
+python -m anchor.automations notes register-maria --add "o botão Salvar fica no fim da página"
+```
+
 **Only generate a plan**, and optionally run it:
 
 ```sh
@@ -365,7 +373,7 @@ final numbers will come from the closed sets.
     - [x] Saved automations that **heal themselves**: when a saved plan breaks and is recovered,
       the fix is kept, with a reviewable (and undoable) record of what changed
     - [x] Parameters, and one run per row of a spreadsheet
-    - [ ] The user's notes after a failed run, sent to the planner
+    - [x] The user's notes after a failed run, sent to the planner
     - [ ] Confirmation of sensitive actions (delete, send, save, download, upload, pay)
     - [ ] Defense against instructions injected by page content
     - [ ] Screenshot analysis by a vision model, when the other checks disagree

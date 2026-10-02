@@ -90,6 +90,7 @@ python -m anchor.automations list
 python -m anchor.automations show register-maria
 python -m anchor.automations recoveries register-maria
 python -m anchor.automations undo register-maria 1
+python -m anchor.automations notes register-maria --add "o botão Salvar fica no fim da página"
 ```
 
 Options that come **before** the command:
@@ -144,7 +145,7 @@ placeholders (`fill CPF = {cpf}`), so the next runs work with any values. The ru
 the placeholders, not the values, since they may be personal data. Every parameter needs a
 value in every run; an unknown parameter is refused.
 
-### `list`, `show`, `recoveries`, `undo`
+### `list`, `show`, `recoveries`, `undo`, `notes`
 
 | Command | Meaning |
 |---|---|
@@ -152,6 +153,17 @@ value in every run; an unknown parameter is refused.
 | `show name` | Shows the request, the link, the approved plan and the last runs. |
 | `recoveries name` | Lists how the automation recovered when the site changed: what failed, what replaced it, how it was solved, whether the effect was confirmed, the confidence; and the elements you picked during replays. |
 | `undo name number` | Undoes a recovery: a plan correction brings the previous plan back (and undoes the later corrections); a choice of yours is forgotten, and the next run asks again. |
+| `notes name` | Lists your notes about the automation. The 5 most recent go to the planner when it learns or heals the plan. |
+
+`notes` options:
+
+| Option | Meaning |
+|---|---|
+| `--add` | Adds a note (e.g. `--add "o botão Salvar fica no fim da página"`). |
+| `--remove` | Removes the note with this number. |
+
+After a run that did not work, `run` also asks whether you want to leave a note (Enter skips);
+with `--csv`, it asks once, at the end, if some row failed.
 
 ## Choice memory (`anchor.engine.memory`)
 

@@ -140,8 +140,11 @@ def user_message(
     page_elements: list[str] | None,
     history: list[str] | None = None,
     language: str = DEFAULT_PROMPT_LANGUAGE,
+    notes: list[str] | None = None,
 ) -> str:
     parts = [mt("user.page", language, url=url), mt("user.request", language, request=request)]
+    if notes:
+        parts.append(mt("user.notes", language, lines="\n".join(f"- {n}" for n in notes)))
     if history:
         parts.append(mt("user.history", language, lines="\n".join(f"- {h}" for h in history)))
     if page_elements:

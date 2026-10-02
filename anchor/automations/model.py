@@ -6,6 +6,7 @@ How a saved automation is stored: one folder per automation.
         plan.json         the approved plan (goals and steps), once learned
         memory.json       the choice memory of this automation
         recoveries.json   how the automation recovered when the site changed (reviewable, undoable)
+        notes.json        the user's notes after runs that did not work, sent to the planner
         runs/             one record per run, with its metrics
 
 The folder is usage data and stays out of Git, like memory/.
@@ -137,6 +138,30 @@ class AutomationStore:
             if item["number"] in numbers:
                 item["undone"] = True
         self._write_list(self.folder(name) / "recoveries.json", items)
+
+    # ------------------------------------------------------------ user notes
+    NOTES_SENT = 5      # how many of the most recent notes go to the planner
+
+    def notes(self, name: str) -> list[dict]:
+        path = self.folder(name) / "notes.json"
+        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+
+    def add_note(self, name: str, text: str, run: str = "") -> dict:
+        items = self.notes(name)
+        note = {"number": max((n["number"] for n in items), default=0) + 1,
+                "date": datetime.now().isoformat(timespec="seconds"), "run": run, "text": text.strip()}
+        items.append(note)
+        self._write_list(self.folder(name) / "notes.json", items)
+        return note
+
+    def remove_note(self, name: str, number: int) -> bool:
+        items = self.notes(name)
+        kept = [n for n in items if n["number"] != number]
+        self._write_list(self.folder(name) / "notes.json", kept)
+        return len(kept) < len(items)
+
+    def recent_notes(self, name: str) -> list[str]:
+        return [n["text"] for n in self.notes(name)[-self.NOTES_SENT:]]
 
     # ------------------------------------------------------------ runs
     def save_run(self, name: str, record: dict) -> str:

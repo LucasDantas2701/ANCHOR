@@ -24,6 +24,7 @@ class Planner(Protocol):
         page_elements: Optional[list[str]] = None,
         history: Optional[list[str]] = None,
         known_goals: Optional[set[str]] = None,
+        notes: Optional[list[str]] = None,
     ) -> Plan: ...
 
 
@@ -92,15 +93,17 @@ class LLMPlanner:
         page_elements: Optional[list[str]] = None,
         history: Optional[list[str]] = None,
         known_goals: Optional[set[str]] = None,
+        notes: Optional[list[str]] = None,
     ) -> Plan:
         """
         history: what already happened in the run (steps done and failures), for replanning.
         known_goals: ids of the goals already defined in the run (a replan may refer to them).
+        notes: the user's notes about this task, from earlier runs of a saved automation.
         """
         language = self.language_for(request)
         messages = [
             {"role": "system", "content": system_prompt(language)},
-            {"role": "user", "content": user_message(request, url, page_elements, history, language)},
+            {"role": "user", "content": user_message(request, url, page_elements, history, language, notes)},
         ]
         tokens_in = tokens_out = 0
         start = time.perf_counter()

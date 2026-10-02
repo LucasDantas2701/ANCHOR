@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- Saved automations, part 4: **the user's notes**. After a run that did not work, `run` asks
+  whether you want to leave a note for the next runs (with `--csv`, once, at the end); the 5 most
+  recent notes go to the planner, in their own section of the message, when it learns or heals
+  the plan. `python -m anchor.automations notes <name>` lists them, `--add` adds one and
+  `--remove` removes one. Without notes, the message to the model is unchanged.
 - Saved automations, part 3: **parameters**. The parts of the request that change go in braces
   (`"cadastre {nome}, CPF {cpf}, no TI e salve"`), and each run gives their values with
   `run --param nome="Maria Silva"`, or runs once per row of a CSV file with `run --csv file.csv`

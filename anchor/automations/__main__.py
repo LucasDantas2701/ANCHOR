@@ -15,6 +15,8 @@ Saved automations from the terminal.
     python -m anchor.automations show register-employee
     python -m anchor.automations recoveries register-employee   # how it recovered when the site changed
     python -m anchor.automations undo register-employee 2       # undo recovery #2
+    python -m anchor.automations notes register-employee        # the notes sent to the planner
+    python -m anchor.automations notes register-employee --add "o botão Salvar fica no fim da página"
 """
 
 from __future__ import annotations
@@ -105,6 +107,7 @@ def cmd_run(store: AutomationStore, args) -> int:
                                                prompt_language=auto.prompt_language), progress)
 
     outcomes = []
+    last_run = ""
     with sync_playwright() as p:
         if automation.browser_profile:
             context = p.chromium.launch_persistent_context(automation.browser_profile, headless=False)
@@ -138,6 +141,10 @@ def cmd_run(store: AutomationStore, args) -> int:
                     replans=result.replans, failures=result.failures, interventions=result.interventions,
                     tokens_in=result.tokens_in, tokens_out=result.tokens_out, seconds=result.seconds))
             outcomes.append((number, result.status, result.message))
+            last_run = run_id
+        failed = [o for o in outcomes if o[1] != "success"]
+        if failed and sys.stdin.isatty():
+            ask_for_note(store, args.name, last_run if len(rows) == 1 else "")
         if len(rows) > 1:
             done = sum(status == "success" for _, status, _ in outcomes)
             print("\n" + t("auto.csv_summary", done=done, total=len(rows)))
@@ -150,6 +157,40 @@ def cmd_run(store: AutomationStore, args) -> int:
             pass
         context.close()
     return 0 if all(status == "success" for _, status, _ in outcomes) else 1
+
+
+def ask_for_note(store: AutomationStore, name: str, run_id: str = "") -> None:
+    """After a run that did not work, the user may leave a note for the planner."""
+    try:
+        text = input("\n" + t("auto.ask_note") + " ").strip()
+    except (KeyboardInterrupt, EOFError):
+        return
+    if text:
+        note = store.add_note(name, text, run=run_id)
+        print(t("auto.note_saved", number=note["number"]))
+
+
+def cmd_notes(store: AutomationStore, args) -> int:
+    store.load(args.name)
+    if args.add:
+        note = store.add_note(args.name, args.add)
+        print(t("auto.note_saved", number=note["number"]))
+        return 0
+    if args.remove is not None:
+        if not store.remove_note(args.name, args.remove):
+            print(t("auto.error", error=t("auto.no_note", number=args.remove)))
+            return 1
+        print(t("auto.note_removed", number=args.remove))
+        return 0
+    notes = store.notes(args.name)
+    if not notes:
+        print(t("auto.no_notes"))
+        return 0
+    recent = {n["number"] for n in notes[-store.NOTES_SENT:]}
+    for n in notes:
+        sent = "" if n["number"] in recent else t("auto.note_not_sent")
+        print(f"  #{n['number']} {n['date'].replace('T', ' ')}  {n['text']}{sent}")
+    return 0
 
 
 def _confidence(items: list) -> str:
@@ -233,12 +274,17 @@ def main(argv=None) -> int:
     undo = sub.add_parser("undo", help="undoes a recovery (by the number shown by 'recoveries')")
     undo.add_argument("name")
     undo.add_argument("number", type=int)
+    notes = sub.add_parser("notes", help="lists, adds or removes the notes sent to the planner")
+    notes.add_argument("name")
+    notes_action = notes.add_mutually_exclusive_group()
+    notes_action.add_argument("--add", metavar="TEXT", help="adds a note")
+    notes_action.add_argument("--remove", type=int, metavar="NUMBER", help="removes a note")
 
     args = ap.parse_args(argv)
     apply_language(args)
     store = AutomationStore(Path(args.root))
     commands = {"create": cmd_create, "run": cmd_run, "list": cmd_list, "show": cmd_show,
-                "recoveries": cmd_recoveries, "undo": cmd_undo}
+                "recoveries": cmd_recoveries, "undo": cmd_undo, "notes": cmd_notes}
     try:
         return commands[args.command](store, args)
     except AutomationError as exc:

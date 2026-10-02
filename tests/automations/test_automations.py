@@ -381,3 +381,61 @@ def test_templatize_puts_placeholders_in_descriptions_too():
     steps = templatize_steps([Step("check", "Selecionar Ana Lima", None)], {"nome": "Ana Lima"})
     assert steps[0].description == "Selecionar {nome}"
     assert render("Excluir {nome}", {"nome": "Ana"}) == "Excluir Ana"
+
+
+# --------------------------------------------------------------------------
+# The user's notes: kept per automation, sent to the planner
+# --------------------------------------------------------------------------
+
+def test_notes_are_kept_and_only_the_most_recent_are_sent(store):
+    for i in range(7):
+        store.add_note("register", f"observação {i}")
+    assert [n["number"] for n in store.notes("register")] == [1, 2, 3, 4, 5, 6, 7]
+    assert store.recent_notes("register") == [f"observação {i}" for i in range(2, 7)]
+    assert store.remove_note("register", 3) and not store.remove_note("register", 3)
+
+
+class RecordingPlanner(LearningPlanner):
+    def __init__(self, *plans):
+        super().__init__(*plans)
+        self.notes_seen = []
+
+    def plan(self, request, url, page_elements=None, history=None, notes=None, **kw):
+        self.notes_seen.append(notes)
+        return super().plan(request, url, page_elements, history, **kw)
+
+
+def test_the_planner_gets_the_notes_when_learning(page, store):
+    store.add_note("register", "o botão Salvar fica no fim da página")
+    page.set_content(FORM.format(save="Salvar"))
+    planner = RecordingPlanner((GOALS, PLAN), ([], []))
+    run(store, page, lambda _: planner)
+    assert planner.notes_seen[0] == ["o botão Salvar fica no fim da página"]
+
+
+def test_the_planner_gets_the_notes_when_healing(page, healing_store):
+    learn(healing_store, page)
+    healing_store.add_note("heal", "o botão agora se chama Concluir cadastro")
+    page.set_content(PAGE_V2)
+    healer = RecordingPlanner(([], [("click", "Concluir cadastro", None, "g1", None)]), ([], []))
+    result, _, _ = run_heal(healing_store, page, lambda _: healer)
+    assert result.ok and healer.notes_seen[0] == ["o botão agora se chama Concluir cadastro"]
+
+
+def test_without_notes_the_message_to_the_model_does_not_change():
+    from anchor.planner.prompt import user_message
+    base = user_message("salve", "http://x", ["Botão Salvar"], None, "pt")
+    assert user_message("salve", "http://x", ["Botão Salvar"], None, "pt", notes=[]) == base
+    with_note = user_message("salve", "http://x", ["Botão Salvar"], None, "pt", notes=["fica no fim"])
+    assert "Observações do usuário sobre esta tarefa" in with_note and "- fica no fim" in with_note
+
+
+def test_notes_command(tmp_path, capsys):
+    from anchor.automations.__main__ import main
+    root = str(tmp_path)
+    main(["--root", root, "create", "demo", "salve", "--url", "x", "--profile", "p"])
+    assert main(["--root", root, "notes", "demo", "--add", "fica no fim"]) == 0
+    main(["--root", root, "notes", "demo"])
+    assert "fica no fim" in capsys.readouterr().out
+    assert main(["--root", root, "notes", "demo", "--remove", "1"]) == 0
+    assert main(["--root", root, "notes", "demo", "--remove", "1"]) == 1

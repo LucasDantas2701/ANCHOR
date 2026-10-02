@@ -96,6 +96,8 @@ TEXT: dict[str, dict[str, str]] = {
               "already worked. If a step failed, try another way (for example, closing whatever covers "
               "the page). If the request is already fulfilled, return an empty list.",
     },
+    "user.notes": {"pt": "Observações do usuário sobre esta tarefa, de execuções anteriores:\n{lines}",
+                   "en": "Notes from the user about this task, from earlier runs:\n{lines}"},
     "user.elements": {"pt": "Elementos visíveis na página:\n{lines}", "en": "Visible elements on the page:\n{lines}"},
     "summary.options": {"pt": " [opções: {options}]", "en": " [options: {options}]"},
     # ------------------------------------------------------------ plan errors (sent back to the model)

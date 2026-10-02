@@ -261,4 +261,12 @@ MESSAGES: dict[str, dict[str, str]] = {
     "auto.row": {"en": "=== Row {number} of {total}", "pt": "=== Linha {number} de {total}"},
     "auto.csv_empty": {"en": "the file {path} has no rows", "pt": "o arquivo {path} não tem linhas"},
     "auto.csv_summary": {"en": "Rows done: {done} of {total}.", "pt": "Linhas cumpridas: {done} de {total}."},
+    "auto.ask_note": {"en": "Want to leave a note for the next runs (e.g. where the button is)? Enter to skip:",
+                      "pt": "Quer deixar uma observação para as próximas execuções (ex.: onde fica o botão)? Enter para pular:"},
+    "auto.note_saved": {"en": "Note #{number} saved: the planner will read it in the next runs.",
+                        "pt": "Observação #{number} salva: o planejador vai lê-la nas próximas execuções."},
+    "auto.note_removed": {"en": "Note #{number} removed.", "pt": "Observação #{number} removida."},
+    "auto.no_note": {"en": "there is no note #{number}", "pt": "não existe a observação #{number}"},
+    "auto.no_notes": {"en": "No notes yet.", "pt": "Nenhuma observação ainda."},
+    "auto.note_not_sent": {"en": "  (older: not sent to the planner)", "pt": "  (antiga: não vai para o planejador)"},
 }

@@ -30,6 +30,25 @@ def _step_dict(step) -> dict:
     return asdict(step)
 
 
+class NotesPlanner:
+    """Gives the planner the user's notes about the task, on every call."""
+
+    def __init__(self, planner, notes: list[str]):
+        self.planner, self.notes = planner, list(notes)
+
+    def __getattr__(self, name):
+        return getattr(self.planner, name)
+
+    def plan(self, *args, **kwargs):
+        if self.notes:
+            kwargs.setdefault("notes", self.notes)
+        return self.planner.plan(*args, **kwargs)
+
+
+def _with_notes(planner, notes: list[str]):
+    return NotesPlanner(planner, notes) if notes else planner
+
+
 def _render_goals(goals, values):
     from dataclasses import replace
     return [replace(g, description=render(g.description, values)) for g in goals]
@@ -64,17 +83,19 @@ def run_automation(
         raise AutomationError(str(exc)) from exc
     approved = None if relearn else store.load_plan(name)
     say = report or (lambda _: None)
+    notes = store.recent_notes(name)
     memory_before = set(executor.memory.entries) if executor.memory is not None else set()
 
     if approved is not None:
         mode = "replay"
         planner = ReplayPlanner(render_steps(approved.steps, values), _render_goals(approved.goals, values),
                                 approved.language,
-                                make_healer=(lambda: make_planner(automation)) if heal else None, report=say)
+                                make_healer=(lambda: _with_notes(make_planner(automation), notes)) if heal else None,
+                                report=say)
         say(t("auto.replaying", name=name, steps=len(approved.steps)))
     else:
         mode = "learn"
-        planner = make_planner(automation)
+        planner = _with_notes(make_planner(automation), notes)
         say(t("auto.learning", name=name))
 
     # The caller opens the automation's link (page.goto(automation.url)) before running it.
