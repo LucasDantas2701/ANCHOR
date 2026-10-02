@@ -118,3 +118,12 @@ def test_enter_without_effect_leads_to_replanning(page):
     )
     result = agent(page, planner).run("busque rpa")
     assert result.ok and result.records[1].status == "no_effect"
+
+
+def test_effect_is_seen_after_the_whole_document_is_replaced(page):
+    """Some single-page apps replace the document without a new window: watch the new one."""
+    page.set_content("<html><body><button onclick=\"document.body.dataset.a=1\">Primeiro</button></body></html>")
+    assert agent(page, ScriptedPlanner([("click", "Primeiro", None)], [])).run("x").ok
+    page.set_content("<html><body><button onclick=\"document.body.dataset.b=1\">Segundo</button></body></html>")
+    result = agent(page, ScriptedPlanner([("click", "Segundo", None)], [])).run("x")
+    assert result.ok and result.no_effect == 0

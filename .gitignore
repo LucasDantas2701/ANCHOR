@@ -7,7 +7,7 @@ __pycache__/
 *$py.class
 
 # =========================
-# Ambientes virtuais
+# Virtual environments
 # =========================
 
 .venv/
@@ -15,7 +15,7 @@ venv/
 env/
 
 # =========================
-# Variáveis de ambiente
+# Environment variables
 # =========================
 
 .env
@@ -29,7 +29,7 @@ profiles/*
 !profiles/.gitkeep
 
 # =========================
-# Testes / arquivos temporários
+# Tests / temporary files
 # =========================
 
 .pytest_cache/
@@ -44,9 +44,11 @@ downloads/
 screenshots/
 
 # =========================
-# Memória das escolhas (dados de uso)
+# Usage data: remembered choices and saved automations
 # =========================
 
+/memory/
+/automations/
 
 # =========================
 # IDE
@@ -56,7 +58,7 @@ screenshots/
 .idea/
 
 # =========================
-# Sistema operacional
+# Operating system
 # =========================
 
 .DS_Store
@@ -279,4 +281,3 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
-/memory/

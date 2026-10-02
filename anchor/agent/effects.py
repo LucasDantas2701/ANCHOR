@@ -26,7 +26,11 @@ from anchor.planner.language import Reason
 # Changes made by ANCHOR itself (the index, disambiguation highlights) do not count.
 OBSERVER_JS = r"""
 () => {
-    if (window.__er_obs) return true;
+    // Already observing this document? (if the whole document was replaced without a
+    // new window, the old observer watches a detached tree: install a new one)
+    if (window.__er_obs && window.__er_obs_root === document.documentElement) return true;
+    if (window.__er_obs) window.__er_obs.disconnect();
+    window.__er_obs_root = document.documentElement;
     window.__er_mut = 0;
     window.__er_msgs = [];
     const ours = (n) => n.nodeType === 1 && (

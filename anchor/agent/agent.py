@@ -164,7 +164,8 @@ class Agent:
                 self._goals[goal.id] = goal
                 self._goal_status[goal.id] = "pending"
         result.goals_total = len(self._goals)
-        result.llm_calls += 1
+        if getattr(self.planner, "uses_llm", True):
+            result.llm_calls += 1
         result.tokens_in += plan.tokens_in
         result.tokens_out += plan.tokens_out
         return plan

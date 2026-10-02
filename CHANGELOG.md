@@ -18,6 +18,15 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- Saved automations, part 1 (`anchor/automations`, `python -m anchor.automations`): describe a task
+  once (`create`), and run it whenever you want (`run`). The first run learns: the agent plans
+  with the LLM, and if the run succeeds, the steps that worked become the approved plan. The next
+  runs replay the approved plan **without the LLM**, through the same agent (choice memory,
+  heuristic, disambiguation, effect checks, goals and the check of what was done); if a saved
+  step fails, the replay stops and says the site may have changed. `run --relearn` plans again;
+  `list` and `show` review the automations, their approved plans and their last runs. Each
+  automation is a folder in `automations/` (kept out of Git), with its own choice memory and a
+  record of every run.
 - English evaluation, part 2 (the planner): 15 English development tasks
   (`eval/plans/tasks_en.json`, on the English pages), mirroring the Portuguese ones.
   `eval/plan_run.py` loads them, accepts `--language pt|en`, and reports each profile per
@@ -101,6 +110,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   redistribution; copyright by the author. "Responsible use" section in the README.
 
 ### Changed
+- Effect check: if the whole document is replaced without a new window (as some single-page apps
+  do), the page observer now watches the new document; before, it kept watching the old one and
+  every action looked like it had no effect (found when replaying an automation).
+- The legacy fixed-selector example moved from `anchor/automation/saucedemo.py` to
+  `examples/legacy_saucedemo.py`. The `.gitignore` sections are in English, and it ignores
+  `automations/`.
 - The query's action words now come only from outside parentheses: text in parentheses is the
   context the model copies from the page summary to identify the item, and it may contain the
   names of neighbouring elements ("Cancel order (Order #1024 · Being packed View details)"), whose

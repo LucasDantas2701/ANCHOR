@@ -225,6 +225,20 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
   follows the request). Requests can be in English or Portuguese either way: the default
   Portuguese prompt did better than the English one on the English tasks too.
 
+**Save an automation** and run it whenever you want. The first run learns the plan with the LLM;
+the next ones replay the approved plan without the LLM, much faster:
+
+```sh
+python -m anchor.automations create register-maria --url eval/fixtures/registration.html --profile ollama-small "cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
+python -m anchor.automations run register-maria       # 1st time: learns; then: replays
+python -m anchor.automations list
+python -m anchor.automations show register-maria      # approved plan and last runs
+python -m anchor.automations run register-maria --relearn
+```
+
+If the site changes and a saved step no longer works, the replay stops and says so (automatic
+healing of the saved plan is coming in the next part of version 0.3.0).
+
 **Only generate a plan**, and optionally run it:
 
 ```sh
@@ -391,9 +405,9 @@ ANCHOR/
 │   ├── browser/                   # persistent profiles, session and login
 │   ├── i18n.py                    # interface messages (English and Portuguese)
 │   ├── main.py                    # end-to-end example on SauceDemo, with a fixed plan
-│   └── automation/saucedemo.py    # LEGACY example with fixed selectors (the "before")
+│   └── automations/               # saved automations: learn once, replay, heal
 ├── eval/                          # evaluation: test pages, cases, tasks, results, closed sets
-├── examples/                      # demos
+├── examples/                      # demos (and legacy_saucedemo.py, fixed selectors: the "before")
 ├── tests/
 ├── profiles/                      # browser profiles (not in Git)
 ├── memory/                        # remembered choices (not in Git)

@@ -19,7 +19,7 @@ use the agent:
 
 Old version, with fixed selectors, for comparison:
 
-    anchor/automation/saucedemo.py
+    examples/legacy_saucedemo.py
 """
 
 from pathlib import Path
