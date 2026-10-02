@@ -449,6 +449,11 @@ def main() -> int:
                 if args.verbose and r.plan:
                     for a, d, v in json.loads(r.plan):
                         print(f"        {a:12} {d}" + (f' = "{v}"' if v is not None else ""))
+                if args.verbose and not r.plan_valid:
+                    # The model's refused answers, to see why the plan failed.
+                    for n, (raw, why) in enumerate(getattr(planner, "last_attempts", []), 1):
+                        print(f"        attempt {n}, refused: {why}")
+                        print("          " + " ".join((raw or "").split())[:700])
         browser.close()
 
     print("\nCOMPARISON")

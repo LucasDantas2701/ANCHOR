@@ -212,3 +212,13 @@ def test_summary_guided_by_the_request_brings_the_relevant_element(page):
     with_request = page_elements(ElementResolver(page), request="pesquise a moeda Pi Network")
     assert not any("Search /" in line for line in without)          # cut by the limit of 80
     assert with_request[0].startswith('Área clicável "Search /"')   # guided by the request
+
+
+def test_refused_answers_are_kept_to_see_why_a_plan_failed():
+    bad = json.dumps({"steps": [{"action": "voar", "description": "x", "value": None}]})
+    client = FakeClient(bad, bad)
+    planner = LLMPlanner(client, "m")
+    with pytest.raises(PlanError):
+        planner.plan("cadastre a Maria Silva e salve", "http://x")
+    assert len(planner.last_attempts) == 2 and planner.last_attempts[0][0] == bad
+    assert "voar" in planner.last_attempts[0][1]

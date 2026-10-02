@@ -268,7 +268,7 @@ python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama
 | `--no-page` | Does not send the list of the page's elements to the model. |
 | `--check` | Checks the tasks, without calling models. |
 | `--final` | Runs the closed set (split `test`). Once, at the end. |
-| `-v`, `--verbose` | Shows each task's plan. |
+| `-v`, `--verbose` | Shows each task's plan and, when the plan failed, the model's refused answers and why each was refused. |
 
 ## Development
 

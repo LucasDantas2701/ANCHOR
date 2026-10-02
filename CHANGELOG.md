@@ -18,6 +18,9 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- `eval/plan_run.py -v` shows the model's refused answers, and why each one was refused, when a
+  task's plan fails (the planner keeps them in `last_attempts`). Before, only the last reason was
+  shown, which hid the earlier refusals.
 - Prompt injection evaluation, part 2: **the defenses** (`anchor/planner/untrusted.py`). Page
   content is data, not instructions: (1) a new rule in the planner prompt says so; (2) element
   names and item contexts that look like instructions to the assistant ("ignore the previous

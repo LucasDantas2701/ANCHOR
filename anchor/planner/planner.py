@@ -68,6 +68,7 @@ class LLMPlanner:
             raise ValueError(f"unsupported prompt language {language!r}; "
                              f"use one of {', '.join(PROMPT_LANGUAGES + (AUTO,))}")
         self.language = language
+        self.last_attempts: list[tuple[str, str]] = []   # (the model's answer, why it was refused)
         self.client = client
         self.model = model
         self.temperature = temperature
@@ -109,6 +110,7 @@ class LLMPlanner:
         known_goals: ids of the goals already defined in the run (a replan may refer to them).
         notes: the user's notes about this task, from earlier runs of a saved automation.
         """
+        self.last_attempts = []
         language = self.language_for(request)
         messages = [
             {"role": "system", "content": system_prompt(language)},
@@ -136,6 +138,7 @@ class LLMPlanner:
                 return Plan(steps=steps, goals=goals, model=self.model, latency_s=round(time.perf_counter() - start, 2),
                             tokens_in=tokens_in, tokens_out=tokens_out, attempts=attempt, raw=raw)
             except PlanError as exc:
+                self.last_attempts.append((raw, str(exc)))
                 last_error = exc
                 messages += [
                     {"role": "assistant", "content": raw},
