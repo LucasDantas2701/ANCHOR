@@ -166,11 +166,13 @@ value in every run; an unknown parameter is refused.
 |---|---|
 | `--forget` | Forgets the decision with this number: the next run asks again. |
 
-Sensitive actions (deleting, saving or submitting, sending, paying, downloading, uploading) are
-asked about once, when the element is found and before acting. An action you allowed is not
-asked again (nor in the next rows of a spreadsheet); an action you denied stops the run, in that
-run and in the next ones, until you forget the decision. With no terminal to answer, the answer
-is no.
+Sensitive actions (deleting, saving or submitting, sending, paying, downloading, uploading, and
+cancelling an order, a subscription, a booking or another irreversible thing; a plain "Cancel"
+that closes a form is not asked about) are asked about once, when the element is found and
+before acting. Answer `s`/`y` to allow it, `n` to deny it, or just press Enter to deny it only this
+time. An action you allowed is not asked again (nor in the next rows of a spreadsheet); an action
+you denied with `n` stops the run, in that run and in the next ones, until you forget the decision.
+Pressing Enter, or having no terminal to answer, saves nothing: the next run asks again.
 
 `notes` options:
 

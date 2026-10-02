@@ -480,6 +480,20 @@ def test_a_denied_action_stops_this_run_and_the_next_ones(page, store):
     assert store.runs("register")[-1]["denied"] is True
 
 
+def test_just_pressing_enter_denies_only_this_time(page, store):
+    from anchor.engine.sensitive import TerminalConfirmer
+    page.set_content(FORM.format(save="Salvar"))
+    run(store, page, lambda _: LearningPlanner((GOALS, PLAN), ([], [])), confirm=Answer(True))
+    store.forget_confirmation("register", 1)
+    page.set_content(FORM.format(save="Salvar"))
+    enter = TerminalConfirmer(input_fn=lambda _: "", output=lambda _: None, interactive=True)
+    result, _, _ = run(store, page, no_llm, confirm=enter)
+    assert result.denied and store.confirmations("register") == []      # nothing saved
+    page.set_content(FORM.format(save="Salvar"))
+    result, _, _ = run(store, page, no_llm, confirm=Answer(True))
+    assert result.ok                                                      # asked again, and allowed
+
+
 def test_confirmations_command(tmp_path, capsys):
     from anchor.automations.__main__ import main
     root = str(tmp_path)

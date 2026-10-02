@@ -22,7 +22,16 @@ PAGE = """<html><body>
     ("click", "Add to cart (UltraBook)", "Add to cart", None),
     ("click", "Search", "", None),
     ("fill", "Salvar", "", None),                              # only clicks are sensitive
-    ("click", "Cancel order (Order #1024 View details)", "Cancel order", None),   # context in ()
+    ("click", "Add to cart (Cancel order View details)", "Add to cart", None),   # a neighbour's verb in ()
+    # Cancelling: sensitive only with an object that makes it irreversible.
+    ("click", "Cancelar", "Cancelar", None),                                  # closes a form
+    ("click", "Cancelar pedido (Pedido #1024 · Em separação)", "Cancelar pedido", "cancel"),
+    ("click", "Cancelar (Pedido #1024 · Em separação)", "Cancelar", "cancel"),  # the object in the context
+    ("click", "Cancel order (Order #1024 View details)", "Cancel order", "cancel"),
+    ("click", "Cancelar assinatura", "", "cancel"),
+    ("click", "Cancel my subscription", "", "cancel"),
+    ("click", "Cancelar reserva da sala Amazonas", "", "cancel"),
+    ("click", "Unsubscribe", "", "cancel"),
 ])
 def test_classify(action, description, element, expected):
     assert classify(action, description, element) == expected
@@ -74,13 +83,16 @@ def test_a_denial_stops_the_agent_without_replanning(page):
     result = Agent(page, planner, ActionExecutor(page, confirmer=Recorder(False)), report=None,
                    verify_effect=False).run("exclua o Bruno Lima")
     assert result.status == "cancelled" and result.denied and planner.calls == 1
-    assert result.message.startswith("stopped: you did not allow")
+    assert result.message.startswith("you did not allow")
 
 
 def test_terminal_confirmer():
     assert TerminalConfirmer(input_fn=lambda _: "s", output=lambda _: None, interactive=True).confirm(_req())
     assert TerminalConfirmer(input_fn=lambda _: "yes", output=lambda _: None, interactive=True).confirm(_req())
-    assert not TerminalConfirmer(input_fn=lambda _: "", output=lambda _: None, interactive=True).confirm(_req())
+    enter = TerminalConfirmer(input_fn=lambda _: "", output=lambda _: None, interactive=True).confirm(_req())
+    assert not enter and enter.save is False                  # Enter: not now, nothing saved
+    no = TerminalConfirmer(input_fn=lambda _: "n", output=lambda _: None, interactive=True).confirm(_req())
+    assert not no and no.save is True                         # an explicit no is saved
     # With no one to answer, the answer is no.
     assert not TerminalConfirmer(input_fn=lambda _: "s", output=lambda _: None, interactive=False).confirm(_req())
     assert AllowAll().confirm(_req())

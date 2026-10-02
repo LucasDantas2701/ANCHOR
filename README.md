@@ -225,8 +225,8 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
   log in by hand once, and the session stays on your computer.
 * `--lang pt` shows the messages in Portuguese (or set `ANCHOR_LANG=pt`).
 * Before a sensitive action (deleting, saving or submitting, sending, paying, downloading,
-  uploading), the agent shows the element and asks; a denial stops the run. `--allow-sensitive`
-  turns the question off.
+  uploading, or cancelling an order, a subscription or a booking), the agent shows the element
+  and asks; a denial stops the run. `--allow-sensitive` turns the question off.
 * `--prompt-language` chooses the planner prompt's language: `pt` (default), `en`, or `auto` (it
   follows the request). Requests can be in English or Portuguese either way: the default
   Portuguese prompt did better than the English one on the English tasks too.

@@ -143,9 +143,10 @@ def cmd_run(store: AutomationStore, args) -> int:
             print(t("cli.summary", steps=sum(r.status == "success" for r in result.records), calls=result.llm_calls,
                     replans=result.replans, failures=result.failures, interventions=result.interventions,
                     tokens_in=result.tokens_in, tokens_out=result.tokens_out, seconds=result.seconds))
-            outcomes.append((number, result.status, result.message))
+            outcomes.append((number, "denied" if result.denied else result.status, result.message))
             last_run = run_id
-        failed = [o for o in outcomes if o[1] != "success"]
+        # A denial is not a failure: the user stopped the run on purpose.
+        failed = [o for o in outcomes if o[1] not in ("success", "denied")]
         if failed and sys.stdin.isatty():
             ask_for_note(store, args.name, last_run if len(rows) == 1 else "")
         if len(rows) > 1:

@@ -2,8 +2,10 @@
 Sensitive actions in a saved automation: each decision is asked once and saved.
 
 An action the user allowed is not asked again in the next runs (nor in the next rows of
-a spreadsheet); an action the user denied stops the run, in this run and in the next ones,
-until the decision is forgotten (python -m anchor.automations confirmations <name> --forget N).
+a spreadsheet); an action the user denied with an explicit "no" stops the run, in this run
+and in the next ones, until the decision is forgotten (python -m anchor.automations
+confirmations <name> --forget N). Just pressing Enter, or having no terminal to answer,
+denies only this time: nothing is saved, and the next run asks again.
 """
 
 from __future__ import annotations
@@ -32,6 +34,9 @@ class AutomationConfirmer:
                                   name=self.name))
                 return item["decision"] == "allowed"
         allowed = self.ask.confirm(request)
+        if not getattr(allowed, "save", True):
+            self.report(t("confirm.not_now"))
+            return bool(allowed)
         record = self.store.add_confirmation(self.name, {**key, "decision": "allowed" if allowed else "denied"})
         self.report(t("confirm.saved_allowed" if allowed else "confirm.saved_denied", number=record["number"]))
-        return allowed
+        return bool(allowed)
