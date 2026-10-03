@@ -270,6 +270,20 @@ python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama
 | `--final` | Runs the closed set (split `test`). Once, at the end. |
 | `-v`, `--verbose` | Shows each task's plan and, when the plan failed, the model's refused answers and why each was refused. |
 
+### Vision probe (`eval.vision_probe`)
+
+Measures how long the model takes to answer a question about a screenshot, and whether it gets it
+right, before the effect check by screenshot is built. It asks 6 yes/no questions with known
+answers about the registration page, at two screen widths, and saves the results.
+
+```sh
+python -m eval.vision_probe --profiles ollama-small ollama-medium
+```
+
+| Option | Meaning |
+|---|---|
+| `--profiles` | Ollama model profiles to measure (the model must have the `vision` capability: `ollama show <model>`). |
+
 ## Development
 
 ```sh

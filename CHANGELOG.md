@@ -18,6 +18,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- `eval/vision_probe.py`: measures, before the effect check by screenshot is built, how long the
+  model takes to answer yes/no questions about a screenshot of the registration page (6 questions
+  with known answers, at 1024 and 640 pixels wide), and how many it gets right. The Qwen 3.5 models
+  used here have the `vision` capability in Ollama, so no other model is needed.
 - `eval/plan_run.py -v` shows the model's refused answers, and why each one was refused, when a
   task's plan fails (the planner keeps them in `last_attempts`). Before, only the last reason was
   shown, which hid the earlier refusals.
