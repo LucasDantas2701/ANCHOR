@@ -163,6 +163,8 @@ class Agent:
         context = history + self._context_lines() if history else []
         extra = {"known_goals": set(self._goals)} if self._goals else {}
         plan = self.planner.plan(request, self.page.url, elements, context or None, **extra)
+        if getattr(plan, "incomplete", ""):
+            self.report(t("agent.partial_plan"))
         for goal in getattr(plan, "goals", []) or []:
             if goal.id not in self._goals:
                 self._goals[goal.id] = goal

@@ -300,4 +300,6 @@ MESSAGES: dict[str, dict[str, str]] = {
     "confirm.forgotten": {"en": "Decision #{number} forgotten: the next run asks again.",
                           "pt": "Decisão #{number} esquecida: a próxima execução pergunta de novo."},
     "confirm.no_decision": {"en": "there is no decision #{number}", "pt": "não existe a decisão #{number}"},
+    "agent.partial_plan": {"en": "  The plan does not cover the whole request yet (the page may need to be revealed first); going on, and the end will be checked against the request.",
+                           "pt": "  O plano ainda não cobre o pedido inteiro (a página pode precisar ser revelada antes); seguindo, e o fim será conferido contra o pedido."},
 }

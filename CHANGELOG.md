@@ -177,6 +177,14 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   redistribution; copyright by the author. "Responsible use" section in the README.
 
 ### Changed
+- The check of the initial plan against the request is no longer fatal. A plan that does not
+  cover the request still goes back to the model, but if the attempts run out and coverage was the
+  only problem, the first answer is kept instead of giving up: some pages must be revealed bit by
+  bit (a magnifier that opens the search field), and the check of what was done, at the end,
+  still keeps a run that did not cover the request from succeeding. Found with `plan_run -v` on
+  `p-pop-01`, which the 4B model failed in every run after the injection defenses: it planned
+  only the click on the magnifier (right, since the field appears afterwards), the check refused
+  it, and its "fix" dropped the search.
 - While a saved plan is replayed without the LLM, the agent's messages say so ("Replaying the
   approved plan...", "continuing with the saved plan...") instead of talking about planning.
 - Effect check: if the whole document is replaced without a new window (as some single-page apps

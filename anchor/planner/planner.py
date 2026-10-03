@@ -119,6 +119,10 @@ class LLMPlanner:
         tokens_in = tokens_out = 0
         start = time.perf_counter()
         last_error: Optional[PlanError] = None
+        # The first answer whose only problem was not covering the whole request. The page may
+        # have to be revealed bit by bit (a magnifier that opens the search field), and the end
+        # is checked against the request anyway, so it is kept instead of giving up.
+        partial: Optional[tuple] = None
 
         for attempt in range(1, self.max_attempts + 1):
             response = self._call(messages)
@@ -134,7 +138,12 @@ class LLMPlanner:
                 check_values_from_request(steps, [request] + list(notes or []), language)
                 if not history and steps:
                     # Only the initial plan covers the whole request.
-                    check_request(steps, goals, request, language)
+                    try:
+                        check_request(steps, goals, request, language)
+                    except PlanError as gap:
+                        if partial is None:
+                            partial = (steps, goals, raw, str(gap))
+                        raise
                 return Plan(steps=steps, goals=goals, model=self.model, latency_s=round(time.perf_counter() - start, 2),
                             tokens_in=tokens_in, tokens_out=tokens_out, attempts=attempt, raw=raw)
             except PlanError as exc:
@@ -145,4 +154,9 @@ class LLMPlanner:
                     {"role": "user", "content": mt("plan.retry", language, error=exc)},
                 ]
 
+        if partial is not None:
+            steps, goals, raw, gap = partial
+            return Plan(steps=steps, goals=goals, model=self.model, latency_s=round(time.perf_counter() - start, 2),
+                        tokens_in=tokens_in, tokens_out=tokens_out, attempts=self.max_attempts, raw=raw,
+                        incomplete=gap)
         raise PlanError(t("planner.gave_up", attempts=self.max_attempts, error=last_error))

@@ -96,6 +96,9 @@ class Plan:
     tokens_out: int = 0
     attempts: int = 1
     raw: str = field(default="", repr=False)
+    # Set when the initial plan did not cover the request but was kept anyway (see LLMPlanner):
+    # the reason, in the prompt's language. The end is still checked against the request.
+    incomplete: str = ""
 
     def to_dict(self) -> dict:
         return asdict(self)

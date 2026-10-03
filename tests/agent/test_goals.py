@@ -188,8 +188,39 @@ def test_plan_missing_the_request_value_goes_back_to_the_model():
     bad = {"goals": [{"id": "g1", "description": "busca aberta", "conclusive": True}],
            "steps": [{"action": "click", "description": "Search /", "value": None, "goal": "g1", "expect": None}]}
     client = FakeClient(json.dumps(bad), json.dumps(bad))
-    with pytest.raises(PlanError, match='menciona "Pi Network"'):
+    plan = LLMPlanner(client, "falso").plan("Pesquise a moeda Pi Network", "http://x")
+    assert 'menciona "Pi Network"' in client.calls[1]["messages"][-1]["content"]     # it went back to the model
+    # The attempts ran out, but the only problem was coverage: the first answer is kept
+    # (the page may have to be revealed first), and the end is checked against the request.
+    assert [s.description for s in plan.steps] == ["Search /"] and 'menciona "Pi Network"' in plan.incomplete
+
+
+def test_other_plan_errors_still_give_up():
+    from anchor.planner import LLMPlanner
+    bad = {"steps": [{"action": "voar", "description": "x", "value": None}]}
+    client = FakeClient(json.dumps(bad), json.dumps(bad))
+    with pytest.raises(PlanError, match="voar"):
         LLMPlanner(client, "falso").plan("Pesquise a moeda Pi Network", "http://x")
+
+
+def test_a_partial_initial_plan_reveals_the_field_and_the_search_is_done(page):
+    """The p-pop-01 case: the search field only appears after clicking the magnifier."""
+    from anchor.agent import Agent
+    from anchor.engine.action_executor import ActionExecutor
+    from anchor.planner import LLMPlanner
+    page.set_content(POPUP_SEARCH)
+    page.set_default_timeout(1500)
+    lupa = {"goals": [{"id": "g1", "description": "pesquisa feita", "conclusive": True}],
+            "steps": [{"action": "click", "description": "Search /", "value": None, "goal": "g1", "expect": None}]}
+    rest = {"goals": [], "steps": [
+        {"action": "fill", "description": "Search coins", "value": "Pi Network", "goal": "g1", "expect": None},
+        {"action": "press", "description": "Search coins", "value": "Enter", "goal": "g1", "expect": None}]}
+    client = FakeClient(json.dumps(lupa), json.dumps(lupa), json.dumps(rest), json.dumps({"goals": [], "steps": []}))
+    reports = []
+    result = Agent(page, LLMPlanner(client, "falso"), ActionExecutor(page), report=reports.append).run(
+        "Pesquise a moeda Pi Network")
+    assert result.ok and "Resultados para Pi Network" in page.inner_text("body")
+    assert any("does not cover the whole request yet" in r for r in reports)
 
 
 def test_replanning_does_not_need_to_cover_the_whole_request():
