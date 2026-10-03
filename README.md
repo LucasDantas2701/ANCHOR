@@ -224,6 +224,9 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
 * `--browser-profile profiles/<name>` uses a persistent browser profile, for systems with login:
   log in by hand once, and the session stays on your computer.
 * `--lang pt` shows the messages in Portuguese (or set `ANCHOR_LANG=pt`).
+* `--vision` asks the model about a screenshot when the other checks doubt a step (a field that
+  does not show its value, a click with no visible effect in the page's code). It can only confirm
+  a doubted step, and costs about 5 to 10 seconds per question on a modest GPU.
 * Before a sensitive action (deleting, saving or submitting, sending, paying, downloading,
   uploading, or cancelling an order, a subscription or a booking), the agent shows the element
   and asks; a denial stops the run. `--allow-sensitive` turns the question off.
@@ -379,7 +382,7 @@ final numbers will come from the closed sets.
     - [x] The user's notes after a failed run, sent to the planner
     - [x] Confirmation of sensitive actions (delete, send, save, download, upload, pay), saved per automation
     - [ ] Defense against instructions injected by page content
-    - [ ] Screenshot analysis by a vision model, when the other checks disagree
+    - [x] Screenshot analysis by a vision model, when the other checks doubt a step
     - [ ] Intervention experiment with a simulated user
     - [ ] Resilience benchmark: changed versions of the pages, comparing fixed-selector scripts,
       an LLM-in-control agent and ANCHOR

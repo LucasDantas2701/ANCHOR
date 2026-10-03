@@ -18,6 +18,16 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Effect check by screenshot** (layer 4, `anchor/agent/vision.py`), turned on with `--vision`
+  (agent, `automations run`, `plan_run --agent`). When the other checks doubt a step (a field,
+  list or box whose state does not match; a click with no visible effect in the page's code; an
+  expected text that did not appear), the agent asks the model a yes/no question about a
+  screenshot scaled to 640 pixels (inside the browser, with no new dependency); for a click, it
+  compares the screenshots from before and after. The screenshot can only confirm a doubted step:
+  it never turns a step that worked into a failure, an error message on the page is never
+  overruled, and an unclear answer or an error counts as "not confirmed". The results record the
+  questions asked, the steps confirmed and the time spent. The Qwen 3.5 models answer with their
+  own `vision` capability, so no other model is loaded.
 - `eval/vision_probe.py`: measures, before the effect check by screenshot is built, how long the
   model takes to answer yes/no questions about a screenshot of the registration page (6 questions
   with known answers, at 1024 and 640 pixels wide), and how many it gets right. The Qwen 3.5 models

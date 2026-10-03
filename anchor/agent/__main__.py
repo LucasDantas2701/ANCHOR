@@ -61,6 +61,8 @@ def main() -> int:
     option(ap, "--memory", "--memoria", default="memory/agent.json", help="choice memory file")
     option(ap, "--browser-profile", "--perfil-navegador", help="folder of a persistent profile (systems with login)")
     option(ap, "--max-attempts", "--max-tentativas", type=int, default=3, help="failures before cancelling")
+    option(ap, "--vision", action="store_true",
+           help="when the other checks doubt a step, asks the model about a screenshot (slower)")
     option(ap, "--allow-sensitive", action="store_true",
            help="does not ask before sensitive actions (delete, save, send, pay, download, upload)")
     language_options(ap)
@@ -94,8 +96,12 @@ def main() -> int:
             memory=ChoiceMemory(args.memory),
             confirmer=None if args.allow_sensitive else TerminalConfirmer(),
         )
+        vision = None
+        if args.vision:
+            from .vision import VisionChecker
+            vision = VisionChecker(profile.client(), profile.model)
         try:
-            result = Agent(page, planner, executor, max_failures=args.max_attempts).run(args.request)
+            result = Agent(page, planner, executor, max_failures=args.max_attempts, vision=vision).run(args.request)
         except KeyboardInterrupt:
             print("\n\n" + t("cli.interrupted"))
             context.close()

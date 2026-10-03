@@ -124,10 +124,16 @@ def cmd_run(store: AutomationStore, args) -> int:
                 print("\n" + t("auto.row", number=number, total=len(rows)))
             page.goto(automation.url)
             try:
+                vision = None
+                if args.vision:
+                    from anchor.agent.vision import VisionChecker
+                    profile = get_profile(automation.profile)
+                    vision = VisionChecker(profile.client(), profile.model)
                 result, mode, run_id = run_automation(store, args.name, page, executor, make_planner,
                                                       relearn=args.relearn and number == 1,
                                                       heal=not args.no_heal, params=values,
-                                                      confirm=None if args.allow_sensitive else TerminalConfirmer())
+                                                      confirm=None if args.allow_sensitive else TerminalConfirmer(),
+                                                      vision=vision)
             except (ConfigError, AutomationError) as exc:
                 print(t("auto.error", error=exc))
                 if len(rows) == 1:
@@ -282,6 +288,8 @@ def main(argv=None) -> int:
     run.add_argument("--relearn", action="store_true", help="plans again with the LLM, replacing the approved plan")
     run.add_argument("--no-heal", action="store_true",
                      help="if a saved step stops working, stop instead of recovering with the LLM")
+    run.add_argument("--vision", action="store_true",
+                     help="when the other checks doubt a step, asks the model about a screenshot (slower)")
     run.add_argument("--allow-sensitive", action="store_true",
                      help="does not ask before sensitive actions, and does not save decisions")
     values = run.add_mutually_exclusive_group()

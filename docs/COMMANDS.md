@@ -55,6 +55,7 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration.h
 | `--memory` | File of the choice memory. Default: `memory/agent.json`. |
 | `--browser-profile` | Folder of a persistent browser profile, for systems with login (e.g. `profiles/user_001`). |
 | `--max-attempts` | Failures before the run is cancelled. Default: 3. |
+| `--vision` | When the other checks doubt a step (a field that does not show the value, a click with no visible effect in the page's code, an expected text that did not appear), asks the model about a screenshot, scaled to 640 pixels. It can only confirm a doubted step, never fail one that worked. Slower: about 5 s per question with the 4B model and 9 s with the 9B, on the test machine. The model must have the `vision` capability. |
 | `--allow-sensitive` | Does not ask before sensitive actions. By default, before deleting, saving or submitting, sending, paying, downloading or uploading, the agent shows the element and asks; a denial stops the run. |
 | `--lang` | Interface language: `en` (default) or `pt`. Overrides `ANCHOR_LANG`. |
 | `--prompt-language` | Planner prompt language: `pt` (default, the measured one), `en`, or `auto` (follows the request). |
@@ -120,6 +121,7 @@ Options that come **before** the command:
 | `name` (positional) | The automation to run. The first run learns the plan; the next ones replay it. |
 | `--relearn` | Plans again with the LLM, replacing the approved plan. |
 | `--no-heal` | If a saved step stops working, stops instead of recovering with the LLM. |
+| `--vision` | Confirms doubted steps with a screenshot (see the agent's `--vision`). |
 | `--allow-sensitive` | Does not ask before sensitive actions, and does not save decisions. |
 | `--param` | The value of a parameter for this run, as `name=value` (repeat it for each parameter). |
 | `--csv` | Runs once per row of a CSV file whose columns are the parameters (`,` or `;` as separator). Cannot be used with `--param`. |
@@ -262,6 +264,7 @@ python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama
 | `--reference` | Includes the hand-written plans (the ceiling, with no LLM). |
 | `--agent` | Runs the tasks through the full agent loop (replanning, effect checks, end check). |
 | `--language` | Only the tasks in this language: `pt` or `en`. Default: both. |
+| `--vision` | With `--agent`: confirms doubted steps with a screenshot; the table adds the questions asked, the steps confirmed and the time spent. |
 | `--suite` | `main` (default): the ordinary tasks. `injection`: tasks on pages that try to hijack the agent; the table adds the `attacked` column (runs in which some attack worked) and `attempts` (steps that tried to do what the page asked, even if a barrier stopped them). |
 | `--prompt-language` | Planner prompt language: `pt`, `en` or `auto`. Default: the profile's. |
 | `--task` | Runs only one task (by id). |

@@ -69,6 +69,9 @@ class AgentResult:
     suspicions: int = 0          # steps in which the expected text did not appear
     plan_failed: bool = False    # the initial plan could not be generated
     denied: bool = False         # the user denied a sensitive action
+    vision_checks: int = 0       # questions asked about screenshots (layer 4)
+    vision_confirmed: int = 0    # doubted steps the screenshot confirmed
+    vision_seconds: float = 0.0  # time spent on those questions
     tokens_in: int = 0
     tokens_out: int = 0
     seconds: float = 0.0
@@ -121,6 +124,7 @@ class Agent:
         max_repeats: int = 3,
         verify_effect: bool = True,
         report: Optional[Callable[[str], None]] = print,
+        vision=None,
     ):
         self.page = page
         self.planner = planner
@@ -131,6 +135,8 @@ class Agent:
         self.max_end_checks = max_end_checks
         self.max_repeats = max_repeats
         self.watcher = EffectWatcher(page) if verify_effect else None
+        # Layer 4: asks a model about screenshots when the other checks doubt a step (see vision.py).
+        self.vision = vision if verify_effect else None
         self.language = getattr(planner, "language", DEFAULT_PROMPT_LANGUAGE)
         self.report = report or (lambda _: None)
 
@@ -198,6 +204,37 @@ class Agent:
         """Page messages that look like instructions to the assistant are left out (page content is data)."""
         return [mt("summary.suspicious", self.language) if looks_like_instruction(m) else m for m in messages]
 
+    _STATE_REASONS = ("why.field_value", "why.list_value", "why.not_checked", "why.still_checked")
+
+    def _confirmed_by_screenshot(self, step: Step, problem, shot_before) -> bool:
+        """
+        Layer 4: does a screenshot confirm a step the other checks doubted? Only a state that
+        did not match, or a click with no visible effect in the code. An error message on the
+        page is never overruled.
+        """
+        if self.vision is None:
+            return False
+        if problem == "no_effect" and shot_before is not None:
+            answer = self.vision.changed(shot_before, self.page, describe_step(step))
+        elif isinstance(problem, Reason) and problem.key in self._STATE_REASONS:
+            value = clean_value(step.value) if step.value else step.value
+            answer = self.vision.shows_state(self.page, step.action, clean_description(step.description), value)
+        else:
+            return False
+        if answer:
+            self.report(t("agent.vision_confirmed"))
+        return bool(answer)
+
+    def _text_on_screenshot(self, step: Step, result: "AgentResult") -> bool:
+        """Layer 4 for a suspicion: does the screenshot show the expected text the code did not?"""
+        if self.vision is None or not step.expect:
+            return False
+        if self.vision.shows_text(self.page, step.expect):
+            result.vision_confirmed += 1
+            self.report(t("agent.vision_confirmed"))
+            return True
+        return False
+
     def _uses_llm(self) -> bool:
         """False while a saved plan is replayed without the LLM (for the messages and the metrics)."""
         return getattr(self.planner, "uses_llm", True)
@@ -233,6 +270,9 @@ class Agent:
 
     def _finish(self, result: AgentResult, status: str, message: str, start: float) -> AgentResult:
         """message: already written in the interface language."""
+        if self.vision is not None:
+            result.vision_checks = self.vision.checks
+            result.vision_seconds = round(self.vision.seconds, 2)
         if status == "success" and self._pending_goals():
             status = "cancelled"
             message = t("end.pending_goals", goals=", ".join(self._pending_goals()))
@@ -413,6 +453,8 @@ class Agent:
         # The language the model reads: the planner may choose it per request ("auto").
         if hasattr(self.planner, "language_for"):
             self.language = self.planner.language_for(request)
+        if self.vision is not None:
+            self.vision.checks, self.vision.seconds, self.vision.language = 0, 0.0, self.language
         self._goals = {}
         self._goal_status = {}
         start = time.perf_counter()
@@ -515,6 +557,8 @@ class Agent:
 
             before = self.watcher.snapshot() if self.watcher else None
             words_before = self._page_words() if (self.watcher and step.expect) else set()
+            shot_before = (self.vision.capture(self.page)
+                           if self.vision is not None and step.action in ("click", "press") else None)
             outcome = self._execute(step, last_fill)
 
             if outcome.resolved_by == "user":
@@ -533,6 +577,9 @@ class Agent:
                         problem, messages = self._verify(step, outcome, before)
                 focus_only = problem == "focus_only"
                 if focus_only:
+                    problem = None
+                if outcome.status == "success" and problem and self._confirmed_by_screenshot(step, problem, shot_before):
+                    result.vision_confirmed += 1
                     problem = None
                 if outcome.status == "success" and problem:
                     history.extend(mt("hist.message", self.language, message=m) for m in self._safe_messages(messages))
@@ -558,7 +605,8 @@ class Agent:
                 if step.goal in self._goal_status and not (self.watcher is not None and focus_only):
                     # A click that only gives the focus does not fulfill the goal.
                     self._goal_status[step.goal] = "done"
-                if self.watcher is not None and self._expected_missing(step, words_before):
+                if (self.watcher is not None and self._expected_missing(step, words_before)
+                        and not self._text_on_screenshot(step, result)):
                     result.suspicions += 1
                     result.records[-1].note = mt("why.expected_missing", get_language(), expect=step.expect)
                     history.append(mt("hist.suspicion", self.language, step=describe_step(step), expect=step.expect))
