@@ -202,6 +202,9 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   redistribution; copyright by the author. "Responsible use" section in the README.
 
 ### Changed
+- The interventions experiment checks whether the chosen element is the right one right before
+  acting, not after: SauceDemo redraws the whole page when sorting, the elements lose their ids,
+  and the two sorting cases were counted as silent errors although the resolver chose right.
 - The check of the initial plan against the request is no longer fatal. A plan that does not
   cover the request still goes back to the model, but if the attempts run out and coverage was the
   only problem, the first answer is kept instead of giving up: some pages must be revealed bit by

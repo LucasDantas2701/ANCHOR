@@ -16,7 +16,8 @@ element on the page otherwise. Each question counts as an intervention.
 Per round: interventions, right actions, silent errors (the system acted on the wrong element
 without asking), and right actions that came from the memory. Each case reopens its page, so
 one case does not affect the next; clicks are run as hovers, which the resolver treats the
-same way, so that a link does not leave the page before the check.
+same way, so that a link does not leave the page. Whether the chosen element is the right one
+is checked right before acting, since an action may re-render the page.
 
 The oracle never makes a mistake: this measures the best case of a user. LLM-free.
 """
@@ -78,6 +79,15 @@ class OracleExecutor(ActionExecutor):
         self.expected = expected
         self.asked = 0          # interventions
         self.pointed = 0        # of them, how many needed a click on the page
+        self.chosen_right = None   # whether the element about to be acted on is the right one
+
+    def _denied(self, action_name, description, match, resolved_by="memory"):
+        # Called right before acting, on every path (memory, heuristic, user): check the choice
+        # here, because the action may re-render the page and lose the elements' ids (SauceDemo
+        # redraws the whole list when sorting).
+        _, right = target_ids(self.page, self.expected)
+        self.chosen_right = match.id in right
+        return super()._denied(action_name, description, match, resolved_by)
 
     def _ask_user(self, description, action_name, reason, candidates):
         self.asked += 1
@@ -103,8 +113,11 @@ def run_case(page: Page, suite: dict, case: dict, memory: ChoiceMemory) -> dict:
                               memory=memory)
     result = _RUN[case["action"]](executor, case["query"])
     chosen = result.selected_element
-    _, right_ids = target_ids(page, case["expected"])
-    right = chosen is not None and chosen.id in right_ids
+    if executor.chosen_right is not None:
+        right = executor.chosen_right                 # checked before acting
+    else:
+        _, right_ids = target_ids(page, case["expected"])
+        right = chosen is not None and chosen.id in right_ids
     return {
         "case": case["id"], "suite": suite["site"], "language": suite.get("language", "pt"),
         "action": case["action"], "query": case["query"],

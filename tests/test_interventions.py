@@ -47,3 +47,14 @@ def test_the_users_wait_is_measured_apart(page):
     executor = ActionExecutor(page, disambiguator=SlowUser())
     executor.hover("Adicionar")
     assert 0.3 <= executor.user_wait_s < 2
+
+
+def test_the_choice_is_checked_before_acting_even_if_the_page_is_redrawn(page, tmp_path):
+    """SauceDemo redraws the whole page when sorting: the ids are lost after the action."""
+    page.set_content("""<html><body><select aria-label="Sort products" class="sort"
+        onchange="document.body.innerHTML = document.body.innerHTML">
+        <option>Name</option><option>Price</option></select></body></html>""")
+    from eval.interventions import _RUN
+    oracle = OracleExecutor(page, "select.sort", memory=ChoiceMemory(tmp_path / "m.json"))
+    _RUN["select"](oracle, "ordenar produtos por preço")
+    assert oracle.chosen_right is True
