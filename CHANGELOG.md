@@ -18,6 +18,16 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- Resilience benchmark, part 2: **the two executors ANCHOR is compared with**
+  (`eval/resilience/executors.py`). The traditional script replays fixed selectors recorded on
+  the original page, as classic RPA recorders do (the id; else a unique name or test attribute;
+  else the path of classes and positions), and claims success when every step runs. The LLM in
+  control, in the style of Steward, gets the numbered elements at every step (described as ANCHOR
+  describes them to its planner, with the same filters) and chooses the action and the element,
+  performed directly, with no heuristic, barriers, confirmation, effect check or memory. The build
+  now records the 30 scripts too (`eval/plans/resilience_scripts.json`). Replayed on every level,
+  the scripts complete all L0, L2 and L5 tasks (they do not read the labels), 13% of L1, 33% of L3
+  and 20% of L4, with no false success.
 - Resilience benchmark, part 1: **the altered pages** (`eval/resilience/`). `python -m
   eval.resilience.build` builds, from the 13 task pages, altered versions in 5 levels (superficial,
   semantic, structural, behavioral, adversarial) plus L0 (the original, only with the evaluation's

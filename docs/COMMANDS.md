@@ -275,8 +275,9 @@ python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama
 
 ### Resilience benchmark pages (`eval.resilience.build`)
 
-Builds the altered versions of the task pages, in 5 levels of perturbation, and the tasks
-rewritten for them (`eval/plans/resilience_tasks.json`). Deterministic: rebuilding gives the same
+Builds the altered versions of the task pages, in 5 levels of perturbation, the tasks
+rewritten for them (`eval/plans/resilience_tasks.json`), and the fixed-selector scripts of the
+traditional executor, recorded on the original pages (`eval/plans/resilience_scripts.json`). Deterministic: rebuilding gives the same
 pages. Every element a task checks is marked with `data-eval`, the evaluation's own marker, which
 no executor may use.
 

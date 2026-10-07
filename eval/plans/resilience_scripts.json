@@ -1,0 +1,375 @@
+{
+  "_readme": "Fixed-selector scripts of the traditional executor, recorded on the L0 pages from the reference plans by python -m eval.resilience.build. Do not edit by hand.",
+  "scripts": {
+    "p-jobs-01": [
+      [
+        "click",
+        "ul.lista > li.job1:nth-of-type(1) > a",
+        null
+      ],
+      [
+        "click",
+        "#det1 > button.salvar:nth-of-type(1)",
+        null
+      ]
+    ],
+    "en-jobs-01": [
+      [
+        "click",
+        "ul.lista > li.job1:nth-of-type(1) > a",
+        null
+      ],
+      [
+        "click",
+        "#det1 > button.salvar:nth-of-type(1)",
+        null
+      ]
+    ],
+    "p-log-01": [
+      [
+        "fill",
+        "#user",
+        "lucas.dantas"
+      ],
+      [
+        "check",
+        "input[name=\"remember\"]",
+        null
+      ]
+    ],
+    "p-log-02": [
+      [
+        "select",
+        "select[name=\"lang\"]",
+        "Português"
+      ]
+    ],
+    "en-log-01": [
+      [
+        "fill",
+        "#user",
+        "lucas.dantas"
+      ],
+      [
+        "check",
+        "input[name=\"remember\"]",
+        null
+      ]
+    ],
+    "en-log-02": [
+      [
+        "select",
+        "select[name=\"lang\"]",
+        "Português"
+      ]
+    ],
+    "p-ord-01": [
+      [
+        "click",
+        "div.pedido:nth-of-type(2) > button.cancel:nth-of-type(2)",
+        null
+      ]
+    ],
+    "p-ord-02": [
+      [
+        "click",
+        "section.recomendados > div.rec:nth-of-type(2) > button",
+        null
+      ],
+      [
+        "click",
+        "a[data-test=\"shopping-cart-link\"]",
+        null
+      ]
+    ],
+    "en-ord-01": [
+      [
+        "click",
+        "div.pedido:nth-of-type(2) > button.cancel:nth-of-type(2)",
+        null
+      ]
+    ],
+    "en-ord-02": [
+      [
+        "click",
+        "section.recomendados > div.rec:nth-of-type(2) > button",
+        null
+      ],
+      [
+        "click",
+        "a[data-test=\"shopping-cart-link\"]",
+        null
+      ]
+    ],
+    "p-reg-01": [
+      [
+        "fill",
+        "#nome",
+        "Maria Silva"
+      ],
+      [
+        "fill",
+        "#cpf",
+        "123.456.789-00"
+      ],
+      [
+        "fill",
+        "#mail",
+        "maria.silva@empresa.com"
+      ],
+      [
+        "select",
+        "#dep",
+        "TI"
+      ],
+      [
+        "check",
+        "form > fieldset:nth-of-type(2) > label:nth-of-type(3) > input",
+        null
+      ],
+      [
+        "check",
+        "#termos",
+        null
+      ],
+      [
+        "click",
+        "form > button.save:nth-of-type(2)",
+        null
+      ]
+    ],
+    "p-reg-02": [
+      [
+        "fill",
+        "#tel",
+        "(92) 99999-0000"
+      ],
+      [
+        "fill",
+        "#obs",
+        "começa na segunda-feira"
+      ]
+    ],
+    "en-reg-01": [
+      [
+        "fill",
+        "#nome",
+        "Maria Silva"
+      ],
+      [
+        "fill",
+        "#cpf",
+        "123-45-6789"
+      ],
+      [
+        "fill",
+        "#mail",
+        "maria.silva@company.com"
+      ],
+      [
+        "select",
+        "#dep",
+        "IT"
+      ],
+      [
+        "check",
+        "form > fieldset:nth-of-type(2) > label:nth-of-type(3) > input",
+        null
+      ],
+      [
+        "check",
+        "#termos",
+        null
+      ],
+      [
+        "click",
+        "form > button.save:nth-of-type(2)",
+        null
+      ]
+    ],
+    "en-reg-02": [
+      [
+        "fill",
+        "#tel",
+        "(555) 123-4567"
+      ],
+      [
+        "fill",
+        "#obs",
+        "starts on Monday"
+      ]
+    ],
+    "p-ent-01": [
+      [
+        "fill",
+        "#s",
+        "rpa em manaus"
+      ],
+      [
+        "press",
+        "#s",
+        "Enter"
+      ]
+    ],
+    "en-ent-01": [
+      [
+        "fill",
+        "#s",
+        "rpa in manaus"
+      ],
+      [
+        "press",
+        "#s",
+        "Enter"
+      ]
+    ],
+    "p-pop-01": [
+      [
+        "click",
+        "header > div.lupa",
+        null
+      ],
+      [
+        "fill",
+        "#q",
+        "Pi Network"
+      ],
+      [
+        "press",
+        "#q",
+        "Enter"
+      ]
+    ],
+    "en-pop-01": [
+      [
+        "click",
+        "header > div.lupa",
+        null
+      ],
+      [
+        "fill",
+        "#q",
+        "Pi Network"
+      ],
+      [
+        "press",
+        "#q",
+        "Enter"
+      ]
+    ],
+    "p-store-01": [
+      [
+        "select",
+        "nav > select",
+        "Price: low to high"
+      ]
+    ],
+    "p-store-02": [
+      [
+        "click",
+        "main.grid > div.card:nth-of-type(1) > button.add:nth-of-type(1)",
+        null
+      ],
+      [
+        "click",
+        "main.grid > div.card:nth-of-type(2) > button.add:nth-of-type(1)",
+        null
+      ]
+    ],
+    "p-store-03": [
+      [
+        "fill",
+        "input[name=\"q\"]",
+        "teclado mecânico"
+      ],
+      [
+        "click",
+        "header > button:nth-of-type(1)",
+        null
+      ]
+    ],
+    "en-store-01": [
+      [
+        "select",
+        "nav > select",
+        "Price: low to high"
+      ]
+    ],
+    "en-store-02": [
+      [
+        "click",
+        "main.grid > div.card:nth-of-type(1) > button.add:nth-of-type(1)",
+        null
+      ],
+      [
+        "click",
+        "main.grid > div.card:nth-of-type(2) > button.add:nth-of-type(1)",
+        null
+      ]
+    ],
+    "en-store-03": [
+      [
+        "fill",
+        "input[name=\"q\"]",
+        "mechanical keyboard"
+      ],
+      [
+        "click",
+        "header > button:nth-of-type(1)",
+        null
+      ]
+    ],
+    "p-usr-01": [
+      [
+        "select",
+        "div.toolbar:nth-of-type(1) > select",
+        "Inativos"
+      ]
+    ],
+    "p-usr-02": [
+      [
+        "check",
+        "table > tbody > tr:nth-of-type(1) > td:nth-of-type(1) > input",
+        null
+      ],
+      [
+        "check",
+        "table > tbody > tr:nth-of-type(3) > td:nth-of-type(1) > input",
+        null
+      ]
+    ],
+    "p-usr-03": [
+      [
+        "click",
+        "table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button.btn-icon:nth-of-type(2)",
+        null
+      ]
+    ],
+    "en-usr-01": [
+      [
+        "select",
+        "div.toolbar:nth-of-type(1) > select",
+        "Inactive"
+      ]
+    ],
+    "en-usr-02": [
+      [
+        "check",
+        "table > tbody > tr:nth-of-type(1) > td:nth-of-type(1) > input",
+        null
+      ],
+      [
+        "check",
+        "table > tbody > tr:nth-of-type(3) > td:nth-of-type(1) > input",
+        null
+      ]
+    ],
+    "en-usr-03": [
+      [
+        "click",
+        "table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button.btn-icon:nth-of-type(2)",
+        null
+      ]
+    ]
+  }
+}

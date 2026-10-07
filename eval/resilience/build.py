@@ -33,6 +33,7 @@ FIXTURES = ROOT / "fixtures"
 OUT = FIXTURES / "resilience"
 TASK_FILES = [ROOT / "plans" / "tasks.json", ROOT / "plans" / "tasks_en.json"]
 OUT_TASKS = ROOT / "plans" / "resilience_tasks.json"
+OUT_SCRIPTS = ROOT / "plans" / "resilience_scripts.json"
 PERTURB_JS = (Path(__file__).parent / "perturb.js").read_text(encoding="utf-8")
 LEVELS = {0: "original", 1: "superficial", 2: "semantic", 3: "structural", 4: "behavioral", 5: "adversarial"}
 SEED = 20261007
@@ -133,7 +134,28 @@ def build(check: bool = False) -> int:
         "seed": SEED, "levels": LEVELS, "tasks": out_tasks}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"{len(by_page)} pages × {len(LEVELS)} levels written to {OUT.relative_to(ROOT.parent)}; "
           f"{len(out_tasks)} tasks in {OUT_TASKS.relative_to(ROOT.parent)}")
+    record_scripts([t for t in out_tasks if t["level"] == 0])
     return check_l0() if check else 0
+
+
+def record_scripts(l0_tasks: list[dict]) -> None:
+    """Records, on each L0 page, the fixed-selector script of the traditional executor."""
+    from eval.resilience.executors import record_script
+    scripts = {}
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        for t in l0_tasks:
+            page = browser.new_page()
+            page.set_default_timeout(5000)
+            page.goto((FIXTURES / t["fixture"]).as_uri())
+            scripts[t["base_task"]] = record_script(page, t["reference"])
+            page.close()
+        browser.close()
+    OUT_SCRIPTS.write_text(json.dumps({
+        "_readme": "Fixed-selector scripts of the traditional executor, recorded on the L0 pages from the reference "
+                   "plans by python -m eval.resilience.build. Do not edit by hand.", "scripts": scripts},
+        ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"{len(scripts)} scripts recorded in {OUT_SCRIPTS.relative_to(ROOT.parent)}")
 
 
 def check_l0() -> int:
