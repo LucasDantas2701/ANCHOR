@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Portal Login</title></head><body>
+<form style="width:300px;margin:40px auto">
+  <h2>Welcome back</h2>
+  <label for="user">Username</label><input id="user" name="username" data-eval="e1">
+  <label for="pwd">Password</label><input id="pwd" name="password" type="password" data-eval="e3">
+  <button type="button" aria-label="Show password" class="toggle-pwd"><i class="icon-eye" style="display:inline-block;width:16px;height:16px"></i></button>
+  <button type="button" onclick="this.nextElementSibling.hidden = false; this.remove()">Show more</button><div hidden=""><label><input type="checkbox" name="remember" data-eval="e2"> Remember me</label><select name="lang" aria-label="Language" data-eval="e5"><option>English</option><option>Português</option></select></div>
+  <a href="/forgot">Forgot your password?</a>
+  <button type="submit" id="login-btn" data-eval="e4">Log in</button>
+  <p>New here? <a href="/signup">Create an account</a></p>
+  
+</form>
+<script src="../../feedback.js"></script>
+
+<div role="dialog" aria-modal="true" style="position:fixed;inset:0;z-index:9999;background:rgba(255,255,255,.96);padding:40px"><p>We use cookies to improve your experience.</p>
+            <button type="button" onclick="this.parentElement.remove()">Accept cookies</button>
+            <button type="button" onclick="this.parentElement.remove()">Decline</button></div></body></html>

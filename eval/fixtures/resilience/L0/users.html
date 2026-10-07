@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Administração — Usuários</title>
+<style>td,th{padding:4px 8px} .btn-icon{width:28px;height:28px}</style></head><body>
+<h1>Usuários</h1>
+<div class="toolbar">
+  <input type="text" placeholder="Pesquisar por nome ou e-mail" aria-label="Pesquisar usuários">
+  <select aria-label="Filtrar por status" data-eval="e1"><option>Todos</option><option>Ativos</option><option>Inativos</option></select>
+  <button class="primary">+ Novo usuário</button>
+  <button title="Exportar planilha" class="btn-icon"><img src="/static/icons/file-excel.png" alt="" width="16" height="16"></button>
+</div>
+<table>
+  <thead><tr><th><input type="checkbox" aria-label="Selecionar todos"></th><th>Nome</th><th>E-mail</th><th>Status</th><th>Ações</th></tr></thead>
+  <tbody>
+    <tr><td><input type="checkbox" aria-label="Selecionar Ana Souza" data-eval="e2"></td><td>Ana Souza</td><td>ana@empresa.com</td><td>Ativo</td>
+      <td><button class="btn-icon" title="Editar"><svg width="16" height="16"><use href="#icon-pencil"></use></svg></button>
+          <button class="btn-icon" title="Excluir" data-eval="e6"><svg width="16" height="16"><use href="#icon-trash"></use></svg></button></td></tr>
+    <tr><td><input type="checkbox" aria-label="Selecionar Bruno Lima" data-eval="e4"></td><td>Bruno Lima</td><td>bruno@empresa.com</td><td>Inativo</td>
+      <td><button class="btn-icon" title="Editar"><svg width="16" height="16"><use href="#icon-pencil"></use></svg></button>
+          <button class="btn-icon" title="Excluir" data-eval="e5"><svg width="16" height="16"><use href="#icon-trash"></use></svg></button></td></tr>
+    <tr><td><input type="checkbox" aria-label="Selecionar Carla Mendes" data-eval="e3"></td><td>Carla Mendes</td><td>carla@empresa.com</td><td>Ativo</td>
+      <td><button class="btn-icon" title="Editar"><svg width="16" height="16"><use href="#icon-pencil"></use></svg></button>
+          <button class="btn-icon" title="Excluir" data-eval="e7"><svg width="16" height="16"><use href="#icon-trash"></use></svg></button></td></tr>
+  </tbody>
+</table>
+<div class="pagination"><a href="?p=1">Anterior</a> <span>Página 1 de 5</span> <a href="?p=2">Próxima</a></div>
+<script src="../../feedback.js"></script>
+
+</body></html>

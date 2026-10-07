@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Employee Registration</title>
+<style>.tb i{display:inline-block;width:18px;height:18px}</style></head><body>
+<div class="tb">
+  <div><span><button aria-label="Print"><i class="fa fa-print"></i></button></span></div>
+  <div><span><button><i class="fa fa-download"></i></button></span></div>
+  <a href="/help"><i class="fa fa-circle-question"></i></a>
+</div>
+<h1>Employee registration</h1>
+<form><div><span><button type="button" class="cancel">Cancel</button></span></div><div><span><button type="submit" class="save" data-eval="e7">Save registration</button></span></div><div><span><button type="button" disabled="">Send for approval</button></span></div>
+  <fieldset><legend>Personal details</legend>
+    <label for="nome">Full name</label><div><span><input id="nome" name="name" data-eval="e1"></span></div>
+    <label for="cpf">Tax ID</label><div><span><input id="cpf" name="tax_id" placeholder="000-00-0000" data-eval="e2"></span></div>
+    <label for="nasc">Date of birth</label><div><span><input id="nasc" type="date"></span></div>
+    <label for="mail">Work e-mail</label><div><span><input id="mail" type="email" data-eval="e3"></span></div>
+    <label for="tel">Phone</label><div><span><input id="tel" type="tel" data-eval="e8"></span></div>
+  </fieldset>
+  <fieldset><legend>Contract</legend>
+    <label for="dep">Department</label>
+    <div><span><select id="dep" data-eval="e4"><option>Select</option><option>Finance</option><option>IT</option><option>HR</option></select></span></div>
+    <span>Contract type:</span>
+    <label><div><span><input type="radio" name="tipo" value="clt"></span></div> Employee</label>
+    <label><div><span><input type="radio" name="tipo" value="pj" data-eval="e5"></span></div> Contractor</label>
+    <label for="obs">Notes</label><div><span><textarea id="obs" data-eval="e9"></textarea></span></div>
+  </fieldset>
+  <label><div><span><input type="checkbox" id="termos" data-eval="e6"></span></div> I have read and accept the terms of use</label>
+  
+  
+  
+</form>
+<p class="status">Last saved: 09/25/2026 2:32 PM</p>
+<script src="../../feedback.js"></script>
+
+</body></html>

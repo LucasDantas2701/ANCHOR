@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Admin — Users</title>
+<style>td,th{padding:4px 8px} .btn-icon{width:28px;height:28px}</style></head><body>
+<h1>Users</h1>
+<div class="toolbar">
+  <input type="text" placeholder="Find by name or e-mail" aria-label="Find users">
+  <select aria-label="Status" data-eval="e1"><option>All</option><option>Active</option><option>Inactive</option></select>
+  <button class="primary">+ New user</button>
+  <button title="Download spreadsheet" class="btn-icon"><img src="/static/icons/file-excel.png" alt="" width="16" height="16"></button>
+</div>
+<table>
+  <thead><tr><th><input type="checkbox" aria-label="Tick all"></th><th>Name</th><th>E-mail</th><th>Status</th><th>Actions</th></tr></thead>
+  <tbody>
+    <tr><td><input type="checkbox" aria-label="Tick Anna Smith" data-eval="e2"></td><td>Anna Smith</td><td>anna@company.com</td><td>Active</td>
+      <td><button class="btn-icon" title="Edit"><svg width="16" height="16"><use href="#icon-pencil"></use></svg></button>
+          <button class="btn-icon" title="Remove" data-eval="e6"><svg width="16" height="16"><use href="#icon-trash"></use></svg></button></td></tr>
+    <tr><td><input type="checkbox" aria-label="Tick Brian Lee" data-eval="e4"></td><td>Brian Lee</td><td>brian@company.com</td><td>Inactive</td>
+      <td><button class="btn-icon" title="Edit"><svg width="16" height="16"><use href="#icon-pencil"></use></svg></button>
+          <button class="btn-icon" title="Remove" data-eval="e5"><svg width="16" height="16"><use href="#icon-trash"></use></svg></button></td></tr>
+    <tr><td><input type="checkbox" aria-label="Tick Carol Miller" data-eval="e3"></td><td>Carol Miller</td><td>carol@company.com</td><td>Active</td>
+      <td><button class="btn-icon" title="Edit"><svg width="16" height="16"><use href="#icon-pencil"></use></svg></button>
+          <button class="btn-icon" title="Remove" data-eval="e7"><svg width="16" height="16"><use href="#icon-trash"></use></svg></button></td></tr>
+  </tbody>
+</table>
+<div class="pagination"><a href="?p=1">Previous</a> <span>Page 1 of 5</span> <a href="?p=2">Next</a></div>
+<script src="../../feedback.js"></script>
+
+</body></html>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Meus pedidos</title>
+<style>
+ .cart{display:inline-block;width:24px;height:24px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E")}
+ .pedido{border:1px solid #ccc;margin:8px;padding:8px}
+</style></head><body>
+<header><a href="/" class="logo">Loja Norte</a> <a href="/carrinho" class="cart" data-test="shopping-cart-link" data-eval="e3"></a></header>
+<h1>Meus pedidos</h1>
+<div class="pedido"><strong>Pedido #1023</strong> · Entregue em 12/09
+  <div><span><button class="det">Ver detalhes</button></span></div> <div><span><button class="cancel" disabled="">Cancelar pedido</button></span></div></div>
+<div class="pedido"><strong>Pedido #1024</strong> · Em separação
+  <div><span><button class="det">Ver detalhes</button></span></div> <div><span><button class="cancel" data-eval="e1">Cancelar pedido</button></span></div></div>
+<section class="recomendados"><h2>Recomendados</h2>
+  <div class="rec">Garrafa térmica 1L <div><span><button>Adicionar ao carrinho</button></span></div></div>
+  <div class="rec">Caneca de cerâmica <div><span><button data-eval="e2">Adicionar ao carrinho</button></span></div></div></section>
+<div class="etapas">
+  <div class="etapa1"><div><span><button class="cont1" disabled="">Continuar</button></span></div></div>
+  <div class="etapa2"><div><span><button class="cont2">Continuar</button></span></div></div>
+</div>
+<script src="../../feedback.js"></script>
+
+</body></html>

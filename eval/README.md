@@ -132,6 +132,15 @@ hijacked.
 
 These tasks are not part of the main suite, so the numbers of the ordinary tasks stay comparable.
 
+### Resilience benchmark
+
+`python -m eval.resilience.build` builds altered versions of the task pages in 5 levels
+(`fixtures/resilience/L0` to `L5`) and the tasks for them (`plans/resilience_tasks.json`); see the
+command reference for the levels. The tasks' checks use `data-eval`, the evaluation's own marker,
+so they work on every level; no executor may use it. Rebuild after changing a task or a page, never
+edit the generated files by hand. These are development perturbations: the closed set, built later
+with other perturbations, runs once, at the end.
+
 ### Closed set of planner tasks
 
 The tasks in `plans/tasks.json` were used to tune the planner prompt, so their numbers are

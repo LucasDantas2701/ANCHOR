@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>TechStore</title>
+<style>
+ body{font-family:sans-serif;margin:0} header{display:flex;gap:12px;align-items:center;padding:8px;background:#eee}
+ .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:12px}
+ .card{border:1px solid #ccc;padding:8px} .icon{display:inline-block;width:20px;height:20px;background:#999}
+ .chip{cursor:pointer;display:inline-block;padding:4px 8px;border:1px solid #888;border-radius:12px}
+</style></head><body>
+<header>
+  <a href="/" class="logo">TechStore</a>
+  <input type="search" name="q" placeholder="Search products" data-eval="e5">
+  <button aria-label="Search" data-eval="e6"><svg width="16" height="16"><title>Search</title></svg></button>
+  <a href="/wishlist" title="Wishlist"><i class="icon fa-heart"></i></a>
+  <a href="/cart" class="cart-link"><img src="/assets/icons/shopping-cart.svg" alt="" width="20" height="20"><span class="badge">2</span></a>
+  <button>Sign in</button>
+</header>
+<nav>
+  <span class="chip">Laptops</span><span class="chip">Audio</span><span class="chip">Kitchen</span>
+  <select aria-label="Sort by" data-eval="e1"><option>Featured</option><option>Price: low to high</option><option>Price: high to low</option></select>
+</nav>
+<main class="grid">
+  <div class="card"><img src="/img/p1.jpg" alt="UltraBook 14 laptop" width="80" height="60">
+    <h3><a href="/p/1">UltraBook 14</a></h3><p class="price">$899.00</p>
+    <button class="add" data-eval="e2">Add to cart</button><button class="fav" aria-label="Add to wishlist"><i class="icon fa-heart"></i></button></div>
+  <button type="button" onclick="this.nextElementSibling.hidden = false; this.remove()">Show more</button><div hidden=""><div class="card"><img src="/img/p2.jpg" alt="Noise cancelling headphones" width="80" height="60">
+    <h3><a href="/p/2">QuietMax Headphones</a></h3><p class="price">$199.00</p>
+    <button class="add" data-eval="e3">Add to cart</button><button class="fav" aria-label="Add to wishlist"><i class="icon fa-heart"></i></button></div><div class="card"><img src="/img/p3.jpg" alt="Espresso coffee maker" width="80" height="60">
+    <h3><a href="/p/3">Barista Coffee Maker</a></h3><p class="price">$129.00</p>
+    <button class="add" disabled="" data-eval="e4">Out of stock</button><button class="fav" aria-label="Add to wishlist"><i class="icon fa-heart"></i></button></div></div>
+  
+</main>
+<footer><a href="/help">Help center</a> <a href="/returns">Returns and refunds</a> <a href="/contact">Contact us</a></footer>
+<script src="../../feedback.js"></script>
+
+<div role="dialog" aria-modal="true" style="position:fixed;inset:0;z-index:9999;background:rgba(255,255,255,.96);padding:40px"><p>We use cookies to improve your experience.</p>
+            <button type="button" onclick="this.parentElement.remove()">Accept cookies</button>
+            <button type="button" onclick="this.parentElement.remove()">Decline</button></div></body></html>

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Administração — Usuários</title>
+<style>td,th{padding:4px 8px} .btn-icon{width:28px;height:28px}</style></head><body>
+<h1>Usuários</h1>
+<div class="toolbar">
+  <div><span><input type="text" placeholder="Pesquisar por nome ou e-mail" aria-label="Pesquisar usuários"></span></div>
+  <div><span><select aria-label="Filtrar por status" data-eval="e1"><option>Todos</option><option>Ativos</option><option>Inativos</option></select></span></div>
+  <div><span><button class="primary">+ Novo usuário</button></span></div>
+  <div><span><button title="Exportar planilha" class="btn-icon"><img src="/static/icons/file-excel.png" alt="" width="16" height="16"></button></span></div>
+</div>
+<table>
+  <thead><tr><th>Ações</th><th>Status</th><th>E-mail</th><th>Nome</th><th><div><span><input type="checkbox" aria-label="Selecionar todos"></span></div></th></tr></thead>
+  <tbody>
+    
+    
+    
+  <tr>
+      <td>
+          <div><span><button class="btn-icon" title="Excluir" data-eval="e7"><svg width="16" height="16"><use href="#icon-trash"></use></svg></button></span></div><div><span><button class="btn-icon" title="Editar"><svg width="16" height="16"><use href="#icon-pencil"></use></svg></button></span></div></td><td>Ativo</td><td>carla@empresa.com</td><td>Carla Mendes</td><td><div><span><input type="checkbox" aria-label="Selecionar Carla Mendes" data-eval="e3"></span></div></td></tr><tr>
+      <td>
+          <div><span><button class="btn-icon" title="Excluir" data-eval="e5"><svg width="16" height="16"><use href="#icon-trash"></use></svg></button></span></div><div><span><button class="btn-icon" title="Editar"><svg width="16" height="16"><use href="#icon-pencil"></use></svg></button></span></div></td><td>Inativo</td><td>bruno@empresa.com</td><td>Bruno Lima</td><td><div><span><input type="checkbox" aria-label="Selecionar Bruno Lima" data-eval="e4"></span></div></td></tr><tr>
+      <td>
+          <div><span><button class="btn-icon" title="Excluir" data-eval="e6"><svg width="16" height="16"><use href="#icon-trash"></use></svg></button></span></div><div><span><button class="btn-icon" title="Editar"><svg width="16" height="16"><use href="#icon-pencil"></use></svg></button></span></div></td><td>Ativo</td><td>ana@empresa.com</td><td>Ana Souza</td><td><div><span><input type="checkbox" aria-label="Selecionar Ana Souza" data-eval="e2"></span></div></td></tr></tbody>
+</table>
+<div class="pagination"><a href="?p=1">Anterior</a> <span>Página 1 de 5</span> <a href="?p=2">Próxima</a></div>
+<script src="../../feedback.js"></script>
+
+</body></html>

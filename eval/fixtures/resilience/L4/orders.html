@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Meus pedidos</title>
+<style>
+ .cart{display:inline-block;width:24px;height:24px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E")}
+ .pedido{border:1px solid #ccc;margin:8px;padding:8px}
+</style></head><body>
+<header><a href="/" class="logo">Loja Norte</a> <a href="/carrinho" class="cart" data-test="shopping-cart-link" data-eval="e3"></a></header>
+<h1>Meus pedidos</h1>
+<div class="pedido"><strong>Pedido #1023</strong> · Entregue em 12/09
+  <button class="det">Ver detalhes</button> <button class="cancel" disabled="">Cancelar pedido</button></div>
+<div class="pedido"><strong>Pedido #1024</strong> · Em separação
+  <button class="det">Ver detalhes</button> <button class="cancel" data-eval="e1">Cancelar pedido</button></div>
+<section class="recomendados"><h2>Recomendados</h2>
+  <div class="rec">Garrafa térmica 1L <button>Adicionar ao carrinho</button></div>
+  <div class="rec">Caneca de cerâmica <button data-eval="e2">Adicionar ao carrinho</button></div></section>
+<div class="etapas">
+  <div class="etapa1"><button class="cont1" disabled="">Continuar</button></div>
+  <div class="etapa2"><button class="cont2">Continuar</button></div>
+</div>
+<script src="../../feedback.js"></script>
+
+<div role="dialog" aria-modal="true" style="position:fixed;inset:0;z-index:9999;background:rgba(255,255,255,.96);padding:40px"><p>Usamos cookies para melhorar sua experiência.</p>
+            <button type="button" onclick="this.parentElement.remove()">Aceitar cookies</button>
+            <button type="button" onclick="this.parentElement.remove()">Recusar</button></div></body></html>

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Portal Login</title></head><body>
+<form style="width:300px;margin:40px auto">
+  <h2>Welcome back</h2>
+  <label for="user">User ID</label><input id="user" name="username" data-eval="e1">
+  <label for="pwd">Password</label><input id="pwd" name="password" type="password" data-eval="e3">
+  <button type="button" aria-label="Show password" class="toggle-pwd"><i class="icon-eye" style="display:inline-block;width:16px;height:16px"></i></button>
+  <label><input type="checkbox" name="remember" data-eval="e2"> Keep me signed in</label>
+  <a href="/forgot">Forgot your password?</a>
+  <button type="submit" id="login-btn" data-eval="e4">Sign in</button>
+  <p>New here? <a href="/signup">Create an account</a></p>
+  <select name="lang" aria-label="Language" data-eval="e5"><option>English</option><option>Português</option></select>
+</form>
+<script src="../../feedback.js"></script>
+
+</body></html>

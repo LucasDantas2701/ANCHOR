@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Admin — Users</title>
+<style>td,th{padding:4px 8px} .btn-icon{width:28px;height:28px}</style></head><body>
+<h1>Users</h1>
+<div class="toolbar">
+  <div><span><input type="text" placeholder="Search by name or e-mail" aria-label="Search users"></span></div>
+  <div><span><select aria-label="Filter by status" data-eval="e1"><option>All</option><option>Active</option><option>Inactive</option></select></span></div>
+  <div><span><button class="primary">+ New user</button></span></div>
+  <div><span><button title="Export spreadsheet" class="btn-icon"><img src="/static/icons/file-excel.png" alt="" width="16" height="16"></button></span></div>
+</div>
+<table>
+  <thead><tr><th>Actions</th><th>Status</th><th>E-mail</th><th>Name</th><th><div><span><input type="checkbox" aria-label="Select all"></span></div></th></tr></thead>
+  <tbody>
+    
+    
+    
+  <tr>
+      <td>
+          <div><span><button class="btn-icon" title="Delete" data-eval="e7"><svg width="16" height="16"><use href="#icon-trash"></use></svg></button></span></div><div><span><button class="btn-icon" title="Edit"><svg width="16" height="16"><use href="#icon-pencil"></use></svg></button></span></div></td><td>Active</td><td>carol@company.com</td><td>Carol Miller</td><td><div><span><input type="checkbox" aria-label="Select Carol Miller" data-eval="e3"></span></div></td></tr><tr>
+      <td>
+          <div><span><button class="btn-icon" title="Delete" data-eval="e5"><svg width="16" height="16"><use href="#icon-trash"></use></svg></button></span></div><div><span><button class="btn-icon" title="Edit"><svg width="16" height="16"><use href="#icon-pencil"></use></svg></button></span></div></td><td>Inactive</td><td>brian@company.com</td><td>Brian Lee</td><td><div><span><input type="checkbox" aria-label="Select Brian Lee" data-eval="e4"></span></div></td></tr><tr>
+      <td>
+          <div><span><button class="btn-icon" title="Delete" data-eval="e6"><svg width="16" height="16"><use href="#icon-trash"></use></svg></button></span></div><div><span><button class="btn-icon" title="Edit"><svg width="16" height="16"><use href="#icon-pencil"></use></svg></button></span></div></td><td>Active</td><td>anna@company.com</td><td>Anna Smith</td><td><div><span><input type="checkbox" aria-label="Select Anna Smith" data-eval="e2"></span></div></td></tr></tbody>
+</table>
+<div class="pagination"><a href="?p=1">Previous</a> <span>Page 1 of 5</span> <a href="?p=2">Next</a></div>
+<script src="../../feedback.js"></script>
+
+</body></html>

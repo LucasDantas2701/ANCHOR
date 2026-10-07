@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Job Portal</title></head><body>
+<header><strong>Job Portal</strong> <a href="/home">Home</a> <a href="/network">My network</a>
+  <a href="/messages">Messages</a></header>
+<div class="busca">
+  <div><span><input id="s" aria-label="Search" placeholder="Search" oninput="const l=document.getElementById('sug'); l.hidden=!this.value;
+             l.innerHTML=['', ' junior', ' remote'].map(x=&gt;`&lt;div role=option style='cursor:pointer' onclick='const i=document.getElementById(&quot;s&quot;); i.value=this.textContent; window.buscou=this.textContent; document.getElementById(&quot;sug&quot;).hidden=true'&gt;${this.value}${x}&lt;/div&gt;`).join('')" data-eval="e1"></span></div>
+  <div id="sug" role="listbox" hidden=""></div>
+</div>
+<main><h1>Recommended jobs</h1></main>
+<script src="../../feedback.js"></script>
+
+</body></html>

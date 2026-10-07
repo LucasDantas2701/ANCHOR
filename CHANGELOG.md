@@ -18,6 +18,16 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- Resilience benchmark, part 1: **the altered pages** (`eval/resilience/`). `python -m
+  eval.resilience.build` builds, from the 13 task pages, altered versions in 5 levels (superficial,
+  semantic, structural, behavioral, adversarial) plus L0 (the original, only with the evaluation's
+  markers), and the 180 tasks rewritten for them (`eval/plans/resilience_tasks.json`). Every element
+  a task checks is marked with `data-eval`, which no executor may use, so the checks keep working
+  when ids and classes change. The perturbations are deterministic and keep the pages' own scripts
+  working (no JavaScript error on any page). The reference plans complete all the L0 tasks. Repeated
+  without replanning, they complete 93% of L1, 57% of L2, 100% of L3, 20% of L4 and 60% of L5, with no
+  attack on L5 working: a first idea of each level's difficulty. These are the development
+  perturbations; the closed set gets different ones, for the final run.
 - **Interventions experiment** (`eval/interventions.py`): the resolver's development cases, run by
   the Executor with the choice memory and a simulated user that knows the right element (it picks
   the right numbered candidate, or clicks the element on the page). Round 1 starts with an empty

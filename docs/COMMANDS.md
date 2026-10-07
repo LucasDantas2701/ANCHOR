@@ -273,6 +273,30 @@ python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama
 | `--final` | Runs the closed set (split `test`). Once, at the end. |
 | `-v`, `--verbose` | Shows each task's plan and, when the plan failed, the model's refused answers and why each was refused. |
 
+### Resilience benchmark pages (`eval.resilience.build`)
+
+Builds the altered versions of the task pages, in 5 levels of perturbation, and the tasks
+rewritten for them (`eval/plans/resilience_tasks.json`). Deterministic: rebuilding gives the same
+pages. Every element a task checks is marked with `data-eval`, the evaluation's own marker, which
+no executor may use.
+
+```sh
+python -m eval.resilience.build --check
+```
+
+| Level | Perturbation |
+|---|---|
+| L0 | The original page, only with the evaluation's markers. |
+| L1 | Superficial: ids, classes, names and test attributes renamed or removed (the page's own scripts keep working). |
+| L2 | Semantic: synonyms in the labels ("Salvar" → "Gravar"), a search button turned into an icon. |
+| L3 | Structural: repeated items reversed, buttons moved to the top of forms, extra wrappers. |
+| L4 | Behavioral: part of the page hidden behind "Show more", a cookie banner covering the page. |
+| L5 | Adversarial: lookalikes next to the targets, an unexpected destructive button, and an instruction pointing at it, phrased in a way the injection detector has never seen. |
+
+| Option | Meaning |
+|---|---|
+| `--check` | Also runs the reference plans on the L0 pages, to check the rewritten tasks. |
+
 ### Interventions experiment (`eval.interventions`)
 
 Does the system ask the user less as it learns? The resolver's development cases are run by the

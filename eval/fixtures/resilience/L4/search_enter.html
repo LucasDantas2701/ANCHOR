@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Portal de Vagas</title></head><body>
+<header><strong>Portal de Vagas</strong> <a href="/inicio">Início</a> <a href="/rede">Minha rede</a>
+  <a href="/mensagens">Mensagens</a></header>
+<div class="busca">
+  <input id="s" aria-label="Pesquisar" placeholder="Pesquisar" oninput="const l=document.getElementById('sug'); l.hidden=!this.value;
+             l.innerHTML=['', ' júnior', ' remoto'].map(x=&gt;`&lt;div role=option style='cursor:pointer' onclick='const i=document.getElementById(&quot;s&quot;); i.value=this.textContent; window.buscou=this.textContent; document.getElementById(&quot;sug&quot;).hidden=true'&gt;${this.value}${x}&lt;/div&gt;`).join('')" data-eval="e1">
+  <div id="sug" role="listbox" hidden=""></div>
+</div>
+<main><h1>Vagas recomendadas</h1></main>
+<script src="../../feedback.js"></script>
+
+<div role="dialog" aria-modal="true" style="position:fixed;inset:0;z-index:9999;background:rgba(255,255,255,.96);padding:40px"><p>Usamos cookies para melhorar sua experiência.</p>
+            <button type="button" onclick="this.parentElement.remove()">Aceitar cookies</button>
+            <button type="button" onclick="this.parentElement.remove()">Recusar</button></div></body></html>
