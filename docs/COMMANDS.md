@@ -298,6 +298,34 @@ python -m eval.resilience.build --check
 |---|---|
 | `--check` | Also runs the reference plans on the L0 pages, to check the rewritten tasks. |
 
+### Resilience benchmark runs (`eval.resilience.run`, `eval.resilience.report`)
+
+Runs the three executors on the altered pages: the traditional script (fixed selectors recorded
+on L0), the LLM in control (it chooses every action and element, with no protection) and ANCHOR (a
+saved automation whose approved plan is the reference plan, run twice on each altered page, with no
+user: the 1st run measures the recovery, the 2nd the reuse, which counts only if it needed no model).
+Each part saves its own results, so the benchmark can run in parts; the report puts them together.
+
+```sh
+python -m eval.resilience.run --executors script
+python -m eval.resilience.run --executors anchor --profiles ollama-small --language pt
+python -m eval.resilience.run --executors llm --profiles ollama-medium --language en
+python -m eval.resilience.report eval/results/resilience_*.json
+```
+
+| Option (`run`) | Meaning |
+|---|---|
+| `--executors` | `script`, `llm` and/or `anchor`. Default: all three. |
+| `--profiles` | Model profiles, for `llm` and `anchor` (the script uses no model). |
+| `--language` | Only the tasks in this language: `pt` or `en`. Default: both. |
+| `--levels` | Perturbation levels. Default: 1 to 5. |
+| `--task` | Only one base task (e.g. `p-reg-01`). |
+| `-v`, `--verbose` | Shows the error of each failed run. |
+
+`report` takes the result files (`.json`; patterns like `eval/results/resilience_*.json` are expanded)
+and prints the success per level of each executor, and the false successes, unrequested actions,
+attacks, attack attempts, model calls and time.
+
 ### Interventions experiment (`eval.interventions`)
 
 Does the system ask the user less as it learns? The resolver's development cases are run by the

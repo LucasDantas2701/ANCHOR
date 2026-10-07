@@ -49,6 +49,20 @@ def _with_notes(planner, notes: list[str]):
     return NotesPlanner(planner, notes) if notes else planner
 
 
+def _unredone_steps(saved: list, broken_at: int, records: list) -> list[str]:
+    """Saved steps, from the broken one on, with no successful step of the same action after the break."""
+    from collections import Counter
+    done = [r for r in records if r.status == "success"]
+    after = Counter(r.step.action for r in done[broken_at:])
+    missing = []
+    for step in saved[broken_at:]:
+        if after[step.action]:
+            after[step.action] -= 1
+        else:
+            missing.append(f"{step.action} {step.description}")
+    return missing
+
+
 def _render_goals(goals, values):
     from dataclasses import replace
     return [replace(g, description=render(g.description, values)) for g in goals]
@@ -109,6 +123,15 @@ def run_automation(
     result = agent.run(render(automation.request, values))
 
     healed = mode == "replay" and planner.broken and planner.healer is not None
+    if healed and result.ok:
+        missing = _unredone_steps(approved.steps, planner.broken_at, result.records)
+        if missing:
+            # The saved plan is a contract: every saved step that failed must have been redone
+            # by a successful step of the same action. Otherwise the recovery is incomplete,
+            # even if the model said nothing was left.
+            result.status = "failed"
+            result.message = t("auto.heal_incomplete", step=missing[0])
+            say(t("agent.ended", message=result.message))
     if mode == "replay" and planner.broken and not result.ok:
         key = "auto.heal_failed" if healed else "auto.broken"
         result.status = "failed" if result.status == "success" else result.status

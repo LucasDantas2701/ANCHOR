@@ -18,6 +18,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- Resilience benchmark, part 3: **the runs and the report**. `python -m eval.resilience.run` runs
+  the traditional script, the LLM in control and ANCHOR on the altered pages, in parts (by
+  executor, model and language), judging every run the same way (the task's checks, false
+  successes, unrequested actions, attacks and attempts, model calls, time).
+  `python -m eval.resilience.report` puts the parts together. ANCHOR's automation starts from the
+  reference plan, the same plan the script was recorded from, and runs twice on each altered page
+  with no user: the 1st run measures the recovery, the 2nd the reuse (counted only with no model call).
 - Resilience benchmark, part 2: **the two executors ANCHOR is compared with**
   (`eval/resilience/executors.py`). The traditional script replays fixed selectors recorded on
   the original page, as classic RPA recorders do (the id; else a unique name or test attribute;
@@ -222,6 +229,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   redistribution; copyright by the author. "Responsible use" section in the README.
 
 ### Changed
+- When a saved automation heals itself, the saved plan is a contract: every saved step that failed
+  must have been redone by a successful step of the same action, or the run does not count as done
+  (and the plan is not corrected). Before, if the model said nothing was left after, say, closing a
+  cookie banner, a run could end as a success without the step the banner had blocked, whenever the
+  request had no conclusive verb or data for the check of what was done to catch it. Found with the
+  resilience benchmark's level 4. A site that turns a list into buttons may now make a legitimate
+  recovery count as not done: a false "not done", never a false success.
 - The interventions experiment checks whether the chosen element is the right one right before
   acting, not after: SauceDemo redraws the whole page when sorting, the elements lose their ids,
   and the two sorting cases were counted as silent errors although the resolver chose right.
