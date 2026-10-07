@@ -127,7 +127,7 @@ def run_automation(
         "llm_calls": result.llm_calls, "replans": result.replans, "failures": result.failures,
         "interventions": result.interventions, "no_effect": result.no_effect, "seconds": result.seconds,
         "vision_checks": result.vision_checks, "vision_confirmed": result.vision_confirmed,
-        "vision_seconds": result.vision_seconds,
+        "vision_seconds": result.vision_seconds, "user_wait_seconds": result.user_wait_seconds,
     })
 
     done = [r for r in result.records if r.status == "success"]

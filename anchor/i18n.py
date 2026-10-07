@@ -191,10 +191,11 @@ MESSAGES: dict[str, dict[str, str]] = {
     "cli.interrupted": {"en": "Run interrupted by the user.", "pt": "Execução interrompida pelo usuário."},
     "cli.result": {"en": "Result: {status} — {message}", "pt": "Resultado: {status} — {message}"},
     "cli.summary": {"en": "Steps performed: {steps} | model calls: {calls} | replans: {replans} | failures: {failures} | "
-                          "user interventions: {interventions} | tokens: {tokens_in}+{tokens_out} | time: {seconds} s",
+                          "user interventions: {interventions} | tokens: {tokens_in}+{tokens_out} | time: {seconds} s "
+                          "({waited} s waiting for you)",
                     "pt": "Passos executados: {steps} | chamadas ao modelo: {calls} | replanejamentos: {replans} | "
                           "falhas: {failures} | intervenções do usuário: {interventions} | tokens: {tokens_in}+{tokens_out} | "
-                          "tempo: {seconds} s"},
+                          "tempo: {seconds} s ({waited} s esperando você)"},
     "cli.close_browser": {"en": "Press Enter to close the browser...", "pt": "Enter para fechar o navegador..."},
     "planner_cli.generating": {"en": "Generating the plan with {model} (the first time, this includes loading the model)...",
                                "pt": "Gerando o plano com {model} (na primeira vez, inclui carregar o modelo)..."},

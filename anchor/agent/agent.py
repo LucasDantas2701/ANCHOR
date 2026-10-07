@@ -72,6 +72,7 @@ class AgentResult:
     vision_checks: int = 0       # questions asked about screenshots (layer 4)
     vision_confirmed: int = 0    # doubted steps the screenshot confirmed
     vision_seconds: float = 0.0  # time spent on those questions
+    user_wait_seconds: float = 0.0   # time waiting for the user (disambiguation, confirmations), within seconds
     tokens_in: int = 0
     tokens_out: int = 0
     seconds: float = 0.0
@@ -279,6 +280,7 @@ class Agent:
         result.goals_done = sum(s == "done" for s in self._goal_status.values())
         result.status, result.message = status, message
         result.seconds = round(time.perf_counter() - start, 2)
+        result.user_wait_seconds = round(getattr(self.executor, "user_wait_s", 0.0) - self._wait_at_start, 2)
         self.report(t("agent.done" if status == "success" else "agent.ended", message=message))
         return result
 
@@ -455,6 +457,8 @@ class Agent:
             self.language = self.planner.language_for(request)
         if self.vision is not None:
             self.vision.checks, self.vision.seconds, self.vision.language = 0, 0.0, self.language
+        # The executor may serve several runs (a spreadsheet): count only this run's wait.
+        self._wait_at_start = getattr(self.executor, "user_wait_s", 0.0)
         self._goals = {}
         self._goal_status = {}
         start = time.perf_counter()

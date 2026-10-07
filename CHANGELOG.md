@@ -18,6 +18,17 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Interventions experiment** (`eval/interventions.py`): the resolver's development cases, run by
+  the Executor with the choice memory and a simulated user that knows the right element (it picks
+  the right numbered candidate, or clicks the element on the page). Round 1 starts with an empty
+  memory, round 2 repeats the cases, round 3 repeats them in a shuffled order. On the local cases:
+  round 1 asked in 15.4% of the Portuguese cases and 5.8% of the English ones, with 98.1% and 94.2%
+  right; rounds 2 and 3 asked nothing, with the same accuracy, the asked cases now coming from the
+  memory. The silent errors (1.9% and 5.8%) stay the same in every round: when the system is wrong
+  with confidence it does not ask, so there is nothing to remember. No model is used.
+- The time spent waiting for the user (disambiguation and confirmations) is measured apart
+  (`user_wait_seconds` in the agent's result and in the automations' run records), and the
+  summary shows it next to the total time, so that a slow answer does not look like a slow system.
 - **Effect check by screenshot** (layer 4, `anchor/agent/vision.py`), turned on with `--vision`
   (agent, `automations run`, `plan_run --agent`). When the other checks doubt a step (a field,
   list or box whose state does not match; a click with no visible effect in the page's code; an

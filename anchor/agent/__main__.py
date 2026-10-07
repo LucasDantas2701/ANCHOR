@@ -110,7 +110,8 @@ def main() -> int:
         print("\n" + t("cli.result", status=result.status, message=result.message))
         print(t("cli.summary", steps=sum(r.status == "success" for r in result.records), calls=result.llm_calls,
                 replans=result.replans, failures=result.failures, interventions=result.interventions,
-                tokens_in=result.tokens_in, tokens_out=result.tokens_out, seconds=result.seconds))
+                tokens_in=result.tokens_in, tokens_out=result.tokens_out, seconds=result.seconds,
+                waited=result.user_wait_seconds))
         try:
             input("\n" + t("cli.close_browser"))
         except KeyboardInterrupt:

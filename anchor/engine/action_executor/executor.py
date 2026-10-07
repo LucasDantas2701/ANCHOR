@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from typing import Any, Callable, Optional
 
 from playwright.sync_api import Page
@@ -100,6 +101,9 @@ class ActionExecutor:
         self.point_timeout_s = point_timeout_s
         self.memory = memory
         self.confirmer = confirmer
+        # Time spent waiting for the user (disambiguation and confirmations), kept apart so it
+        # does not inflate the measured execution time.
+        self.user_wait_s = 0.0
 
     def _resolve(
         self,
@@ -293,7 +297,10 @@ class ActionExecutor:
         if category is None:
             return None
         request = ConfirmationRequest(action_name, description, element or description, category, self.page.url)
-        if self.confirmer.confirm(request):
+        waited = time.perf_counter()
+        allowed = self.confirmer.confirm(request)
+        self.user_wait_s += time.perf_counter() - waited
+        if allowed:
             return None
         return ActionResult(status="denied", action=action_name, description=description,
                             selected_element=match, score=match.score, resolved_by=resolved_by)
@@ -418,6 +425,7 @@ class ActionExecutor:
         """Disambiguation: highlights the candidates, asks, and returns the choice."""
 
         shown = self._choices_to_show(reason, candidates)
+        waited = time.perf_counter()
 
         try:
             highlight_candidates(self.page, shown)
@@ -437,6 +445,7 @@ class ActionExecutor:
             clear_highlights(self.page)
 
         if choice.kind == "candidate" and choice.number:
+            self.user_wait_s += time.perf_counter() - waited
             return shown[choice.number - 1]
 
         if choice.kind == "point" and self.can_point:
@@ -444,8 +453,10 @@ class ActionExecutor:
                 "Clique no elemento na janela do navegador."
             )
             captured = capture_click(self.page, self.point_timeout_s)
+            self.user_wait_s += time.perf_counter() - waited
             return self._enrich_captured(captured, action_name) if captured else None
 
+        self.user_wait_s += time.perf_counter() - waited
         return None
 
     _MARK_PICKED_JS = """(id) => {

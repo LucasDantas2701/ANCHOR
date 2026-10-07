@@ -273,6 +273,28 @@ python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama
 | `--final` | Runs the closed set (split `test`). Once, at the end. |
 | `-v`, `--verbose` | Shows each task's plan and, when the plan failed, the model's refused answers and why each was refused. |
 
+### Interventions experiment (`eval.interventions`)
+
+Does the system ask the user less as it learns? The resolver's development cases are run by the
+Executor with the choice memory and a simulated user that knows the right element of each case:
+round 1 starts with an empty memory, round 2 repeats the cases with the memory of round 1, and
+round 3 repeats them in a shuffled order. It reports, per round and language, the interventions,
+the right actions, the silent errors and the right actions that came from the memory. No model is
+used.
+
+```sh
+python -m eval.interventions --offline -v
+python -m eval.interventions
+```
+
+| Option | Meaning |
+|---|---|
+| `--offline` | Skips the cases that need the internet (SauceDemo). |
+| `--language` | Only the cases in this language: `pt` or `en`. Default: both. |
+| `--rounds` | How many rounds. Default: 3. |
+| `--seed` | Seed of the shuffled order (round 3 on). Default: 7. |
+| `-v`, `--verbose` | Shows each case of each round (ASK: the user was asked; MEM: from the memory; SIL: silent error). |
+
 ### Vision probe (`eval.vision_probe`)
 
 Measures how long the model takes to answer a question about a screenshot, and whether it gets it
