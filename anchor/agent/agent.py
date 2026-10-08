@@ -231,15 +231,28 @@ class Agent:
         except Exception:
             record.state, record.handle = (), None
 
-    def _undone_by_this_step(self, result: AgentResult, outcome: ActionResult) -> Optional[StepRecord]:
-        """An earlier box or list, verified before, that is no longer in the state it was left in."""
+    def _undone_by_this_step(self, result: AgentResult, outcome: ActionResult, request: str,
+                             step: Step) -> Optional[StepRecord]:
+        """
+        An earlier box or list, verified before, that is no longer in the state it was left in.
+        Undoing an earlier step the request did not ask for, with a step it does ask for, is a
+        correction, not a problem ("Employee" then "Contractor", for "register as a contractor").
+        """
         if self.watcher is None:
             return None
+        asked = self._object(request)
+        chosen = outcome.selected_element
+        now = self._object(step.description + " " + (getattr(chosen, "text", "") or "") + " "
+                           + (getattr(chosen, "label", "") or ""))
         for record in reversed(result.records):
             if record.status != "success" or record.handle is None:
                 continue
-            if state_problem(record.state[0], record.state[1], record.handle) is not None:
-                return record
+            if state_problem(record.state[0], record.state[1], record.handle) is None:
+                continue
+            before = self._object(record.step.description + " " + record.element)
+            if now & asked and not before & asked:
+                continue                     # a correction of a step the request did not ask for
+            return record
         return None
 
     def _confirmed_by_screenshot(self, step: Step, problem, shot_before) -> bool:
@@ -646,7 +659,7 @@ class Agent:
                     result.vision_confirmed += 1
                     problem = None
                 if outcome.status == "success" and not problem:
-                    undone = self._undone_by_this_step(result, outcome)
+                    undone = self._undone_by_this_step(result, outcome, request, step)
                     if undone is not None:
                         problem = Reason("why.undid", step=describe_step(undone.step))
                 if outcome.status == "success" and problem:

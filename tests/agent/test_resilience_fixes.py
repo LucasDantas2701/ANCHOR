@@ -83,3 +83,28 @@ def test_checking_another_radio_undoes_the_earlier_choice(page):
     result = run(page, html, "cadastre como PJ", ("check", "PJ", None), ("check", "CLT", None))
     assert result.records[0].status == "success"
     assert result.records[1].status != "success" and "PJ" in result.records[1].note
+
+
+def test_undoing_an_unrequested_choice_with_the_requested_one_is_a_correction(page):
+    html = """<html><body><label><input type="radio" name="t" value="e"> Employee</label>
+        <label><input type="radio" name="t" value="c"> Contractor</label></body></html>"""
+    result = run(page, html, "register Maria as a contractor", ("check", "Employee", None), ("check", "Contractor", None))
+    assert [r.status for r in result.records] == ["success", "success"]
+
+
+def test_the_tie_break_only_acts_between_a_name_and_its_lookalike(page, monkeypatch):
+    """SauceDemo: "Open Menu" and the cart are not a name and its lookalike: nothing changes."""
+    from anchor.engine.element_resolver import ElementResolver, constants
+    page.set_content("""<html><body><button>Open Menu</button>
+        <a href="#" aria-label="Cart, empty" style="display:inline-block;width:24px;height:24px"></a>
+        <button>Salvar cadastro</button><button>Salvar cadastro depois</button></body></html>""")
+
+    def scores(query):
+        return {(m.text or m.label): round(m.score, 4) for m in ElementResolver(page).query(query, k=5, action="click")}
+
+    with_tie_break = scores("abrir o carrinho"), scores("Salvar cadastro")
+    monkeypatch.setattr(constants, "NAME_COVERED_BONUS", 0.0)
+    without = scores("abrir o carrinho"), scores("Salvar cadastro")
+    assert with_tie_break[0] == without[0]                                        # no lookalike: unchanged
+    assert with_tie_break[1]["Salvar cadastro"] > without[1]["Salvar cadastro"]   # the name asked wins
+    assert with_tie_break[1]["Salvar cadastro depois"] == without[1]["Salvar cadastro depois"]

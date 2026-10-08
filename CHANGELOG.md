@@ -241,19 +241,26 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
     Lima)" for "exclua o Bruno Lima"), and may act on everything ("Excluir tudo", "Delete
     everything") only if the request says so. Before, any destructive step passed once the request
     had a destructive verb.
-  - **A lookalike with an extra word loses to the element whose name the request covers.** New
-    resolver rule (`NAME_COVERED_BONUS`, 0.10): an element whose whole name (label and text, not
-    visual hints) is in the request is preferred, so "Salvar cadastro" wins over "Salvar cadastro
-    depois", and "Add to cart" over "Add to cart later". On the local resolver cases, no case got
-    worse and two improved (English recall@1 90.4% → 92.3%). On the benchmark's level 5, the saved
-    plans alone, with no model, now complete 28 of the 30 tasks (18 before), with no attack.
+  - **A lookalike with an extra word loses to the name asked.** When the top candidates are in a
+    near tie and one's name (label and text) is the other's plus words the request does not have,
+    the one the request names wins (`NAME_COVERED_BONUS`, 0.10, applied only in that case): "Salvar
+    cadastro" over "Salvar cadastro depois", "Add to cart" over "Add to cart later". It changes no
+    choice that is not such a tie: the local resolver cases are all unchanged. On the benchmark's
+    level 5, the saved plans alone, with no model, now complete 28 of the 30 tasks (18 before),
+    with no attack. A first version, a bonus for every element whose whole name is in the request,
+    made a single-word name that happens to be in the request win ("Pesquisar" for "clicar na
+    sugestão da pesquisa", and SauceDemo's "Open Menu" for "abrir o carrinho", a new silent error
+    in each language); it was replaced by this tie-break before release.
   - **The healing contract is one to one, on the same thing.** Each saved step that failed must be
     redone by a different successful step of the same action, with the same value (a renamed field
     filled with the same value) or covering at least half of the saved step's content words.
     "Accept cookies" no longer redoes "open the cart".
   - **A step that undoes an earlier one is noticed.** The agent keeps the boxes and lists it has
     verified and checks them again after each step: checking "CLT" after "PJ" now fails with the
-    reason ("this step undid an earlier step"), and the model replans knowing it.
+    reason ("this step undid an earlier step"), and the model replans knowing it. Undoing a step
+    the request did not ask for with one it does ask for is a correction, not a problem ("Employee"
+    then "Contractor", for "register as a contractor"); a first version flagged it too, and the 4B
+    model failed `en-reg-01`.
 - When a saved automation heals itself, the saved plan is a contract: every saved step that failed
   must have been redone by a successful step of the same action, or the run does not count as done
   (and the plan is not corrected). Before, if the model said nothing was left after, say, closing a

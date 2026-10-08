@@ -7,7 +7,6 @@ from .constants import (
     DISABLED_DAMPING,
     EXACT_NAME_BONUS,
     EXTRACT_TEXT_BONUS,
-    NAME_COVERED_BONUS,
     OBJECT_CONTEXT_BONUS,
     OBJECT_MISMATCH_DAMPING,
 )
@@ -39,7 +38,6 @@ def score_element(
     synonyms: dict[str, set[str]] | None = None,
     state: dict | None = None,
     element_text: str | None = None,
-    element_name: str | None = None,
 ) -> float:
     """
     Computes how relevant an element is
@@ -364,18 +362,6 @@ def score_element(
     if action != "extract" and named and name_tokens and name_tokens - KIND_WORDS_N == named:
         score += EXACT_NAME_BONUS
 
-    # -------------------------------------------------
-    # 9.6. Name covered by the request: every word of the element's name is in the
-    # request. "Salvar cadastro" is preferred to "Salvar cadastro depois", and "Add to
-    # cart" to "Add to cart later", when the request does not say "depois" or "later":
-    # a lookalike with an extra word is not what was asked for.
-    # -------------------------------------------------
-
-    # The name only (label and text), without visual hints such as an icon's class.
-    own = normalize_tokens(tokenize(element_name if element_name is not None else element_text or ""),
-                           synonyms) - STOPWORDS_N - KIND_WORDS_N
-    if action != "extract" and own and own <= normalized_query_tokens:
-        score += NAME_COVERED_BONUS
 
     # -------------------------------------------------
     # 10. Element state.

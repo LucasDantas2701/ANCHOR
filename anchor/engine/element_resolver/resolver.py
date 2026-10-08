@@ -8,6 +8,7 @@ from .match import Match
 from .scoring import score_element
 from .tokenizer import (
     ACTION_WORDS_N,
+    STOPWORDS_N,
     build_synonyms,
     extract_object_tokens,
     normalize_text,
@@ -269,7 +270,6 @@ class ElementResolver:
                     record.get(key) or ""
                     for key in ("label", "text", "hint")
                 ),
-                element_name=" ".join(record.get(key) or "" for key in ("label", "text")),
             )
 
             match = self.to_match(record, score)
@@ -296,4 +296,33 @@ class ElementResolver:
             reverse=True,
         )
 
+        if action != "extract":
+            matches = self._prefer_the_name_asked(matches, normalized_query_tokens)
+
         return matches[:k]
+
+    def _prefer_the_name_asked(self, matches: list[Match], query_tokens: set[str]) -> list[Match]:
+        """
+        Breaks a near tie between a name and a lookalike that has the same name plus words the
+        request does not have: "Salvar cadastro" over "Salvar cadastro depois", "Add to cart"
+        over "Add to cart later". Only between the top candidates, only when one name contains
+        the other, so it changes no choice that was not such a tie.
+        """
+        from .constants import NAME_COVERED_BONUS
+        if len(matches) < 2 or matches[0].score <= 0:
+            return matches
+
+        def name(m: Match) -> set[str]:
+            return normalize_tokens(tokenize(" ".join(x for x in (m.label, m.text) if x)), self._synonyms) - STOPWORDS_N
+
+        top = matches[0].score
+        close = [m for m in matches if m.score >= top * (1 - 2 * NAME_COVERED_BONUS)]
+        names = {id(m): name(m) for m in close}
+        for m in close:
+            own = names[id(m)]
+            if not own or not own <= query_tokens:
+                continue
+            if any(own < names[id(o)] and not (names[id(o)] - own) & query_tokens for o in close if o is not m):
+                m.score += NAME_COVERED_BONUS
+        matches.sort(key=lambda match: match.score, reverse=True)
+        return matches
