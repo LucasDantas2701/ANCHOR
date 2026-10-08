@@ -337,6 +337,7 @@ KIND_WORDS = [
     "link", "text", "search", "number",
 ]
 EXACT_NAME_BONUS = 0.15         # element text = exactly what the request names
+NAME_COVERED_BONUS = 0.10       # every word of the element's name is in the request (no extra words)
 DESTRUCTIVE_DAMPING = 0.80       # request with no verb; the element announces a destructive action
 
 # Verbs of destructive or dismissive actions. A request that only names an item

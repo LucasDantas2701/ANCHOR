@@ -269,6 +269,7 @@ class ElementResolver:
                     record.get(key) or ""
                     for key in ("label", "text", "hint")
                 ),
+                element_name=" ".join(record.get(key) or "" for key in ("label", "text")),
             )
 
             match = self.to_match(record, score)

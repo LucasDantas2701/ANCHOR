@@ -18,6 +18,7 @@ user reads (the reports and the final message) follows the interface language.
 
 from __future__ import annotations
 
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Callable, Optional
@@ -53,6 +54,10 @@ class StepRecord:
     note: str = ""               # the reason, in the interface language
     score: Optional[float] = None    # confidence: heuristic score, or memory similarity
     element: str = ""                # the name of the element acted on (for the records and diagnosis)
+    # For boxes and lists: the element itself and the state it was left in, to notice when a
+    # later step undoes it (checking "CLT" unchecks "PJ"). Not saved anywhere.
+    handle: object = field(default=None, repr=False, compare=False)
+    state: tuple = field(default=(), repr=False, compare=False)
 
 
 @dataclass
@@ -208,6 +213,35 @@ class Agent:
 
     _STATE_REASONS = ("why.field_value", "why.list_value", "why.not_checked", "why.still_checked")
 
+    def _remember_state(self, record: StepRecord, step: Step, chosen) -> None:
+        """Keeps the element and the state a box or list was left in (see StepRecord.handle)."""
+        if self.watcher is None or chosen is None or step.action not in ("select", "check", "uncheck", "click"):
+            return
+        try:
+            handle = chosen.locator.element_handle(timeout=300)
+            if step.action == "select":
+                record.state = ("select", clean_value(step.value) if step.value else step.value)
+            elif step.action in ("check", "uncheck"):
+                record.state = (step.action, None)
+            elif handle.evaluate("e => e.type === 'checkbox' || e.type === 'radio'"):
+                record.state = ("check" if handle.is_checked() else "uncheck", None)
+            else:
+                return
+            record.handle = handle
+        except Exception:
+            record.state, record.handle = (), None
+
+    def _undone_by_this_step(self, result: AgentResult, outcome: ActionResult) -> Optional[StepRecord]:
+        """An earlier box or list, verified before, that is no longer in the state it was left in."""
+        if self.watcher is None:
+            return None
+        for record in reversed(result.records):
+            if record.status != "success" or record.handle is None:
+                continue
+            if state_problem(record.state[0], record.state[1], record.handle) is not None:
+                return record
+        return None
+
     def _confirmed_by_screenshot(self, step: Step, problem, shot_before) -> bool:
         """
         Layer 4: does a screenshot confirm a step the other checks doubted? Only a state that
@@ -296,18 +330,43 @@ class Agent:
         tokens = tokenize(text or "")
         return bool((tokens | normalize_tokens(tokens)) & DESTRUCTIVE_N)
 
+    @staticmethod
+    def _object(text: str) -> set[str]:
+        """What a text is about: its words, without verbs, stop words and structural words."""
+        from anchor.engine.element_resolver.tokenizer import (
+            ACTION_WORDS_N,
+            STOPWORDS_N,
+            STRUCTURAL_WORDS_N,
+        )
+        return normalize_tokens(tokenize(text or "")) - ACTION_WORDS_N - STOPWORDS_N - STRUCTURAL_WORDS_N
+
+    _TOTALITY = {"tudo", "todos", "todas", "all", "everything", "everyone", "everybody"}
+
     def _unrequested_destructive(self, request: str, step: Step) -> bool:
         """
-        Does the step close, delete, remove, hide or cancel something the request did not
-        mention? Closing a pop-up (notice, dialog) does not count: it is navigation.
+        Does the step close, delete, remove, hide or cancel something the request did not ask
+        for? Closing a pop-up (notice, dialog) does not count: it is navigation. When the
+        request does ask to delete or cancel, the step must be about what the request names
+        ("Excluir (Bruno Lima)" for "exclua o Bruno Lima", not "Excluir tudo"), and it may act
+        on everything only if the request says so.
         """
-        if step.action != "click" or self._destructive(request):
+        if step.action != "click":
             return False
         description = clean_description(step.description)
         if not self._destructive(description):
             return False
         status, found, _ = self.executor._resolve(description, "click")
-        return not (found is not None and found.layer)
+        if found is not None and found.layer:
+            return False
+        if not self._destructive(request):
+            return True
+        totality = {w for w in self._TOTALITY}
+        step_words = {w.lower() for w in re.findall(r"\w+", description + " " + (getattr(found, "text", "") or ""))}
+        request_words = {w.lower() for w in re.findall(r"\w+", request)}
+        if step_words & totality:
+            return not request_words & totality      # "delete everything" only if the request says so
+        about = self._object(description)
+        return bool(about) and not about & self._object(request)
 
     def _execute(self, step: Step, last_fill) -> ActionResult:
         """Runs a step, with the Enter and field-reveal safety nets."""
@@ -586,6 +645,10 @@ class Agent:
                 if outcome.status == "success" and problem and self._confirmed_by_screenshot(step, problem, shot_before):
                     result.vision_confirmed += 1
                     problem = None
+                if outcome.status == "success" and not problem:
+                    undone = self._undone_by_this_step(result, outcome)
+                    if undone is not None:
+                        problem = Reason("why.undid", step=describe_step(undone.step))
                 if outcome.status == "success" and problem:
                     history.extend(mt("hist.message", self.language, message=m) for m in self._safe_messages(messages))
                     status = "no_effect" if problem == "no_effect" else "wrong_effect"
@@ -608,6 +671,7 @@ class Agent:
                     outcome.score if outcome.score is not None else getattr(outcome, "similarity", None)),
                     element=" ".join(x for x in (getattr(chosen, "text", ""), getattr(chosen, "label", "")) if x)[:80]
                     if chosen is not None else ""))
+                self._remember_state(result.records[-1], step, chosen)
                 history.append(mt("hist.done", self.language, step=describe_step(step)))
                 history.extend(mt("hist.message", self.language, message=m) for m in self._safe_messages(messages))
                 if step.goal in self._goal_status and not (self.watcher is not None and focus_only):

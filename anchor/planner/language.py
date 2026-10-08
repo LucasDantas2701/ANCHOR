@@ -193,6 +193,8 @@ TEXT: dict[str, dict[str, str]] = {
     "why.field_value": {"pt": 'o campo ficou com "{got}" em vez de "{want}"', "en": 'the field has "{got}" instead of "{want}"'},
     "why.list_value": {"pt": 'a lista ficou com "{got}" em vez de "{want}"', "en": 'the list has "{got}" instead of "{want}"'},
     "why.not_checked": {"pt": "a caixa não ficou marcada", "en": "the box did not get checked"},
+    "why.undid": {"pt": 'este passo desfez um passo anterior ("{step}")',
+                  "en": 'this step undid an earlier step ("{step}")'},
     "why.still_checked": {"pt": "a caixa continuou marcada", "en": "the box is still checked"},
     "why.expected_missing": {"pt": 'esperava ver "{expect}", e não apareceu', "en": 'expected to see "{expect}", and it did not appear'},
 }

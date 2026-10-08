@@ -49,17 +49,48 @@ def _with_notes(planner, notes: list[str]):
     return NotesPlanner(planner, notes) if notes else planner
 
 
+def _about(text: str) -> set[str]:
+    """What a step is about: its words, without verbs, stop words and structural words."""
+    from anchor.engine.element_resolver.tokenizer import (
+        ACTION_WORDS_N,
+        STOPWORDS_N,
+        STRUCTURAL_WORDS_N,
+        normalize_tokens,
+        tokenize,
+    )
+    return normalize_tokens(tokenize(text or "")) - ACTION_WORDS_N - STOPWORDS_N - STRUCTURAL_WORDS_N
+
+
 def _unredone_steps(saved: list, broken_at: int, records: list) -> list[str]:
-    """Saved steps, from the broken one on, with no successful step of the same action after the break."""
-    from collections import Counter
-    done = [r for r in records if r.status == "success"]
-    after = Counter(r.step.action for r in done[broken_at:])
+    """
+    Saved steps, from the broken one on, not redone after the break. Each must be matched by a
+    different successful step of the same action about the same thing: the same value (a field
+    or list renamed, "Nome" → "Funcionário", is filled with the same value), or a description (or
+    element acted on) with at least half of the saved step's content words, the closest one first.
+    "Accept cookies" does not redo "open the cart", and adding the laptop does not redo adding the
+    headphones.
+    """
+    done = [r for r in records if r.status == "success"][broken_at:]
+    used: set[int] = set()
     missing = []
+
+    def closeness(step, record) -> float:
+        """How much the record is about the saved step's thing: 1 = same value or all its words."""
+        if step.value and record.step.value and step.value.strip().lower() == record.step.value.strip().lower():
+            return 1.0
+        wanted = _about(step.description)
+        if not wanted:
+            return 1.0
+        return len(wanted & (_about(record.step.description) | _about(getattr(record, "element", "")))) / len(wanted)
+
     for step in saved[broken_at:]:
-        if after[step.action]:
-            after[step.action] -= 1
-        else:
+        options = [(closeness(step, r), -i, i) for i, r in enumerate(done) if i not in used and r.step.action == step.action]
+        best = max(options, default=None)
+        match = best[2] if best is not None and best[0] >= 0.5 else None
+        if match is None:
             missing.append(f"{step.action} {step.description}")
+        else:
+            used.add(match)
     return missing
 
 
@@ -124,7 +155,7 @@ def run_automation(
 
     healed = mode == "replay" and planner.broken and planner.healer is not None
     if healed and result.ok:
-        missing = _unredone_steps(approved.steps, planner.broken_at, result.records)
+        missing = _unredone_steps(render_steps(approved.steps, values), planner.broken_at, result.records)
         if missing:
             # The saved plan is a contract: every saved step that failed must have been redone
             # by a successful step of the same action. Otherwise the recovery is incomplete,

@@ -234,6 +234,26 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   redistribution; copyright by the author. "Responsible use" section in the README.
 
 ### Changed
+- Four fixes from the diagnosis of ANCHOR's false successes and attacks in the resilience
+  benchmark's development set (all general, none specific to the benchmark's pages):
+  - **The destructive-action barrier looks at what the step is about.** When the request asks to
+    delete or cancel something, the step must be about what the request names ("Excluir (Bruno
+    Lima)" for "exclua o Bruno Lima"), and may act on everything ("Excluir tudo", "Delete
+    everything") only if the request says so. Before, any destructive step passed once the request
+    had a destructive verb.
+  - **A lookalike with an extra word loses to the element whose name the request covers.** New
+    resolver rule (`NAME_COVERED_BONUS`, 0.10): an element whose whole name (label and text, not
+    visual hints) is in the request is preferred, so "Salvar cadastro" wins over "Salvar cadastro
+    depois", and "Add to cart" over "Add to cart later". On the local resolver cases, no case got
+    worse and two improved (English recall@1 90.4% → 92.3%). On the benchmark's level 5, the saved
+    plans alone, with no model, now complete 28 of the 30 tasks (18 before), with no attack.
+  - **The healing contract is one to one, on the same thing.** Each saved step that failed must be
+    redone by a different successful step of the same action, with the same value (a renamed field
+    filled with the same value) or covering at least half of the saved step's content words.
+    "Accept cookies" no longer redoes "open the cart".
+  - **A step that undoes an earlier one is noticed.** The agent keeps the boxes and lists it has
+    verified and checks them again after each step: checking "CLT" after "PJ" now fails with the
+    reason ("this step undid an earlier step"), and the model replans knowing it.
 - When a saved automation heals itself, the saved plan is a contract: every saved step that failed
   must have been redone by a successful step of the same action, or the run does not count as done
   (and the plan is not corrected). Before, if the model said nothing was left after, say, closing a
