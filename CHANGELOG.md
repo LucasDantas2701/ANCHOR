@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- The agent records, for each step that worked, the element actually acted on, and the
+  resilience benchmark keeps every run's steps (description, value, status, how the element was
+  chosen, and which element it was); `eval.resilience.run -v` shows them for the runs that need a
+  look. Added to diagnose ANCHOR's false successes and attacks in the first full run of the
+  development set, which happened mostly while healing (a replanned step acting on a lookalike).
 - Resilience benchmark, part 3: **the runs and the report**. `python -m eval.resilience.run` runs
   the traditional script, the LLM in control and ANCHOR on the altered pages, in parts (by
   executor, model and language), judging every run the same way (the task's checks, false

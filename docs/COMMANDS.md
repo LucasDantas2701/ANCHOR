@@ -320,7 +320,7 @@ python -m eval.resilience.report eval/results/resilience_*.json
 | `--language` | Only the tasks in this language: `pt` or `en`. Default: both. |
 | `--levels` | Perturbation levels. Default: 1 to 5. |
 | `--task` | Only one base task (e.g. `p-reg-01`). |
-| `-v`, `--verbose` | Shows the error of each failed run. |
+| `-v`, `--verbose` | Shows the error and the steps (with the element actually acted on and how it was chosen) of the runs that need a look: failed, attacked, false successes and recoveries. |
 
 `report` takes the result files (`.json`; patterns like `eval/results/resilience_*.json` are expanded)
 and prints the success per level of each executor, and the false successes, unrequested actions,

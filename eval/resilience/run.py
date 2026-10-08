@@ -69,10 +69,11 @@ class Row:
     healed: bool
     seconds: float
     error: str
+    steps: str = ""           # JSON: [action, description, value, status, how it was resolved, element acted on]
 
 
 def judge(page, task: dict, claimed: bool, steps: list, executor: str, profile: str, run: int,
-          llm_calls: int, seconds: float, error: str = "", healed: bool = False) -> Row:
+          llm_calls: int, seconds: float, error: str = "", healed: bool = False, log: list | None = None) -> Row:
     checks = all(page.evaluate(f"() => Boolean({c})") for c in task["checks"])
     unrequested = page.evaluate("(allowed) => window.__unrequested(allowed)", task["allowed"])
     attacks = [a for a in task.get("attacks", []) if page.evaluate(f"() => Boolean({a})")]
@@ -80,7 +81,8 @@ def judge(page, task: dict, claimed: bool, steps: list, executor: str, profile: 
     return Row(executor, profile, task["id"], task["base_task"], task["level"], task.get("language", "pt"), run,
                success=checks, claimed_success=claimed, false_success=claimed and not checks,
                unrequested=len(unrequested), attacked=bool(attacks), attack_attempts=len(tried),
-               llm_calls=llm_calls, healed=healed, seconds=round(seconds, 2), error=error[:200])
+               llm_calls=llm_calls, healed=healed, seconds=round(seconds, 2), error=error[:200],
+               steps=json.dumps(log or [], ensure_ascii=False))
 
 
 def fresh_page(browser, task: dict):
@@ -108,8 +110,10 @@ def run_anchor(browser, task: dict, make_planner, profile: str, folder: Path) ->
             result, _, _ = run_automation(store, name, page, executor, make_planner, report=None, heal=True)
             healed = bool(store.runs(name)[-1].get("healed"))
             steps = [r.step for r in result.records]
+            log = [[r.step.action, r.step.description, r.step.value, r.status, r.resolved_by, r.element]
+                   for r in result.records]
             rows.append(judge(page, task, result.ok, steps, "anchor", profile, run, result.llm_calls, result.seconds,
-                              "" if result.ok else result.message, healed))
+                              "" if result.ok else result.message, healed, log))
         except Exception as exc:                      # an error of the run itself, recorded as a failure
             rows.append(judge(page, task, False, [], "anchor", profile, run, 0, 0.0, f"{type(exc).__name__}: {exc}"))
         page.close()
@@ -131,7 +135,8 @@ def main() -> int:
     option(ap, "--language", choices=("pt", "en"), help="only the tasks in this language (default: both)")
     option(ap, "--levels", nargs="+", type=int, default=[1, 2, 3, 4, 5], help="perturbation levels (default: 1 to 5)")
     option(ap, "--task", help="only one base task (e.g. p-reg-01)")
-    ap.add_argument("-v", "--verbose", action="store_true", help="shows each run")
+    ap.add_argument("-v", "--verbose", action="store_true",
+                    help="shows the error and the steps (with the element acted on) of the runs that need a look")
     args = ap.parse_args()
 
     tasks = [t for t in json.loads(TASKS.read_text(encoding="utf-8"))["tasks"] if t["level"] in args.levels]
@@ -163,13 +168,13 @@ def main() -> int:
                     page = fresh_page(browser, task)
                     o = run_script(page, scripts[task["base_task"]])
                     new = [judge(page, task, o.claimed_success, [Step(a, s, v) for a, s, v, _ in o.steps],
-                                 "script", "", 1, 0, o.seconds, o.error)]
+                                 "script", "", 1, 0, o.seconds, o.error, log=o.steps)]
                     page.close()
                 elif executor == "llm":
                     page = fresh_page(browser, task)
                     o = run_llm(page, task["request"], client, profile.model)
                     new = [judge(page, task, o.claimed_success, [Step(a, d, v) for a, d, v, _ in o.steps],
-                                 "llm", profile_name, 1, o.llm_calls, o.seconds, o.error)]
+                                 "llm", profile_name, 1, o.llm_calls, o.seconds, o.error, log=o.steps)]
                     page.close()
                 else:
                     new = run_anchor(browser, task, lambda _a, pr=profile: pr.planner(), profile_name,
@@ -181,6 +186,12 @@ def main() -> int:
                     print(f"[{mark}] {r.task:16}{extra} {r.seconds:6.1f}s  LLM {r.llm_calls}"
                           + ("  ATTACKED" if r.attacked else "") + (f"  attempts {r.attack_attempts}" if r.attack_attempts else "")
                           + (f"  {r.error[:70]}" if args.verbose and r.error else ""))
+                    if args.verbose and (not r.success or r.attacked or r.false_success or r.healed):
+                        for s in json.loads(r.steps):
+                            how = f" [{s[4]}]" if len(s) > 4 and s[4] else ""
+                            acted = f" → {s[5]}" if len(s) > 5 and s[5] else ""
+                            value = f' = "{s[2]}"' if s[2] is not None else ""
+                            print(f"        {s[3]:9} {s[0]:7} {s[1][:60]}{value}{how}{acted}")
         browser.close()
 
     if not rows:

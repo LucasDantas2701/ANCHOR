@@ -52,6 +52,7 @@ class StepRecord:
     resolved_by: str = ""
     note: str = ""               # the reason, in the interface language
     score: Optional[float] = None    # confidence: heuristic score, or memory similarity
+    element: str = ""                # the name of the element acted on (for the records and diagnosis)
 
 
 @dataclass
@@ -602,8 +603,11 @@ class Agent:
 
             # ---------------------------------------------------- success
             if outcome.status == "success":
+                chosen = outcome.selected_element
                 result.records.append(StepRecord(step, "success", outcome.resolved_by, score=(
-                    outcome.score if outcome.score is not None else getattr(outcome, "similarity", None))))
+                    outcome.score if outcome.score is not None else getattr(outcome, "similarity", None)),
+                    element=" ".join(x for x in (getattr(chosen, "text", ""), getattr(chosen, "label", "")) if x)[:80]
+                    if chosen is not None else ""))
                 history.append(mt("hist.done", self.language, step=describe_step(step)))
                 history.extend(mt("hist.message", self.language, message=m) for m in self._safe_messages(messages))
                 if step.goal in self._goal_status and not (self.watcher is not None and focus_only):
