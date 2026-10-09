@@ -40,6 +40,7 @@ from anchor.planner.language import DEFAULT_PROMPT_LANGUAGE, Reason, mt
 from anchor.planner.untrusted import looks_like_instruction, without_instructions
 
 from .effects import EffectWatcher, state_problem
+from .login import password_field, request_has_password, wants_login
 
 # Stems of "pesquisar", "buscar", "procurar", "search", "find", "go": such a click
 # with no button, right after filling in a field, becomes Enter.
@@ -78,7 +79,8 @@ class AgentResult:
     vision_checks: int = 0       # questions asked about screenshots (layer 4)
     vision_confirmed: int = 0    # doubted steps the screenshot confirmed
     vision_seconds: float = 0.0  # time spent on those questions
-    user_wait_seconds: float = 0.0   # time waiting for the user (disambiguation, confirmations), within seconds
+    user_wait_seconds: float = 0.0   # time waiting for the user (disambiguation, confirmations, logins), within seconds
+    logins: int = 0              # times the user logged in by hand when the task needed it
     tokens_in: int = 0
     tokens_out: int = 0
     seconds: float = 0.0
@@ -146,8 +148,15 @@ class Agent:
         report: Optional[Callable[[str], None]] = print,
         vision=None,
         output_dir=None,
+        login=None,
     ):
-        """output_dir: where extracted tables and lists are saved (default: ./output)."""
+        """
+        output_dir: where extracted tables and lists are saved (default: ./output).
+        login: whatever asks the user to log in by hand when the task needs it (e.g.
+               TerminalLoginWaiter). The agent never types a password; without it, a task that
+               needs a login stops.
+        """
+        self.login = login
         from pathlib import Path
         self.output_dir = Path(output_dir) if output_dir is not None else Path("output")
         self.page = page
@@ -159,6 +168,7 @@ class Agent:
         self.max_end_checks = max_end_checks
         self.max_repeats = max_repeats
         self.watcher = EffectWatcher(page) if verify_effect else None
+        executor.refuse_passwords = True     # credentials never go through the model
         # Layer 4: asks a model about screenshots when the other checks doubt a step (see vision.py).
         self.vision = vision if verify_effect else None
         self.language = getattr(planner, "language", DEFAULT_PROMPT_LANGUAGE)
@@ -472,6 +482,31 @@ class Agent:
         return ActionResult(status="success", action="fill", description=step.description,
                             selected_element=target, resolved_by="revealed_field")
 
+    def _wait_login(self, result: AgentResult, history: list[str]) -> Optional[bool]:
+        """
+        Asks the user to log in by hand. None: no one to ask (the caller goes on as before);
+        True: logged in (or the password field was filled in by the user); False: given up.
+        """
+        if self.login is None:
+            return None
+        for attempt in range(3):
+            waited = time.perf_counter()
+            done = self.login.wait(self.page.url)
+            self.executor.user_wait_s = getattr(self.executor, "user_wait_s", 0.0) + time.perf_counter() - waited
+            if not done:
+                return False
+            try:
+                self.page.wait_for_load_state("domcontentloaded", timeout=5000)
+            except Exception:
+                pass
+            field = password_field(self.page)
+            if field is None or field.get("filled"):
+                result.logins += 1
+                history.append(mt("hist.logged_in", self.language))
+                return True
+            self.report(t("login.still"))
+        return False
+
     def _keep_extraction(self, result: AgentResult, step: Step, outcome: ActionResult) -> None:
         """Saves an extracted table or list as CSV, and keeps what was read in the result."""
         if step.action == "extract_text":
@@ -578,12 +613,27 @@ class Agent:
         last_fill = None                    # element of the last "fill", for the Enter
         blocked: set[tuple] = set()         # blocked destructive steps
 
-        try:
-            self.report(t("agent.planning" if self._uses_llm() else "agent.replaying"))
-            queue = list(self._plan(request, history, result).steps)
-        except Exception as exc:  # invalid plan, connection, missing model...
+        # A password in the request would reach the model: refused before anything is sent.
+        if request_has_password(request):
+            return self._finish(result, "failed", t("end.password_in_request"), start)
+        # The request asks to log in, and the page shows a login: the user does it.
+        if wants_login(request) and password_field(self.page) is not None:
+            if self._wait_login(result, history) is False:
+                return self._finish(result, "cancelled", t("end.login_needed"), start)
+
+        queue, plan_error = [], None
+        for _ in range(2):
+            try:
+                self.report(t("agent.planning" if self._uses_llm() else "agent.replaying"))
+                queue, plan_error = list(self._plan(request, history, result).steps), None
+            except Exception as exc:  # invalid plan, connection, missing model...
+                queue, plan_error = [], exc
+            # Nothing can be planned on a page that asks for a login: the task is behind it.
+            if queue or password_field(self.page) is None or self._wait_login(result, history) is not True:
+                break
+        if plan_error is not None:
             result.plan_failed = True
-            return self._finish(result, "failed", t("end.no_plan", error=user_text(exc)), start)
+            return self._finish(result, "failed", t("end.no_plan", error=user_text(plan_error)), start)
 
         if not queue:
             return self._finish(result, "cancelled", t("end.cannot"), start)
@@ -754,6 +804,17 @@ class Agent:
                     if isinstance(queue, AgentResult):
                         return queue
                     after_replan = True
+                continue
+
+            # ---------------------------------------------------- a password field
+            if outcome.status == "credential":
+                result.records.append(StepRecord(step, "credential", outcome.resolved_by))
+                if self._wait_login(result, history) is not True:
+                    return self._finish(result, "cancelled", t("end.login_needed"), start)
+                queue = self._replan(request, history, result, start, t("agent.after_login"))
+                if isinstance(queue, AgentResult):
+                    return queue
+                after_replan = True
                 continue
 
             # ---------------------------------------------------- sensitive action denied

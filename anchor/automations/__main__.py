@@ -29,6 +29,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 from anchor.agent.__main__ import ProgressPlanner, to_url
+from anchor.agent.login import TerminalLoginWaiter
 from anchor.cli import apply_language, language_options, option
 from anchor.engine.action_executor import ActionExecutor
 from anchor.engine.disambiguation import TerminalDisambiguator
@@ -45,6 +46,11 @@ from .runner import run_automation, undo_recovery
 
 
 def cmd_create(store: AutomationStore, args) -> int:
+    from anchor.agent.login import request_has_password
+    if request_has_password(args.request):
+        # The request would be saved to disk and sent to the model: refused.
+        print(t("auto.error", error=t("end.password_in_request")))
+        return 2
     url = to_url(args.url)
     store.create(Automation(name=args.name, request=args.request, url=url, profile=args.profile,
                             browser_profile=args.browser_profile, prompt_language=args.prompt_language))
@@ -111,8 +117,11 @@ def cmd_run(store: AutomationStore, args) -> int:
     outcomes = []
     last_run = ""
     with sync_playwright() as p:
-        if automation.browser_profile:
-            context = p.chromium.launch_persistent_context(automation.browser_profile, headless=False)
+        # Each automation keeps its own browser profile (its folder's browser/), so a login done by
+        # hand once is kept for the next runs; --fresh-browser opens a clean one for this run.
+        profile_dir = automation.browser_profile or (None if args.fresh_browser else str(store.folder(args.name) / "browser"))
+        if profile_dir:
+            context = p.chromium.launch_persistent_context(profile_dir, headless=False)
             page = context.pages[0] if context.pages else context.new_page()
         else:
             context = p.chromium.launch(headless=False).new_context()
@@ -133,7 +142,7 @@ def cmd_run(store: AutomationStore, args) -> int:
                                                       relearn=args.relearn and number == 1,
                                                       heal=not args.no_heal, params=values,
                                                       confirm=None if args.allow_sensitive else TerminalConfirmer(remembers=True),
-                                                      vision=vision)
+                                                      vision=vision, login=TerminalLoginWaiter())
             except (ConfigError, AutomationError) as exc:
                 print(t("auto.error", error=exc))
                 if len(rows) == 1:
@@ -291,6 +300,8 @@ def main(argv=None) -> int:
                      help="if a saved step stops working, stop instead of recovering with the LLM")
     run.add_argument("--vision", action="store_true",
                      help="when the other checks doubt a step, asks the model about a screenshot (slower)")
+    run.add_argument("--fresh-browser", action="store_true",
+                     help="opens a clean browser for this run, without the automation's saved session")
     run.add_argument("--allow-sensitive", action="store_true",
                      help="does not ask before sensitive actions, and does not save decisions")
     values = run.add_mutually_exclusive_group()

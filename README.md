@@ -248,8 +248,8 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
 ```
 
 * `--memory memory/<name>.json` chooses where the choices are remembered (default `memory/agent.json`).
-* `--browser-profile profiles/<name>` uses a persistent browser profile, for systems with login:
-  log in by hand once, and the session stays on your computer.
+* `--browser-profile profiles/<name>` uses a persistent browser profile, so a login done by hand
+  is kept for the next runs (see **Systems with login** below).
 * `--lang pt` shows the messages in Portuguese (or set `ANCHOR_LANG=pt`).
 * `--vision` asks the model about a screenshot when the other checks doubt a step (a field that
   does not show its value, a click with no visible effect in the page's code). It can only confirm
@@ -260,6 +260,20 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
 * `--prompt-language` chooses the planner prompt's language: `pt` (default), `en`, or `auto` (it
   follows the request). Requests can be in English or Portuguese either way: the default
   Portuguese prompt did better than the English one on the English tasks too.
+
+**Systems with login.** ANCHOR never types a password, and credentials never go through the
+model. Do not put them in the request: a request that seems to contain a password is refused
+before anything is sent to the model. When a task needs a login (the request asks to log in, the
+plan reaches a password field, or nothing can be done before logging in), the agent stops and
+asks you to log in in the browser window; press Enter, and it goes on from there:
+
+```sh
+python -m anchor.agent --profile ollama-small --browser-profile profiles/work --url https://example.com/login "Open my last invoice"
+```
+
+With `--browser-profile`, the session is kept on your computer, and the next runs start logged in.
+Saved automations keep their own browser profile in their folder, so you log in once per
+automation (`run --fresh-browser` opens a clean browser for one run).
 
 **Read data from a page.** Ask for a table or a list ("Export the sales by region table") and the
 agent saves it as a CSV file in `output/` (`--output-dir` changes the folder); ask for a single

@@ -16,6 +16,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
+from anchor.agent.login import TerminalLoginWaiter
 from anchor.cli import apply_language, language_options, option, require
 from anchor.engine.action_executor import ActionExecutor
 from anchor.engine.disambiguation import TerminalDisambiguator
@@ -104,7 +105,7 @@ def main() -> int:
             vision = VisionChecker(profile.client(), profile.model)
         try:
             result = Agent(page, planner, executor, max_failures=args.max_attempts, vision=vision,
-                           output_dir=args.output_dir).run(args.request)
+                           output_dir=args.output_dir, login=TerminalLoginWaiter()).run(args.request)
         except KeyboardInterrupt:
             print("\n\n" + t("cli.interrupted"))
             context.close()

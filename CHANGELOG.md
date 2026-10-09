@@ -18,6 +18,20 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Logging in by hand, with no password through the model.** The agent never types a password: a
+  fill that would land on a password field is refused by the executor (`refuse_passwords`, which the
+  agent and `planner --run` turn on). A request that seems to contain a password ("senha: 1234",
+  "password hunter2", a quoted value after the word; not "troque a senha do wifi") is refused before
+  anything is sent to the model, and `automations create` refuses to save one. When a task needs a
+  login (the request asks to log in, the plan reaches a password field, or nothing can be planned on
+  a page that asks for one), the agent asks the user to log in in the browser window and press
+  Enter, then replans from the page it finds; with no one at the terminal, the run stops with "the
+  task needs a login". Pages with a password field that the task does not need (changing a login
+  page's language) are not stopped. The time spent is counted in the wait for the user, and the
+  result counts the logins.
+- **Saved automations keep their own browser profile** (`automations/<name>/browser/`), so a login
+  done by hand once is kept for the next runs; `run --fresh-browser` opens a clean browser for one
+  run, and a `--browser-profile` given at `create` is still used instead.
 - **Reading data from pages.** A new action, `extract_table`, reads a whole table or list and saves it
   as a CSV file (UTF-8; `;` as separator in Portuguese, so Excel opens it in columns, `,` in English),
   never overwriting one. The table or list is found by its caption, `aria-label` or the title before

@@ -101,6 +101,10 @@ class ActionExecutor:
         self.point_timeout_s = point_timeout_s
         self.memory = memory
         self.confirmer = confirmer
+        # When True, filling a password field is refused (status "credential") instead of typed:
+        # the agent turns it on, so credentials never go through the model and the user logs in
+        # by hand. Off by default, for the resolver's evaluation on test pages.
+        self.refuse_passwords = False
         # Time spent waiting for the user (disambiguation and confirmations), kept apart so it
         # does not inflate the measured execution time.
         self.user_wait_s = 0.0
@@ -177,7 +181,10 @@ class ActionExecutor:
 
             if found is not None:
                 remembered, similarity = found
-                denied = self._denied(action_name, description, remembered)
+                # (ActionResult is falsy unless it succeeded: no "or" here.)
+                denied = self._credential(action_name, description, remembered, "memory")
+                if denied is None:
+                    denied = self._denied(action_name, description, remembered)
                 if denied is not None:
                     return denied
                 try:
@@ -248,7 +255,10 @@ class ActionExecutor:
             else None
         )
 
-        denied = self._denied(action_name, description, match, resolved_by)
+        # (ActionResult is falsy unless it succeeded: no "or" here.)
+        denied = self._credential(action_name, description, match, resolved_by)
+        if denied is None:
+            denied = self._denied(action_name, description, match, resolved_by)
         if denied is not None:
             return denied
 
@@ -284,6 +294,14 @@ class ActionExecutor:
     # ------------------------------------------------------------------
     # Sensitive actions
     # ------------------------------------------------------------------
+
+    def _credential(self, action_name: str, description: str, match: Match,
+                    resolved_by: str = "heuristic") -> Optional[ActionResult]:
+        """A fill that would type into a password field, refused (see refuse_passwords)."""
+        if not self.refuse_passwords or action_name != "fill" or (match.type or "").lower() != "password":
+            return None
+        return ActionResult(status="credential", action=action_name, description=description,
+                            selected_element=match, score=match.score, resolved_by=resolved_by)
 
     def _denied(self, action_name: str, description: str, match: Match,
                 resolved_by: str = "memory") -> Optional[ActionResult]:
