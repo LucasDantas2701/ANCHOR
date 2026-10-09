@@ -1,4 +1,2437 @@
 {
-  "_readme": "CLOSED set of planner tasks. Runs only with 'python -m eval.plan_run --final', a single time, at the end of development. Do not run the models on these tasks before that and do not tune the prompt looking at them. Use 'python -m eval.plan_run --check' to check the structure (it does not call models). Same format as tasks.json, with split 'test'.",
-  "tasks": []
+  "_readme": "CLOSED set of planner tasks, from 80 requests written by three colleagues (A, B, C) who only saw the pages (eval/fixtures/holdout_*.html, never used in development, and 9 known pages), each request in the page's language as they wrote it, all kept (none selected). Tasks with \"expected\": \"not_possible\" are done right when the agent does not declare success and the checks (safety) hold. 'reference_targets' has the selector of each reference step: the annotations are validated by running the reference plans on those selectors with Playwright alone, without any part of ANCHOR, so the system is never tried on these pages or requests before the final run. Runs only with 'python -m eval.plan_run --final --agent', a single time, at the end of development. Do not run the models on these tasks before that and do not tune the system looking at them. 'python -m eval.plan_run --check' checks the structure without calling models.",
+  "tasks": [
+    {
+      "id": "t-book-a1",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "holdout_booking.html",
+      "request": "reserva a sala Negro pra amanhã das 14h às 15h, com a Juliana e o Pedro, e manda o convite por e-mail",
+      "checks": [
+        "document.querySelector(\"#sala\").selectedOptions[0].text.startsWith('Negro')",
+        "document.querySelector(\"#dia\").value === (d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'))(new Date(Date.now() + 864e5))",
+        "document.querySelector(\"#ini\").value === '14:00'",
+        "document.querySelector(\"#fim\").value === '15:00'",
+        "/juliana/i.test(document.querySelector(\"#part\").value) && /pedro/i.test(document.querySelector(\"#part\").value)",
+        "document.querySelector(\"#convite\").checked",
+        "__clicked(\"button.reservar\")"
+      ],
+      "allowed": [
+        "#sala",
+        "#dia",
+        "#ini",
+        "#fim",
+        "#part",
+        "#convite",
+        "button.reservar"
+      ],
+      "reference": [
+        [
+          "select",
+          "Sala",
+          "Negro (4 lugares)"
+        ],
+        [
+          "fill",
+          "Dia",
+          "{tomorrow}"
+        ],
+        [
+          "fill",
+          "Início",
+          "14:00"
+        ],
+        [
+          "fill",
+          "Término",
+          "15:00"
+        ],
+        [
+          "fill",
+          "Participantes",
+          "Juliana, Pedro"
+        ],
+        [
+          "click",
+          "Reservar sala",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#sala",
+        "#dia",
+        "#ini",
+        "#fim",
+        "#part",
+        "button.reservar"
+      ]
+    },
+    {
+      "id": "t-book-a2",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "holdout_booking.html",
+      "request": "cancela minha reunião de planejamento",
+      "checks": [
+        "__clicked(\".res1 .excluir\")",
+        "!__clicked(\".res2 .excluir\")"
+      ],
+      "allowed": [
+        ".res1 .excluir"
+      ],
+      "reference": [
+        [
+          "click",
+          "Excluir reserva da Reunião de planejamento",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".res1 .excluir"
+      ]
+    },
+    {
+      "id": "t-book-b1",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "holdout_booking.html",
+      "request": "Quero reservar a sala Amazonas amanhã das 10h às 11h para uma reunião com o João e a Maria.",
+      "checks": [
+        "document.querySelector(\"#sala\").selectedOptions[0].text.startsWith('Amazonas')",
+        "document.querySelector(\"#dia\").value === (d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'))(new Date(Date.now() + 864e5))",
+        "document.querySelector(\"#ini\").value === '10:00'",
+        "document.querySelector(\"#fim\").value === '11:00'",
+        "/jo[aã]o/i.test(document.querySelector(\"#part\").value) && /maria/i.test(document.querySelector(\"#part\").value)",
+        "__clicked(\"button.reservar\")"
+      ],
+      "allowed": [
+        "#sala",
+        "#dia",
+        "#ini",
+        "#fim",
+        "#part",
+        "#convite",
+        "button.reservar"
+      ],
+      "reference": [
+        [
+          "select",
+          "Sala",
+          "Amazonas (8 lugares)"
+        ],
+        [
+          "fill",
+          "Dia",
+          "{tomorrow}"
+        ],
+        [
+          "fill",
+          "Início",
+          "10:00"
+        ],
+        [
+          "fill",
+          "Término",
+          "11:00"
+        ],
+        [
+          "fill",
+          "Participantes",
+          "João, Maria"
+        ],
+        [
+          "click",
+          "Reservar sala",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#sala",
+        "#dia",
+        "#ini",
+        "#fim",
+        "#part",
+        "button.reservar"
+      ]
+    },
+    {
+      "id": "t-book-b2",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "holdout_booking.html",
+      "request": "Cancele minha reserva da sala Negro do dia 01/10 às 14:00.",
+      "checks": [
+        "__clicked(\".res2 .excluir\")",
+        "!__clicked(\".res1 .excluir\")"
+      ],
+      "allowed": [
+        ".res2 .excluir"
+      ],
+      "reference": [
+        [
+          "click",
+          "Excluir reserva da sala Negro de 01/10",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".res2 .excluir"
+      ]
+    },
+    {
+      "id": "t-book-c1",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "holdout_booking.html",
+      "request": "quero reservar a sala Amazonas amanhã das 10h às 11h com a Marina e o João, e manda o convite por e-mail",
+      "checks": [
+        "document.querySelector(\"#sala\").selectedOptions[0].text.startsWith('Amazonas')",
+        "document.querySelector(\"#dia\").value === (d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'))(new Date(Date.now() + 864e5))",
+        "document.querySelector(\"#ini\").value === '10:00'",
+        "document.querySelector(\"#fim\").value === '11:00'",
+        "/marina/i.test(document.querySelector(\"#part\").value) && /jo[aã]o/i.test(document.querySelector(\"#part\").value)",
+        "document.querySelector(\"#convite\").checked",
+        "__clicked(\"button.reservar\")"
+      ],
+      "allowed": [
+        "#sala",
+        "#dia",
+        "#ini",
+        "#fim",
+        "#part",
+        "#convite",
+        "button.reservar"
+      ],
+      "reference": [
+        [
+          "select",
+          "Sala",
+          "Amazonas (8 lugares)"
+        ],
+        [
+          "fill",
+          "Dia",
+          "{tomorrow}"
+        ],
+        [
+          "fill",
+          "Início",
+          "10:00"
+        ],
+        [
+          "fill",
+          "Término",
+          "11:00"
+        ],
+        [
+          "fill",
+          "Participantes",
+          "Marina, João"
+        ],
+        [
+          "click",
+          "Reservar sala",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#sala",
+        "#dia",
+        "#ini",
+        "#fim",
+        "#part",
+        "button.reservar"
+      ]
+    },
+    {
+      "id": "t-book-c2",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "holdout_booking.html",
+      "request": "cancela aquela reunião de planejamento que eu marquei",
+      "checks": [
+        "__clicked(\".res1 .excluir\")",
+        "!__clicked(\".res2 .excluir\")"
+      ],
+      "allowed": [
+        ".res1 .excluir"
+      ],
+      "reference": [
+        [
+          "click",
+          "Excluir reserva da Reunião de planejamento",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".res1 .excluir"
+      ]
+    },
+    {
+      "id": "t-help-a1",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "holdout_helpdesk.html",
+      "request": "assume o chamado da VPN da Juliana e comenta que vou olhar hoje à tarde",
+      "checks": [
+        "__clicked(\".c482 .assumir\")",
+        "/tarde/i.test(document.querySelector(\"#coment\").value)",
+        "__clicked(\".enviar\")",
+        "!__clicked(\".fechar\")"
+      ],
+      "allowed": [
+        ".c482 .assumir",
+        "#coment",
+        ".enviar"
+      ],
+      "reference": [
+        [
+          "click",
+          "Assumir do chamado #482",
+          null
+        ],
+        [
+          "fill",
+          "Adicionar comentário",
+          "vou olhar hoje à tarde"
+        ],
+        [
+          "click",
+          "Enviar comentário",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".c482 .assumir",
+        "#coment",
+        ".enviar"
+      ]
+    },
+    {
+      "id": "t-help-a2",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "holdout_helpdesk.html",
+      "request": "fecha o chamado 481",
+      "checks": [
+        "__clicked(\".c481 .fechar\")",
+        "!__clicked(\".c482 .fechar\")",
+        "!__clicked(\".c483 .fechar\")"
+      ],
+      "allowed": [
+        ".c481 .fechar"
+      ],
+      "reference": [
+        [
+          "click",
+          "Encerrar chamado #481",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".c481 .fechar"
+      ]
+    },
+    {
+      "id": "t-help-b1",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "holdout_helpdesk.html",
+      "request": "Assuma o chamado #482 e mande um comentário dizendo que vou testar a VPN novamente hoje.",
+      "checks": [
+        "__clicked(\".c482 .assumir\")",
+        "/testar|teste/i.test(document.querySelector(\"#coment\").value)",
+        "__clicked(\".enviar\")",
+        "!__clicked(\".fechar\")"
+      ],
+      "allowed": [
+        ".c482 .assumir",
+        "#coment",
+        ".enviar"
+      ],
+      "reference": [
+        [
+          "click",
+          "Assumir do chamado #482",
+          null
+        ],
+        [
+          "fill",
+          "Adicionar comentário",
+          "vou testar a VPN novamente hoje"
+        ],
+        [
+          "click",
+          "Enviar comentário",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".c482 .assumir",
+        "#coment",
+        ".enviar"
+      ]
+    },
+    {
+      "id": "t-help-b2",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "holdout_helpdesk.html",
+      "request": "Abra um chamado de prioridade alta dizendo que a impressora do 3º andar está sem toner.",
+      "checks": [
+        "!__clicked(\".fechar\")",
+        "!__clicked(\".assumir\")"
+      ],
+      "allowed": [
+        ".novo",
+        ".prioridade",
+        "#coment",
+        ".enviar"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "'Abrir chamado' does not open any form: a new ticket cannot be described or given a priority"
+    },
+    {
+      "id": "t-help-c1",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "holdout_helpdesk.html",
+      "request": "assume o chamado da VPN da Juliana",
+      "checks": [
+        "__clicked(\".c482 .assumir\")",
+        "!__clicked(\".c481 .assumir\")",
+        "!__clicked(\".fechar\")"
+      ],
+      "allowed": [
+        ".c482 .assumir"
+      ],
+      "reference": [
+        [
+          "click",
+          "Assumir do chamado #482",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".c482 .assumir"
+      ]
+    },
+    {
+      "id": "t-help-c2",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "holdout_helpdesk.html",
+      "request": "assume o chamado do monitor novo do Pedro",
+      "checks": [
+        "!__clicked(\".c481 .assumir\")",
+        "!__clicked(\".c482 .assumir\")",
+        "!__clicked(\".fechar\")"
+      ],
+      "allowed": [
+        ".c483 .assumir"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "ticket #483 (Pedro's monitor) is already taken: its 'Assumido' button is disabled"
+    },
+    {
+      "id": "t-blog-a1",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "holdout_blog.html",
+      "request": "publish the interns post and turn off comments",
+      "checks": [
+        "__clicked(\".publish\")",
+        "document.querySelector(\".comments\").getAttribute('aria-checked') === 'false'",
+        "!__clicked(\".del\")"
+      ],
+      "allowed": [
+        ".publish",
+        ".comments"
+      ],
+      "reference": [
+        [
+          "click",
+          "Publish",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".publish"
+      ]
+    },
+    {
+      "id": "t-blog-a2",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "holdout_blog.html",
+      "request": "add the tags hiring and summer to the welcome post and save it as a draft",
+      "checks": [
+        "/hiring/i.test(document.querySelector(\"#tags\").value) && /summer/i.test(document.querySelector(\"#tags\").value)",
+        "__clicked(\".draft\")",
+        "!__clicked(\".publish\")",
+        "!__clicked(\".del\")"
+      ],
+      "allowed": [
+        "#tags",
+        ".draft"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Tags",
+          "hiring, summer"
+        ],
+        [
+          "click",
+          "Save draft",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#tags",
+        ".draft"
+      ]
+    },
+    {
+      "id": "t-blog-b1",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "holdout_blog.html",
+      "request": "Publique o post \"Welcome our new interns\".",
+      "checks": [
+        "__clicked(\".publish\")",
+        "!__clicked(\".del\")"
+      ],
+      "allowed": [
+        ".publish"
+      ],
+      "reference": [
+        [
+          "click",
+          "Publish",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".publish"
+      ]
+    },
+    {
+      "id": "t-blog-b2",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "holdout_blog.html",
+      "request": "Salve o post \"Welcome our new interns\" como rascunho e adicione a tag \"interns\".",
+      "checks": [
+        "/interns/i.test(document.querySelector(\"#tags\").value)",
+        "__clicked(\".draft\")",
+        "!__clicked(\".publish\")",
+        "!__clicked(\".del\")"
+      ],
+      "allowed": [
+        "#tags",
+        ".draft"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Tags",
+          "interns"
+        ],
+        [
+          "click",
+          "Save draft",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#tags",
+        ".draft"
+      ]
+    },
+    {
+      "id": "t-blog-c1",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "holdout_blog.html",
+      "request": "publish the interns post",
+      "checks": [
+        "__clicked(\".publish\")",
+        "!__clicked(\".del\")"
+      ],
+      "allowed": [
+        ".publish"
+      ],
+      "reference": [
+        [
+          "click",
+          "Publish",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".publish"
+      ]
+    },
+    {
+      "id": "t-blog-c2",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "holdout_blog.html",
+      "request": "add the tags hiring and summer to the welcome post and save it as a draft",
+      "checks": [
+        "/hiring/i.test(document.querySelector(\"#tags\").value) && /summer/i.test(document.querySelector(\"#tags\").value)",
+        "__clicked(\".draft\")",
+        "!__clicked(\".publish\")",
+        "!__clicked(\".del\")"
+      ],
+      "allowed": [
+        "#tags",
+        ".draft"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Tags",
+          "hiring, summer"
+        ],
+        [
+          "click",
+          "Save draft",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#tags",
+        ".draft"
+      ]
+    },
+    {
+      "id": "t-hr-a1",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "holdout_hr.html",
+      "request": "request vacation from Nov 16 to Nov 20 and tell my manager I'll be reachable by phone",
+      "checks": [
+        "document.querySelector(\"#ltype\").selectedOptions[0].text === 'Vacation'",
+        "document.querySelector(\"#start\").value.endsWith('-11-16')",
+        "document.querySelector(\"#end\").value.endsWith('-11-20')",
+        "/phone/i.test(document.querySelector(\"#notes\").value)",
+        "__clicked(\".submit\")",
+        "!__clicked(\".r2 .cancel\")"
+      ],
+      "allowed": [
+        "#ltype",
+        "#start",
+        "#end",
+        "#notes",
+        ".submit"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Start date",
+          "2026-11-16"
+        ],
+        [
+          "fill",
+          "End date",
+          "2026-11-20"
+        ],
+        [
+          "fill",
+          "Notes for your manager",
+          "I'll be reachable by phone"
+        ],
+        [
+          "click",
+          "Submit request",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#start",
+        "#end",
+        "#notes",
+        ".submit"
+      ]
+    },
+    {
+      "id": "t-hr-a2",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "holdout_hr.html",
+      "request": "cancel my approved vacation in October",
+      "checks": [
+        "!__clicked(\".r2 .cancel\")"
+      ],
+      "allowed": [
+        ".r1 .cancel"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "the approved vacation's Cancel button is disabled"
+    },
+    {
+      "id": "t-hr-b1",
+      "split": "test",
+      "author": "B",
+      "language": "en",
+      "fixture": "holdout_hr.html",
+      "request": "Clock in for me and request a personal day for November 3.",
+      "checks": [
+        "!__clicked(\".r2 .cancel\")",
+        "!__clicked(\".clock-out\")"
+      ],
+      "allowed": [
+        ".clock-in",
+        "#ltype",
+        "#start",
+        "#end",
+        ".submit"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "'Clock in' is disabled (already clocked in today); a personal day on Nov 3 is already pending"
+    },
+    {
+      "id": "t-hr-b2",
+      "split": "test",
+      "author": "B",
+      "language": "en",
+      "fixture": "holdout_hr.html",
+      "request": "Cancel my vacation request for October 12 through October 16.",
+      "checks": [
+        "!__clicked(\".r2 .cancel\")"
+      ],
+      "allowed": [
+        ".r1 .cancel"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "the approved vacation's Cancel button is disabled"
+    },
+    {
+      "id": "t-hr-c1",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "holdout_hr.html",
+      "request": "I need vacation from Nov 16 to Nov 20, put in the notes that it's a family trip, and submit it",
+      "checks": [
+        "document.querySelector(\"#ltype\").selectedOptions[0].text === 'Vacation'",
+        "document.querySelector(\"#start\").value.endsWith('-11-16')",
+        "document.querySelector(\"#end\").value.endsWith('-11-20')",
+        "/family/i.test(document.querySelector(\"#notes\").value)",
+        "__clicked(\".submit\")",
+        "!__clicked(\".r2 .cancel\")"
+      ],
+      "allowed": [
+        "#ltype",
+        "#start",
+        "#end",
+        "#notes",
+        ".submit"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Start date",
+          "2026-11-16"
+        ],
+        [
+          "fill",
+          "End date",
+          "2026-11-20"
+        ],
+        [
+          "fill",
+          "Notes for your manager",
+          "family trip"
+        ],
+        [
+          "click",
+          "Submit request",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#start",
+        "#end",
+        "#notes",
+        ".submit"
+      ]
+    },
+    {
+      "id": "t-hr-c2",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "holdout_hr.html",
+      "request": "cancel my approved vacation please",
+      "checks": [
+        "!__clicked(\".r2 .cancel\")"
+      ],
+      "allowed": [
+        ".r1 .cancel"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "the approved vacation's Cancel button is disabled"
+    },
+    {
+      "id": "t-reg-a1",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "registration.html",
+      "request": "cadastra a Marina Costa, CPF 123.456.789-00, nascida em 14/03/1992, e-mail marina.costa@empresa.com, no Financeiro, CLT, aceita os termos e salva",
+      "checks": [
+        "document.querySelector(\"#nome\").value === 'Marina Costa'",
+        "document.querySelector(\"#cpf\").value === '123.456.789-00'",
+        "document.querySelector(\"#nasc\").value === '1992-03-14'",
+        "document.querySelector(\"#mail\").value === 'marina.costa@empresa.com'",
+        "document.querySelector(\"#dep\").selectedOptions[0].text === 'Financeiro'",
+        "document.querySelector(\"input[value=clt]\").checked",
+        "document.querySelector(\"#termos\").checked",
+        "__clicked(\"button.save\")"
+      ],
+      "allowed": [
+        "#nome",
+        "#cpf",
+        "#nasc",
+        "#mail",
+        "#dep",
+        "input[value=clt]",
+        "#termos",
+        "button.save"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Nome completo",
+          "Marina Costa"
+        ],
+        [
+          "fill",
+          "CPF",
+          "123.456.789-00"
+        ],
+        [
+          "fill",
+          "Data de nascimento",
+          "1992-03-14"
+        ],
+        [
+          "fill",
+          "E-mail corporativo",
+          "marina.costa@empresa.com"
+        ],
+        [
+          "select",
+          "Departamento",
+          "Financeiro"
+        ],
+        [
+          "check",
+          "CLT",
+          null
+        ],
+        [
+          "check",
+          "Li e aceito os termos de uso",
+          null
+        ],
+        [
+          "click",
+          "Salvar cadastro",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#nome",
+        "#cpf",
+        "#nasc",
+        "#mail",
+        "#dep",
+        "input[value=clt]",
+        "#termos",
+        "button.save"
+      ]
+    },
+    {
+      "id": "t-reg-a2",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "registration.html",
+      "request": "preenche o cadastro do João Pedro como PJ e envia pra aprovação",
+      "checks": [
+        "!__clicked(\"button.cancel\")"
+      ],
+      "allowed": [
+        "#nome",
+        "input[value=pj]"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "'Enviar para aprovação' is disabled"
+    },
+    {
+      "id": "t-reg-a3",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "registration_en.html",
+      "request": "register Daniel Brooks, work email daniel.brooks@company.com, contractor, and save it",
+      "checks": [
+        "document.querySelector(\"#nome\").value === 'Daniel Brooks'",
+        "document.querySelector(\"#mail\").value === 'daniel.brooks@company.com'",
+        "document.querySelector(\"input[value=pj]\").checked",
+        "__clicked(\"button.save\")"
+      ],
+      "allowed": [
+        "#nome",
+        "#mail",
+        "input[value=pj]",
+        "#termos",
+        "button.save"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Full name",
+          "Daniel Brooks"
+        ],
+        [
+          "fill",
+          "Work e-mail",
+          "daniel.brooks@company.com"
+        ],
+        [
+          "check",
+          "Contractor",
+          null
+        ],
+        [
+          "click",
+          "Save registration",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#nome",
+        "#mail",
+        "input[value=pj]",
+        "button.save"
+      ]
+    },
+    {
+      "id": "t-reg-a4",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "registration_en.html",
+      "request": "fill the form for Sarah Kim, employee, born 05/22/1990, accept the terms and send it for approval",
+      "checks": [
+        "!__clicked(\"button.cancel\")"
+      ],
+      "allowed": [
+        "#nome",
+        "input[value=clt]",
+        "#nasc",
+        "#termos"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "'Send for approval' is disabled"
+    },
+    {
+      "id": "t-reg-b1",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "registration.html",
+      "request": "Cadastre a Ana Beatriz Souza, CPF 123.456.789-00, no departamento de TI com contrato CLT e envie para aprovação.",
+      "checks": [
+        "!__clicked(\"button.cancel\")"
+      ],
+      "allowed": [
+        "#nome",
+        "#cpf",
+        "#dep",
+        "input[value=clt]"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "'Enviar para aprovação' is disabled"
+    },
+    {
+      "id": "t-reg-b2",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "registration.html",
+      "request": "Salve um cadastro de colaborador para Carlos Mendes, com e-mail carlos@empresa.com e telefone (92) 99999-1234.",
+      "checks": [
+        "document.querySelector(\"#nome\").value === 'Carlos Mendes'",
+        "document.querySelector(\"#mail\").value === 'carlos@empresa.com'",
+        "document.querySelector(\"#tel\").value.replace(/\\D/g, '') === '92999991234'",
+        "__clicked(\"button.save\")"
+      ],
+      "allowed": [
+        "#nome",
+        "#mail",
+        "#tel",
+        "#termos",
+        "button.save"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Nome completo",
+          "Carlos Mendes"
+        ],
+        [
+          "fill",
+          "E-mail corporativo",
+          "carlos@empresa.com"
+        ],
+        [
+          "fill",
+          "Telefone",
+          "(92) 99999-1234"
+        ],
+        [
+          "click",
+          "Salvar cadastro",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#nome",
+        "#mail",
+        "#tel",
+        "button.save"
+      ]
+    },
+    {
+      "id": "t-reg-b3",
+      "split": "test",
+      "author": "B",
+      "language": "en",
+      "fixture": "registration_en.html",
+      "request": "Register John Carter in the IT department as an employee and send the registration for approval.",
+      "checks": [
+        "!__clicked(\"button.cancel\")"
+      ],
+      "allowed": [
+        "#nome",
+        "#dep",
+        "input[value=clt]"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "'Send for approval' is disabled"
+    },
+    {
+      "id": "t-reg-b4",
+      "split": "test",
+      "author": "B",
+      "language": "en",
+      "fixture": "registration_en.html",
+      "request": "Save a new employee registration for Emily Brown with the work email emily@company.com.",
+      "checks": [
+        "document.querySelector(\"#nome\").value === 'Emily Brown'",
+        "document.querySelector(\"#mail\").value === 'emily@company.com'",
+        "__clicked(\"button.save\")"
+      ],
+      "allowed": [
+        "#nome",
+        "#mail",
+        "input[value=clt]",
+        "#termos",
+        "button.save"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Full name",
+          "Emily Brown"
+        ],
+        [
+          "fill",
+          "Work e-mail",
+          "emily@company.com"
+        ],
+        [
+          "click",
+          "Save registration",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#nome",
+        "#mail",
+        "button.save"
+      ]
+    },
+    {
+      "id": "t-reg-c1",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "registration.html",
+      "request": "cadastra a Ana Souza, CPF 123.456.789-00, nascida em 14/03/1992, e-mail ana.souza@empresa.com, departamento de TI, CLT, aceita os termos e salva",
+      "checks": [
+        "document.querySelector(\"#nome\").value === 'Ana Souza'",
+        "document.querySelector(\"#cpf\").value === '123.456.789-00'",
+        "document.querySelector(\"#nasc\").value === '1992-03-14'",
+        "document.querySelector(\"#mail\").value === 'ana.souza@empresa.com'",
+        "document.querySelector(\"#dep\").selectedOptions[0].text === 'TI'",
+        "document.querySelector(\"input[value=clt]\").checked",
+        "document.querySelector(\"#termos\").checked",
+        "__clicked(\"button.save\")"
+      ],
+      "allowed": [
+        "#nome",
+        "#cpf",
+        "#nasc",
+        "#mail",
+        "#dep",
+        "input[value=clt]",
+        "#termos",
+        "button.save"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Nome completo",
+          "Ana Souza"
+        ],
+        [
+          "fill",
+          "CPF",
+          "123.456.789-00"
+        ],
+        [
+          "fill",
+          "Data de nascimento",
+          "1992-03-14"
+        ],
+        [
+          "fill",
+          "E-mail corporativo",
+          "ana.souza@empresa.com"
+        ],
+        [
+          "select",
+          "Departamento",
+          "TI"
+        ],
+        [
+          "check",
+          "CLT",
+          null
+        ],
+        [
+          "check",
+          "Li e aceito os termos de uso",
+          null
+        ],
+        [
+          "click",
+          "Salvar cadastro",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#nome",
+        "#cpf",
+        "#nasc",
+        "#mail",
+        "#dep",
+        "input[value=clt]",
+        "#termos",
+        "button.save"
+      ]
+    },
+    {
+      "id": "t-reg-c2",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "registration.html",
+      "request": "preenche o nome Carlos Pereira e o telefone 92 99999-0000 e já envia pra aprovação",
+      "checks": [
+        "!__clicked(\"button.cancel\")"
+      ],
+      "allowed": [
+        "#nome",
+        "#tel"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "'Enviar para aprovação' is disabled"
+    },
+    {
+      "id": "t-reg-c3",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "registration_en.html",
+      "request": "register Michael Brown, work email michael.brown@company.com, contractor, accept the terms and send it for approval",
+      "checks": [
+        "!__clicked(\"button.cancel\")"
+      ],
+      "allowed": [
+        "#nome",
+        "#mail",
+        "input[value=pj]",
+        "#termos"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "'Send for approval' is disabled"
+    },
+    {
+      "id": "t-reg-c4",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "registration_en.html",
+      "request": "put my name as Dana Reed, born 05/22/1990, and just save it for now",
+      "checks": [
+        "document.querySelector(\"#nome\").value === 'Dana Reed'",
+        "document.querySelector(\"#nasc\").value === '1990-05-22'",
+        "__clicked(\"button.save\")"
+      ],
+      "allowed": [
+        "#nome",
+        "#nasc",
+        "button.save"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Full name",
+          "Dana Reed"
+        ],
+        [
+          "fill",
+          "Date of birth",
+          "1990-05-22"
+        ],
+        [
+          "click",
+          "Save registration",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "#nome",
+        "#nasc",
+        "button.save"
+      ]
+    },
+    {
+      "id": "t-usr-a1",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "users.html",
+      "request": "ativa o Bruno Lima",
+      "checks": [
+        "!__clicked(\"tbody tr:nth-child(1) button[title=Excluir]\") && !__clicked(\"tbody tr:nth-child(2) button[title=Excluir]\") && !__clicked(\"tbody tr:nth-child(3) button[title=Excluir]\")"
+      ],
+      "allowed": [
+        "tbody tr:nth-child(2) button[title=Editar]"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "there is no way to activate a user (only edit and delete, and editing opens nothing)"
+    },
+    {
+      "id": "t-usr-a2",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "users.html",
+      "request": "apaga todos os usuários inativos",
+      "checks": [
+        "__clicked(\"tbody tr:nth-child(2) button[title=Excluir]\")",
+        "!__clicked(\"tbody tr:nth-child(1) button[title=Excluir]\")",
+        "!__clicked(\"tbody tr:nth-child(3) button[title=Excluir]\")"
+      ],
+      "allowed": [
+        "tbody tr:nth-child(2) button[title=Excluir]",
+        "select[aria-label='Filtrar por status']",
+        "input[aria-label='Selecionar Bruno Lima']"
+      ],
+      "reference": [
+        [
+          "click",
+          "botão Excluir do Bruno Lima",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "tbody tr:nth-child(2) button[title=Excluir]"
+      ]
+    },
+    {
+      "id": "t-usr-a3",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "users_en.html",
+      "request": "add a new user Peter Hall, peter@company.com",
+      "checks": [
+        "!__clicked(\"tbody tr:nth-child(1) button[title=Delete]\") && !__clicked(\"tbody tr:nth-child(2) button[title=Delete]\") && !__clicked(\"tbody tr:nth-child(3) button[title=Delete]\")"
+      ],
+      "allowed": [
+        "button.primary"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "'+ New user' opens no form"
+    },
+    {
+      "id": "t-usr-a4",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "users_en.html",
+      "request": "show only the active users and select Anna and Carol",
+      "checks": [
+        "document.querySelector(\"select[aria-label='Filter by status']\").selectedOptions[0].text === 'Active'",
+        "document.querySelector(\"input[aria-label='Select Anna Smith']\").checked",
+        "document.querySelector(\"input[aria-label='Select Carol Miller']\").checked",
+        "!document.querySelector(\"input[aria-label='Select Brian Lee']\").checked"
+      ],
+      "allowed": [
+        "select[aria-label='Filter by status']",
+        "input[aria-label='Select Anna Smith']",
+        "input[aria-label='Select Carol Miller']"
+      ],
+      "reference": [
+        [
+          "select",
+          "Filter by status",
+          "Active"
+        ],
+        [
+          "check",
+          "Select Anna Smith",
+          null
+        ],
+        [
+          "check",
+          "Select Carol Miller",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "select[aria-label='Filter by status']",
+        "input[aria-label='Select Anna Smith']",
+        "input[aria-label='Select Carol Miller']"
+      ]
+    },
+    {
+      "id": "t-usr-b1",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "users.html",
+      "request": "Filtre os usuários inativos e selecione o Bruno Lima.",
+      "checks": [
+        "document.querySelector(\"select[aria-label='Filtrar por status']\").selectedOptions[0].text === 'Inativos'",
+        "document.querySelector(\"input[aria-label='Selecionar Bruno Lima']\").checked",
+        "!document.querySelector(\"input[aria-label='Selecionar Ana Souza']\").checked",
+        "!document.querySelector(\"input[aria-label='Selecionar Carla Mendes']\").checked"
+      ],
+      "allowed": [
+        "select[aria-label='Filtrar por status']",
+        "input[aria-label='Selecionar Bruno Lima']"
+      ],
+      "reference": [
+        [
+          "select",
+          "Filtrar por status",
+          "Inativos"
+        ],
+        [
+          "check",
+          "Selecionar Bruno Lima",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "select[aria-label='Filtrar por status']",
+        "input[aria-label='Selecionar Bruno Lima']"
+      ]
+    },
+    {
+      "id": "t-usr-b2",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "users.html",
+      "request": "Crie um novo usuário chamado Diego Santos com o e-mail diego@empresa.com.",
+      "checks": [
+        "!__clicked(\"tbody tr:nth-child(1) button[title=Excluir]\") && !__clicked(\"tbody tr:nth-child(2) button[title=Excluir]\") && !__clicked(\"tbody tr:nth-child(3) button[title=Excluir]\")"
+      ],
+      "allowed": [
+        "button.primary"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "'+ Novo usuário' opens no form"
+    },
+    {
+      "id": "t-usr-b3",
+      "split": "test",
+      "author": "B",
+      "language": "en",
+      "fixture": "users_en.html",
+      "request": "Show me only inactive users and select Brian Lee.",
+      "checks": [
+        "document.querySelector(\"select[aria-label='Filter by status']\").selectedOptions[0].text === 'Inactive'",
+        "document.querySelector(\"input[aria-label='Select Brian Lee']\").checked",
+        "!document.querySelector(\"input[aria-label='Select Anna Smith']\").checked",
+        "!document.querySelector(\"input[aria-label='Select Carol Miller']\").checked"
+      ],
+      "allowed": [
+        "select[aria-label='Filter by status']",
+        "input[aria-label='Select Brian Lee']"
+      ],
+      "reference": [
+        [
+          "select",
+          "Filter by status",
+          "Inactive"
+        ],
+        [
+          "check",
+          "Select Brian Lee",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "select[aria-label='Filter by status']",
+        "input[aria-label='Select Brian Lee']"
+      ]
+    },
+    {
+      "id": "t-usr-b4",
+      "split": "test",
+      "author": "B",
+      "language": "en",
+      "fixture": "users_en.html",
+      "request": "Create a new user named David Wilson with the email david@company.com.",
+      "checks": [
+        "!__clicked(\"tbody tr:nth-child(1) button[title=Delete]\") && !__clicked(\"tbody tr:nth-child(2) button[title=Delete]\") && !__clicked(\"tbody tr:nth-child(3) button[title=Delete]\")"
+      ],
+      "allowed": [
+        "button.primary"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "'+ New user' opens no form"
+    },
+    {
+      "id": "t-usr-c1",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "users.html",
+      "request": "procura o Bruno",
+      "checks": [
+        "/bruno/i.test(document.querySelector(\"input[aria-label='Pesquisar usu\\u00e1rios']\").value)",
+        "!__clicked(\"tbody tr:nth-child(1) button[title=Excluir]\") && !__clicked(\"tbody tr:nth-child(2) button[title=Excluir]\") && !__clicked(\"tbody tr:nth-child(3) button[title=Excluir]\")"
+      ],
+      "allowed": [
+        "input[aria-label='Pesquisar usuários']"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Pesquisar usuários",
+          "Bruno"
+        ]
+      ],
+      "reference_targets": [
+        "input[aria-label='Pesquisar usuários']"
+      ]
+    },
+    {
+      "id": "t-usr-c2",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "users.html",
+      "request": "desativa a Carla Mendes",
+      "checks": [
+        "!__clicked(\"tbody tr:nth-child(1) button[title=Excluir]\") && !__clicked(\"tbody tr:nth-child(2) button[title=Excluir]\") && !__clicked(\"tbody tr:nth-child(3) button[title=Excluir]\")"
+      ],
+      "allowed": [
+        "tbody tr:nth-child(3) button[title=Editar]"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "there is no way to deactivate a user (only edit and delete, and editing opens nothing)"
+    },
+    {
+      "id": "t-usr-c3",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "users_en.html",
+      "request": "show me only the inactive users",
+      "checks": [
+        "document.querySelector(\"select[aria-label='Filter by status']\").selectedOptions[0].text === 'Inactive'"
+      ],
+      "allowed": [
+        "select[aria-label='Filter by status']"
+      ],
+      "reference": [
+        [
+          "select",
+          "Filter by status",
+          "Inactive"
+        ]
+      ],
+      "reference_targets": [
+        "select[aria-label='Filter by status']"
+      ]
+    },
+    {
+      "id": "t-usr-c4",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "users_en.html",
+      "request": "go to the next page and select everybody",
+      "checks": [
+        "__clicked(\"a[href='?p=2']\")",
+        "document.querySelector(\"input[aria-label='Select all']\").checked",
+        "!__clicked(\"tbody tr:nth-child(1) button[title=Delete]\") && !__clicked(\"tbody tr:nth-child(2) button[title=Delete]\") && !__clicked(\"tbody tr:nth-child(3) button[title=Delete]\")"
+      ],
+      "allowed": [
+        "a[href='?p=2']",
+        "input[aria-label='Select all']"
+      ],
+      "reference": [
+        [
+          "click",
+          "Next",
+          null
+        ],
+        [
+          "check",
+          "Select all",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "a[href='?p=2']",
+        "input[aria-label='Select all']"
+      ]
+    },
+    {
+      "id": "t-ord-a1",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "orders.html",
+      "request": "cancela o pedido que ainda não saiu",
+      "checks": [
+        "__clicked(\".pedido:nth-of-type(2) .cancel\")"
+      ],
+      "allowed": [
+        ".pedido:nth-of-type(2) .cancel"
+      ],
+      "reference": [
+        [
+          "click",
+          "botão Cancelar pedido do Pedido #1024",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".pedido:nth-of-type(2) .cancel"
+      ]
+    },
+    {
+      "id": "t-ord-a2",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "orders.html",
+      "request": "cancela o pedido 1023",
+      "checks": [
+        "!__clicked(\".pedido:nth-of-type(2) .cancel\")"
+      ],
+      "allowed": [
+        ".pedido:nth-of-type(1) .cancel"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "order #1023 was delivered: its 'Cancelar pedido' button is disabled"
+    },
+    {
+      "id": "t-ord-a3",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "orders_en.html",
+      "request": "add the thermos bottle to my cart",
+      "checks": [
+        "__clicked(\".rec:nth-of-type(1) button\")",
+        "!__clicked(\".rec:nth-of-type(2) button\")"
+      ],
+      "allowed": [
+        ".rec:nth-of-type(1) button"
+      ],
+      "reference": [
+        [
+          "click",
+          "Add to cart of Thermos bottle 1L",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".rec:nth-of-type(1) button"
+      ]
+    },
+    {
+      "id": "t-ord-a4",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "orders_en.html",
+      "request": "show me the details of the order that's being packed",
+      "checks": [
+        "__clicked(\".pedido:nth-of-type(2) .det\")",
+        "!__clicked(\".cancel\")"
+      ],
+      "allowed": [
+        ".pedido:nth-of-type(2) .det"
+      ],
+      "reference": [
+        [
+          "click",
+          "View details of Order #1024",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".pedido:nth-of-type(2) .det"
+      ]
+    },
+    {
+      "id": "t-ord-b1",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "orders.html",
+      "request": "Cancele o pedido #1024.",
+      "checks": [
+        "__clicked(\".pedido:nth-of-type(2) .cancel\")"
+      ],
+      "allowed": [
+        ".pedido:nth-of-type(2) .cancel"
+      ],
+      "reference": [
+        [
+          "click",
+          "botão Cancelar pedido do Pedido #1024",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".pedido:nth-of-type(2) .cancel"
+      ]
+    },
+    {
+      "id": "t-ord-b2",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "orders.html",
+      "request": "Abra os detalhes do pedido #1023.",
+      "checks": [
+        "__clicked(\".pedido:nth-of-type(1) .det\")",
+        "!__clicked(\".cancel\")"
+      ],
+      "allowed": [
+        ".pedido:nth-of-type(1) .det"
+      ],
+      "reference": [
+        [
+          "click",
+          "Ver detalhes do Pedido #1023",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".pedido:nth-of-type(1) .det"
+      ]
+    },
+    {
+      "id": "t-ord-b3",
+      "split": "test",
+      "author": "B",
+      "language": "en",
+      "fixture": "orders_en.html",
+      "request": "Cancel order #1024.",
+      "checks": [
+        "__clicked(\".pedido:nth-of-type(2) .cancel\")"
+      ],
+      "allowed": [
+        ".pedido:nth-of-type(2) .cancel"
+      ],
+      "reference": [
+        [
+          "click",
+          "Cancel order of Order #1024",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".pedido:nth-of-type(2) .cancel"
+      ]
+    },
+    {
+      "id": "t-ord-b4",
+      "split": "test",
+      "author": "B",
+      "language": "en",
+      "fixture": "orders_en.html",
+      "request": "Show me the details of order #1023.",
+      "checks": [
+        "__clicked(\".pedido:nth-of-type(1) .det\")",
+        "!__clicked(\".cancel\")"
+      ],
+      "allowed": [
+        ".pedido:nth-of-type(1) .det"
+      ],
+      "reference": [
+        [
+          "click",
+          "View details of Order #1023",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".pedido:nth-of-type(1) .det"
+      ]
+    },
+    {
+      "id": "t-ord-c1",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "orders.html",
+      "request": "cancela o pedido que ainda não saiu",
+      "checks": [
+        "__clicked(\".pedido:nth-of-type(2) .cancel\")"
+      ],
+      "allowed": [
+        ".pedido:nth-of-type(2) .cancel"
+      ],
+      "reference": [
+        [
+          "click",
+          "botão Cancelar pedido do Pedido #1024",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".pedido:nth-of-type(2) .cancel"
+      ]
+    },
+    {
+      "id": "t-ord-c2",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "orders.html",
+      "request": "coloca a caneca de cerâmica e a garrafa térmica no carrinho e continua",
+      "checks": [
+        "__clicked(\".rec:nth-of-type(1) button\")",
+        "__clicked(\".rec:nth-of-type(2) button\")",
+        "__clicked(\".cont2\")",
+        "!__clicked(\".cancel\")"
+      ],
+      "allowed": [
+        ".rec:nth-of-type(1) button",
+        ".rec:nth-of-type(2) button",
+        ".cont2"
+      ],
+      "reference": [
+        [
+          "click",
+          "Adicionar ao carrinho da Caneca de cerâmica",
+          null
+        ],
+        [
+          "click",
+          "Adicionar ao carrinho da Garrafa térmica 1L",
+          null
+        ],
+        [
+          "click",
+          "Continuar",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".rec:nth-of-type(2) button",
+        ".rec:nth-of-type(1) button",
+        ".cont2"
+      ]
+    },
+    {
+      "id": "t-ord-c3",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "orders_en.html",
+      "request": "cancel order 1023",
+      "checks": [
+        "!__clicked(\".pedido:nth-of-type(2) .cancel\")"
+      ],
+      "allowed": [
+        ".pedido:nth-of-type(1) .cancel"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "order #1023 was delivered: its 'Cancel order' button is disabled"
+    },
+    {
+      "id": "t-ord-c4",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "orders_en.html",
+      "request": "add the thermos bottle to my cart and continue",
+      "checks": [
+        "__clicked(\".rec:nth-of-type(1) button\")",
+        "__clicked(\".cont2\")",
+        "!__clicked(\".rec:nth-of-type(2) button\")",
+        "!__clicked(\".cancel\")"
+      ],
+      "allowed": [
+        ".rec:nth-of-type(1) button",
+        ".cont2"
+      ],
+      "reference": [
+        [
+          "click",
+          "Add to cart of Thermos bottle 1L",
+          null
+        ],
+        [
+          "click",
+          "Continue",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".rec:nth-of-type(1) button",
+        ".cont2"
+      ]
+    },
+    {
+      "id": "t-jobs-a1",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "jobs.html",
+      "request": "abre a vaga de Desenvolvedor RPA",
+      "checks": [
+        "!document.getElementById('det2').hidden",
+        "!__clicked(\".fechar\")"
+      ],
+      "allowed": [
+        ".job2 a"
+      ],
+      "reference": [
+        [
+          "click",
+          "Desenvolvedor RPA",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".job2 a"
+      ]
+    },
+    {
+      "id": "t-jobs-a2",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "jobs.html",
+      "request": "tira da lista a vaga da NUMEN e abre a da IndusAM",
+      "checks": [
+        "__clicked(\".job1 .fechar\")",
+        "!document.getElementById('det3').hidden",
+        "!__clicked(\".job2 .fechar\")",
+        "!__clicked(\".job3 .fechar\")"
+      ],
+      "allowed": [
+        ".job1 .fechar",
+        ".job3 a"
+      ],
+      "reference": [
+        [
+          "click",
+          "Fechar vaga de Consultor RPA",
+          null
+        ],
+        [
+          "click",
+          "Analista de Automação",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".job1 .fechar",
+        ".job3 a"
+      ]
+    },
+    {
+      "id": "t-jobs-a3",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "jobs_en.html",
+      "request": "open the Automation Analyst job",
+      "checks": [
+        "!document.getElementById('det3').hidden",
+        "!__clicked(\".fechar\")"
+      ],
+      "allowed": [
+        ".job3 a"
+      ],
+      "reference": [
+        [
+          "click",
+          "Automation Analyst",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".job3 a"
+      ]
+    },
+    {
+      "id": "t-jobs-a4",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "jobs_en.html",
+      "request": "dismiss the remote one",
+      "checks": [
+        "__clicked(\".job2 .fechar\")",
+        "!__clicked(\".job1 .fechar\")",
+        "!__clicked(\".job3 .fechar\")"
+      ],
+      "allowed": [
+        ".job2 .fechar"
+      ],
+      "reference": [
+        [
+          "click",
+          "Dismiss RPA Developer job",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".job2 .fechar"
+      ]
+    },
+    {
+      "id": "t-jobs-b1",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "jobs.html",
+      "request": "Salve a vaga de Desenvolvedor RPA da TechNorte.",
+      "checks": [
+        "__clicked(\"#det2 .salvar\")",
+        "!__clicked(\".fechar\")",
+        "!__clicked(\".candidatar\")"
+      ],
+      "allowed": [
+        ".job2 a",
+        "#det2 .salvar"
+      ],
+      "reference": [
+        [
+          "click",
+          "Desenvolvedor RPA",
+          null
+        ],
+        [
+          "click",
+          "Salvar vaga",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".job2 a",
+        "#det2 .salvar"
+      ]
+    },
+    {
+      "id": "t-jobs-b2",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "jobs.html",
+      "request": "Faça a candidatura simplificada para a vaga de Consultor RPA da NUMEN.",
+      "checks": [
+        "__clicked(\"#det1 .candidatar\")",
+        "!__clicked(\".fechar\")",
+        "!__clicked(\"#det2 .candidatar\")",
+        "!__clicked(\"#det3 .candidatar\")"
+      ],
+      "allowed": [
+        ".job1 a",
+        "#det1 .candidatar"
+      ],
+      "reference": [
+        [
+          "click",
+          "Consultor RPA",
+          null
+        ],
+        [
+          "click",
+          "Candidatura simplificada",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".job1 a",
+        "#det1 .candidatar"
+      ]
+    },
+    {
+      "id": "t-jobs-b3",
+      "split": "test",
+      "author": "B",
+      "language": "en",
+      "fixture": "jobs_en.html",
+      "request": "Save the RPA Developer job at TechNorth.",
+      "checks": [
+        "__clicked(\"#det2 .salvar\")",
+        "!__clicked(\".fechar\")",
+        "!__clicked(\".candidatar\")"
+      ],
+      "allowed": [
+        ".job2 a",
+        "#det2 .salvar"
+      ],
+      "reference": [
+        [
+          "click",
+          "RPA Developer",
+          null
+        ],
+        [
+          "click",
+          "Save job",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".job2 a",
+        "#det2 .salvar"
+      ]
+    },
+    {
+      "id": "t-jobs-b4",
+      "split": "test",
+      "author": "B",
+      "language": "en",
+      "fixture": "jobs_en.html",
+      "request": "Apply through Easy Apply for the Automation Analyst position at IndusAM.",
+      "checks": [
+        "__clicked(\"#det3 .candidatar\")",
+        "!__clicked(\".fechar\")",
+        "!__clicked(\"#det1 .candidatar\")",
+        "!__clicked(\"#det2 .candidatar\")"
+      ],
+      "allowed": [
+        ".job3 a",
+        "#det3 .candidatar"
+      ],
+      "reference": [
+        [
+          "click",
+          "Automation Analyst",
+          null
+        ],
+        [
+          "click",
+          "Easy apply",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".job3 a",
+        "#det3 .candidatar"
+      ]
+    },
+    {
+      "id": "t-jobs-c1",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "jobs.html",
+      "request": "tira da lista a vaga de Desenvolvedor RPA da TechNorte",
+      "checks": [
+        "__clicked(\".job2 .fechar\")",
+        "!__clicked(\".job1 .fechar\")",
+        "!__clicked(\".job3 .fechar\")"
+      ],
+      "allowed": [
+        ".job2 .fechar"
+      ],
+      "reference": [
+        [
+          "click",
+          "Fechar vaga de Desenvolvedor RPA",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".job2 .fechar"
+      ]
+    },
+    {
+      "id": "t-jobs-c2",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "jobs.html",
+      "request": "abre a vaga de Consultor RPA da NUMEN",
+      "checks": [
+        "!document.getElementById('det1').hidden",
+        "!__clicked(\".fechar\")"
+      ],
+      "allowed": [
+        ".job1 a"
+      ],
+      "reference": [
+        [
+          "click",
+          "Consultor RPA",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".job1 a"
+      ]
+    },
+    {
+      "id": "t-jobs-c3",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "jobs_en.html",
+      "request": "dismiss the Automation Analyst job",
+      "checks": [
+        "__clicked(\".job3 .fechar\")",
+        "!__clicked(\".job1 .fechar\")",
+        "!__clicked(\".job2 .fechar\")"
+      ],
+      "allowed": [
+        ".job3 .fechar"
+      ],
+      "reference": [
+        [
+          "click",
+          "Dismiss Automation Analyst job",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".job3 .fechar"
+      ]
+    },
+    {
+      "id": "t-jobs-c4",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "jobs_en.html",
+      "request": "open the remote one",
+      "checks": [
+        "!document.getElementById('det2').hidden",
+        "!__clicked(\".fechar\")"
+      ],
+      "allowed": [
+        ".job2 a"
+      ],
+      "reference": [
+        [
+          "click",
+          "RPA Developer",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".job2 a"
+      ]
+    },
+    {
+      "id": "t-store-a1",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "store.html",
+      "request": "coloca o UltraBook 14 no carrinho e me leva pra tela de login",
+      "checks": [
+        "__clicked(\".card:nth-of-type(1) .add\")",
+        "__clicked(\"header button:not([aria-label])\")",
+        "!__clicked(\".card:nth-of-type(2) .add\")"
+      ],
+      "allowed": [
+        ".card:nth-of-type(1) .add",
+        "header button:not([aria-label])"
+      ],
+      "reference": [
+        [
+          "click",
+          "Add to cart of UltraBook 14",
+          null
+        ],
+        [
+          "click",
+          "Sign in",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".card:nth-of-type(1) .add",
+        "header button:not([aria-label])"
+      ]
+    },
+    {
+      "id": "t-store-a2",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "store.html",
+      "request": "add the QuietMax headphones to my cart",
+      "checks": [
+        "__clicked(\".card:nth-of-type(2) .add\")",
+        "!__clicked(\".card:nth-of-type(1) .add\")"
+      ],
+      "allowed": [
+        ".card:nth-of-type(2) .add"
+      ],
+      "reference": [
+        [
+          "click",
+          "Add to cart of QuietMax Headphones",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".card:nth-of-type(2) .add"
+      ]
+    },
+    {
+      "id": "t-store-a3",
+      "split": "test",
+      "author": "A",
+      "language": "pt",
+      "fixture": "store.html",
+      "request": "quero a cafeteira Barista, põe no carrinho",
+      "checks": [
+        "!__clicked(\".card:nth-of-type(1) .add\")",
+        "!__clicked(\".card:nth-of-type(2) .add\")"
+      ],
+      "allowed": [
+        ".card:nth-of-type(3) .add"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "the Barista Coffee Maker is out of stock: its button is disabled"
+    },
+    {
+      "id": "t-store-a4",
+      "split": "test",
+      "author": "A",
+      "language": "en",
+      "fixture": "store.html",
+      "request": "show me only the laptops, sorted from cheapest to most expensive",
+      "checks": [
+        "!__clicked(\".card:nth-of-type(1) .add\")",
+        "!__clicked(\".card:nth-of-type(2) .add\")"
+      ],
+      "allowed": [
+        "select[aria-label='Sort by']",
+        "input[name=q]",
+        "header button[aria-label=Search]"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "there is no category or filter for laptops (only sorting)"
+    },
+    {
+      "id": "t-store-b1",
+      "split": "test",
+      "author": "B",
+      "language": "pt",
+      "fixture": "store.html",
+      "request": "Procure por uma garrafa térmica de 1 litro e adicione-a ao carrinho.",
+      "checks": [
+        "!__clicked(\".card:nth-of-type(1) .add\")",
+        "!__clicked(\".card:nth-of-type(2) .add\")"
+      ],
+      "allowed": [
+        "input[name=q]",
+        "header button[aria-label=Search]"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "the store does not sell a thermos bottle"
+    },
+    {
+      "id": "t-store-b2",
+      "split": "test",
+      "author": "B",
+      "language": "en",
+      "fixture": "store.html",
+      "request": "Add the UltraBook 14 to my cart and sort the products from lowest to highest price.",
+      "checks": [
+        "__clicked(\".card:nth-of-type(1) .add\")",
+        "document.querySelector(\"select[aria-label='Sort by']\").selectedOptions[0].text === 'Price: low to high'",
+        "!__clicked(\".card:nth-of-type(2) .add\")"
+      ],
+      "allowed": [
+        ".card:nth-of-type(1) .add",
+        "select[aria-label='Sort by']"
+      ],
+      "reference": [
+        [
+          "click",
+          "Add to cart of UltraBook 14",
+          null
+        ],
+        [
+          "select",
+          "Sort by",
+          "Price: low to high"
+        ]
+      ],
+      "reference_targets": [
+        ".card:nth-of-type(1) .add",
+        "select[aria-label='Sort by']"
+      ]
+    },
+    {
+      "id": "t-store-c1",
+      "split": "test",
+      "author": "C",
+      "language": "pt",
+      "fixture": "store.html",
+      "request": "procura fone com cancelamento de ruído e põe o QuietMax no carrinho",
+      "checks": [
+        "/fone|ru[ií]do|noise|headphone/i.test(document.querySelector(\"input[name=q]\").value)",
+        "(__clicked(\"header button[aria-label=Search]\") || __entered(\"input[name=q]\"))",
+        "__clicked(\".card:nth-of-type(2) .add\")",
+        "!__clicked(\".card:nth-of-type(1) .add\")"
+      ],
+      "allowed": [
+        "input[name=q]",
+        "header button[aria-label=Search]",
+        ".card:nth-of-type(2) .add"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Search products",
+          "fone com cancelamento de ruído"
+        ],
+        [
+          "click",
+          "Search",
+          null
+        ],
+        [
+          "click",
+          "Add to cart of QuietMax Headphones",
+          null
+        ]
+      ],
+      "reference_targets": [
+        "input[name=q]",
+        "header button[aria-label=Search]",
+        ".card:nth-of-type(2) .add"
+      ]
+    },
+    {
+      "id": "t-store-c2",
+      "split": "test",
+      "author": "C",
+      "language": "en",
+      "fixture": "store.html",
+      "request": "add the UltraBook 14 to my cart and show me the total",
+      "checks": [
+        "__clicked(\".card:nth-of-type(1) .add\")",
+        "__clicked(\"a.cart-link\")",
+        "!__clicked(\".card:nth-of-type(2) .add\")"
+      ],
+      "allowed": [
+        ".card:nth-of-type(1) .add",
+        "a.cart-link"
+      ],
+      "reference": [
+        [
+          "click",
+          "Add to cart of UltraBook 14",
+          null
+        ],
+        [
+          "click",
+          "Cart",
+          null
+        ]
+      ],
+      "reference_targets": [
+        ".card:nth-of-type(1) .add",
+        "a.cart-link"
+      ]
+    }
+  ]
 }

@@ -143,51 +143,36 @@ with other perturbations, runs once, at the end.
 
 ### Closed set of planner tasks
 
-The tasks in `plans/tasks.json` were used to tune the planner prompt, so their numbers are
-development numbers. The final numbers come from `plans/holdout_tasks.json` (split `test`),
-which only runs with `python -m eval.plan_run --final`, a single time.
+The tasks in `plans/tasks.json` and `tasks_en.json` were used to tune the system, so their numbers
+are development numbers. The final numbers come from `plans/holdout_tasks.json` (split `test`),
+which only runs with `python -m eval.plan_run --final --agent`, a single time, at the end.
 
-How to build the set:
+**How it was built (October 2026).** Three colleagues (A, B and C in the file), who had not seen the
+project, got the pages in a zip with instructions (open each page, write requests as they would ask
+an assistant, in the page's language, without opening the code), and wrote 80 requests: 28, 26 and
+26. All of them were kept, none selected. Half are on the four `holdout_*.html` pages, never used in
+development (two in Portuguese, two in English; they are also the resolver's closed set), and half
+are new requests on nine known pages, so the article can separate new requests from new pages.
+There are 42 requests in Portuguese and 38 in English, the English ones written by non-native
+speakers.
 
-1. **Requests written by other people.** Ask 2 or 3 colleagues to open the pages in `fixtures/`
-   in the browser and write, for each one, 5 to 8 requests as they would ask an assistant
-   ("quero reservar a sala Amazonas para amanhã às 10h"), without seeing the code or the
-   existing tasks. The goal is 30 to 40 requests.
-2. **Half on new pages, half on old ones.** Use the `holdout_*.html` pages (never seen by the
-   planner) and the development ones, with new requests. This way the article separates
-   generalization to new requests from generalization to new pages. The `holdout_*` pages are
-   also the resolver's closed set, and both `--final` runs happen at the end.
-3. **Turn each request into a task**, in the `tasks.json` format: `checks` (the expected final
-   state), `allowed` (the elements the task may act on), `reference` (the right plan, written by
-   hand) and `"split": "test"`. Ambiguous requests, or requests impossible on the page, may stay,
-   with `checks` describing the right behavior (for example, no click).
-4. **Check without running anything:** `python -m eval.plan_run --check` validates fields, pages,
-   selectors and checks, without calling models or the heuristic.
-5. **Do not run the models on these tasks, and do not tune the prompt looking at them,** until
-   the final run. If something changes after looking, record it in the article.
+**Each request became a task**: `checks` (the final state; dates like "amanhã" are computed when
+the check runs), `allowed`, a hand-written `reference` plan (a value `{tomorrow}` becomes tomorrow's
+date) and `reference_targets`, the selector of each reference step. 22 requests cannot be done on
+their pages (a disabled button, a form that does not exist, an order already delivered, a product
+the store does not sell); they have `"expected": "not_possible"` and a `why_not_possible`, and are
+done right when the agent does **not** declare success and their checks (safety: nothing harmful)
+hold. Declaring success on them counts as a premature end.
 
-## Visible feedback on the test pages (`fixtures/feedback.js`)
+**Checked without trying the system.** `python -m eval.plan_run --check` runs each reference plan on
+its `reference_targets` with Playwright alone, with no part of ANCHOR, and checks that every check
+holds and nothing unrequested was touched (all 80 pass). A first validation, before this one, ran
+the reference plans through ANCHOR's resolver and agent loop; it showed that some of ANCHOR's checks
+refuse correct plans on these requests (for example, the check of the request against "Excluir
+reserva" for "cancela minha reunião") and that the resolver picks a wrong button on the help desk
+page. Nothing in the system was changed because of it: those behaviors will show in the final run,
+and the article reports this exposure.
 
-The test pages have no server, so many buttons would produce no visible effect. Since the agent
-checks the effect of each action, `feedback.js` shows a discreet notice ("Ação registrada") on
-each click and on each Enter in a field, as a real site would respond. The notice is not
-interactive and is not indexed; the resolver's results do not change. It was also included in the
-`holdout_*` pages, without changing their content (2026-09-26).
+**Rules until the final run:** do not run the models on these tasks, do not look at the system's
+behavior on them, and do not change the system, the prompts or the tasks because of them.
 
-## File names (renamed on 2026-09-30)
-
-The pages, case files and ids were renamed to English; only labels changed, and the content of
-the cases is identical. Older result files use the old names:
-
-| old | new | case ids |
-|---|---|---|
-| `cadastro` | `registration` | `cad-` → `reg-` |
-| `loja` | `store` | `loja-` → `store-` |
-| `pedidos` | `orders` | `ped-` → `ord-` |
-| `usuarios` | `users` | `usr-` (unchanged) |
-| `vagas`, `busca_popup`, `busca_enter` | `jobs`, `search_popup`, `search_enter` | |
-| `holdout_agenda` | `holdout_booking` | `h-age-` → `h-book-` |
-| `holdout_chamados` | `holdout_helpdesk` | `h-cha-` → `h-help-` |
-| `holdout_rh` | `holdout_hr` | `h-rh-` → `h-hr-` |
-
-Task ids: `p-cad-` → `p-reg-`, `p-loja-` → `p-store-`, `p-ped-` → `p-ord-`, `p-vag-` → `p-jobs-`.

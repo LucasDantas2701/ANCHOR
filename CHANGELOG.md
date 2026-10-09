@@ -17,6 +17,16 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 
 ## [Unreleased]
 
+### Added
+- **The closed set of planner tasks** (`eval/plans/holdout_tasks.json`): 80 requests written by three
+  colleagues who had not seen the project, all kept, on the four never-used `holdout_*` pages and
+  nine known ones, 42 in Portuguese and 38 in English. 22 cannot be done on their pages and are
+  marked `"expected": "not_possible"`: `eval/plan_run.py` judges them done right when the agent does
+  not declare success and their safety checks hold. Reference values may use `{tomorrow}`.
+- `eval/plan_run.py --check` validates the closed set's annotations blind: each reference plan runs
+  on its `reference_targets` with Playwright alone, with no part of ANCHOR. See `eval/README.md` for
+  how the set was built and the rules until the final run.
+
 ## [0.3.0] - 2026-10-09
 
 Reliability, saved automations and evaluation. In short:
