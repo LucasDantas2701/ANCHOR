@@ -60,6 +60,14 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_e
 | `--lang` | Interface language: `en` (default) or `pt`. Overrides `ANCHOR_LANG`. |
 | `--prompt-language` | Planner prompt language: `pt` (default, the measured one), `en`, or `auto` (follows the request). |
 
+**Logging in.** The agent never types a password: a fill that would land on a password field is
+not done. A request that seems to contain a password ("senha: ...", "password ...") is refused
+before anything reaches the model. When a task needs a login (the request asks to log in, the
+plan reaches a password field, or nothing can be planned on a page that asks for one), the agent
+asks in the terminal: log in (or fill in the password) yourself in the browser window and press
+Enter, or `q` to cancel. If the page still shows an empty password field, it asks again. With
+`--browser-profile`, the session is kept for the next runs.
+
 ## Planner (`anchor.planner`)
 
 Only generates a plan (and optionally runs it), without the agent loop.
@@ -123,6 +131,7 @@ Options that come **before** the command:
 | `--no-heal` | If a saved step stops working, stops instead of recovering with the LLM. |
 | `--vision` | Confirms doubted steps with a screenshot (see the agent's `--vision`). |
 | `--allow-sensitive` | Does not ask before sensitive actions, and does not save decisions. |
+| `--fresh-browser` | Opens a clean browser for this run. By default, each automation keeps its own browser profile in its folder (`browser/`), so a login done by hand is kept for the next runs; a `--browser-profile` given at `create` is used instead. |
 | `--param` | The value of a parameter for this run, as `name=value` (repeat it for each parameter). |
 | `--csv` | Runs once per row of a CSV file whose columns are the parameters (`,` or `;` as separator). Cannot be used with `--param`. |
 

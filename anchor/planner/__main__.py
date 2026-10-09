@@ -46,6 +46,11 @@ def main() -> int:
     require(ap, args, "--profile", "--url")
     apply_language(args)
 
+    from anchor.agent.login import request_has_password
+    if request_has_password(args.request):
+        print(t("cli.result", status="failed", message=t("end.password_in_request")))
+        return 1
+
     try:
         profile = get_profile(args.profile)
         progress = Progress("  ")
@@ -86,6 +91,7 @@ def main() -> int:
         if args.run and plan.steps:
             executor = ActionExecutor(page, resolver=resolver, disambiguator=TerminalDisambiguator(), can_point=True,
                                       confirmer=None if args.allow_sensitive else TerminalConfirmer())
+            executor.refuse_passwords = True    # a password field is never typed into
             print()
             for step, result in run_plan(executor, plan):
                 print(t("demo.step", description=step.description, status=result.status, by=result.resolved_by))

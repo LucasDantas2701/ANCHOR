@@ -94,11 +94,15 @@ class Decision(int):
 
 
 class TerminalConfirmer:
-    """Asks in the terminal. With no one to answer (no terminal), the answer is no."""
+    """
+    Asks in the terminal. With no one to answer (no terminal), the answer is no.
+    remembers: whether the decision is kept (saved automations do; a one-off run does not),
+    which changes what the question promises.
+    """
 
-    def __init__(self, input_fn=input, output=print, interactive=None):
+    def __init__(self, input_fn=input, output=print, interactive=None, remembers=False):
         import sys
-        self.input_fn, self.output = input_fn, output
+        self.input_fn, self.output, self.remembers = input_fn, output, remembers
         self.interactive = sys.stdin.isatty() if interactive is None else interactive
 
     def confirm(self, request: ConfirmationRequest) -> bool:
@@ -109,7 +113,7 @@ class TerminalConfirmer:
             self.output(t("confirm.no_terminal"))
             return Decision(False, save=False)
         try:
-            answer = self.input_fn(t("confirm.prompt") + " ").strip().lower()
+            answer = self.input_fn(t("confirm.prompt_saved" if self.remembers else "confirm.prompt") + " ").strip().lower()
         except (EOFError, KeyboardInterrupt):
             return Decision(False, save=False)
         if answer in ("y", "yes", "s", "sim"):

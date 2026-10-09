@@ -137,6 +137,7 @@ TEXT: dict[str, dict[str, str]] = {
                           "en": "step {i}: give the goal it belongs to"},
     "plan.unknown_goal": {"pt": 'passo {i}: a meta "{goal}" não existe; use uma de {ids}',
                           "en": 'step {i}: goal "{goal}" does not exist; use one of {ids}'},
+    "plan.goals_later": {"pt": "meta(s) sem passos por enquanto: {goals}", "en": "goal(s) with no steps yet: {goals}"},
     "plan.empty_goals": {
         "pt": "toda meta precisa de pelo menos um passo; a(s) meta(s) {goals} não tem nenhum: acrescente "
               "os passos ou remova a meta",
@@ -160,6 +161,8 @@ TEXT: dict[str, dict[str, str]] = {
     "hist.done": {"pt": "feito: {step}", "en": "done: {step}"},
     "hist.failed": {"pt": "falhou: {step} — {reason}", "en": "failed: {step} — {reason}"},
     "hist.blocked": {"pt": "barrado: {step} — {reason}", "en": "blocked: {step} — {reason}"},
+    "hist.logged_in": {"pt": "o usuário fez o login à mão; a página pode ter mudado",
+                       "en": "the user logged in by hand; the page may have changed"},
     "hist.skipped": {"pt": "pulado pelo usuário: {step}", "en": "skipped by the user: {step}"},
     "hist.message": {"pt": 'apareceu na página: "{message}"', "en": 'appeared on the page: "{message}"'},
     "hist.suspicion": {"pt": 'suspeita: depois de "{step}", esperava ver "{expect}", e não apareceu',

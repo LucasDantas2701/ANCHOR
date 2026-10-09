@@ -48,7 +48,7 @@ def _extract_json(text: str, language: str = DEFAULT_PROMPT_LANGUAGE) -> object:
     try:
         return json.loads(text)
     except json.JSONDecodeError as exc:
-        raise PlanError(mt("plan.not_json", language, msg=exc.msg)) from exc
+        raise PlanError.of("plan.not_json", language, msg=exc.msg) from exc
 
 
 class LLMPlanner:
@@ -134,8 +134,11 @@ class LLMPlanner:
                 data = _extract_json(raw, language)
                 steps = parse_plan(data, language)
                 goals = parse_goals(data, language)
-                check_goals(steps, goals, known_goals, language)
+                later = check_goals(steps, goals, known_goals, language)
                 check_values_from_request(steps, [request] + list(notes or []), language)
+                if later:
+                    # Goals the model could not plan on this page yet: out of this plan.
+                    goals = [g for g in goals if g.id not in later]
                 if not history and steps:
                     # Only the initial plan covers the whole request.
                     try:
@@ -145,7 +148,8 @@ class LLMPlanner:
                             partial = (steps, goals, raw, str(gap))
                         raise
                 return Plan(steps=steps, goals=goals, model=self.model, latency_s=round(time.perf_counter() - start, 2),
-                            tokens_in=tokens_in, tokens_out=tokens_out, attempts=attempt, raw=raw)
+                            tokens_in=tokens_in, tokens_out=tokens_out, attempts=attempt, raw=raw,
+                            incomplete=mt("plan.goals_later", language, goals=", ".join(later)) if later else "")
             except PlanError as exc:
                 self.last_attempts.append((raw, str(exc)))
                 last_error = exc
@@ -159,4 +163,6 @@ class LLMPlanner:
             return Plan(steps=steps, goals=goals, model=self.model, latency_s=round(time.perf_counter() - start, 2),
                         tokens_in=tokens_in, tokens_out=tokens_out, attempts=self.max_attempts, raw=raw,
                         incomplete=gap)
-        raise PlanError(t("planner.gave_up", attempts=self.max_attempts, error=last_error))
+        # The user reads this one: the last reason, in the interface language.
+        reason = last_error.user_text() if isinstance(last_error, PlanError) else str(last_error)
+        raise PlanError(t("planner.gave_up", attempts=self.max_attempts, error=reason))
