@@ -23,9 +23,9 @@
     <a href="#getting-started"><strong>Get started »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/LucasDantas2701/ANCHOR/issues/new?labels=bug">Report a bug</a>
+    <a href="https://github.com/LucasDantas2701/ANCHOR/issues/new?template=problem.yml">Report a bug</a>
     &middot;
-    <a href="https://github.com/LucasDantas2701/ANCHOR/issues/new?labels=enhancement">Request a feature</a>
+    <a href="https://github.com/LucasDantas2701/ANCHOR/issues/new?template=idea.yml">Request a feature</a>
   </p>
 </div>
 
@@ -101,6 +101,14 @@ What sets it apart is **who controls what**:
 * **The user breaks ties.** When the heuristic refuses, the candidates are numbered on the page,
   and the user picks one, or clicks the right element.
 * **Choices are remembered** and reused on the next runs, so interventions go down over time.
+
+Here the site changed after an automation was saved ("Add to cart" became "Add to bag"): ANCHOR
+is not sure, so it numbers the candidates and asks; the next run remembers the answers and asks
+nothing:
+
+<p align="center">
+  <img src="docs/images/user_choice_remembered.gif" alt="ANCHOR asks which button to use after the site changed, remembers the answer, and the next run asks nothing" width="900">
+</p>
 * **Every action is verified**: the agent checks that the field got the value, that the page
   reacted, and that no error message appeared, and only declares the end when all goals are met.
 * **Safety barriers**: destructive actions the request did not mention (close, delete, hide...)
@@ -445,7 +453,8 @@ See the [changelog](CHANGELOG.md) for what changed in each version, and the
 ## Feedback
 
 Feedback is very welcome, especially from real use. Please
-[open an issue](https://github.com/LucasDantas2701/ANCHOR/issues) with:
+[open an issue](https://github.com/LucasDantas2701/ANCHOR/issues/new/choose) (the form asks for
+these) with:
 
 1. the request you typed and the site (or the kind of system) you ran it on;
 2. what you expected and what happened;
@@ -563,7 +572,8 @@ provided without warranty of any kind. This is not an open-source license.
 <!-- CONTACT -->
 ## Contact
 
-Lucas dos Santos Dantas — [@LucasDantas2701](https://github.com/LucasDantas2701)
+Lucas dos Santos Dantas — [@LucasDantas2701](https://github.com/LucasDantas2701) ·
+[LinkedIn](https://www.linkedin.com/in/lucas-dantass)
 
 Project: [https://github.com/LucasDantas2701/ANCHOR](https://github.com/LucasDantas2701/ANCHOR)
 

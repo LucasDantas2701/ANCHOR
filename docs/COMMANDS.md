@@ -44,7 +44,7 @@ Windows: `setx OPENAI_API_KEY "your-key"`, then open a new terminal.
 Runs a request end to end: plan, execution, effect checks, replanning and end.
 
 ```sh
-python -m anchor.agent --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria Silva no TI e salve"
+python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_en.html "Register Maria Silva in the IT department and save the registration"
 ```
 
 | Option | Meaning |
@@ -65,8 +65,8 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration.h
 Only generates a plan (and optionally runs it), without the agent loop.
 
 ```sh
-python -m anchor.planner --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria Silva no TI"
-python -m anchor.planner --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria Silva no TI" --run
+python -m anchor.planner --profile ollama-small --url eval/fixtures/registration_en.html "Register Maria Silva in the IT department"
+python -m anchor.planner --profile ollama-small --url eval/fixtures/registration_en.html "Register Maria Silva in the IT department" --run
 ```
 
 | Option | Meaning |
@@ -87,7 +87,7 @@ LLM; the next runs replay the approved plan without the LLM. When the site chang
 step stops working, the automation heals itself and records the recovery.
 
 ```sh
-python -m anchor.automations create register-maria --url eval/fixtures/registration.html --profile ollama-small "cadastre a Maria Silva no TI e salve"
+python -m anchor.automations create register-maria --url eval/fixtures/registration_en.html --profile ollama-small "Register Maria Silva in the IT department and save the registration"
 python -m anchor.automations run register-maria
 python -m anchor.automations list
 python -m anchor.automations show register-maria
@@ -132,21 +132,21 @@ The parts of the request that change from run to run go in braces when the autom
 created; `create` finds them, and `show` lists them:
 
 ```sh
-python -m anchor.automations create register --url eval/fixtures/registration.html --profile ollama-small "cadastre {nome}, CPF {cpf}, no TI e salve"
-python -m anchor.automations run register --param nome="Maria Silva" --param cpf=123.456.789-00
+python -m anchor.automations create register --url eval/fixtures/registration_en.html --profile ollama-small "Register {name}, tax ID {tax_id}, IT department, contractor. Accept the terms and save the registration."
+python -m anchor.automations run register --param name="Maria Silva" --param tax_id=123-45-6789
 python -m anchor.automations run register --csv employees.csv
 ```
 
 A CSV file for this automation:
 
 ```text
-nome;cpf
-Maria Silva;123.456.789-00
-João Souza;987.654.321-00
+name;tax_id
+Maria Silva;123-45-6789
+John Carter;987-65-4321
 ```
 
 The model plans with the real values of the first run; the approved plan is saved with the
-placeholders (`fill CPF = {cpf}`), so the next runs work with any values. The run records keep
+placeholders (`fill Tax ID = {tax_id}`), so the next runs work with any values. The run records keep
 the placeholders, not the values, since they may be personal data. Every parameter needs a
 value in every run; an unknown parameter is refused.
 
