@@ -132,7 +132,7 @@ def cmd_run(store: AutomationStore, args) -> int:
                 result, mode, run_id = run_automation(store, args.name, page, executor, make_planner,
                                                       relearn=args.relearn and number == 1,
                                                       heal=not args.no_heal, params=values,
-                                                      confirm=None if args.allow_sensitive else TerminalConfirmer(),
+                                                      confirm=None if args.allow_sensitive else TerminalConfirmer(remembers=True),
                                                       vision=vision)
             except (ConfigError, AutomationError) as exc:
                 print(t("auto.error", error=exc))

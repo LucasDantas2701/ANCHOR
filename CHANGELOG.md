@@ -17,6 +17,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 
 ## [Unreleased]
 
+### Fixed
+- The question before a sensitive action no longer promises to save the answer in a one-off run
+  (`anchor.agent`, `planner --run`), where nothing is saved: it is now "Allow it? [y/N]". Saved
+  automations, which keep the decision, still explain the three answers.
+
 ### Added
 - **The closed set of planner tasks** (`eval/plans/holdout_tasks.json`): 80 requests written by three
   colleagues who had not seen the project, all kept, on the four never-used `holdout_*` pages and

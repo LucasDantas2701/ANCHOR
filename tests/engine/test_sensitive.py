@@ -101,3 +101,12 @@ def test_terminal_confirmer():
 def _req():
     from anchor.engine.sensitive import ConfirmationRequest
     return ConfirmationRequest("click", "Excluir", "Excluir", "delete")
+
+
+def test_the_question_only_promises_to_save_when_the_decision_is_kept():
+    asked = []
+    TerminalConfirmer(input_fn=lambda q: asked.append(q) or "y", output=lambda _: None, interactive=True).confirm(_req())
+    TerminalConfirmer(input_fn=lambda q: asked.append(q) or "y", output=lambda _: None, interactive=True,
+                      remembers=True).confirm(_req())
+    assert "saved" not in asked[0] and "[y/N]" in asked[0]          # a one-off run (anchor.agent)
+    assert "saved" in asked[1]                                       # a saved automation

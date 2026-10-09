@@ -274,8 +274,9 @@ MESSAGES: dict[str, dict[str, str]] = {
     # ------------------------------------------------------------ sensitive actions
     "confirm.ask": {"en": '  Sensitive action ({category}): "{element}" (step: {description}).',
                     "pt": '  Ação sensível ({category}): "{element}" (passo: {description}).'},
-    "confirm.prompt": {"en": "  Allow it? y = yes (saved), n = no (saved), Enter = not now:",
-                       "pt": "  Permitir? s = sim (salvo), n = não (salvo), Enter = agora não:"},
+    "confirm.prompt": {"en": "  Allow it? [y/N]", "pt": "  Permitir? [s/N]"},
+    "confirm.prompt_saved": {"en": "  Allow it? y = yes (saved), n = no (saved), Enter = not now:",
+                             "pt": "  Permitir? s = sim (salvo), n = não (salvo), Enter = agora não:"},
     "confirm.not_now": {"en": "  Not allowed this time (nothing saved): the next run asks again.",
                         "pt": "  Não permitida desta vez (nada salvo): a próxima execução pergunta de novo."},
     "confirm.no_terminal": {"en": "  No one to confirm it (no terminal): not allowed.",
