@@ -102,9 +102,10 @@ What sets it apart is **who controls what**:
   and page contents do not leave the computer or the company network. Logins use persistent
   browser profiles: credentials never go through the AI.
 
-> **Status:** version 0.3.0 in development. The engine, the planner, the agent loop, effect
-> verification and goals are done; saved automations, confirmation of sensitive actions and the
-> frontend are next. See the [roadmap](#roadmap) and the [changelog](CHANGELOG.md).
+> **Status:** version 0.3.0. The engine, the planner, the agent loop, effect verification, saved
+> automations with self-healing, confirmation of sensitive actions and the defenses against prompt
+> injection are done; uploads, downloads, new tabs and iframes (0.4) and a local frontend (0.5) are
+> next. See the [roadmap](#roadmap) and the [changelog](CHANGELOG.md).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -336,7 +337,7 @@ Every result is saved with the version and the commit. The closed test sets (hol
 with `--final`, once, at the end of development. Details in [`eval/README.md`](eval/README.md).
 
 **Element resolver** — development set, 60 cases per language on 7 pages (6 local pages and
-SauceDemo), version 0.3.0 in development:
+SauceDemo), version 0.3.0:
 
 | Metric | Portuguese | English |
 |---|---|---|
@@ -347,17 +348,33 @@ SauceDemo), version 0.3.0 in development:
 | The Executor refuses and asks the user | 16.7% | 8.3% |
 
 **Complete tasks** — 15 development tasks per language, on local pages, through the full agent
-loop, with no human help and the default (Portuguese) planner prompt, version 0.3.0 in development
+loop, with no human help and the default (Portuguese) planner prompt, version 0.3.0
 (i7-7700HQ, 16 GB RAM, GTX 1050 Ti 4 GB):
 
 | Model (Ollama) | Requests | Tasks done | Done with no unrequested step | Premature ends |
 |---|---|---|---|---|
-| Qwen 3.5, 4B | Portuguese | 93% | 87% | 0 |
-| Qwen 3.5, 4B | English | 80% | 67% | 0 |
-| Qwen 3.5, 9B | Portuguese | 93% | 80% | 0 |
+| Qwen 3.5, 4B | Portuguese | 87% | 80% | 0 |
+| Qwen 3.5, 4B | English | 87%* | 80% | 0 |
+| Qwen 3.5, 9B | Portuguese | 100% | 87% | 0 |
 | Qwen 3.5, 9B | English | 93% | 87% | 0 |
 
-A task takes about 35 s with the 4B model and 55 s with the 9B one.
+A task takes about 32 s with the 4B model and 50 s with the 9B one. \* `en-reg-01` failed with the
+4B model in this run and passes after the last fix of 0.3.0 (checked alone, not in a full run).
+
+**Resilience** — the 30 tasks on pages altered in 5 levels (superficial, semantic, structural,
+behavioral, adversarial), 150 runs per executor and model, both languages, with no user:
+
+| Executor | Tasks done | False successes | Model calls per run |
+|---|---|---|---|
+| Fixed-selector script (classic RPA) | 53% | 0 | 0 |
+| LLM in control, 4B / 9B | 68% / 72% | 33 / 41 | 3.7 |
+| **ANCHOR**, 4B / 9B | **82% / 84%** | **2 / 1** | 0.8 |
+| ANCHOR replaying the healed plan, 4B / 9B | 80% / 82% | — | **0** |
+
+**Prompt injection** — 6 tasks on pages that try to hijack the agent: no attack worked, and the
+defenses brought the 9B model's attempts to follow the page from 2 to 0. **Interventions** — with a
+simulated user, the system asked in 16.7% (Portuguese) and 8.3% (English) of the resolver cases on the
+first pass, and in none on the second and third.
 
 These are development numbers: the code and the prompt were tuned looking at these cases. The
 final numbers will come from the closed sets.
@@ -373,7 +390,7 @@ final numbers will come from the closed sets.
   disambiguation, choice memory, persistent browser profiles, reproducible evaluation
 - [x] **0.2** — LLM planner (local models via Ollama) and the agent loop with replanning; fixes
   from tests on real sites (pop-ups, Enter-only searches, loops, destructive actions)
-- [ ] **0.3** — Reliability and saved automations
+- [x] **0.3** — Reliability and saved automations
     - [x] Effect verification of each action, goals, and checking the plan against the request
     - [x] English translation, with the planner prompt in Portuguese or English
     - [x] Saved automations that **heal themselves**: when a saved plan breaks and is recovered,
@@ -381,10 +398,10 @@ final numbers will come from the closed sets.
     - [x] Parameters, and one run per row of a spreadsheet
     - [x] The user's notes after a failed run, sent to the planner
     - [x] Confirmation of sensitive actions (delete, send, save, download, upload, pay), saved per automation
-    - [ ] Defense against instructions injected by page content
+    - [x] Defense against instructions injected by page content
     - [x] Screenshot analysis by a vision model, when the other checks doubt a step
-    - [ ] Intervention experiment with a simulated user
-    - [ ] Resilience benchmark: changed versions of the pages, comparing fixed-selector scripts,
+    - [x] Intervention experiment with a simulated user
+    - [x] Resilience benchmark: changed versions of the pages, comparing fixed-selector scripts,
       an LLM-in-control agent and ANCHOR
 - [ ] **0.4** — Uploads, downloads, new tabs, data extraction and iframes
 - [ ] **0.5** — Local frontend (runs on your computer, opens in the browser), with a "Run"

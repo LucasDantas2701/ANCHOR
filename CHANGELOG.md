@@ -17,6 +17,28 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-09
+
+Reliability, saved automations and evaluation. In short:
+
+- **Checking what happened.** Each action's effect is verified (the page changed, the field kept
+  the value, no error appeared), with a screenshot as the last resort when the other checks doubt
+  a step (`--vision`). Plans have goals, are checked against the request, and the end is checked
+  against what was actually done, so a run that did not do what was asked does not end as a success.
+- **English**, end to end: interface, planner, documentation and evaluation.
+- **Saved automations** (`python -m anchor.automations`): learn a task once, replay it without the
+  model in about 3 s, with parameters and one run per spreadsheet row, notes for the planner, and
+  **self-healing** when the site changes, with a reviewable and undoable record of every recovery.
+- **Safety.** Confirmation before sensitive actions (deleting, saving, sending, paying, downloading,
+  uploading, cancelling something irreversible), a destructive-action barrier that looks at what
+  the step is about, and defenses against instructions injected by page content.
+- **Evaluation.** An injection suite, an interventions experiment with a simulated user, and a
+  resilience benchmark with pages altered in 5 levels, comparing ANCHOR with a fixed-selector script
+  and an LLM-in-control agent. On the development set, ANCHOR completed 82% (4B) and 84% (9B) of
+  the altered tasks, against 53% for the script and 68% to 72% for the LLM in control, with 1 to 2
+  false successes in 150 runs against 33 to 41 for the LLM in control.
+
+
 ### Added
 - The agent records, for each step that worked, the element actually acted on, and the
   resilience benchmark keeps every run's steps (description, value, status, how the element was
@@ -520,7 +542,8 @@ loop come in 0.2.0.
 - The context of elements in lists of short cards covered the whole list.
 - The query's object was counted twice, in the element's label and in its context.
 
-[Unreleased]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.2.1...develop
+[Unreleased]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.3.0...develop
+[0.3.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/LucasDantas2701/ANCHOR/releases/tag/v0.1.0
