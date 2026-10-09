@@ -1,0 +1,61 @@
+name: Something did not work
+description: A request ANCHOR got wrong, a site where it failed, an error or a crash.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! You can write in English or Portuguese.
+        **Remove any personal data** (names, e-mails, passwords, documents) from what you paste.
+  - type: textarea
+    id: request
+    attributes:
+      label: The request
+      description: What you typed, exactly as you typed it.
+      placeholder: "cadastre a Maria Silva no TI e salve"
+    validations:
+      required: true
+  - type: input
+    id: site
+    attributes:
+      label: The site, or the kind of system
+      description: A public address, or a description if it is a private system ("an internal HR system").
+      placeholder: "https://www.saucedemo.com, or an internal ticket system"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Terminal output
+      description: The whole output of the command, with personal data removed.
+      render: shell
+  - type: input
+    id: command
+    attributes:
+      label: The command you ran
+      placeholder: "python -m anchor.agent --profile ollama-small --url ... \"...\""
+  - type: input
+    id: version
+    attributes:
+      label: ANCHOR version
+      description: "Shown by: python -c \"import anchor; print(anchor.__version__)\""
+      placeholder: "0.3.0"
+  - type: input
+    id: setup
+    attributes:
+      label: Your setup
+      description: Operating system, model profile and, if you know it, your GPU.
+      placeholder: "Windows 11, ollama-small (qwen3.5:4b), GTX 1050 Ti 4 GB"
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy
+      options:
+        - label: I removed personal data (names, e-mails, passwords, documents) from this report.
+          required: true

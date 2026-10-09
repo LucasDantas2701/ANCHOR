@@ -1,0 +1,19 @@
+name: Idea or suggestion
+description: Something ANCHOR could do, or do better.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: You can write in English or Portuguese.
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What would you like ANCHOR to do, and in which situation?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it would help
+      description: The task you are trying to automate, or the problem it would solve.
