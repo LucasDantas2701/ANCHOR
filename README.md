@@ -86,6 +86,13 @@ and let the system do the rest:
 "Register Maria Silva, tax ID 123-45-6789, IT department, contractor. Accept the terms and save the registration."
 ```
 
+Once a task has been learned, it can be saved and replayed without the LLM, here once per row of a
+spreadsheet, in about 3 seconds each:
+
+<p align="center">
+  <img src="docs/images/saved_automation_spreadsheet.gif" alt="A saved automation replaying a registration once per spreadsheet row, with no model calls" width="900">
+</p>
+
 What sets it apart is **who controls what**:
 
 * **The LLM only plans.** It turns the request into goals and steps, using the names of the
