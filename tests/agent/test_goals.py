@@ -121,11 +121,12 @@ def test_plan_without_goals_is_still_valid():
 
 
 
-def test_goal_without_steps_is_rejected():
+def test_goal_without_steps_is_left_for_later():
+    """Its page may not be visible yet (a search that only appears after logging in)."""
     from anchor.planner import check_goals
-    goals = [Goal("g1", "busca feita", True), Goal("g2", "resultado exibido")]
-    with pytest.raises(PlanError, match="g2 não tem nenhum"):
-        check_goals([Step("click", "Search", None, "g1")], goals)
+    goals = [Goal("g1", "busca feita"), Goal("g2", "resultado exibido", True)]
+    assert check_goals([Step("click", "Search", None, "g1")], goals) == ["g2"]
+    assert check_goals([], goals) == []               # no steps at all: nothing to leave for later
 
 
 def test_plan_without_conclusive_goal_is_rejected():

@@ -222,3 +222,15 @@ def test_refused_answers_are_kept_to_see_why_a_plan_failed():
         planner.plan("cadastre a Maria Silva e salve", "http://x")
     assert len(planner.last_attempts) == 2 and planner.last_attempts[0][0] == bad
     assert "voar" in planner.last_attempts[0][1]
+
+
+
+def test_a_goal_the_model_cannot_plan_yet_is_left_for_later():
+    """LinkedIn: the search only appears after logging in, so the model leaves it with no steps."""
+    answer = json.dumps({"goals": [{"id": "g1", "description": "login feito", "conclusive": False},
+                                   {"id": "g2", "description": "vagas salvas", "conclusive": True}],
+                         "steps": [{"goal": "g1", "expect": None, "action": "fill",
+                                    "description": "E-mail", "value": "ana@x.com"}]})
+    plan = LLMPlanner(FakeClient(answer), "m").plan("entre com ana@x.com e salve as vagas", "http://x",
+                                                    history=["feito: abrir a página"])
+    assert [g.id for g in plan.goals] == ["g1"] and len(plan.steps) == 1 and "g2" in plan.incomplete

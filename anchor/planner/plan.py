@@ -68,7 +68,25 @@ PLAN_SCHEMA = {
 
 
 class PlanError(ValueError):
-    """The model returned something that is not a valid plan."""
+    """
+    The model returned something that is not a valid plan. str() is the reason in the language
+    the model reads (it goes back to the model in the retry); user_text() is the same reason in
+    the interface language, for the messages the user sees.
+    """
+
+    def __init__(self, message: str, key: Optional[str] = None, values: Optional[dict] = None):
+        super().__init__(message)
+        self.key, self.values = key, dict(values or {})
+
+    @classmethod
+    def of(cls, key: str, language: str, **values) -> "PlanError":
+        return cls(mt(key, language, **values), key, values)
+
+    def user_text(self) -> str:
+        if self.key is None:
+            return str(self)
+        from anchor.i18n import get_language
+        return mt(self.key, get_language(), **self.values)
 
 
 @dataclass
@@ -111,14 +129,14 @@ def parse_goals(data: object, language: str = DEFAULT_PROMPT_LANGUAGE) -> list[G
     if raw is None:
         return []
     if not isinstance(raw, list):
-        raise PlanError(mt("plan.goals_list", language))
+        raise PlanError.of("plan.goals_list", language)
     goals, ids = [], set()
     for i, item in enumerate(raw, 1):
         if not isinstance(item, dict) or not str(item.get("id") or "").strip():
-            raise PlanError(mt("plan.goal_no_id", language, i=i))
+            raise PlanError.of("plan.goal_no_id", language, i=i)
         gid = str(item["id"]).strip()
         if gid in ids:
-            raise PlanError(mt("plan.goal_twice", language, gid=gid))
+            raise PlanError.of("plan.goal_twice", language, gid=gid)
         ids.add(gid)
         goals.append(Goal(gid, str(item.get("description") or "").strip(), bool(item.get("conclusive"))))
     return goals
@@ -127,21 +145,21 @@ def parse_goals(data: object, language: str = DEFAULT_PROMPT_LANGUAGE) -> list[G
 def parse_plan(data: object, language: str = DEFAULT_PROMPT_LANGUAGE) -> list[Step]:
     """Validates the model's JSON and returns the steps. Raises PlanError with the reason."""
     if not isinstance(data, dict) or not isinstance(data.get("steps"), list):
-        raise PlanError(mt("plan.steps_list", language))
+        raise PlanError.of("plan.steps_list", language)
 
     steps = []
     for i, item in enumerate(data["steps"], 1):
         if not isinstance(item, dict):
-            raise PlanError(mt("plan.step_not_object", language, i=i))
+            raise PlanError.of("plan.step_not_object", language, i=i)
         action = item.get("action")
         description = (item.get("description") or "").strip()
         value = item.get("value")
         if action not in ACTIONS:
-            raise PlanError(mt("plan.bad_action", language, i=i, action=action, actions=", ".join(ACTIONS)))
+            raise PlanError.of("plan.bad_action", language, i=i, action=action, actions=", ".join(ACTIONS))
         if not description:
-            raise PlanError(mt("plan.empty_description", language, i=i))
+            raise PlanError.of("plan.empty_description", language, i=i)
         if ACTIONS[action] and (value is None or str(value).strip() == ""):
-            raise PlanError(mt("plan.needs_value", language, i=i, action=action))
+            raise PlanError.of("plan.needs_value", language, i=i, action=action)
         goal = str(item["goal"]).strip() if item.get("goal") else None
         expect = str(item["expect"]).strip() if item.get("expect") else None
         steps.append(Step(action, description, None if value is None else str(value), goal, expect or None))
@@ -149,31 +167,33 @@ def parse_plan(data: object, language: str = DEFAULT_PROMPT_LANGUAGE) -> list[St
 
 
 def check_goals(steps: list[Step], goals: list[Goal], known: set[str] | None = None,
-                language: str = DEFAULT_PROMPT_LANGUAGE) -> None:
+                language: str = DEFAULT_PROMPT_LANGUAGE) -> list[str]:
     """
-    Checks the links between steps and goals. known: goal ids from earlier
-    plans in the same run (a replan may refer to them).
+    Checks the links between steps and goals. known: goal ids from earlier plans in the same
+    run (a replan may refer to them). Returns the ids of the goals with no step yet.
     """
     if not goals and not known:
-        return
+        return []
     if goals and not known and steps and not any(g.conclusive for g in goals):
-        raise PlanError(mt("plan.no_conclusive", language))
+        raise PlanError.of("plan.no_conclusive", language)
     ids = {g.id for g in goals} | (known or set())
     for i, step in enumerate(steps, 1):
         if not step.goal:
-            raise PlanError(mt("plan.step_no_goal", language, i=i))
+            raise PlanError.of("plan.step_no_goal", language, i=i)
         if step.goal not in ids:
-            raise PlanError(mt("plan.unknown_goal", language, i=i, goal=step.goal, ids=", ".join(sorted(ids))))
-    empty = [g.id for g in goals if not any(s.goal == g.id for s in steps)]
-    if steps and empty:
-        raise PlanError(mt("plan.empty_goals", language, goals=", ".join(empty)))
+            raise PlanError.of("plan.unknown_goal", language, i=i, goal=step.goal, ids=", ".join(sorted(ids)))
+    # Goals with no step yet are left for later (their page may not be visible yet, as a search
+    # that only appears after logging in): the caller drops them from this plan, and the end is
+    # still checked against the request.
+    empty = [g.id for g in goals if not any(s.goal == g.id for s in steps)] if steps else []
     conclusive = {g.id for g in goals if g.conclusive}
     seen_conclusive = False
     for i, step in enumerate(steps, 1):
         if step.goal in conclusive:
             seen_conclusive = True
         elif seen_conclusive:
-            raise PlanError(mt("plan.conclusive_last", language, i=i))
+            raise PlanError.of("plan.conclusive_last", language, i=i)
+    return empty
 
 
 # ----------------------------------------------------------------------
@@ -244,7 +264,7 @@ def check_request(steps: list[Step], goals: list[Goal], request: str,
             continue
         equivalents = forms | expand_actions(forms)
         if not equivalents & concluding_words:
-            raise PlanError(mt("plan.missing_verb", language, verb=verb))
+            raise PlanError.of("plan.missing_verb", language, verb=verb)
 
     plan_text = " ".join(f"{s.description} {s.value or ''}" for s in steps)
     plan_digits = _re.sub(r"\D", "", plan_text)
@@ -254,7 +274,7 @@ def check_request(steps: list[Step], goals: list[Goal], request: str,
             continue
         need = words(value)
         if need and len(need & plan_words) / len(need) < 0.5:
-            raise PlanError(mt("plan.missing_value", language, value=value))
+            raise PlanError.of("plan.missing_value", language, value=value)
 
 
 # --------------------------------------------------------------------------
@@ -291,4 +311,4 @@ def check_values_from_request(steps: list[Step], sources: list[str],
         value = step.value
         if _alnum(value) and (_alnum(value) in flat or _tokens(value) <= words):
             continue
-        raise PlanError(mt("plan.value_not_in_request", language, i=i, value=value))
+        raise PlanError.of("plan.value_not_in_request", language, i=i, value=value)

@@ -100,6 +100,11 @@ def describe_step(step: Step) -> str:
     return f"{step.action} {step.description}{value}"
 
 
+def user_text(exc: Exception) -> str:
+    """An error for the user, in the interface language (plan errors are written for the model)."""
+    return exc.user_text() if isinstance(exc, PlanError) else str(exc)
+
+
 def failure_reason(result: ActionResult) -> Reason:
     """The failure reason, in words that help the planner try another way."""
     element = result.selected_element
@@ -524,7 +529,7 @@ class Agent:
         try:
             queue = list(self._plan(request, history, result).steps)
         except Exception as exc:  # invalid plan, connection, missing model...
-            return self._finish(result, "failed", t("end.replan_failed", error=exc), start)
+            return self._finish(result, "failed", t("end.replan_failed", error=user_text(exc)), start)
         result.replans += 1
         return queue
 
@@ -578,7 +583,7 @@ class Agent:
             queue = list(self._plan(request, history, result).steps)
         except Exception as exc:  # invalid plan, connection, missing model...
             result.plan_failed = True
-            return self._finish(result, "failed", t("end.no_plan", error=exc), start)
+            return self._finish(result, "failed", t("end.no_plan", error=user_text(exc)), start)
 
         if not queue:
             return self._finish(result, "cancelled", t("end.cannot"), start)
@@ -595,7 +600,7 @@ class Agent:
                 try:
                     queue = list(self._plan(request, history, result).steps)
                 except Exception as exc:
-                    return self._finish(result, "failed", t("end.check_failed", error=exc), start)
+                    return self._finish(result, "failed", t("end.check_failed", error=user_text(exc)), start)
                 # Steps already done that the check proposes again: the model did not notice
                 # they were done. Drop them; if nothing is left, the goal was reached.
                 queue = [s for s in queue if step_key(s) not in done_count]

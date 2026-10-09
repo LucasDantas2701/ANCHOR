@@ -33,6 +33,16 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   name, number of rows and columns, or a text containing a piece).
 
 ### Fixed
+- **Plan errors are shown in the interface language.** They are written in the language the model
+  reads (Portuguese by default), because they go back to the model so it can fix its plan, and the
+  agent was reusing that text in its final messages: "failed to replan: invalid plan after 2
+  attempts: toda meta precisa de pelo menos um passo...". `PlanError` now keeps the message's key
+  and values, and each reader gets it in its own language.
+- **A goal the model cannot plan yet no longer stops the run.** On sites where part of the task only
+  appears later (a search that only exists after logging in), the model left that goal with no
+  steps, the plan was refused, and after two attempts the run failed. The goal is now left for
+  later: it is taken out of this plan, the plan is marked as partial, as an incomplete initial plan
+  already was, and the end is still checked against the request.
 - The question before a sensitive action no longer promises to save the answer in a one-off run
   (`anchor.agent`, `planner --run`), where nothing is saved: it is now "Allow it? [y/N]". Saved
   automations, which keep the decision, still explain the three answers.
