@@ -117,7 +117,7 @@ nothing:
   and page contents do not leave the computer or the company network. Logins use persistent
   browser profiles: credentials never go through the AI.
 
-> **Status:** version 0.3.0. The engine, the planner, the agent loop, effect verification, saved
+> **Status:** version 0.3.1. The engine, the planner, the agent loop, effect verification, saved
 > automations with self-healing, confirmation of sensitive actions and the defenses against prompt
 > injection are done; uploads, downloads, new tabs and iframes (0.4) and a local frontend (0.5) are
 > next. See the [roadmap](#roadmap) and the [changelog](CHANGELOG.md).
