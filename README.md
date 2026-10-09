@@ -83,7 +83,7 @@ ANCHOR lets a non-technical person describe the task in plain language, give the
 and let the system do the rest:
 
 ```text
-"Cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
+"Register Maria Silva, tax ID 123-45-6789, IT department, contractor. Accept the terms and save the registration."
 ```
 
 What sets it apart is **who controls what**:
@@ -531,7 +531,7 @@ requests and page contents do not leave the computer or the company network.
   written knowing the test attacks; new kinds of attack may get past them, so the barriers
   (destructive actions, confirmation of sensitive actions, typed values only from the request)
   remain the last line of defense.
-* The check of what was done treats capitalized words and acronyms in the request ("CPF", "TI")
+* The check of what was done treats capitalized words and acronyms in the request ("IT", "CPF")
   as data some step must use. If the site renames a field the request names by its acronym, the
   run may end as not fulfilled even when it was (a false "not fulfilled", never a false success).
 
