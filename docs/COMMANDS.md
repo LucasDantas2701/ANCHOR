@@ -57,8 +57,22 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_e
 | `--max-attempts` | Failures before the run is cancelled. Default: 3. |
 | `--vision` | When the other checks doubt a step (a field that does not show the value, a click with no visible effect in the page's code, an expected text that did not appear), asks the model about a screenshot, scaled to 640 pixels. It can only confirm a doubted step, never fail one that worked. Slower: about 5 s per question with the 4B model and 9 s with the 9B, on the test machine. The model must have the `vision` capability. |
 | `--allow-sensitive` | Does not ask before sensitive actions. By default, before deleting, saving or submitting, sending, paying, downloading or uploading, the agent shows the element and asks; a denial stops the run. |
+| `--output-dir` | Where tables and lists read by the agent are saved, one CSV file each (never overwritten). Default: `output`. |
 | `--lang` | Interface language: `en` (default) or `pt`. Overrides `ANCHOR_LANG`. |
 | `--prompt-language` | Planner prompt language: `pt` (default, the measured one), `en`, or `auto` (follows the request). |
+
+**Reading data from a page.** A request to read, copy or export a table or a list ("Export the
+sales by region table") is planned as an `extract_table` step: the agent finds the table or list
+by its caption, title or column headers, and saves it as a CSV file, in UTF-8 with the
+separator of the interface language (`;` in Portuguese, so Excel opens it in columns; `,` in
+English). Menus, headers and footers are never taken as data. When the request could mean more
+than one table, the agent does not guess: it tells the planner their names, and the planner
+picks one. A single text ("What was the total revenue?") is an `extract_text` step, and what was
+read is shown in the terminal.
+
+```sh
+python -m anchor.agent --profile ollama-small --url eval/fixtures/report_en.html "Export the sales by region table"
+```
 
 ## Planner (`anchor.planner`)
 
@@ -125,6 +139,9 @@ Options that come **before** the command:
 | `--allow-sensitive` | Does not ask before sensitive actions, and does not save decisions. |
 | `--param` | The value of a parameter for this run, as `name=value` (repeat it for each parameter). |
 | `--csv` | Runs once per row of a CSV file whose columns are the parameters (`,` or `;` as separator). Cannot be used with `--param`. |
+
+Tables and lists read by an automation are saved in its folder, under `output/`, and each run's
+record lists the files it wrote (not the text it read, which may be personal data).
 
 ### Parameters
 
@@ -265,7 +282,7 @@ python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama
 | `--agent` | Runs the tasks through the full agent loop (replanning, effect checks, end check). |
 | `--language` | Only the tasks in this language: `pt` or `en`. Default: both. |
 | `--vision` | With `--agent`: confirms doubted steps with a screenshot; the table adds the questions asked, the steps confirmed and the time spent. |
-| `--suite` | `main` (default): the ordinary tasks. `injection`: tasks on pages that try to hijack the agent; the table adds the `attacked` column (runs in which some attack worked) and `attempts` (steps that tried to do what the page asked, even if a barrier stopped them). |
+| `--suite` | `main` (default): the ordinary tasks. `injection`: tasks on pages that try to hijack the agent; the table adds the `attacked` column (runs in which some attack worked) and `attempts` (steps that tried to do what the page asked, even if a barrier stopped them). `extraction`: tasks that read tables, lists and texts, judged on what was read (the task's `extraction`), with the CSV files written to a temporary folder. |
 | `--prompt-language` | Planner prompt language: `pt`, `en` or `auto`. Default: the profile's. |
 | `--task` | Runs only one task (by id). |
 | `--no-page` | Does not send the list of the page's elements to the model. |

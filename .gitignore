@@ -285,3 +285,6 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 /*.csv
+
+# Tables and lists extracted by anchor.agent (--output-dir)
+/output/

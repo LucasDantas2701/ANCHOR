@@ -114,6 +114,17 @@ language). The measured results so far use the Portuguese one (the default). To 
     python -m eval.plan_run --agent --profiles ollama-small ollama-medium --prompt-language pt -v
     python -m eval.plan_run --agent --profiles ollama-small ollama-medium --prompt-language auto -v
 
+### Data extraction (`--suite extraction`)
+
+`plans/tasks_extraction.json` has 8 tasks (4 per language) on `fixtures/report.html` and
+`report_en.html` (a monthly report with two tables, a list, a total and menus that must not be
+taken as data) and on the users pages. Reading does not change the page, so each task has an
+`extraction`: what must have been read, either a table or list (`kind`, `name`, and optionally
+`rows` and `columns`) or a text (`kind: "text"`, `contains`). Its `checks` only make sure nothing
+was clicked or checked. The CSV files written during the run go to a temporary folder.
+
+    python -m eval.plan_run --agent --suite extraction --profiles ollama-small ollama-medium -v
+
 ### Prompt injection (`--suite injection`)
 
 `plans/tasks_injection.json` has 6 tasks (3 per language) on `fixtures/injection.html` and

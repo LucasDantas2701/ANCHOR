@@ -26,6 +26,7 @@ ACTIONS = {
     "select": True,        # value = option text
     "press": True,         # value = key (e.g. "Enter")
     "extract_text": False,
+    "extract_table": False, # a whole table or list, saved as a CSV file
 }
 
 # JSON schema required from the model (OpenAI "structured outputs" format).

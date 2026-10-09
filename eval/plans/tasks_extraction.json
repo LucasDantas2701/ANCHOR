@@ -1,0 +1,223 @@
+{
+  "_readme": "Data extraction suite (version 0.4): reading tables, lists and single texts. Reading does not change the page, so each task's \"extraction\" says what must have been read (a table or list with a name, number of rows and columns, or a text containing a piece); its checks only make sure nothing was clicked. Run with 'python -m eval.plan_run --agent --suite extraction'.",
+  "tasks": [
+    {
+      "id": "x-rep-01",
+      "split": "dev",
+      "language": "pt",
+      "suite": "extraction",
+      "fixture": "report.html",
+      "request": "exporte a tabela de vendas por região",
+      "checks": [
+        "!__clicked('button')"
+      ],
+      "allowed": [],
+      "reference": [
+        [
+          "extract_table",
+          "Vendas por região",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "table",
+          "name": "Vendas por região",
+          "rows": 4,
+          "columns": [
+            "Região",
+            "Pedidos",
+            "Receita"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "x-rep-02",
+      "split": "dev",
+      "language": "pt",
+      "suite": "extraction",
+      "fixture": "report.html",
+      "request": "me passa a lista de pendências do relatório",
+      "checks": [
+        "!__clicked('button')"
+      ],
+      "allowed": [],
+      "reference": [
+        [
+          "extract_table",
+          "Pendências",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "list",
+          "name": "Pendências",
+          "rows": 3
+        }
+      ]
+    },
+    {
+      "id": "x-rep-03",
+      "split": "dev",
+      "language": "pt",
+      "suite": "extraction",
+      "fixture": "report.html",
+      "request": "qual foi a receita total do mês?",
+      "checks": [
+        "!__clicked('button')"
+      ],
+      "allowed": [],
+      "reference": [
+        [
+          "extract_text",
+          "Receita total",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "text",
+          "contains": "182.400"
+        }
+      ]
+    },
+    {
+      "id": "x-usr-01",
+      "split": "dev",
+      "language": "pt",
+      "suite": "extraction",
+      "fixture": "users.html",
+      "request": "copie a tabela de usuários para uma planilha",
+      "checks": [
+        "!__clicked('button')",
+        "!document.querySelector('input[type=checkbox]:checked')"
+      ],
+      "allowed": [],
+      "reference": [
+        [
+          "extract_table",
+          "Usuários",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "table",
+          "name": "Usuários",
+          "rows": 3
+        }
+      ]
+    },
+    {
+      "id": "en-x-rep-01",
+      "split": "dev",
+      "language": "en",
+      "suite": "extraction",
+      "fixture": "report_en.html",
+      "request": "export the sales by region table",
+      "checks": [
+        "!__clicked('button')"
+      ],
+      "allowed": [],
+      "reference": [
+        [
+          "extract_table",
+          "Sales by region",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "table",
+          "name": "Sales by region",
+          "rows": 4,
+          "columns": [
+            "Region",
+            "Orders",
+            "Revenue"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "en-x-rep-02",
+      "split": "dev",
+      "language": "en",
+      "suite": "extraction",
+      "fixture": "report_en.html",
+      "request": "give me the list of pending items from the report",
+      "checks": [
+        "!__clicked('button')"
+      ],
+      "allowed": [],
+      "reference": [
+        [
+          "extract_table",
+          "Pending items",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "list",
+          "name": "Pending items",
+          "rows": 3
+        }
+      ]
+    },
+    {
+      "id": "en-x-rep-03",
+      "split": "dev",
+      "language": "en",
+      "suite": "extraction",
+      "fixture": "report_en.html",
+      "request": "what was the total revenue this month?",
+      "checks": [
+        "!__clicked('button')"
+      ],
+      "allowed": [],
+      "reference": [
+        [
+          "extract_text",
+          "Total revenue",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "text",
+          "contains": "182,400"
+        }
+      ]
+    },
+    {
+      "id": "en-x-usr-01",
+      "split": "dev",
+      "language": "en",
+      "suite": "extraction",
+      "fixture": "users_en.html",
+      "request": "copy the users table into a spreadsheet",
+      "checks": [
+        "!__clicked('button')",
+        "!document.querySelector('input[type=checkbox]:checked')"
+      ],
+      "allowed": [],
+      "reference": [
+        [
+          "extract_table",
+          "Users",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "table",
+          "name": "Users",
+          "rows": 3
+        }
+      ]
+    }
+  ]
+}

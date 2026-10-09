@@ -48,7 +48,8 @@ FIXTURES = ROOT / "fixtures"
 TASKS = ROOT / "plans" / "tasks.json"
 TASKS_EN = ROOT / "plans" / "tasks_en.json"
 TASKS_INJECTION = ROOT / "plans" / "tasks_injection.json"
-SUITES = ("main", "injection")
+TASKS_EXTRACTION = ROOT / "plans" / "tasks_extraction.json"
+SUITES = ("main", "injection", "extraction")
 HOLDOUT_TASKS = ROOT / "plans" / "holdout_tasks.json"
 
 # Records clicks and Enter, and prevents navigation (links and form submissions),
@@ -158,6 +159,41 @@ def attack_attempts(task: dict, steps) -> list[str]:
                                                  for t in targets)]
 
 
+def extraction_checks(task: dict, extractions: list[dict]) -> list[bool]:
+    """
+    One check per expected extraction ("extraction" in the task): a table or list with that
+    name, number of rows and columns, or a text containing a given piece. Reading does not
+    change the page, so these tasks are judged on what was read.
+    """
+    def table_ok(want: dict) -> bool:
+        return any(e.get("kind") == want.get("kind", "table")
+                   and (e.get("name") or "").casefold() == want["name"].casefold()
+                   and ("rows" not in want or e.get("rows") == want["rows"])
+                   and ("columns" not in want or e.get("columns") == want["columns"])
+                   for e in extractions)
+
+    def text_ok(want: dict) -> bool:
+        return any(e.get("kind") == "text" and want["contains"].casefold() in (e.get("text") or "").casefold()
+                   for e in extractions)
+
+    return [text_ok(w) if w.get("kind") == "text" else table_ok(w) for w in task.get("extraction", [])]
+
+
+def extractions_from_plan(results) -> list[dict]:
+    """The same records as the agent's result.extractions, from a plan run without the agent."""
+    out = []
+    for step, result in results:
+        if result.status != "success" or result.value is None:
+            continue
+        if step.action == "extract_text":
+            out.append({"kind": "text", "description": step.description, "text": " ".join(str(result.value).split())})
+        elif step.action == "extract_table":
+            t = result.value
+            out.append({"kind": t.kind, "description": step.description, "name": t.label(), "rows": len(t.rows),
+                        "columns": t.columns})
+    return out
+
+
 def attacks_that_worked(page: Page, task: dict) -> list[str]:
     """The task's attack expressions that are true on the final page (--suite injection)."""
     return [a for a in task.get("attacks", []) if page.evaluate(f"() => Boolean({a})")]
@@ -170,10 +206,13 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=No
     page.goto((FIXTURES / task["fixture"]).as_uri())
     if isinstance(planner, ReferencePlanner):
         planner.current = task["reference"]
-    result = Agent(page, planner, ActionExecutor(page, resolver=ElementResolver(page)), report=None,
-                   vision=vision).run(task["request"])
+    import tempfile
+    with tempfile.TemporaryDirectory() as output:      # extracted tables are not kept
+        result = Agent(page, planner, ActionExecutor(page, resolver=ElementResolver(page)), report=None,
+                       vision=vision, output_dir=output).run(task["request"])
 
     checks = [bool(page.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
+    checks += extraction_checks(task, result.extractions)
     unrequested = page.evaluate("(allowed) => window.__unrequested(allowed)", task["allowed"])
     attacks = attacks_that_worked(page, task)
     tried = attack_attempts(task, [r.step for r in result.records])
@@ -221,15 +260,17 @@ def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool)
     except Exception as exc:  # invalid plan, connection, missing model...
         error = f"{type(exc).__name__}: {exc}"[:300]
 
-    steps_ok, stopped = 0, ""
+    steps_ok, stopped, ran = 0, "", []
     if plan is not None:
-        for _, result in run_plan(ActionExecutor(page, resolver=resolver), plan):
+        ran = run_plan(ActionExecutor(page, resolver=resolver), plan)
+        for _, result in ran:
             if result.status == "success":
                 steps_ok += 1
             else:
                 stopped = result.status
 
     checks = [bool(page.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
+    checks += extraction_checks(task, extractions_from_plan(ran))
     unrequested = page.evaluate("(allowed) => window.__unrequested(allowed)", task["allowed"])
     attacks = attacks_that_worked(page, task)
     tried = attack_attempts(task, plan.steps if plan else [])
@@ -282,6 +323,8 @@ def load_tasks() -> list[dict]:
         tasks += json.loads(TASKS_EN.read_text(encoding="utf-8"))["tasks"]
     if TASKS_INJECTION.exists():
         tasks += json.loads(TASKS_INJECTION.read_text(encoding="utf-8"))["tasks"]
+    if TASKS_EXTRACTION.exists():
+        tasks += json.loads(TASKS_EXTRACTION.read_text(encoding="utf-8"))["tasks"]
     if HOLDOUT_TASKS.exists():
         tasks += json.loads(HOLDOUT_TASKS.read_text(encoding="utf-8"))["tasks"]
     return tasks
@@ -339,8 +382,11 @@ def check_tasks(tasks: list[dict], browser=None) -> int:
     for t in tasks:
         tid = t.get("id", "?")
         # A task the page does not allow has an empty reference plan: doing nothing is right.
+        # A task the page does not allow has an empty reference plan: doing nothing is right; a
+        # task that only reads (it has "extraction") may allow touching nothing.
         missing = [k for k in REQUIRED if not t.get(k)
-                   and not (k == "reference" and t.get("expected") == "not_possible" and k in t)]
+                   and not (k == "reference" and t.get("expected") == "not_possible" and k in t)
+                   and not (k == "allowed" and k in t and t.get("extraction"))]
         if missing:
             problems.append(f"{tid}: missing fields {', '.join(missing)}")
             continue
@@ -555,7 +601,7 @@ def main() -> int:
 
     out = ROOT / "results"
     out.mkdir(exist_ok=True)
-    stem = (f"plans_{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}" + ("_injection" if args.suite == "injection" else "")
+    stem = (f"plans_{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}" + (f"_{args.suite}" if args.suite != "main" else "")
             + ("_vision" if args.vision else "")
             + ("_FINAL" if args.final else ""))
     with open(out / f"{stem}.csv", "w", newline="", encoding="utf-8") as f:

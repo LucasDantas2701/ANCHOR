@@ -150,6 +150,7 @@ def run_automation(
         say(t("auto.learning", name=name))
 
     # The caller opens the automation's link (page.goto(automation.url)) before running it.
+    agent_options.setdefault("output_dir", store.folder(name) / "output")
     agent = Agent(page, planner, executor, report=report, **agent_options)
     result = agent.run(render(automation.request, values))
 
@@ -182,6 +183,8 @@ def run_automation(
         "interventions": result.interventions, "no_effect": result.no_effect, "seconds": result.seconds,
         "vision_checks": result.vision_checks, "vision_confirmed": result.vision_confirmed,
         "vision_seconds": result.vision_seconds, "user_wait_seconds": result.user_wait_seconds,
+        # The files written (extracted tables and lists); not the text read, which may be personal data.
+        "outputs": [e["path"] for e in result.extractions if e.get("path")],
     })
 
     done = [r for r in result.records if r.status == "success"]

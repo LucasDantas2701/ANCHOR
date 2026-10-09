@@ -228,3 +228,17 @@ def test_the_closed_set_has_every_request_and_is_valid():
     closed = [t for t in load_tasks() if t.get("split") == "test"]
     assert len(closed) == 80 and {t["author"] for t in closed} == {"A", "B", "C"}
     assert all(t.get("reference_targets") or t.get("expected") == "not_possible" for t in closed)
+
+
+def test_extraction_checks_compare_what_was_read():
+    from eval.plan_run import extraction_checks
+    read = [{"kind": "table", "name": "Vendas por região", "rows": 4, "columns": ["Região", "Pedidos", "Receita"]},
+            {"kind": "text", "text": "Receita total: R$ 182.400"}]
+    task = {"extraction": [{"kind": "table", "name": "vendas por região", "rows": 4},
+                           {"kind": "text", "contains": "182.400"}]}
+    assert extraction_checks(task, read) == [True, True]
+    wrong = {"extraction": [{"kind": "table", "name": "Vendas por região", "rows": 3},          # wrong count
+                            {"kind": "list", "name": "Vendas por região"},                     # not a list
+                            {"kind": "text", "contains": "999"}]}
+    assert extraction_checks(wrong, read) == [False, False, False]
+    assert extraction_checks({}, read) == []

@@ -65,6 +65,8 @@ def main() -> int:
            help="when the other checks doubt a step, asks the model about a screenshot (slower)")
     option(ap, "--allow-sensitive", action="store_true",
            help="does not ask before sensitive actions (delete, save, send, pay, download, upload)")
+    option(ap, "--output-dir", "--pasta-saida", default="output",
+           help="where extracted tables and lists are saved as CSV")
     language_options(ap)
     args = ap.parse_args()
     require(ap, args, "--profile", "--url")
@@ -101,7 +103,8 @@ def main() -> int:
             from .vision import VisionChecker
             vision = VisionChecker(profile.client(), profile.model)
         try:
-            result = Agent(page, planner, executor, max_failures=args.max_attempts, vision=vision).run(args.request)
+            result = Agent(page, planner, executor, max_failures=args.max_attempts, vision=vision,
+                           output_dir=args.output_dir).run(args.request)
         except KeyboardInterrupt:
             print("\n\n" + t("cli.interrupted"))
             context.close()

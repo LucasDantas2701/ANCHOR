@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Monthly report</title>
+<style>
+ body{font-family:sans-serif} nav ul{list-style:none;display:flex;gap:12px;padding:0}
+ table{border-collapse:collapse;margin:8px 0} td,th{border:1px solid #ccc;padding:4px 8px}
+</style></head>
+<body>
+<header><nav aria-label="Main menu"><ul>
+  <li><a href="#">Home</a></li><li><a href="#">Reports</a></li><li><a href="#">Settings</a></li>
+</ul></nav></header>
+<h1>Monthly report — September</h1>
+<button>Print report</button>
+
+<table>
+  <caption>Sales by region</caption>
+  <thead><tr><th>Region</th><th>Orders</th><th>Revenue</th></tr></thead>
+  <tbody>
+    <tr><td>North</td><td>412</td><td>$61,800</td></tr>
+    <tr><td>Northeast</td><td>298</td><td>$44,700</td></tr>
+    <tr><td>Southeast</td><td>251</td><td>$50,200</td></tr>
+    <tr><td>South</td><td>138</td><td>$25,700</td></tr>
+  </tbody>
+</table>
+<p id="total">Total revenue: $182,400</p>
+
+<h2>Quarterly goals</h2>
+<table>
+  <tr><th>Goal</th><th>Owner</th><th>Status</th></tr>
+  <tr><td>Open a store in Manaus</td><td>Anna Smith</td><td>In progress</td></tr>
+  <tr><td>Reduce returns</td><td>Brian Lee</td><td>Done</td></tr>
+  <tr><td>New website</td><td>Carol Miller</td><td>Late</td></tr>
+</table>
+
+<h3>Pending items</h3>
+<ul>
+  <li>Review the supplier contract</li>
+  <li>Approve the October budget</li>
+  <li>Send the report to the board</li>
+</ul>
+
+<footer><ul><li><a href="#">Help</a></li><li><a href="#">Privacy</a></li></ul></footer>
+<script src="feedback.js"></script>
+</body></html>

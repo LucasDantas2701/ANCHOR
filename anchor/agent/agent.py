@@ -37,7 +37,7 @@ from anchor.i18n import get_language, t
 from anchor.planner import Plan, PlanError, Step, check_request, page_elements, run_step
 from anchor.planner.execute import clean_description, clean_value
 from anchor.planner.language import DEFAULT_PROMPT_LANGUAGE, Reason, mt
-from anchor.planner.untrusted import looks_like_instruction
+from anchor.planner.untrusted import looks_like_instruction, without_instructions
 
 from .effects import EffectWatcher, state_problem
 
@@ -82,6 +82,9 @@ class AgentResult:
     tokens_in: int = 0
     tokens_out: int = 0
     seconds: float = 0.0
+    # What was read: {"kind": "table" | "list" | "text", "description", "name", "rows", "columns",
+    # "path"} for tables and lists (saved as CSV); {"kind": "text", "description", "text"} for texts.
+    extractions: list[dict] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -100,6 +103,11 @@ def describe_step(step: Step) -> str:
 def failure_reason(result: ActionResult) -> Reason:
     """The failure reason, in words that help the planner try another way."""
     element = result.selected_element
+    if result.action == "extract_table" and result.status == "not_found":
+        return Reason("why.no_table")
+    if result.action == "extract_table" and result.status == "ambiguous":
+        names = [without_instructions(n)[:60] for n in (result.value or []) if n and not looks_like_instruction(n)]
+        return Reason("why.which_table", names=", ".join(f'"{n}"' for n in names))
     if element is not None and getattr(element, "obscured", False):
         return Reason("why.obscured")
     if result.status == "not_found":
@@ -132,7 +140,11 @@ class Agent:
         verify_effect: bool = True,
         report: Optional[Callable[[str], None]] = print,
         vision=None,
+        output_dir=None,
     ):
+        """output_dir: where extracted tables and lists are saved (default: ./output)."""
+        from pathlib import Path
+        self.output_dir = Path(output_dir) if output_dir is not None else Path("output")
         self.page = page
         self.planner = planner
         self.executor = executor
@@ -455,6 +467,21 @@ class Agent:
         return ActionResult(status="success", action="fill", description=step.description,
                             selected_element=target, resolved_by="revealed_field")
 
+    def _keep_extraction(self, result: AgentResult, step: Step, outcome: ActionResult) -> None:
+        """Saves an extracted table or list as CSV, and keeps what was read in the result."""
+        if step.action == "extract_text":
+            text = " ".join(str(outcome.value).split())
+            result.extractions.append({"kind": "text", "description": step.description, "text": text})
+            self.report(t("agent.extracted_text", text=text[:300]))
+            return
+        from anchor.engine.tables import save_csv
+        table = outcome.value
+        separator = ";" if get_language() == "pt" else ","
+        path = save_csv(table, self.output_dir, separator)
+        result.extractions.append({"kind": table.kind, "description": step.description, "name": table.label(),
+                                   "rows": len(table.rows), "columns": table.columns, "path": str(path)})
+        self.report(t("agent.extracted_table", rows=len(table.rows), columns=len(table.columns), path=path))
+
     def _verify(self, step: Step, outcome: ActionResult, before):
         """
         Checks the effect of a step that was run. Returns (problem, messages):
@@ -462,7 +489,7 @@ class Agent:
         gives the focus; a Reason = what went wrong.
         """
         action = outcome.action if outcome.action in ("fill", "select", "check", "uncheck", "press") else step.action
-        if action in ("hover", "extract_text"):
+        if action in ("hover", "extract_text", "extract_table"):
             return None, []
         effect = self.watcher.effect_since(before)
         errors = effect.errors
@@ -686,6 +713,8 @@ class Agent:
                     element=" ".join(x for x in (getattr(chosen, "text", ""), getattr(chosen, "label", "")) if x)[:80]
                     if chosen is not None else ""))
                 self._remember_state(result.records[-1], step, chosen)
+                if step.action in ("extract_table", "extract_text") and outcome.value is not None:
+                    self._keep_extraction(result, step, outcome)
                 history.append(mt("hist.done", self.language, step=describe_step(step)))
                 history.extend(mt("hist.message", self.language, message=m) for m in self._safe_messages(messages))
                 if step.goal in self._goal_status and not (self.watcher is not None and focus_only):

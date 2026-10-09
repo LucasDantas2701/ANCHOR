@@ -643,6 +643,29 @@ class ActionExecutor:
             lambda match: match.locator.inner_text(),
         )
 
+    def extract_table(
+        self,
+        description: str,
+    ) -> ActionResult:
+        """
+        Reads the table or list the description names (by its caption, title or column
+        headers), whole. value = the TableData. With several that could be it, refuses
+        ("ambiguous") and error lists their names, so the planner can pick one.
+        """
+        from anchor.engine.tables import find_tables, match_table
+
+        tables = find_tables(self.page)
+        table, candidates = match_table(tables, description)
+        if table is not None:
+            return ActionResult(status="success", action="extract_table", description=description, value=table)
+        if not tables:
+            return ActionResult(status="not_found", action="extract_table", description=description,
+                                error="no table or list on the page")
+        names = [t.label() for t in candidates[:6]]
+        return ActionResult(status="ambiguous", action="extract_table", description=description,
+                            value=names, error="more than one table or list could be it: "
+                            + ", ".join(f'"{n}"' for n in names))
+
     def extract_attribute(
         self,
         description: str,

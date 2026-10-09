@@ -17,6 +17,21 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 
 ## [Unreleased]
 
+### Added
+- **Reading data from pages.** A new action, `extract_table`, reads a whole table or list and saves it
+  as a CSV file (UTF-8; `;` as separator in Portuguese, so Excel opens it in columns, `,` in English),
+  never overwriting one. The table or list is found by its caption, `aria-label` or the title before
+  it, or by its column headers; menus, headers and footers are never taken as data. When the request
+  could mean more than one, the agent does not guess: the planner gets their names and picks one. The
+  page summary sent to the planner now lists the page's tables and lists at the end (pages without
+  them get the same summary as before). Files go to `output/` (`anchor.agent --output-dir`), or to the
+  automation's folder for saved automations, whose run records list the files written.
+- What `extract_text` reads is now shown in the terminal and kept in the result; before, it was read
+  and dropped.
+- `eval/plan_run.py --suite extraction`: 8 development tasks (Portuguese and English) on a new report
+  page and the users page, judged on what was read (the task's `extraction`: a table or list with a
+  name, number of rows and columns, or a text containing a piece).
+
 ### Fixed
 - The question before a sensitive action no longer promises to save the answer in a one-off run
   (`anchor.agent`, `planner --run`), where nothing is saved: it is now "Allow it? [y/N]". Saved

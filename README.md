@@ -261,6 +261,14 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
   follows the request). Requests can be in English or Portuguese either way: the default
   Portuguese prompt did better than the English one on the English tasks too.
 
+**Read data from a page.** Ask for a table or a list ("Export the sales by region table") and the
+agent saves it as a CSV file in `output/` (`--output-dir` changes the folder); ask for a single
+value ("What was the total revenue?") and it shows the text it read:
+
+```sh
+python -m anchor.agent --profile ollama-small --url eval/fixtures/report_en.html "Export the sales by region table"
+```
+
 **Save an automation** and run it whenever you want. The first run learns the plan with the LLM;
 the next ones replay the approved plan without the LLM, much faster:
 
