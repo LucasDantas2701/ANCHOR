@@ -93,7 +93,7 @@ python -m anchor.automations list
 python -m anchor.automations show register-maria
 python -m anchor.automations recoveries register-maria
 python -m anchor.automations undo register-maria 1
-python -m anchor.automations notes register-maria --add "o botão Salvar fica no fim da página"
+python -m anchor.automations notes register-maria --add "the Save button is at the end of the page"
 ```
 
 Options that come **before** the command:
@@ -180,7 +180,7 @@ Pressing Enter, or having no terminal to answer, saves nothing: the next run ask
 
 | Option | Meaning |
 |---|---|
-| `--add` | Adds a note (e.g. `--add "o botão Salvar fica no fim da página"`). |
+| `--add` | Adds a note (e.g. `--add "the Save button is at the end of the page"`). |
 | `--remove` | Removes the note with this number. |
 
 After a run that did not work, `run` also asks whether you want to leave a note (Enter skips);
