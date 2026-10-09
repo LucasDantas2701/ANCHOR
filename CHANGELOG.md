@@ -18,20 +18,6 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
-- **Logging in by hand, with no password through the model.** The agent never types a password: a
-  fill that would land on a password field is refused by the executor (`refuse_passwords`, which the
-  agent and `planner --run` turn on). A request that seems to contain a password ("senha: 1234",
-  "password hunter2", a quoted value after the word; not "troque a senha do wifi") is refused before
-  anything is sent to the model, and `automations create` refuses to save one. When a task needs a
-  login (the request asks to log in, the plan reaches a password field, or nothing can be planned on
-  a page that asks for one), the agent asks the user to log in in the browser window and press
-  Enter, then replans from the page it finds; with no one at the terminal, the run stops with "the
-  task needs a login". Pages with a password field that the task does not need (changing a login
-  page's language) are not stopped. The time spent is counted in the wait for the user, and the
-  result counts the logins.
-- **Saved automations keep their own browser profile** (`automations/<name>/browser/`), so a login
-  done by hand once is kept for the next runs; `run --fresh-browser` opens a clean browser for one
-  run, and a `--browser-profile` given at `create` is still used instead.
 - **Reading data from pages.** A new action, `extract_table`, reads a whole table or list and saves it
   as a CSV file (UTF-8; `;` as separator in Portuguese, so Excel opens it in columns, `,` in English),
   never overwriting one. The table or list is found by its caption, `aria-label` or the title before
@@ -45,23 +31,6 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 - `eval/plan_run.py --suite extraction`: 8 development tasks (Portuguese and English) on a new report
   page and the users page, judged on what was read (the task's `extraction`: a table or list with a
   name, number of rows and columns, or a text containing a piece).
-
-### Fixed
-- **Plan errors are shown in the interface language.** They are written in the language the model
-  reads (Portuguese by default), because they go back to the model so it can fix its plan, and the
-  agent was reusing that text in its final messages: "failed to replan: invalid plan after 2
-  attempts: toda meta precisa de pelo menos um passo...". `PlanError` now keeps the message's key
-  and values, and each reader gets it in its own language.
-- **A goal the model cannot plan yet no longer stops the run.** On sites where part of the task only
-  appears later (a search that only exists after logging in), the model left that goal with no
-  steps, the plan was refused, and after two attempts the run failed. The goal is now left for
-  later: it is taken out of this plan, the plan is marked as partial, as an incomplete initial plan
-  already was, and the end is still checked against the request.
-- The question before a sensitive action no longer promises to save the answer in a one-off run
-  (`anchor.agent`, `planner --run`), where nothing is saved: it is now "Allow it? [y/N]". Saved
-  automations, which keep the decision, still explain the three answers.
-
-### Added
 - **The closed set of planner tasks** (`eval/plans/holdout_tasks.json`): 80 requests written by three
   colleagues who had not seen the project, all kept, on the four never-used `holdout_*` pages and
   nine known ones, 42 in Portuguese and 38 in English. 22 cannot be done on their pages and are
@@ -70,6 +39,46 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 - `eval/plan_run.py --check` validates the closed set's annotations blind: each reference plan runs
   on its `reference_targets` with Playwright alone, with no part of ANCHOR. See `eval/README.md` for
   how the set was built and the rules until the final run.
+
+## [0.3.1] - 2026-10-10
+
+Fixes found in real use after 0.3.0, the first one a safety fix: 0.3.0 typed a password when the
+request carried one, although the README says credentials never go through the AI.
+
+### Security
+- **ANCHOR never types a password, and credentials never go through the model.** A fill that would
+  land on a password field is refused by the executor (`refuse_passwords`, which the agent and
+  `planner --run` turn on). A request that seems to contain a password ("senha: 1234", "password
+  hunter2", a quoted value after the word; not "troque a senha do wifi") is refused before anything
+  is sent to the model, and `automations create` refuses to save one.
+
+### Added
+- **Logging in by hand.** When a task needs a login (the request asks to log in, the plan reaches a
+  password field, or nothing can be planned on a page that asks for one), the agent asks the user to
+  log in in the browser window and press Enter (or `q` to cancel), then replans from the page it
+  finds; with no one at the terminal, the run stops with "the task needs a login". Pages with a
+  password field that the task does not need (changing a login page's language) are not stopped.
+  The time spent is counted in the wait for the user, and the result counts the logins.
+
+### Changed
+- **Saved automations keep their own browser profile** (`automations/<name>/browser/`), so a login
+  done by hand once is kept for the next runs; `run --fresh-browser` opens a clean browser for one
+  run, and a `--browser-profile` given at `create` is still used instead.
+
+### Fixed
+- **Plan errors are shown in the interface language.** They are written in the language the model
+  reads (Portuguese by default), because they go back to the model so it can fix its plan, and the
+  agent reused that text in its final messages ("failed to replan: ... toda meta precisa de pelo
+  menos um passo"). `PlanError` now keeps the message's key and values, and each reader gets it in
+  its own language.
+- **A goal the model cannot plan yet no longer stops the run.** On sites where part of the task only
+  appears later (a search that only exists after logging in), the model left that goal with no
+  steps, the plan was refused, and after two attempts the run failed. The goal is now left for
+  later: it is taken out of this plan, the plan is marked as partial, and the end is still checked
+  against the request.
+- The question before a sensitive action no longer promises to save the answer in a one-off run
+  (`anchor.agent`, `planner --run`), where nothing is saved: it is now "Allow it? [y/N]". Saved
+  automations, which keep the decision, still explain the three answers.
 
 ## [0.3.0] - 2026-10-09
 
