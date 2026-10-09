@@ -168,6 +168,9 @@ English by default or Portuguese.
 * Python 3.10 or newer
 * [Ollama](https://ollama.com), to run the planner locally (free). The engine and the
   disambiguation demo work without it.
+* A GPU with 4 GB of memory is enough: everything in this README was measured on a GTX 1050 Ti
+  (with an i7-7700HQ and 16 GB of RAM). Without a GPU it should still work, more slowly (not
+  measured). The two models take a few GB of disk each; the smaller one is enough to start.
 
 ### Installation
 
@@ -183,12 +186,14 @@ English by default or Portuguese.
    pip install -r requirements.txt
    playwright install chromium
    ```
-3. Download the models (the names go in `llm_profiles.json`; check them with `ollama list`)
+3. Install [Ollama](https://ollama.com/download) (it runs in the background once installed) and
+   download the models (the names go in `llm_profiles.json`; check them with `ollama list`)
    ```sh
    ollama pull qwen3.5:4b
-   ollama pull qwen3.5:9b
+   ollama pull qwen3.5:9b      # optional: slower, but better at recovering
    ```
-4. Check that everything works
+4. Check that everything works (about 3 minutes; the SauceDemo tests need the internet and fail
+   without it, and the LinkedIn ones are skipped on purpose)
    ```sh
    pytest tests -v
    ```
@@ -198,12 +203,18 @@ English by default or Portuguese.
 The repository comes with local test pages, so you can try it without touching a real site:
 
 ```sh
-python -m anchor.agent --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
+python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_en.html "Register Maria Silva, tax ID 123-45-6789, work e-mail maria.silva@company.com, IT department, contractor. Accept the terms and save the registration."
 ```
 
-The browser opens, the agent plans and runs each step, asks in the terminal when it is not sure,
-and at the end shows the result: steps, model calls, replans, failures, user interventions,
-tokens and time.
+The browser opens, the agent plans and runs each step, asks in the terminal when it is not sure
+(and before saving, since saving is a sensitive action), and at the end shows the result: steps,
+model calls, replans, failures, user interventions, tokens and time.
+
+Requests in Portuguese work too, on any page:
+
+```sh
+python -m anchor.agent --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
+```
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -239,7 +250,7 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
 the next ones replay the approved plan without the LLM, much faster:
 
 ```sh
-python -m anchor.automations create register-maria --url eval/fixtures/registration.html --profile ollama-small "cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
+python -m anchor.automations create register-maria --url eval/fixtures/registration_en.html --profile ollama-small "Register Maria Silva, tax ID 123-45-6789, IT department, contractor. Accept the terms and save the registration."
 python -m anchor.automations run register-maria       # 1st time: learns; then: replays
 python -m anchor.automations list
 python -m anchor.automations show register-maria      # approved plan and last runs
@@ -250,9 +261,17 @@ The parts of the request that change from run to run go in braces, and each run 
 values, or one run per row of a spreadsheet:
 
 ```sh
-python -m anchor.automations create register --url eval/fixtures/registration.html --profile ollama-small "cadastre {nome}, CPF {cpf}, no TI e salve"
-python -m anchor.automations run register --param nome="Maria Silva" --param cpf=123.456.789-00
+python -m anchor.automations create register --url eval/fixtures/registration_en.html --profile ollama-small "Register {name}, tax ID {tax_id}, IT department, contractor. Accept the terms and save the registration."
+python -m anchor.automations run register --param name="Maria Silva" --param tax_id=123-45-6789
 python -m anchor.automations run register --csv employees.csv
+```
+
+where `employees.csv` has one column per parameter (`,` or `;` as separator):
+
+```text
+name;tax_id
+Anna Smith;111-22-3333
+Brian Lee;444-55-6666
 ```
 
 If the site changes and a saved step no longer works, the automation **heals itself**: the LLM
@@ -270,14 +289,14 @@ which the planner reads the next time it learns or heals the plan:
 
 ```sh
 python -m anchor.automations notes register-maria
-python -m anchor.automations notes register-maria --add "o botão Salvar fica no fim da página"
+python -m anchor.automations notes register-maria --add "the Save button is at the end of the page"
 ```
 
 **Only generate a plan**, and optionally run it:
 
 ```sh
-python -m anchor.planner --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria Silva no departamento de TI"
-python -m anchor.planner --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria Silva no departamento de TI" --run
+python -m anchor.planner --profile ollama-small --url eval/fixtures/registration_en.html "Register Maria Silva in the IT department"
+python -m anchor.planner --profile ollama-small --url eval/fixtures/registration_en.html "Register Maria Silva in the IT department" --run
 ```
 
 **See the disambiguation and the memory at work** (run it twice: the first time it asks, the
