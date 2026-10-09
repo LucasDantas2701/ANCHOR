@@ -234,9 +234,11 @@ class Agent:
     def _undone_by_this_step(self, result: AgentResult, outcome: ActionResult, request: str,
                              step: Step) -> Optional[StepRecord]:
         """
-        An earlier box or list, verified before, that is no longer in the state it was left in.
-        Undoing an earlier step the request did not ask for, with a step it does ask for, is a
-        correction, not a problem ("Employee" then "Contractor", for "register as a contractor").
+        An earlier box or list, verified before, that this step left in another state, when the
+        earlier step was asked for and this one is not ("PJ" then "CLT", for "contrato PJ").
+        Undoing a step the request did not ask for is a correction; and when both are in the
+        request ("Register the employee ... contractor", with "Employee" and "Contractor"
+        options), there is no telling which is right here: the final checks decide.
         """
         if self.watcher is None:
             return None
@@ -250,9 +252,8 @@ class Agent:
             if state_problem(record.state[0], record.state[1], record.handle) is None:
                 continue
             before = self._object(record.step.description + " " + record.element)
-            if now & asked and not before & asked:
-                continue                     # a correction of a step the request did not ask for
-            return record
+            if before & asked and not now & asked:
+                return record                # a requested state undone by an unrequested step
         return None
 
     def _confirmed_by_screenshot(self, step: Step, problem, shot_before) -> bool:

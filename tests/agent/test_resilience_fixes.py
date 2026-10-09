@@ -108,3 +108,12 @@ def test_the_tie_break_only_acts_between_a_name_and_its_lookalike(page, monkeypa
     assert with_tie_break[0] == without[0]                                        # no lookalike: unchanged
     assert with_tie_break[1]["Salvar cadastro"] > without[1]["Salvar cadastro"]   # the name asked wins
     assert with_tie_break[1]["Salvar cadastro depois"] == without[1]["Salvar cadastro depois"]
+
+
+def test_when_both_choices_are_in_the_request_the_later_one_stands(page):
+    """en-reg-01: "Register the employee Maria ... contractor", with Employee and Contractor options."""
+    html = """<html><body><label><input type="radio" name="t" value="e"> Employee</label>
+        <label><input type="radio" name="t" value="c"> Contractor</label></body></html>"""
+    result = run(page, html, "Register the employee Maria Silva, contractor",
+                 ("check", "Employee", None), ("click", "Contractor", None))
+    assert [r.status for r in result.records] == ["success", "success"]

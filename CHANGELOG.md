@@ -257,10 +257,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
     "Accept cookies" no longer redoes "open the cart".
   - **A step that undoes an earlier one is noticed.** The agent keeps the boxes and lists it has
     verified and checks them again after each step: checking "CLT" after "PJ" now fails with the
-    reason ("this step undid an earlier step"), and the model replans knowing it. Undoing a step
-    the request did not ask for with one it does ask for is a correction, not a problem ("Employee"
-    then "Contractor", for "register as a contractor"); a first version flagged it too, and the 4B
-    model failed `en-reg-01`.
+    reason ("this step undid an earlier step"), and the model replans knowing it. Only a requested
+    state undone by an unrequested step is flagged: undoing an unrequested step is a correction,
+    and when both are in the request there is no telling which is right, so the final checks
+    decide. A first version flagged every undo, and the 4B model failed `en-reg-01`, whose request
+    ("Register the employee Maria Silva, ... contractor") has both "employee" (the person) and
+    "contractor" (the option).
 - When a saved automation heals itself, the saved plan is a contract: every saved step that failed
   must have been redone by a successful step of the same action, or the run does not count as done
   (and the plan is not corrected). Before, if the model said nothing was left after, say, closing a
