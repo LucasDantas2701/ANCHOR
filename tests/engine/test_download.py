@@ -129,3 +129,17 @@ def test_exporting_a_table_is_reading_not_a_file():
     from anchor.planner.reading import wants_data, wants_file
     assert wants_data("exporte a tabela de vendas") and not wants_file("exporte a tabela de vendas")
     assert wants_file("exporte a planilha de vendas")          # a spreadsheet is a file
+
+
+
+def test_a_plain_click_on_the_wrong_download_button_is_blocked_too(page, tmp_path):
+    open_documents(page, "documents_en.html")
+    result = Agent(page, OnePlan(("click", "Download sales report", None)), ActionExecutor(page),
+                   report=None, output_dir=tmp_path).run("download the September invoice")
+    assert not result.ok and result.records[0].status == "blocked" and not list(tmp_path.iterdir())
+
+
+def test_clicks_that_are_not_downloads_are_not_judged_as_files(page, tmp_path):
+    open_documents(page)
+    agent = Agent(page, OnePlan(), ActionExecutor(page), report=None, output_dir=tmp_path)
+    assert agent._wrong_file("abra a política de privacidade", Step("click", "Ver política de privacidade")) is False

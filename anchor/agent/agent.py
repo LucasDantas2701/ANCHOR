@@ -429,13 +429,19 @@ class Agent:
     def _wrong_file(self, request: str, step: Step) -> bool:
         """
         Would the step download something other than what the request names? ("Baixar relatório
-        de vendas" for "baixe a nota fiscal"). Like the destructive barrier, it compares what the
-        step is about with what the request is about; a request that names nothing passes.
+        de vendas" for "baixe a nota fiscal"), by the download action or by a plain click on a
+        download button. Like the destructive barrier, it compares what the step is about with what
+        the request is about; a request that names nothing passes.
         """
-        if step.action != "download":
+        if step.action not in ("download", "click"):
             return False
         description = clean_description(step.description)
         status, found, _ = self.executor._resolve(description, "click")
+        if step.action == "click":
+            # A plain click on a download button also downloads (and keeps) its file.
+            from anchor.engine.sensitive import classify
+            if classify("click", description, getattr(found, "text", "") or "") != "download":
+                return False
         about = self._object(description + " " + (getattr(found, "text", "") or ""))
         asked = self._object(request) - self._object(" ".join(self._FILE_WORDS))
         return bool(about) and bool(asked) and not about & asked

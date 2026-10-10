@@ -26,7 +26,8 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   kept, even after a plain click (the models often planned "click" on a download button, and the
   file was lost while the run claimed success). Like the destructive barrier, a download must be of
   what the request names: "Baixar relatório de vendas" is blocked for "baixe a nota fiscal" (the
-  models downloaded the report instead and claimed success). As with extraction, the planner hears
+  models downloaded the report instead and claimed success), by the download action or by a plain
+  click on a download button. As with extraction, the planner hears
   about the action only for requests about files ("baixe", "download", "PDF", "planilha"...; not
   "exporte", which on a report page is reading, and led the 9B model to look for a download button),
   so every other request gets the prompt exactly as before; the request check counts a download as
