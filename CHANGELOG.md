@@ -28,7 +28,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   "envie o comprovante", or a file path), so every other request gets the prompt as before. The
   request check accepts the upload for "send" only when every "send" in the request is about a file
   ("envie o comprovante"); "anexe o currículo e envie a candidatura" still needs the click on the send
-  button. `eval/plan_run.py --suite uploads`: 10 development tasks on a new application page.
+  button. As with downloads, the models often planned a plain "click" on the file field or on the
+  attach button, which opened the file chooser with nobody to pick the file: such a click, in a
+  request that gives file paths, is now an upload of the path whose name matches the field
+  ("curriculo.pdf" for "Anexar currículo"), still only from the request. A file sent through another
+  field than the one it matches is blocked (the 9B model sent the "comprovante" through "Anexar
+  currículo" while the page had "Comprovante de residência"). `eval/plan_run.py --suite uploads`: 10
+  development tasks on a new application page.
 - **Downloading files.** A new action, `download`: the agent clicks the button or link and waits
   for the file, which it saves in the output folder (the same as extracted tables: `output/`, or the
   automation's folder) with the name the site suggests, never overwriting one (`report (2).csv`).

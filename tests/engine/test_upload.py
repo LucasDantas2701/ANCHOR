@@ -97,3 +97,37 @@ def test_sending_a_file_is_done_by_the_upload_but_sending_the_form_still_needs_t
     check_request(upload, [], "envie o comprovante eval/fixtures/files/comprovante.pdf")   # a file: done
     with pytest.raises(PlanError):
         check_request(upload, [], "anexe o comprovante eval/fixtures/files/comprovante.pdf e envie a candidatura")
+
+
+def test_a_click_on_an_attach_button_with_a_path_in_the_request_is_an_upload(page):
+    open_form(page, "application_en.html")
+    request = "attach the resume eval/fixtures/files/resume.pdf"
+    result = Agent(page, OnePlan(("click", "Attach resume", None)), ActionExecutor(page), report=None).run(request)
+    assert result.ok, result.message
+    assert page.evaluate(names) == [None, "resume.pdf", None] and result.records[0].step.action == "upload"
+
+
+def test_with_two_paths_each_field_gets_the_file_that_matches_it(page):
+    open_form(page)
+    request = "anexe o currículo eval/fixtures/files/curriculo.pdf e a foto eval/fixtures/files/foto.png"
+    planner = OnePlan(("click", "Foto de perfil", None), ("click", "Anexar currículo", None))
+    result = Agent(page, planner, ActionExecutor(page), report=None).run(request)
+    assert result.ok, result.message
+    assert page.evaluate(names) == [None, "curriculo.pdf", "foto.png"]
+
+
+def test_a_file_sent_through_another_field_is_blocked(page):
+    open_form(page)
+    request = "envie o comprovante de residência eval/fixtures/files/comprovante.pdf"
+    planner = OnePlan(("upload", "Anexar currículo", "eval/fixtures/files/comprovante.pdf"))
+    result = Agent(page, planner, ActionExecutor(page), report=None).run(request)
+    assert not result.ok and result.records[0].status == "blocked" and page.evaluate(names) == [None, None, None]
+
+
+def test_a_file_no_other_field_matches_is_not_blocked(page, tmp_path):
+    cv = tmp_path / "cv.pdf"
+    cv.write_bytes(b"%PDF-1.4\n")
+    open_form(page)
+    planner = OnePlan(("upload", "Anexar currículo", str(cv)))
+    result = Agent(page, planner, ActionExecutor(page), report=None).run(f"anexe meu cv {cv}")
+    assert result.ok, result.message and page.evaluate(names)[1] == "cv.pdf"

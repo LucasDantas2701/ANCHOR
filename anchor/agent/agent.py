@@ -21,6 +21,7 @@ from __future__ import annotations
 import re
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Callable, Optional
 
 from playwright.sync_api import Page
@@ -169,6 +170,7 @@ class Agent:
         self.output_dir = Path(output_dir) if output_dir is not None else Path("output")
         executor.download_dir = self.output_dir      # downloads go where extracted tables go
         self._pending_downloads: list[dict] = []
+        self._uploaded: set[str] = set()
         self.page = page
         self.planner = planner
         self.executor = executor
@@ -447,6 +449,65 @@ class Agent:
         about = self._object(description + " " + (getattr(found, "text", "") or ""))
         asked = self._object(request) - self._object(" ".join(self._FILE_WORDS))
         return bool(about) and bool(asked) and not about & asked
+
+    _ATTACH = re.compile(r"\b(anex\w*|attach\w*|upload\w*|carreg\w*|escolh\w*\s+arquivo|choose\s+file|browse|"
+                         r"selecion\w*\s+arquivo|select\s+file)\b", re.IGNORECASE)
+    _PATH = re.compile(r"[\w./\\:~-]+\.(?:pdf|docx?|xlsx?|csv|txt|png|jpe?g|zip)\b", re.IGNORECASE)
+
+    def _upload_target(self, description: str):
+        """The element for a step, if it is a file field or a button that attaches a file."""
+        status, found, _ = self.executor._resolve(clean_description(description), "click")
+        if found is None:
+            return None
+        is_field = (found.tag or "").lower() == "input" and (found.type or "").lower() == "file"
+        text = f"{description} {found.text or ''} {found.label or ''}"
+        return found if is_field or self._ATTACH.search(text) else None
+
+    def _best_path(self, request: str, about: set[str]) -> Optional[str]:
+        """Among the request's file paths not sent yet, the one whose name matches the field."""
+        paths = [p for p in dict.fromkeys(self._PATH.findall(request)) if p not in self._uploaded]
+        if not paths:
+            return None
+        named = [p for p in paths if self._object(re.sub(r"[._-]", " ", Path(p).stem)) & about]
+        return named[0] if len(named) == 1 else (paths[0] if len(paths) == 1 else None)
+
+    def _as_upload(self, request: str, step: Step) -> Optional[Step]:
+        """
+        A click on a file field, or on an "attach" button, in a request that gives file paths, is
+        an upload of the matching path (the model may plan "click"; the chooser would open with
+        nobody to pick the file). The path still comes only from the request.
+        """
+        if step.action != "click" or not self._PATH.search(request):
+            return None
+        found = self._upload_target(step.description)
+        if found is None:
+            return None
+        path = self._best_path(request, self._object(f"{step.description} {found.text or ''} {found.label or ''}"))
+        return Step("upload", step.description, path, step.goal, step.expect) if path else None
+
+    def _wrong_field(self, request: str, step: Step) -> bool:
+        """
+        Would the file go to another field than the one it belongs to? The comprovante sent
+        through "Anexar currículo", while the page has "Comprovante de residência". Only when
+        another field on the page matches the file and this one does not.
+        """
+        if step.action != "upload" or not step.value:
+            return False
+        stem = self._object(re.sub(r"[._-]", " ", Path(str(step.value)).stem))
+        if not stem:
+            return False
+        found = self._upload_target(step.description)
+        mine = self._object(f"{step.description} {getattr(found, 'text', '') or ''} {getattr(found, 'label', '') or ''}")
+        if mine & stem:
+            return False
+        resolver = self.executor.resolver
+        resolver.index("interactive")
+        for record in resolver.records:
+            is_field = record.get("tag") == "input" and (record.get("type") or "").lower() == "file"
+            text = f"{record.get('label') or ''} {record.get('text') or ''}"
+            if (is_field or self._ATTACH.search(text)) and self._object(text) & stem:
+                return True
+        return False
 
     def _execute(self, step: Step, last_fill) -> ActionResult:
         """Runs a step, with the Enter and field-reveal safety nets."""
@@ -761,10 +822,14 @@ class Agent:
                 continue
             after_replan = False
 
+            # ---------------------------------------------------- a click that should be an upload
+            step = self._as_upload(request, step) or step
+
             # ---------------------------------------------------- unrequested destructive action
             wrong_file = self._wrong_file(request, step)
-            if wrong_file or self._unrequested_destructive(request, step):
-                reason = Reason("why.wrong_file" if wrong_file else "why.destructive")
+            wrong_field = not wrong_file and self._wrong_field(request, step)
+            if wrong_file or wrong_field or self._unrequested_destructive(request, step):
+                reason = Reason("why.wrong_file" if wrong_file else "why.wrong_field" if wrong_field else "why.destructive")
                 self.report(t("agent.blocked", step=describe_step(step)))
                 if key in blocked:
                     outcome = self._fail(request, history, result, start, step, "blocked", "", reason)
@@ -840,6 +905,7 @@ class Agent:
                 if step.action in ("extract_table", "extract_text", "download") and outcome.value is not None:
                     self._keep_extraction(result, step, outcome)
                 if step.action == "upload" and outcome.value:
+                    self._uploaded.add(str(step.value).strip())
                     self.report(t("agent.uploaded", name=outcome.value["name"]))
                 self._keep_pending_downloads(result, step)
                 history.append(mt("hist.done", self.language, step=describe_step(step)))
