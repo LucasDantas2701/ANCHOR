@@ -100,3 +100,32 @@ def test_file_checks_read_the_downloaded_file(tmp_path):
     read = [{"kind": "file", "name": saved.name, "path": str(saved)}]
     assert extraction_checks({"extraction": [{"kind": "file", "name": ".csv", "contains": "Norte"}]}, read) == [True]
     assert extraction_checks({"extraction": [{"kind": "file", "name": ".pdf", "contains": "%PDF"}]}, read) == [False]
+
+
+def test_a_plain_click_on_a_download_button_keeps_the_file(page, tmp_path):
+    """The model may plan "click" instead of "download": the file must not be lost."""
+    open_documents(page)
+    result = Agent(page, OnePlan(("click", "Baixar relatório de vendas", None)), ActionExecutor(page),
+                   report=None, output_dir=tmp_path).run("baixe o relatório de vendas")
+    files = [e for e in result.extractions if e["kind"] == "file"]
+    assert len(files) == 1 and files[0]["name"] == "relatorio-vendas.csv" and Path(files[0]["path"]).exists()
+
+
+def test_the_download_action_does_not_save_its_file_twice(page, tmp_path):
+    open_documents(page)
+    result = Agent(page, OnePlan(("download", "Baixar contrato", None)), ActionExecutor(page),
+                   report=None, output_dir=tmp_path).run("baixe o contrato")
+    assert [e["name"] for e in result.extractions] == ["contrato-servico.pdf"] and len(list(tmp_path.iterdir())) == 1
+
+
+def test_downloading_another_file_than_the_one_asked_is_blocked(page, tmp_path):
+    open_documents(page)
+    result = Agent(page, OnePlan(("download", "Baixar relatório de vendas", None)), ActionExecutor(page),
+                   report=None, output_dir=tmp_path).run("baixe a nota fiscal de setembro")
+    assert not result.ok and result.records[0].status == "blocked" and not list(tmp_path.iterdir())
+
+
+def test_exporting_a_table_is_reading_not_a_file():
+    from anchor.planner.reading import wants_data, wants_file
+    assert wants_data("exporte a tabela de vendas") and not wants_file("exporte a tabela de vendas")
+    assert wants_file("exporte a planilha de vendas")          # a spreadsheet is a file

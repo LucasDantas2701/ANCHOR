@@ -31,7 +31,7 @@ def wants_data(request: str | None) -> bool:
 
 # Downloading a file: the planner hears about the download action only then, for the same reason.
 _FILES = re.compile(
-    r"\b(baix\w*|download\w*|export\w*|arquivos?|files?|pdf|csv|xlsx?|planilhas?|spreadsheets?|"
+    r"\b(baix\w*|download\w*|arquivos?|files?|pdf|csv|xlsx?|planilhas?|spreadsheets?|"
     r"relat[oó]rios?\s+em|comprovantes?|boletos?|notas?\s+fisca\w*|invoices?|receipts?)\b", re.IGNORECASE)
 
 

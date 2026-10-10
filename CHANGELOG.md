@@ -22,10 +22,15 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   for the file, which it saves in the output folder (the same as extracted tables: `output/`, or the
   automation's folder) with the name the site suggests, never overwriting one (`report (2).csv`).
   Every download is a sensitive action, whatever the button says. A click that downloads nothing
-  fails ("no_download"), and the planner is told so. As with extraction, the planner hears about the
-  action only for requests about files ("baixe", "download", "exporte", "PDF", "planilha"...), so
-  every other request gets the prompt exactly as before; the request check counts a download as a
-  click. `eval/plan_run.py --suite downloads`: 8 development tasks on a new documents page, judged
+  fails ("no_download"), and the planner is told so. Any file the page downloads during a run is
+  kept, even after a plain click (the models often planned "click" on a download button, and the
+  file was lost while the run claimed success). Like the destructive barrier, a download must be of
+  what the request names: "Baixar relatório de vendas" is blocked for "baixe a nota fiscal" (the
+  models downloaded the report instead and claimed success). As with extraction, the planner hears
+  about the action only for requests about files ("baixe", "download", "PDF", "planilha"...; not
+  "exporte", which on a report page is reading, and led the 9B model to look for a download button),
+  so every other request gets the prompt exactly as before; the request check counts a download as
+  a click. `eval/plan_run.py --suite downloads`: 8 development tasks on a new documents page, judged
   on the saved file (its name and content); the evaluation's instrumentation now lets download links
   work and ignores the link a page creates and removes to start a download.
 - **Reading data from pages.** A new action, `extract_table`, reads a whole table or list and saves it

@@ -166,6 +166,7 @@ class Agent:
         from pathlib import Path
         self.output_dir = Path(output_dir) if output_dir is not None else Path("output")
         executor.download_dir = self.output_dir      # downloads go where extracted tables go
+        self._pending_downloads: list[dict] = []
         self.page = page
         self.planner = planner
         self.executor = executor
@@ -354,6 +355,13 @@ class Agent:
 
     def _finish(self, result: AgentResult, status: str, message: str, start: float) -> AgentResult:
         """message: already written in the interface language."""
+        # The download listener is for this run only; a file that arrived after the last step is kept.
+        try:
+            self.page.remove_listener("download", self._on_download)
+        except Exception:
+            pass
+        if self._pending_downloads:
+            self._keep_pending_downloads(result, result.records[-1].step if result.records else Step("download", "", None))
         if self.vision is not None:
             result.vision_checks = self.vision.checks
             result.vision_seconds = round(self.vision.seconds, 2)
@@ -415,6 +423,22 @@ class Agent:
             return not request_words & totality      # "delete everything" only if the request says so
         about = self._object(description)
         return bool(about) and not about & self._object(request)
+
+    _FILE_WORDS = {"arquivo", "arquivos", "file", "files", "documento", "documentos", "document", "documents"}
+
+    def _wrong_file(self, request: str, step: Step) -> bool:
+        """
+        Would the step download something other than what the request names? ("Baixar relatório
+        de vendas" for "baixe a nota fiscal"). Like the destructive barrier, it compares what the
+        step is about with what the request is about; a request that names nothing passes.
+        """
+        if step.action != "download":
+            return False
+        description = clean_description(step.description)
+        status, found, _ = self.executor._resolve(description, "click")
+        about = self._object(description + " " + (getattr(found, "text", "") or ""))
+        asked = self._object(request) - self._object(" ".join(self._FILE_WORDS))
+        return bool(about) and bool(asked) and not about & asked
 
     def _execute(self, step: Step, last_fill) -> ActionResult:
         """Runs a step, with the Enter and field-reveal safety nets."""
@@ -513,6 +537,25 @@ class Agent:
                 return True
             self.report(t("login.still"))
         return False
+
+    def _on_download(self, download) -> None:
+        """Saves a file the page downloaded by itself, or after a plain click."""
+        if getattr(self.executor, "expecting_download", False):
+            return                                   # the download action saves its own file
+        from anchor.engine.action_executor.executor import _free_path
+        try:
+            path = _free_path(self.output_dir, download.suggested_filename or "download")
+            download.save_as(str(path))
+            self._pending_downloads.append({"name": path.name, "path": str(path), "bytes": path.stat().st_size})
+        except Exception:
+            pass
+
+    def _keep_pending_downloads(self, result: AgentResult, step: Step) -> None:
+        for file in self._pending_downloads:
+            result.extractions.append({"kind": "file", "description": step.description, "name": file["name"],
+                                       "bytes": file["bytes"], "path": file["path"]})
+            self.report(t("agent.downloaded", name=file["name"], size=_size(file["bytes"]), path=file["path"]))
+        self._pending_downloads.clear()
 
     def _keep_extraction(self, result: AgentResult, step: Step, outcome: ActionResult) -> None:
         """Saves an extracted table or list as CSV, and keeps what was read in the result."""
@@ -626,6 +669,10 @@ class Agent:
         last_fill = None                    # element of the last "fill", for the Enter
         blocked: set[tuple] = set()         # blocked destructive steps
 
+        # Any file the page downloads during the run is kept, even after a plain click (the model
+        # may plan "click" on a download button): it would be lost otherwise.
+        self.page.on("download", self._on_download)
+
         # A password in the request would reach the model: refused before anything is sent.
         if request_has_password(request):
             return self._finish(result, "failed", t("end.password_in_request"), start)
@@ -707,8 +754,9 @@ class Agent:
             after_replan = False
 
             # ---------------------------------------------------- unrequested destructive action
-            if self._unrequested_destructive(request, step):
-                reason = Reason("why.destructive")
+            wrong_file = self._wrong_file(request, step)
+            if wrong_file or self._unrequested_destructive(request, step):
+                reason = Reason("why.wrong_file" if wrong_file else "why.destructive")
                 self.report(t("agent.blocked", step=describe_step(step)))
                 if key in blocked:
                     outcome = self._fail(request, history, result, start, step, "blocked", "", reason)
@@ -783,6 +831,7 @@ class Agent:
                 self._remember_state(result.records[-1], step, chosen)
                 if step.action in ("extract_table", "extract_text", "download") and outcome.value is not None:
                     self._keep_extraction(result, step, outcome)
+                self._keep_pending_downloads(result, step)
                 history.append(mt("hist.done", self.language, step=describe_step(step)))
                 history.extend(mt("hist.message", self.language, message=m) for m in self._safe_messages(messages))
                 if step.goal in self._goal_status and not (self.watcher is not None and focus_only):

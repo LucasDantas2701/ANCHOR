@@ -119,6 +119,7 @@ class ActionExecutor:
         self.refuse_passwords = False
         # Where download() saves files; the agent points it at its output folder.
         self.download_dir = Path("output")
+        self.expecting_download = False
         # Time spent waiting for the user (disambiguation and confirmations), kept apart so it
         # does not inflate the measured execution time.
         self.user_wait_s = 0.0
@@ -564,11 +565,14 @@ class ActionExecutor:
         from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
         def act(match: Match):
+            self.expecting_download = True       # this file is saved here, not by a listener
             try:
                 with self.page.expect_download(timeout=timeout_ms) as info:
                     match.locator.click()
             except PlaywrightTimeout:
                 return _NO_DOWNLOAD
+            finally:
+                self.expecting_download = False
             file = info.value
             path = _free_path(Path(self.download_dir), file.suggested_filename or "download")
             file.save_as(str(path))
