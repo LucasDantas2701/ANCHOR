@@ -85,9 +85,10 @@ def test_the_page_summary_lists_the_tables_at_the_end(page):
     from anchor.planner import page_elements
     page.goto((FIXTURES / "report.html").as_uri())
     lines = page_elements(ElementResolver(page), request="exporte as vendas", language="pt")
-    assert lines[-3:] == ['Tabela "Vendas por região" [colunas: Região | Pedidos | Receita; 4 linhas]',
+    assert lines[-4:] == ['Tabela "Vendas por região" [colunas: Região | Pedidos | Receita; 4 linhas]',
                           'Tabela "Metas do trimestre" [colunas: Meta | Responsável | Situação; 3 linhas]',
-                          'Lista "Pendências" [3 itens]']
+                          'Lista "Pendências" [3 itens]',
+                          'Texto "Receita total: R$ 182.400"']          # a value the planner can ask for
 
 
 def test_pages_without_tables_get_the_same_summary(page):
@@ -122,3 +123,11 @@ def test_the_tables_are_in_the_summary_only_for_a_request_about_reading(page):
     other = page_elements(ElementResolver(page), request="imprima o relatório", language="pt")
     assert any(line.startswith('Tabela "') for line in reading)
     assert not any(line.startswith(('Tabela "', 'Lista "')) for line in other)
+
+
+
+def test_value_texts_leave_out_tables_menus_links_and_plain_text(page):
+    from anchor.engine.tables import value_texts
+    page.set_content("""<nav><p>Menu: 3</p></nav><p>Total: R$ 10</p><p>Sem valor nenhum aqui</p>
+        <table><tr><td>Célula 1</td></tr></table><div>Página <a href="#">2</a> de 5</div><p>Prazo: amanhã</p>""")
+    assert value_texts(page) == ["Total: R$ 10", "Prazo: amanhã"]

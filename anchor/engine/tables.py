@@ -91,6 +91,33 @@ _FIND_JS = r"""
 """
 
 
+_TEXTS_JS = r"""
+() => {
+  const SKIP = 'nav, header, footer, table, ul, ol, button, a, label, select, option, textarea, [role=navigation], [role=menu], [role=button], [role=table], [role=grid], [role=list]';
+  const visible = (e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e);
+    return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
+  const out = [], seen = new Set();
+  for (const e of document.querySelectorAll('p, span, div, dd, dt, strong, b, output, [role=status]')) {
+    if (!visible(e) || e.closest(SKIP) || e.querySelector('p, div, table, ul, ol, input, button, select, a')) continue;
+    const text = (e.innerText || '').replace(/\s+/g, ' ').trim();
+    if (text.length < 3 || text.length > 80 || seen.has(text)) continue;
+    if (!/\d/.test(text) && !text.includes(':')) continue;          // a value or a "label: value"
+    seen.add(text); out.push(text);
+    if (out.length >= 8) break;
+  }
+  return out;
+}
+"""
+
+
+def value_texts(page: Page) -> list[str]:
+    """Short texts with a value ("Receita total: R$ 182.400"), outside tables, lists and menus."""
+    try:
+        return page.evaluate(_TEXTS_JS)
+    except Exception:
+        return []
+
+
 @dataclass
 class TableData:
     kind: str                              # "table" or "list"

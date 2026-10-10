@@ -141,18 +141,16 @@ Answer only with the JSON: {"goals": [...], "steps": [...]}"""
 _READING = {
     "pt": ("- \"action\": uma de click, hover, check, uncheck, fill, select, press, extract_text",
            "- click: botões, links, abas e áreas clicáveis.\n",
-           "- extract_text: para responder a uma pergunta sobre um valor ou ler um texto só (um total, \
-uma data, uma situação; ex.: \"Receita total\").\n"
-           "- extract_table: só quando o pedido quer uma tabela ou lista inteira (ler, copiar, \
-exportar); a descrição é o nome dela, como aparece em \"Tabela\" ou \"Lista\" no fim da lista de \
-elementos.\n"),
+           "- extract_table: para ler, copiar ou exportar uma tabela ou lista inteira; a descrição é o \
+nome dela, como aparece em \"Tabela\" ou \"Lista\" no fim da lista de elementos.\n"
+           "- extract_text: para ler um texto só, ou responder a uma pergunta sobre um valor; a \
+descrição é o texto, como aparece em \"Texto\" no fim da lista de elementos (ex.: \"Receita total\").\n"),
     "en": ("- \"action\": one of click, hover, check, uncheck, fill, select, press, extract_text",
            "- click: buttons, links, tabs and clickable areas.\n",
-           "- extract_text: to answer a question about a value or read a single text (a total, a \
-date, a status; e.g. \"Total revenue\").\n"
-           "- extract_table: only when the request wants a whole table or list (to read, copy or \
-export it); the description is its name, as shown in \"Table\" or \"List\" at the end of the list \
-of elements.\n"),
+           "- extract_table: to read, copy or export a whole table or list; the description is its \
+name, as shown in \"Table\" or \"List\" at the end of the list of elements.\n"
+           "- extract_text: to read a single text, or answer a question about a value; the \
+description is the text, as shown in \"Text\" at the end of the list of elements (e.g. \"Total revenue\").\n"),
 }
 
 

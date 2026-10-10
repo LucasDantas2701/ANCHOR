@@ -30,7 +30,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   as in 0.3.1. With the extraction lines always in the prompt, the development suite showed plans
   changing on tasks that had nothing to do with reading (the 4B model filled a search box and
   stopped; the 9B one left the contract type out of a registration), three premature ends in all.
-  A question for a value ("What was the total revenue?") is an `extract_text`, not a whole table. Files go to `output/` (`anchor.agent --output-dir`), or to the
+  A question for a value ("What was the total revenue?") is an `extract_text`, not a whole table:
+  for requests about reading, the summary also lists the page's short texts with a value ("Receita
+  total: R$ 182.400", outside tables, lists, links and menus), which the planner could not see
+  before, since the summary only had interactive elements. Files go to `output/` (`anchor.agent --output-dir`), or to the
   automation's folder for saved automations, whose run records list the files written.
 - What `extract_text` reads is now shown in the terminal and kept in the result; before, it was read
   and dropped.

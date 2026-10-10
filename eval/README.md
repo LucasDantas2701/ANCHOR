@@ -126,6 +126,9 @@ was clicked or checked. The CSV files written during the run go to a temporary f
 The users task first said "copie a tabela de usuários para uma planilha" ("copy the users table
 into a spreadsheet"); both models clicked the page's "Exportar planilha" button, a fair reading of
 that wording, so the task was reworded to "copie a tabela de usuários" ("copy the users table").
+Both models still use the button: on a page with its own export, "copy the table" reads as
+exporting it, a fair choice that this suite cannot judge, since it does not see downloads. The
+download step of 0.4 makes that checkable.
 
     python -m eval.plan_run --agent --suite extraction --profiles ollama-small ollama-medium -v
 

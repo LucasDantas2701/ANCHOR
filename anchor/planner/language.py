@@ -119,6 +119,7 @@ TEXT: dict[str, dict[str, str]] = {
     "summary.table": {"pt": 'Tabela "{name}" [colunas: {columns}; {rows} linhas]',
                       "en": 'Table "{name}" [columns: {columns}; {rows} rows]'},
     "summary.list": {"pt": 'Lista "{name}" [{rows} itens]', "en": 'List "{name}" [{rows} items]'},
+    "summary.text": {"pt": 'Texto "{text}"', "en": 'Text "{text}"'},
     "summary.untitled": {"pt": "sem título", "en": "untitled"},
     # ------------------------------------------------------------ plan errors (sent back to the model)
     "plan.not_json": {"pt": "a resposta não é um JSON válido ({msg})", "en": "the answer is not valid JSON ({msg})"},

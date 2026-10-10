@@ -78,7 +78,17 @@ def page_elements(resolver: ElementResolver, limit: int = 80, request: str | Non
             break
     # The tables and lists, only for a request about reading data (see reading.py).
     from .reading import wants_data
-    return lines + (_tables(resolver, language) if wants_data(request) else [])
+    return lines + (_tables(resolver, language) + _value_texts(resolver, language) if wants_data(request) else [])
+
+
+def _value_texts(resolver: ElementResolver, language: str) -> list[str]:
+    """
+    The page's short texts with a value, for a request about reading: the planner only sees
+    interactive elements and tables otherwise, and could not ask for "Receita total: R$ 182.400".
+    """
+    from anchor.engine.tables import value_texts
+    return [mt("summary.text", language, text=without_instructions(text)[:80])
+            for text in value_texts(resolver.page) if not looks_like_instruction(text)]
 
 
 def _tables(resolver: ElementResolver, language: str, limit: int = 6) -> list[str]:
