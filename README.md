@@ -469,6 +469,8 @@ final numbers will come from the closed sets.
     - [ ] Uploads, with the file path only from the request or a parameter
     - [ ] Following new tabs
     - [ ] Elements inside iframes
+    - [ ] Hidden content: when a step's target is not on the page, try the controls that reveal more
+      ("Show more", expanders, tabs) before replanning
     - [ ] Unattended runs (`--unattended`), for scheduling: never asks, and stops when a login is needed
 - [ ] **0.5** — Local frontend (runs on your computer, opens in the browser), with a "Run"
   button for each saved automation
