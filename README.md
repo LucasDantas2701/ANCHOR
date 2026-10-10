@@ -459,10 +459,18 @@ final numbers will come from the closed sets.
     - [x] Intervention experiment with a simulated user
     - [x] Resilience benchmark: changed versions of the pages, comparing fixed-selector scripts,
       an LLM-in-control agent and ANCHOR
+- [x] **0.3.1** — Logging in by hand: ANCHOR never types a password, and waits for the user's login
 - [ ] **0.4** — Uploads, downloads, new tabs, data extraction and iframes
+    - [x] Data extraction: tables and lists saved as CSV, and single values read from the page
+    - [ ] Downloads
+    - [ ] Uploads, with the file path only from the request or a parameter
+    - [ ] Following new tabs
+    - [ ] Elements inside iframes
+    - [ ] Unattended runs (`--unattended`), for scheduling: never asks, and stops when a login is needed
 - [ ] **0.5** — Local frontend (runs on your computer, opens in the browser), with a "Run"
   button for each saved automation
 - [ ] **1.0** — Evaluated version: final runs on the closed sets
+- [ ] **Later** — A documentation site (GitHub Pages), with guides, examples and the command reference
 
 See the [changelog](CHANGELOG.md) for what changed in each version, and the
 [open issues](https://github.com/LucasDantas2701/ANCHOR/issues) for known problems.
