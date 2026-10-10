@@ -52,6 +52,8 @@ def run_step(executor: ActionExecutor, step: Step) -> ActionResult:
         return result
     if a == "press":
         return executor.press(d, key=v)
+    if a == "upload":
+        return executor.upload(d, str(step.value or "").strip())   # the path as written, not "cleaned"
     return getattr(executor, a)(d)  # click, hover, check, uncheck, extract_text
 
 

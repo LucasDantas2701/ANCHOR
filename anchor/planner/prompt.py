@@ -162,8 +162,17 @@ that downloads it; the robot saves the file.\n",
 }
 
 
-def system_prompt(language: str = DEFAULT_PROMPT_LANGUAGE, reading: bool = False, files: bool = False) -> str:
-    """The prompt; the extraction and download parts only for requests about them (see reading.py)."""
+_UPLOADS = {
+    "pt": "- upload: para enviar um arquivo; a descrição é o campo ou botão de envio (ex.: \"Anexar \
+currículo\") e o valor é o caminho do arquivo, copiado exatamente do pedido.\n",
+    "en": "- upload: to send a file; the description is the file field or button (e.g. \"Attach \
+resume\") and the value is the file's path, copied exactly from the request.\n",
+}
+
+
+def system_prompt(language: str = DEFAULT_PROMPT_LANGUAGE, reading: bool = False, files: bool = False,
+                  uploads: bool = False) -> str:
+    """The prompt; the extraction, download and upload parts only for requests about them (see reading.py)."""
     base = SYSTEM_EN if language == "en" else SYSTEM
     lang = "en" if language == "en" else "pt"
     actions, after, lines = _READING[lang]
@@ -173,6 +182,8 @@ def system_prompt(language: str = DEFAULT_PROMPT_LANGUAGE, reading: bool = False
         extra_actions, extra_lines = extra_actions + ", extract_table", extra_lines + lines
     if files:
         extra_actions, extra_lines = extra_actions + ", download", extra_lines + _FILES[lang]
+    if uploads:
+        extra_actions, extra_lines = extra_actions + ", upload", extra_lines + _UPLOADS[lang]
     return base.replace(actions, actions + extra_actions, 1).replace(after, after + extra_lines, 1)
 
 

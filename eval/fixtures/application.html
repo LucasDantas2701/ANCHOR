@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Candidatura</title>
+<style>body{font-family:sans-serif} .row{margin:10px 0} .ok{color:#080}</style></head>
+<body>
+<h1>Enviar candidatura — Analista de Automação</h1>
+<form onsubmit="return false">
+  <div class="row"><label>Nome completo <input id="name"></label></div>
+  <div class="row"><label>Comprovante de residência <input type="file" id="proof" accept=".pdf"></label> <span class="ok" id="proof-ok"></span></div>
+  <div class="row"><input type="file" id="cv" accept=".pdf" hidden>
+    <button type="button" id="cv-button" onclick="document.getElementById('cv').click()">Anexar currículo</button> <span class="ok" id="cv-ok"></span></div>
+  <div class="row"><label>Foto de perfil <input type="file" id="photo" accept="image/*"></label> <span class="ok" id="photo-ok"></span></div>
+  <div class="row"><button id="send">Enviar candidatura</button></div>
+</form>
+<script>
+  for (const id of ["proof", "cv", "photo"]) {
+    document.getElementById(id).addEventListener("change", (e) => {
+      const f = e.target.files[0];
+      document.getElementById(id + "-ok").textContent = f ? "Arquivo anexado: " + f.name : "";
+    });
+  }
+</script>
+<script src="feedback.js"></script>
+</body></html>

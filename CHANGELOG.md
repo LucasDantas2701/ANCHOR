@@ -18,6 +18,17 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Sending files.** A new action, `upload`: the agent puts the file in the file field, or clicks the
+  button that opens the file chooser ("Anexar currículo") and picks it there. The path must come from
+  the request (or the notes and parameters): the rule that typed values come from the request now
+  covers uploads, so the model never chooses a file from the user's computer. A path that does not
+  exist stops the run with a message, before the page is touched (the model cannot fix a path); an
+  element that opens no file chooser is a reason to replan. Every upload is a sensitive action. The
+  planner hears about it only for requests about sending a file (a verb like "anexe", "attach",
+  "envie o comprovante", or a file path), so every other request gets the prompt as before. The
+  request check accepts the upload for "send" only when every "send" in the request is about a file
+  ("envie o comprovante"); "anexe o currículo e envie a candidatura" still needs the click on the send
+  button. `eval/plan_run.py --suite uploads`: 10 development tasks on a new application page.
 - **Downloading files.** A new action, `download`: the agent clicks the button or link and waits
   for the file, which it saves in the output folder (the same as extracted tables: `output/`, or the
   automation's folder) with the name the site suggests, never overwriting one (`report (2).csv`).
@@ -64,6 +75,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 - `eval/plan_run.py --check` validates the closed set's annotations blind: each reference plan runs
   on its `reference_targets` with Playwright alone, with no part of ANCHOR. See `eval/README.md` for
   how the set was built and the rules until the final run.
+
+### Fixed
+- In the message for a request verb the plan does not do, the user now sees the verb as they wrote
+  it ("download"), not as the check lists it ("baixar"); the model's message is unchanged.
 
 ## [0.3.1] - 2026-10-10
 

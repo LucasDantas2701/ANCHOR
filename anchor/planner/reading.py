@@ -37,3 +37,15 @@ _FILES = re.compile(
 
 def wants_file(request: str | None) -> bool:
     return bool(_FILES.search(request or ""))
+
+
+# Sending a file: a verb for it, or a file path in the request. Only then does the planner hear
+# about the upload action.
+_UPLOAD = re.compile(
+    r"\b(anex\w*|upload\w*|attach\w*|carreg(ue|ar|a)\b|suba\b|subir\b|envi[ea]r?\s+(o|a|meu|minha)?\s*(arquivo|documento|"
+    r"curr[ií]culo|comprovante|foto|imagem)|send\s+(the|my)?\s*(file|document|resume|cv|photo|picture))\b"
+    r"|[\w./\\:~-]+\.(pdf|docx?|xlsx?|csv|txt|png|jpe?g|zip)\b", re.IGNORECASE)
+
+
+def wants_upload(request: str | None) -> bool:
+    return bool(_UPLOAD.search(request or ""))

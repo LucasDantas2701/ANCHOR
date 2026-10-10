@@ -275,6 +275,9 @@ With `--browser-profile`, the session is kept on your computer, and the next run
 Saved automations keep their own browser profile in their folder, so you log in once per
 automation (`run --fresh-browser` opens a clean browser for one run).
 
+**Send files.** Write the file's path in the request ("Attach the resume C:/Users/ana/cv.pdf") and
+the agent sends it, asking first; the model never picks a file on its own.
+
 **Download files.** Ask for a file ("Download the sales report") and the agent clicks the button or
 link, asks first (every download is sensitive), and saves the file in `output/`.
 
@@ -466,7 +469,7 @@ final numbers will come from the closed sets.
 - [ ] **0.4** — Uploads, downloads, new tabs, data extraction and iframes
     - [x] Data extraction: tables and lists saved as CSV, and single values read from the page
     - [x] Downloads
-    - [ ] Uploads, with the file path only from the request or a parameter
+    - [x] Uploads, with the file path only from the request or a parameter
     - [ ] Following new tabs
     - [ ] Elements inside iframes
     - [ ] Hidden content: when a step's target is not on the page, try the controls that reveal more

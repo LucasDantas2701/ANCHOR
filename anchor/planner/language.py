@@ -185,6 +185,8 @@ TEXT: dict[str, dict[str, str]] = {
                      "en": "the element is covered by another one (a modal, notice or banner); close it first"},
     "why.not_found": {"pt": "nenhum elemento da página corresponde a essa descrição",
                       "en": "no element on the page matches this description"},
+    "why.no_file_input": {"pt": "esse elemento não abriu a escolha de arquivo; procure o campo ou botão de anexar",
+                          "en": "that element opened no file chooser; look for the file field or attach button"},
     "why.wrong_file": {"pt": "esse não é o arquivo que o pedido pede; se a página não tiver o arquivo pedido, não baixe outro",
                        "en": "that is not the file the request asks for; if the page does not have it, do not download another"},
     "why.no_download": {"pt": "o clique não baixou nenhum arquivo; talvez seja outro botão ou link",

@@ -69,6 +69,15 @@ asks in the terminal: log in (or fill in the password) yourself in the browser w
 Enter, or `q` to cancel. If the page still shows an empty password field, it asks again. With
 `--browser-profile`, the session is kept for the next runs.
 
+**Sending files.** A request to send a file ("Attach the resume C:/Users/ana/cv.pdf") is planned
+as an `upload` step: the agent puts the file in the file field, or clicks the button that opens the
+file chooser ("Attach resume") and picks it there. The path must be written in the request (or in
+the automation's notes or parameters): the model never chooses a file from your computer, and a
+plan with a path that is not in the request is refused. A path that does not exist stops the run
+with a message, before anything on the page is touched. Every upload is a sensitive action, so it
+asks first. In a saved automation, a parameter can give a different file per spreadsheet row
+(`--param file=...`, or a `file` column).
+
 **Downloading files.** A request to download a file ("Download the sales report") is planned as
 a `download` step: the agent clicks the button or link and waits for the file, which it saves in
 the output folder with the name the site suggests (`report (2).csv` if the name is taken). Every

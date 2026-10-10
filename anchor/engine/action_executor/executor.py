@@ -26,6 +26,7 @@ from .constants import (
 from .result import ActionResult
 
 _NO_DOWNLOAD = object()
+_NO_FILE_INPUT = object()
 
 
 def _free_path(folder: Path, name: str) -> Path:
@@ -581,6 +582,42 @@ class ActionExecutor:
         result = self._run(description, "download", act)
         if result.status == "success" and result.value is _NO_DOWNLOAD:
             result.status, result.value, result.error = "no_download", None, "the click did not download any file"
+        return result
+
+    def upload(
+        self,
+        description: str,
+        value: str,
+        timeout_ms: int = 5000,
+    ) -> ActionResult:
+        """
+        Sends the file at value (a path) through the file field the description names, or
+        through the button that opens the file chooser ("Anexar currículo"). A path that does
+        not exist is "no_such_file", checked before anything on the page is touched; an element
+        that opens no file chooser is "no_file_input".
+        """
+        from playwright.sync_api import TimeoutError as PlaywrightTimeout
+
+        path = Path(str(value).strip().strip("\"'")).expanduser()
+        if not path.is_file():
+            return ActionResult(status="no_such_file", action="upload", description=description,
+                                error=f"file not found: {path}")
+
+        def act(match: Match):
+            if (match.tag or "").lower() == "input" and (match.type or "").lower() == "file":
+                match.locator.set_input_files(str(path))
+                return {"name": path.name, "path": str(path)}
+            try:
+                with self.page.expect_file_chooser(timeout=timeout_ms) as info:
+                    match.locator.click()
+            except PlaywrightTimeout:
+                return _NO_FILE_INPUT
+            info.value.set_files(str(path))
+            return {"name": path.name, "path": str(path)}
+
+        result = self._run(description, "upload", act)
+        if result.status == "success" and result.value is _NO_FILE_INPUT:
+            result.status, result.value, result.error = "no_file_input", None, "the element opened no file chooser"
         return result
 
     def hover(

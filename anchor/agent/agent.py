@@ -116,6 +116,8 @@ def failure_reason(result: ActionResult) -> Reason:
     element = result.selected_element
     if result.action == "download" and result.status == "no_download":
         return Reason("why.no_download")
+    if result.action == "upload" and result.status == "no_file_input":
+        return Reason("why.no_file_input")
     if result.action == "extract_table" and result.status == "not_found":
         return Reason("why.no_table")
     if result.action == "extract_table" and result.status == "ambiguous":
@@ -591,7 +593,7 @@ class Agent:
         gives the focus; a Reason = what went wrong.
         """
         action = outcome.action if outcome.action in ("fill", "select", "check", "uncheck", "press") else step.action
-        if action in ("hover", "extract_text", "extract_table", "download"):
+        if action in ("hover", "extract_text", "extract_table", "download", "upload"):
             return None, []                          # (a download is checked by its file)
         effect = self.watcher.effect_since(before)
         errors = effect.errors
@@ -837,6 +839,8 @@ class Agent:
                 self._remember_state(result.records[-1], step, chosen)
                 if step.action in ("extract_table", "extract_text", "download") and outcome.value is not None:
                     self._keep_extraction(result, step, outcome)
+                if step.action == "upload" and outcome.value:
+                    self.report(t("agent.uploaded", name=outcome.value["name"]))
                 self._keep_pending_downloads(result, step)
                 history.append(mt("hist.done", self.language, step=describe_step(step)))
                 history.extend(mt("hist.message", self.language, message=m) for m in self._safe_messages(messages))
@@ -873,6 +877,11 @@ class Agent:
                         return queue
                     after_replan = True
                 continue
+
+            # ---------------------------------------------------- a file that does not exist
+            if outcome.status == "no_such_file":      # the model cannot fix a path: stop and say so
+                result.records.append(StepRecord(step, "no_such_file", ""))
+                return self._finish(result, "failed", t("end.no_such_file", path=step.value), start)
 
             # ---------------------------------------------------- a password field
             if outcome.status == "credential":

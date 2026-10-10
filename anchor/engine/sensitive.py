@@ -47,7 +47,7 @@ _CANCEL_WITH_OBJECT = set().union(*(tokenize(w) for w in CANCEL_WITH_OBJECT))
 _CANCEL_OBJECTS = set().union(*(tokenize(w) for w in CANCEL_OBJECTS))
 
 _ORDER = ("pay", "delete", "cancel", "send", "upload", "download", "submit")   # the most serious first
-SENSITIVE_ACTIONS = ("click", "download")
+SENSITIVE_ACTIONS = ("click", "download", "upload")
 
 
 def classify(action: str, description: str, element_name: str = "") -> Optional[str]:
@@ -56,6 +56,8 @@ def classify(action: str, description: str, element_name: str = "") -> Optional[
         return None
     if action == "download":
         return "download"                 # whatever the button says, it saves a file
+    if action == "upload":
+        return "upload"                   # whatever the field says, it sends a file
     outside = re.sub(r"\([^)]*\)", " ", description or "")
     words = tokenize(outside) | tokenize(element_name or "")
     everything = words | tokenize(description or "")

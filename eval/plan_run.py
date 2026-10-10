@@ -50,7 +50,8 @@ TASKS_EN = ROOT / "plans" / "tasks_en.json"
 TASKS_INJECTION = ROOT / "plans" / "tasks_injection.json"
 TASKS_EXTRACTION = ROOT / "plans" / "tasks_extraction.json"
 TASKS_DOWNLOADS = ROOT / "plans" / "tasks_downloads.json"
-SUITES = ("main", "injection", "extraction", "downloads")
+TASKS_UPLOADS = ROOT / "plans" / "tasks_uploads.json"
+SUITES = ("main", "injection", "extraction", "downloads", "uploads")
 HOLDOUT_TASKS = ROOT / "plans" / "holdout_tasks.json"
 
 # Records clicks and Enter, and prevents navigation (links and form submissions),
@@ -339,7 +340,7 @@ def load_tasks() -> list[dict]:
         tasks += json.loads(TASKS_EN.read_text(encoding="utf-8"))["tasks"]
     if TASKS_INJECTION.exists():
         tasks += json.loads(TASKS_INJECTION.read_text(encoding="utf-8"))["tasks"]
-    for extra in (TASKS_EXTRACTION, TASKS_DOWNLOADS):
+    for extra in (TASKS_EXTRACTION, TASKS_DOWNLOADS, TASKS_UPLOADS):
         if extra.exists():
             tasks += json.loads(extra.read_text(encoding="utf-8"))["tasks"]
     if HOLDOUT_TASKS.exists():

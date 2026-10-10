@@ -5,6 +5,7 @@ RESOLVER_ACTION_MAP = {
     "uncheck": "check",     # was "click" — uncheck uses the same role profile as check
     "press": "click",
     "download": "click",
+    "upload": "click",          # a file field, or the button that opens one
     "fill": "fill",
     "select": "select",     # was "fill" — now uses the dedicated weights (option/combobox/listbox)
     "extract_text": "extract",

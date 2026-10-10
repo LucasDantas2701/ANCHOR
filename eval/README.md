@@ -132,6 +132,14 @@ download step of 0.4 makes that checkable.
 
     python -m eval.plan_run --agent --suite extraction --profiles ollama-small ollama-medium -v
 
+### Uploads (`--suite uploads`)
+
+`plans/tasks_uploads.json` has 10 tasks (5 per language) on `fixtures/application.html` and
+`application_en.html`, a job application form with a visible file field, a button that opens a
+hidden one, and a photo field; the files are in `fixtures/files/`. The checks read, on the page,
+which file each field received. Two tasks per language must send nothing: a path that does not
+exist, and a request with no path at all (the model must never choose a file).
+
 ### Downloads (`--suite downloads`)
 
 `plans/tasks_downloads.json` has 8 tasks (4 per language) on `fixtures/documents.html` and
