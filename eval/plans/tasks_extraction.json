@@ -89,7 +89,7 @@
       "language": "pt",
       "suite": "extraction",
       "fixture": "users.html",
-      "request": "copie a tabela de usuários para uma planilha",
+      "request": "copie a tabela de usuários",
       "checks": [
         "!__clicked('button')",
         "!document.querySelector('input[type=checkbox]:checked')"
@@ -198,7 +198,7 @@
       "language": "en",
       "suite": "extraction",
       "fixture": "users_en.html",
-      "request": "copy the users table into a spreadsheet",
+      "request": "copy the users table",
       "checks": [
         "!__clicked('button')",
         "!document.querySelector('input[type=checkbox]:checked')"

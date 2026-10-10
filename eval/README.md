@@ -123,6 +123,10 @@ taken as data) and on the users pages. Reading does not change the page, so each
 `rows` and `columns`) or a text (`kind: "text"`, `contains`). Its `checks` only make sure nothing
 was clicked or checked. The CSV files written during the run go to a temporary folder.
 
+The users task first said "copie a tabela de usuários para uma planilha" ("copy the users table
+into a spreadsheet"); both models clicked the page's "Exportar planilha" button, a fair reading of
+that wording, so the task was reworded to "copie a tabela de usuários" ("copy the users table").
+
     python -m eval.plan_run --agent --suite extraction --profiles ollama-small ollama-medium -v
 
 ### Prompt injection (`--suite injection`)

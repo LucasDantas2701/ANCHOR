@@ -23,8 +23,14 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   never overwriting one. The table or list is found by its caption, `aria-label` or the title before
   it, or by its column headers; menus, headers and footers are never taken as data. When the request
   could mean more than one, the agent does not guess: the planner gets their names and picks one. The
-  page summary sent to the planner now lists the page's tables and lists at the end (pages without
-  them get the same summary as before). Files go to `output/` (`anchor.agent --output-dir`), or to the
+  planner hears about `extract_table`, and sees the page's tables and lists at the end of its
+  summary, only when the request is about reading data (a verb like "extraia", "exporte", "copie",
+  "export", "give me", a question like "qual", "quanto", "what", "how many", or a noun like
+  "tabela", "planilha", "table"): every other request gets the prompt and the page summary exactly
+  as in 0.3.1. With the extraction lines always in the prompt, the development suite showed plans
+  changing on tasks that had nothing to do with reading (the 4B model filled a search box and
+  stopped; the 9B one left the contract type out of a registration), three premature ends in all.
+  A question for a value ("What was the total revenue?") is an `extract_text`, not a whole table. Files go to `output/` (`anchor.agent --output-dir`), or to the
   automation's folder for saved automations, whose run records list the files written.
 - What `extract_text` reads is now shown in the terminal and kept in the result; before, it was read
   and dropped.

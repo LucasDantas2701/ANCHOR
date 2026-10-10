@@ -96,3 +96,29 @@ def test_pages_without_tables_get_the_same_summary(page):
     page.goto((FIXTURES / "registration.html").as_uri())
     lines = page_elements(ElementResolver(page), request="cadastre", language="pt")
     assert not any(line.startswith(('Tabela "', 'Lista "')) for line in lines)   # not: Lista de opções
+
+
+def test_requests_about_reading_data_are_told_apart():
+    from anchor.planner.reading import wants_data
+    for request in ("exporte a tabela de vendas", "me passa a lista de pendências", "qual foi a receita total?",
+                    "copy the users table", "what was the total revenue?", "how many orders are late?"):
+        assert wants_data(request), request
+    for request in ("Selecione a Ana e a Carla na lista", "Pesquise Pi Network", "Register Maria Silva, contractor",
+                    "Troque o idioma da página para português", "add the thermos bottle to my cart"):
+        assert not wants_data(request), request
+
+
+def test_other_requests_get_the_prompt_as_it_was_before_extraction():
+    from anchor.planner.prompt import SYSTEM, SYSTEM_EN, system_prompt
+    assert system_prompt("pt") == SYSTEM and system_prompt("en") == SYSTEM_EN and "extract_table" not in SYSTEM
+    assert "extract_table" in system_prompt("pt", reading=True) and "extract_table" in system_prompt("en", reading=True)
+
+
+def test_the_tables_are_in_the_summary_only_for_a_request_about_reading(page):
+    from anchor.engine.element_resolver import ElementResolver
+    from anchor.planner import page_elements
+    page.goto((FIXTURES / "report.html").as_uri())
+    reading = page_elements(ElementResolver(page), request="exporte as vendas", language="pt")
+    other = page_elements(ElementResolver(page), request="imprima o relatório", language="pt")
+    assert any(line.startswith('Tabela "') for line in reading)
+    assert not any(line.startswith(('Tabela "', 'Lista "')) for line in other)

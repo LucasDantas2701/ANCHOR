@@ -18,7 +18,7 @@ Depois, os passos. Cada passo tem:
 por último.
 - "expect": um texto que deve aparecer na página depois do passo, quando houver um \
 (ex.: "Cadastro salvo", "Pedido cancelado"); null quando não houver.
-- "action": uma de click, hover, check, uncheck, fill, select, press, extract_text, extract_table
+- "action": uma de click, hover, check, uncheck, fill, select, press, extract_text
 - "description": o nome do elemento, como aparece na página (ex.: "Salvar cadastro", \
 "E-mail corporativo"). Não copie o tipo do elemento ("Campo de texto", "Caixa de \
 marcação", "Lista de opções") nem use aspas.
@@ -31,9 +31,6 @@ Qual ação usar:
 exato de uma das opções mostradas entre colchetes. Nunca clique numa opção de lista.
 - check / uncheck: caixas de marcação e opções de escolha única (ex.: "Opção PJ").
 - click: botões, links, abas e áreas clicáveis.
-- extract_table: para ler, copiar ou exportar uma tabela ou lista inteira; a descrição é o \
-nome dela, como aparece em "Tabela" ou "Lista" no fim da lista de elementos.
-- extract_text: para ler um texto só (ex.: "Receita total").
 
 Regras:
 1. Um elemento por passo, na ordem em que um humano faria.
@@ -88,7 +85,7 @@ Then, the steps. Each step has:
 last.
 - "expect": a text that should appear on the page after the step, when there is one \
 (e.g. "Registration saved", "Order cancelled"); null when there is none.
-- "action": one of click, hover, check, uncheck, fill, select, press, extract_text, extract_table
+- "action": one of click, hover, check, uncheck, fill, select, press, extract_text
 - "description": the element's name, as it appears on the page (e.g. "Save registration", \
 "Work e-mail"). Do not copy the element's kind ("Text field", "Checkbox", "Dropdown") \
 and do not use quotes.
@@ -101,9 +98,6 @@ Which action to use:
 the exact text of one of the options shown in brackets. Never click an option of a dropdown.
 - check / uncheck: checkboxes and single-choice options (e.g. "Option PJ").
 - click: buttons, links, tabs and clickable areas.
-- extract_table: to read, copy or export a whole table or list; the description is its \
-name, as shown in "Table" or "List" at the end of the list of elements.
-- extract_text: to read a single text (e.g. "Total revenue").
 
 Rules:
 1. One element per step, in the order a human would do it.
@@ -142,8 +136,33 @@ request requires something they do not cover.
 Answer only with the JSON: {"goals": [...], "steps": [...]}"""
 
 
-def system_prompt(language: str = DEFAULT_PROMPT_LANGUAGE) -> str:
-    return SYSTEM_EN if language == "en" else SYSTEM
+# Added only when the request is about reading data (see reading.py): other requests get the
+# prompt exactly as it was before data extraction existed.
+_READING = {
+    "pt": ("- \"action\": uma de click, hover, check, uncheck, fill, select, press, extract_text",
+           "- click: botões, links, abas e áreas clicáveis.\n",
+           "- extract_text: para responder a uma pergunta sobre um valor ou ler um texto só (um total, \
+uma data, uma situação; ex.: \"Receita total\").\n"
+           "- extract_table: só quando o pedido quer uma tabela ou lista inteira (ler, copiar, \
+exportar); a descrição é o nome dela, como aparece em \"Tabela\" ou \"Lista\" no fim da lista de \
+elementos.\n"),
+    "en": ("- \"action\": one of click, hover, check, uncheck, fill, select, press, extract_text",
+           "- click: buttons, links, tabs and clickable areas.\n",
+           "- extract_text: to answer a question about a value or read a single text (a total, a \
+date, a status; e.g. \"Total revenue\").\n"
+           "- extract_table: only when the request wants a whole table or list (to read, copy or \
+export it); the description is its name, as shown in \"Table\" or \"List\" at the end of the list \
+of elements.\n"),
+}
+
+
+def system_prompt(language: str = DEFAULT_PROMPT_LANGUAGE, reading: bool = False) -> str:
+    base = SYSTEM_EN if language == "en" else SYSTEM
+    if not reading:
+        return base
+    actions, after, lines = _READING["en" if language == "en" else "pt"]
+    assert actions in base and after in base
+    return base.replace(actions, actions + ", extract_table", 1).replace(after, after + lines, 1)
 
 
 def user_message(

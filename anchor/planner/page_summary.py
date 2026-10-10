@@ -76,7 +76,9 @@ def page_elements(resolver: ElementResolver, limit: int = 80, request: str | Non
             lines.append(line)
         if len(lines) >= limit:
             break
-    return lines + _tables(resolver, language)
+    # The tables and lists, only for a request about reading data (see reading.py).
+    from .reading import wants_data
+    return lines + (_tables(resolver, language) if wants_data(request) else [])
 
 
 def _tables(resolver: ElementResolver, language: str, limit: int = 6) -> list[str]:
