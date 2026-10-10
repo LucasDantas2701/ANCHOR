@@ -485,6 +485,16 @@ class Agent:
         path = self._best_path(request, self._object(f"{step.description} {found.text or ''} {found.label or ''}"))
         return Step("upload", step.description, path, step.goal, step.expect) if path else None
 
+    def _unrequested_submit(self, request: str, step: Step) -> bool:
+        """A click that sends, saves, confirms, pays or exports what the request did not ask for."""
+        if step.action != "click":
+            return False
+        from anchor.engine.sensitive import classify, unrequested
+        description = clean_description(step.description)
+        status, found, _ = self.executor._resolve(description, "click")
+        name = getattr(found, "text", "") or getattr(found, "label", "") or ""
+        return unrequested(classify("click", description, name), request, description, name)
+
     def _wrong_field(self, request: str, step: Step) -> bool:
         """
         Would the file go to another field than the one it belongs to? The comprovante sent
@@ -828,8 +838,10 @@ class Agent:
             # ---------------------------------------------------- unrequested destructive action
             wrong_file = self._wrong_file(request, step)
             wrong_field = not wrong_file and self._wrong_field(request, step)
-            if wrong_file or wrong_field or self._unrequested_destructive(request, step):
-                reason = Reason("why.wrong_file" if wrong_file else "why.wrong_field" if wrong_field else "why.destructive")
+            unasked = not (wrong_file or wrong_field) and self._unrequested_submit(request, step)
+            if wrong_file or wrong_field or unasked or self._unrequested_destructive(request, step):
+                reason = Reason("why.wrong_file" if wrong_file else "why.wrong_field" if wrong_field
+                                else "why.unrequested_submit" if unasked else "why.destructive")
                 self.report(t("agent.blocked", step=describe_step(step)))
                 if key in blocked:
                     outcome = self._fail(request, history, result, start, step, "blocked", "", reason)

@@ -61,6 +61,13 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_e
 | `--lang` | Interface language: `en` (default) or `pt`. Overrides `ANCHOR_LANG`. |
 | `--prompt-language` | Planner prompt language: `pt` (default, the measured one), `en`, or `auto` (follows the request). |
 
+**Only what was asked.** The agent does not send, save, confirm, pay or export what the request
+did not ask for: such a click is blocked, and the planner is told so. It is asked for when the
+request has a verb for it ("salve", "envie", "pague"; for exporting, a verb or a word for a file),
+or when the request and the button are about the same thing ("reserve a sala" and "Reservar sala").
+So "attach the resume" does not end with the application sent; "attach the resume and send the
+application" does. Destructive actions (deleting, cancelling) have their own barrier.
+
 **Logging in.** The agent never types a password: a fill that would land on a password field is
 not done. A request that seems to contain a password ("senha: ...", "password ...") is refused
 before anything reaches the model. When a task needs a login (the request asks to log in, the

@@ -18,6 +18,14 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **No sending, saving, paying or exporting the request did not ask for.** A click in one of those
+  sensitive categories is blocked, with the reason for the planner, unless the request has a verb of
+  the family ("salve", "envie", "pague", which ask for any of them; for exporting, a verb or a word
+  for a file) or the request and the button are about the same thing, verbs aside ("reserve a sala"
+  and "Reservar sala", "cadastre a Maria" and "Salvar cadastro"). Both models attached the files
+  they were asked to attach and then clicked "Enviar candidatura" on their own; the 9B one sometimes
+  clicked "Exportar planilha" while asked to select users. Checked first on every click of the
+  development and resilience reference plans: none is blocked (the closed sets were left out).
 - **Sending files.** A new action, `upload`: the agent puts the file in the file field, or clicks the
   button that opens the file chooser ("Anexar currículo") and picks it there. The path must come from
   the request (or the notes and parameters): the rule that typed values come from the request now

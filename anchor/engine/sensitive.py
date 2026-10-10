@@ -70,6 +70,33 @@ def classify(action: str, description: str, element_name: str = "") -> Optional[
     return None
 
 
+_CONCLUDING = ("submit", "send", "pay")          # one family: any of their verbs asks for any of them
+_ALL_VERBS = set().union(*_STEMS.values()) | _CANCEL_VERBS
+
+
+def unrequested(category: Optional[str], request: str, description: str, element_name: str = "") -> bool:
+    """
+    Would a click send, save, confirm, pay or export something the request did not ask for?
+    The models tend to "complete" a form on their own ("Enviar candidatura" after attaching the
+    files they were asked to attach). It is asked for when the request has a verb of the family
+    ("salve", "envie", "pague"; for exporting, a verb or a word for a file), or when the request
+    and the button are about the same thing, verbs aside ("reserve a sala" and "Reservar sala",
+    "cadastre a Maria" and "Salvar cadastro").
+    """
+    if category not in _CONCLUDING + ("download",):
+        return False
+    asked = tokenize(request or "")
+    if category in _CONCLUDING and asked & set().union(*(_STEMS[c] for c in _CONCLUDING)):
+        return False
+    if category == "download":
+        from anchor.planner.reading import wants_file
+        if asked & _STEMS["download"] or wants_file(request):
+            return False
+    about = (tokenize(re.sub(r"\([^)]*\)", " ", description or "")) | tokenize(element_name or "")) - _ALL_VERBS
+    from anchor.engine.element_resolver.tokenizer import STOPWORDS_N
+    return not (about - STOPWORDS_N) & asked
+
+
 @dataclass
 class ConfirmationRequest:
     action: str
