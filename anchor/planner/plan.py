@@ -27,6 +27,7 @@ ACTIONS = {
     "press": True,         # value = key (e.g. "Enter")
     "extract_text": False,
     "extract_table": False, # a whole table or list, saved as a CSV file
+    "download": False,      # clicks a button or link and saves the file it downloads
 }
 
 # JSON schema required from the model (OpenAI "structured outputs" format).
@@ -251,7 +252,7 @@ def check_request(steps: list[Step], goals: list[Goal], request: str,
     # Neither a goal's description ("vaga salva") nor a fill counts.
     concluding_words = set()
     for s in steps:
-        if s.action in ("click", "press"):
+        if s.action in ("click", "press", "download"):     # a download is a click that saves a file
             concluding_words |= words(s.description)
         # Pressing Enter in a field is a search, whatever the field is called ("Type a coin").
         if s.action == "press" and (s.value or "").strip().lower() == "enter":

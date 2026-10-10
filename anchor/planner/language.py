@@ -185,6 +185,8 @@ TEXT: dict[str, dict[str, str]] = {
                      "en": "the element is covered by another one (a modal, notice or banner); close it first"},
     "why.not_found": {"pt": "nenhum elemento da página corresponde a essa descrição",
                       "en": "no element on the page matches this description"},
+    "why.no_download": {"pt": "o clique não baixou nenhum arquivo; talvez seja outro botão ou link",
+                        "en": "the click did not download any file; it may be another button or link"},
     "why.no_table": {"pt": "não há tabela nem lista na página", "en": "there is no table or list on the page"},
     "why.which_table": {"pt": "mais de uma tabela ou lista pode ser essa: {names}; use o nome de uma delas",
                         "en": "more than one table or list could be it: {names}; use the name of one of them"},

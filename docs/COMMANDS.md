@@ -57,7 +57,7 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_e
 | `--max-attempts` | Failures before the run is cancelled. Default: 3. |
 | `--vision` | When the other checks doubt a step (a field that does not show the value, a click with no visible effect in the page's code, an expected text that did not appear), asks the model about a screenshot, scaled to 640 pixels. It can only confirm a doubted step, never fail one that worked. Slower: about 5 s per question with the 4B model and 9 s with the 9B, on the test machine. The model must have the `vision` capability. |
 | `--allow-sensitive` | Does not ask before sensitive actions. By default, before deleting, saving or submitting, sending, paying, downloading or uploading, the agent shows the element and asks; a denial stops the run. |
-| `--output-dir` | Where tables and lists read by the agent are saved, one CSV file each (never overwritten). Default: `output`. |
+| `--output-dir` | Where tables and lists read by the agent are saved (one CSV file each) and where downloaded files go, never overwriting a file. Default: `output`. |
 | `--lang` | Interface language: `en` (default) or `pt`. Overrides `ANCHOR_LANG`. |
 | `--prompt-language` | Planner prompt language: `pt` (default, the measured one), `en`, or `auto` (follows the request). |
 
@@ -68,6 +68,12 @@ plan reaches a password field, or nothing can be planned on a page that asks for
 asks in the terminal: log in (or fill in the password) yourself in the browser window and press
 Enter, or `q` to cancel. If the page still shows an empty password field, it asks again. With
 `--browser-profile`, the session is kept for the next runs.
+
+**Downloading files.** A request to download a file ("Download the sales report") is planned as
+a `download` step: the agent clicks the button or link and waits for the file, which it saves in
+the output folder with the name the site suggests (`report (2).csv` if the name is taken). Every
+download is a sensitive action, whatever the button says, so it asks first. A click that
+downloads nothing fails, and the planner is told so.
 
 **Reading data from a page.** A request to read, copy or export a table or a list ("Export the
 sales by region table") is planned as an `extract_table` step: the agent finds the table or list

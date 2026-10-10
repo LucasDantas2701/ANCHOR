@@ -4,6 +4,7 @@ RESOLVER_ACTION_MAP = {
     "check": "check",       # was "click" — now uses the dedicated weights (checkbox/switch/radio)
     "uncheck": "check",     # was "click" — uncheck uses the same role profile as check
     "press": "click",
+    "download": "click",
     "fill": "fill",
     "select": "select",     # was "fill" — now uses the dedicated weights (option/combobox/listbox)
     "extract_text": "extract",

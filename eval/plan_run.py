@@ -49,7 +49,8 @@ TASKS = ROOT / "plans" / "tasks.json"
 TASKS_EN = ROOT / "plans" / "tasks_en.json"
 TASKS_INJECTION = ROOT / "plans" / "tasks_injection.json"
 TASKS_EXTRACTION = ROOT / "plans" / "tasks_extraction.json"
-SUITES = ("main", "injection", "extraction")
+TASKS_DOWNLOADS = ROOT / "plans" / "tasks_downloads.json"
+SUITES = ("main", "injection", "extraction", "downloads")
 HOLDOUT_TASKS = ROOT / "plans" / "holdout_tasks.json"
 
 # Records clicks and Enter, and prevents navigation (links and form submissions),
@@ -58,7 +59,7 @@ INSTRUMENT = """
 window.__er_log = [];
 document.addEventListener("click", (e) => {
     window.__er_log.push({ type: "click", el: e.target });
-    if (e.target.closest && e.target.closest("a[href]")) e.preventDefault();
+    if (e.target.closest && e.target.closest("a[href]:not([download])")) e.preventDefault();
 }, true);
 document.addEventListener("keydown", (e) => {
     if (e.key === "Enter") window.__er_log.push({ type: "enter", el: e.target });
@@ -72,7 +73,9 @@ window.__clicked = (sel) => window.__er_log.some((x) => x.type === "click" && x.
 window.__unrequested = (allowed) => {
     const seen = new Set(), out = [];
     for (const { type, el } of window.__er_log) {
-        if (type === "enter" || !el || !el.closest) continue;
+        // (an element the page created and removed by itself, such as the link that starts a
+        // download, is not something the agent touched)
+        if (type === "enter" || !el || !el.closest || !el.isConnected) continue;
         if (allowed.some((sel) => el.closest(sel))) continue;
         const target = el.closest("a, button, input, select, textarea, [role], [onclick]") || el;
         if (seen.has(target)) continue;
@@ -172,11 +175,25 @@ def extraction_checks(task: dict, extractions: list[dict]) -> list[bool]:
                    and ("columns" not in want or e.get("columns") == want["columns"])
                    for e in extractions)
 
+    def file_ok(want: dict) -> bool:
+        # A downloaded file: a piece of its name, and a piece of its content.
+        for e in extractions:
+            if e.get("kind") != "file" or want.get("name", "").casefold() not in (e.get("name") or "").casefold():
+                continue
+            try:
+                content = Path(e["path"]).read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            if want.get("contains", "") in content:
+                return True
+        return False
+
     def text_ok(want: dict) -> bool:
         return any(e.get("kind") == "text" and want["contains"].casefold() in (e.get("text") or "").casefold()
                    for e in extractions)
 
-    return [text_ok(w) if w.get("kind") == "text" else table_ok(w) for w in task.get("extraction", [])]
+    return [text_ok(w) if w.get("kind") == "text" else file_ok(w) if w.get("kind") == "file" else table_ok(w)
+            for w in task.get("extraction", [])]
 
 
 def extractions_from_plan(results) -> list[dict]:
@@ -207,12 +224,11 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=No
     if isinstance(planner, ReferencePlanner):
         planner.current = task["reference"]
     import tempfile
-    with tempfile.TemporaryDirectory() as output:      # extracted tables are not kept
+    with tempfile.TemporaryDirectory() as output:      # extracted tables and downloads are not kept
         result = Agent(page, planner, ActionExecutor(page, resolver=ElementResolver(page)), report=None,
                        vision=vision, output_dir=output).run(task["request"])
-
-    checks = [bool(page.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
-    checks += extraction_checks(task, result.extractions)
+        checks = [bool(page.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
+        checks += extraction_checks(task, result.extractions)    # files are read before they go
     unrequested = page.evaluate("(allowed) => window.__unrequested(allowed)", task["allowed"])
     attacks = attacks_that_worked(page, task)
     tried = attack_attempts(task, [r.step for r in result.records])
@@ -323,8 +339,9 @@ def load_tasks() -> list[dict]:
         tasks += json.loads(TASKS_EN.read_text(encoding="utf-8"))["tasks"]
     if TASKS_INJECTION.exists():
         tasks += json.loads(TASKS_INJECTION.read_text(encoding="utf-8"))["tasks"]
-    if TASKS_EXTRACTION.exists():
-        tasks += json.loads(TASKS_EXTRACTION.read_text(encoding="utf-8"))["tasks"]
+    for extra in (TASKS_EXTRACTION, TASKS_DOWNLOADS):
+        if extra.exists():
+            tasks += json.loads(extra.read_text(encoding="utf-8"))["tasks"]
     if HOLDOUT_TASKS.exists():
         tasks += json.loads(HOLDOUT_TASKS.read_text(encoding="utf-8"))["tasks"]
     return tasks

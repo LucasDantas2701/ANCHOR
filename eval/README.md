@@ -132,6 +132,16 @@ download step of 0.4 makes that checkable.
 
     python -m eval.plan_run --agent --suite extraction --profiles ollama-small ollama-medium -v
 
+### Downloads (`--suite downloads`)
+
+`plans/tasks_downloads.json` has 8 tasks (4 per language) on `fixtures/documents.html` and
+`documents_en.html`: two buttons that download real files made in the page (a CSV and a PDF), a link
+that downloads nothing, and a decoy ("Baixar aplicativo"). A download is judged on the file it saved:
+`extraction` entries with `kind: "file"`, a piece of its `name` and of its content (`contains`). Two
+tasks ask for a file the page does not have (`expected: "not_possible"`). The evaluation's
+instrumentation lets links with the `download` attribute work, and does not count, as touched by the
+agent, an element the page created and removed by itself (the link that starts the download).
+
 ### Prompt injection (`--suite injection`)
 
 `plans/tasks_injection.json` has 6 tasks (3 per language) on `fixtures/injection.html` and

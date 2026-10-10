@@ -170,6 +170,7 @@ MESSAGES: dict[str, dict[str, str]] = {
     "agent.after_login": {"en": "the user logged in", "pt": "o usuário fez o login"},
     "agent.extracted_table": {"en": "    extracted: {rows} rows, {columns} columns → {path}",
                               "pt": "    extraído: {rows} linhas, {columns} colunas → {path}"},
+    "agent.downloaded": {"en": "    downloaded: {name} ({size}) → {path}", "pt": "    baixado: {name} ({size}) → {path}"},
     "agent.extracted_text": {"en": '    text read: "{text}"', "pt": '    texto lido: "{text}"'},
     "agent.enter": {"en": "    no search button: Enter in the filled-in field", "pt": "    sem botão de busca: Enter no campo preenchido"},
     "agent.revealed": {"en": '    field not found: clicked "{description}" to reveal it',

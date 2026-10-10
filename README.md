@@ -275,6 +275,9 @@ With `--browser-profile`, the session is kept on your computer, and the next run
 Saved automations keep their own browser profile in their folder, so you log in once per
 automation (`run --fresh-browser` opens a clean browser for one run).
 
+**Download files.** Ask for a file ("Download the sales report") and the agent clicks the button or
+link, asks first (every download is sensitive), and saves the file in `output/`.
+
 **Read data from a page.** Ask for a table or a list ("Export the sales by region table") and the
 agent saves it as a CSV file in `output/` (`--output-dir` changes the folder); ask for a single
 value ("What was the total revenue?") and it shows the text it read:
@@ -462,7 +465,7 @@ final numbers will come from the closed sets.
 - [x] **0.3.1** — Logging in by hand: ANCHOR never types a password, and waits for the user's login
 - [ ] **0.4** — Uploads, downloads, new tabs, data extraction and iframes
     - [x] Data extraction: tables and lists saved as CSV, and single values read from the page
-    - [ ] Downloads
+    - [x] Downloads
     - [ ] Uploads, with the file path only from the request or a parameter
     - [ ] Following new tabs
     - [ ] Elements inside iframes

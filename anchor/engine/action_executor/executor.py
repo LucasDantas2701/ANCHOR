@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import Any, Callable, Optional
 
 from playwright.sync_api import Page
@@ -24,6 +25,17 @@ from .constants import (
 )
 from .result import ActionResult
 
+_NO_DOWNLOAD = object()
+
+
+def _free_path(folder: Path, name: str) -> Path:
+    """folder/name, or folder/name (2), (3)... if taken: a download never overwrites a file."""
+    folder.mkdir(parents=True, exist_ok=True)
+    name = Path(name).name or "download"
+    path, stem, suffix, n = folder / name, Path(name).stem, Path(name).suffix, 2
+    while path.exists():
+        path, n = folder / f"{stem} ({n}){suffix}", n + 1
+    return path
 
 class ActionExecutor:
     """
@@ -105,6 +117,8 @@ class ActionExecutor:
         # the agent turns it on, so credentials never go through the model and the user logs in
         # by hand. Off by default, for the resolver's evaluation on test pages.
         self.refuse_passwords = False
+        # Where download() saves files; the agent points it at its output folder.
+        self.download_dir = Path("output")
         # Time spent waiting for the user (disambiguation and confirmations), kept apart so it
         # does not inflate the measured execution time.
         self.user_wait_s = 0.0
@@ -536,6 +550,34 @@ class ActionExecutor:
                 **kwargs
             ),
         )
+
+    def download(
+        self,
+        description: str,
+        timeout_ms: int = 8000,
+    ) -> ActionResult:
+        """
+        Clicks the button or link the description names and waits for the file it downloads,
+        saving it in download_dir with the name the site suggests (never overwriting one).
+        value = {"name", "path", "bytes"}. A click that downloads nothing is "no_download".
+        """
+        from playwright.sync_api import TimeoutError as PlaywrightTimeout
+
+        def act(match: Match):
+            try:
+                with self.page.expect_download(timeout=timeout_ms) as info:
+                    match.locator.click()
+            except PlaywrightTimeout:
+                return _NO_DOWNLOAD
+            file = info.value
+            path = _free_path(Path(self.download_dir), file.suggested_filename or "download")
+            file.save_as(str(path))
+            return {"name": path.name, "path": str(path), "bytes": path.stat().st_size}
+
+        result = self._run(description, "download", act)
+        if result.status == "success" and result.value is _NO_DOWNLOAD:
+            result.status, result.value, result.error = "no_download", None, "the click did not download any file"
+        return result
 
     def hover(
         self,

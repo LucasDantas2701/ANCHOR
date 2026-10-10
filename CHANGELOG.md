@@ -18,6 +18,16 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Downloading files.** A new action, `download`: the agent clicks the button or link and waits
+  for the file, which it saves in the output folder (the same as extracted tables: `output/`, or the
+  automation's folder) with the name the site suggests, never overwriting one (`report (2).csv`).
+  Every download is a sensitive action, whatever the button says. A click that downloads nothing
+  fails ("no_download"), and the planner is told so. As with extraction, the planner hears about the
+  action only for requests about files ("baixe", "download", "exporte", "PDF", "planilha"...), so
+  every other request gets the prompt exactly as before; the request check counts a download as a
+  click. `eval/plan_run.py --suite downloads`: 8 development tasks on a new documents page, judged
+  on the saved file (its name and content); the evaluation's instrumentation now lets download links
+  work and ignores the link a page creates and removes to start a download.
 - **Reading data from pages.** A new action, `extract_table`, reads a whole table or list and saves it
   as a CSV file (UTF-8; `;` as separator in Portuguese, so Excel opens it in columns, `,` in English),
   never overwriting one. The table or list is found by its caption, `aria-label` or the title before

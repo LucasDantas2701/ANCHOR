@@ -154,13 +154,26 @@ description is the text, as shown in \"Text\" at the end of the list of elements
 }
 
 
-def system_prompt(language: str = DEFAULT_PROMPT_LANGUAGE, reading: bool = False) -> str:
+_FILES = {
+    "pt": "- download: para baixar um arquivo (relatório, PDF, planilha, comprovante): o botão ou \
+link que baixa; o robô salva o arquivo.\n",
+    "en": "- download: to download a file (report, PDF, spreadsheet, receipt): the button or link \
+that downloads it; the robot saves the file.\n",
+}
+
+
+def system_prompt(language: str = DEFAULT_PROMPT_LANGUAGE, reading: bool = False, files: bool = False) -> str:
+    """The prompt; the extraction and download parts only for requests about them (see reading.py)."""
     base = SYSTEM_EN if language == "en" else SYSTEM
-    if not reading:
-        return base
-    actions, after, lines = _READING["en" if language == "en" else "pt"]
+    lang = "en" if language == "en" else "pt"
+    actions, after, lines = _READING[lang]
     assert actions in base and after in base
-    return base.replace(actions, actions + ", extract_table", 1).replace(after, after + lines, 1)
+    extra_actions, extra_lines = "", ""
+    if reading:
+        extra_actions, extra_lines = extra_actions + ", extract_table", extra_lines + lines
+    if files:
+        extra_actions, extra_lines = extra_actions + ", download", extra_lines + _FILES[lang]
+    return base.replace(actions, actions + extra_actions, 1).replace(after, after + extra_lines, 1)
 
 
 def user_message(

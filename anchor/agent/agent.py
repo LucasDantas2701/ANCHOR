@@ -102,6 +102,10 @@ def describe_step(step: Step) -> str:
     return f"{step.action} {step.description}{value}"
 
 
+def _size(n: int) -> str:
+    return f"{n} B" if n < 1024 else f"{n / 1024:.1f} KB" if n < 1024 ** 2 else f"{n / 1024 ** 2:.1f} MB"
+
+
 def user_text(exc: Exception) -> str:
     """An error for the user, in the interface language (plan errors are written for the model)."""
     return exc.user_text() if isinstance(exc, PlanError) else str(exc)
@@ -110,6 +114,8 @@ def user_text(exc: Exception) -> str:
 def failure_reason(result: ActionResult) -> Reason:
     """The failure reason, in words that help the planner try another way."""
     element = result.selected_element
+    if result.action == "download" and result.status == "no_download":
+        return Reason("why.no_download")
     if result.action == "extract_table" and result.status == "not_found":
         return Reason("why.no_table")
     if result.action == "extract_table" and result.status == "ambiguous":
@@ -159,6 +165,7 @@ class Agent:
         self.login = login
         from pathlib import Path
         self.output_dir = Path(output_dir) if output_dir is not None else Path("output")
+        executor.download_dir = self.output_dir      # downloads go where extracted tables go
         self.page = page
         self.planner = planner
         self.executor = executor
@@ -509,6 +516,12 @@ class Agent:
 
     def _keep_extraction(self, result: AgentResult, step: Step, outcome: ActionResult) -> None:
         """Saves an extracted table or list as CSV, and keeps what was read in the result."""
+        if step.action == "download":
+            file = outcome.value
+            result.extractions.append({"kind": "file", "description": step.description, "name": file["name"],
+                                       "bytes": file["bytes"], "path": file["path"]})
+            self.report(t("agent.downloaded", name=file["name"], size=_size(file["bytes"]), path=file["path"]))
+            return
         if step.action == "extract_text":
             text = " ".join(str(outcome.value).split())
             result.extractions.append({"kind": "text", "description": step.description, "text": text})
@@ -529,8 +542,8 @@ class Agent:
         gives the focus; a Reason = what went wrong.
         """
         action = outcome.action if outcome.action in ("fill", "select", "check", "uncheck", "press") else step.action
-        if action in ("hover", "extract_text", "extract_table"):
-            return None, []
+        if action in ("hover", "extract_text", "extract_table", "download"):
+            return None, []                          # (a download is checked by its file)
         effect = self.watcher.effect_since(before)
         errors = effect.errors
         others = [m for m in effect.new_messages if m not in errors]
@@ -768,7 +781,7 @@ class Agent:
                     element=" ".join(x for x in (getattr(chosen, "text", ""), getattr(chosen, "label", "")) if x)[:80]
                     if chosen is not None else ""))
                 self._remember_state(result.records[-1], step, chosen)
-                if step.action in ("extract_table", "extract_text") and outcome.value is not None:
+                if step.action in ("extract_table", "extract_text", "download") and outcome.value is not None:
                     self._keep_extraction(result, step, outcome)
                 history.append(mt("hist.done", self.language, step=describe_step(step)))
                 history.extend(mt("hist.message", self.language, message=m) for m in self._safe_messages(messages))
