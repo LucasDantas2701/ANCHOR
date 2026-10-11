@@ -104,7 +104,9 @@ separator of the interface language (`;` in Portuguese, so Excel opens it in col
 English). Menus, headers and footers are never taken as data. When the request could mean more
 than one table, the agent does not guess: it tells the planner their names, and the planner
 picks one. A single text ("What was the total revenue?") is an `extract_text` step, and what was
-read is shown in the terminal.
+read is shown in the terminal. A request that is a question (ending in "?", or starting with
+"qual", "quanto", "what", "how many"...) is not done until some step has read the answer: if the
+model stops before that, it is told to read it, and to open the page or tab that has it first.
 
 ```sh
 python -m anchor.agent --profile ollama-small --url eval/fixtures/report_en.html "Export the sales by region table"

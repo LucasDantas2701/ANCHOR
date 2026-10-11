@@ -257,6 +257,9 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
 * Before a sensitive action (deleting, saving or submitting, sending, paying, downloading,
   uploading, or cancelling an order, a subscription or a booking), the agent shows the element
   and asks; a denial stops the run. `--allow-sensitive` turns the question off.
+* The agent only does what was asked: it does not send, save, confirm, pay or export unless the
+  request says so ("attach the resume" does not end with the application sent).
+* When a step opens a new tab, the agent moves to it, and goes back when that tab closes.
 * `--prompt-language` chooses the planner prompt's language: `pt` (default), `en`, or `auto` (it
   follows the request). Requests can be in English or Portuguese either way: the default
   Portuguese prompt did better than the English one on the English tasks too.
