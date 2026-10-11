@@ -132,6 +132,15 @@ download step of 0.4 makes that checkable.
 
     python -m eval.plan_run --agent --suite extraction --profiles ollama-small ollama-medium -v
 
+### New tabs (`--suite tabs`)
+
+`plans/tasks_tabs.json` has 8 tasks (4 per language) on `fixtures/help.html` and `help_en.html`: a link
+that opens a support form in a new tab (`target="_blank"`), a button that opens a policy page with
+`window.open`, and a plain link that must not leave the first tab. The checks run on the tab the agent
+ended in, and unrequested steps are counted on every open tab. It needs `--agent`: the plan mode does
+not follow tabs. The evaluation's instrumentation is now added to the browser context, so new tabs get
+it too, and links with `target="_blank"` are no longer stopped (no other fixture has them).
+
 ### Uploads (`--suite uploads`)
 
 `plans/tasks_uploads.json` has 10 tasks (5 per language) on `fixtures/application.html` and

@@ -470,7 +470,7 @@ final numbers will come from the closed sets.
     - [x] Data extraction: tables and lists saved as CSV, and single values read from the page
     - [x] Downloads
     - [x] Uploads, with the file path only from the request or a parameter
-    - [ ] Following new tabs
+    - [x] Following new tabs
     - [ ] Elements inside iframes
     - [ ] Hidden content: when a step's target is not on the page, try the controls that reveal more
       ("Show more", expanders, tabs) before replanning

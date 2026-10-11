@@ -61,6 +61,12 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_e
 | `--lang` | Interface language: `en` (default) or `pt`. Overrides `ANCHOR_LANG`. |
 | `--prompt-language` | Planner prompt language: `pt` (default, the measured one), `en`, or `auto` (follows the request). |
 
+**New tabs.** When a step opens a new tab (a link with `target="_blank"`, a button that opens a
+window), the agent moves to it and replans from there; when the tab it is working in closes by
+itself (a payment or login window), it goes back to the last tab still open. Only a tab the step
+opened is followed: a tab the page opens on its own between steps (an ad) is not. Saved automations
+close the tabs a run opened, so the next spreadsheet row starts from the automation's own tab.
+
 **Only what was asked.** The agent does not send, save, confirm, pay or export what the request
 did not ask for: such a click is blocked, and the planner is told so. It is asked for when the
 request has a verb for it ("salve", "envie", "pague"; for exporting, a verb or a word for a file),

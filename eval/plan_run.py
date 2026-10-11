@@ -51,7 +51,8 @@ TASKS_INJECTION = ROOT / "plans" / "tasks_injection.json"
 TASKS_EXTRACTION = ROOT / "plans" / "tasks_extraction.json"
 TASKS_DOWNLOADS = ROOT / "plans" / "tasks_downloads.json"
 TASKS_UPLOADS = ROOT / "plans" / "tasks_uploads.json"
-SUITES = ("main", "injection", "extraction", "downloads", "uploads")
+TASKS_TABS = ROOT / "plans" / "tasks_tabs.json"
+SUITES = ("main", "injection", "extraction", "downloads", "uploads", "tabs")
 HOLDOUT_TASKS = ROOT / "plans" / "holdout_tasks.json"
 
 # Records clicks and Enter, and prevents navigation (links and form submissions),
@@ -60,7 +61,8 @@ INSTRUMENT = """
 window.__er_log = [];
 document.addEventListener("click", (e) => {
     window.__er_log.push({ type: "click", el: e.target });
-    if (e.target.closest && e.target.closest("a[href]:not([download])")) e.preventDefault();
+    // (links that download or open a new tab do not take this page away)
+    if (e.target.closest && e.target.closest('a[href]:not([download]):not([target="_blank"])')) e.preventDefault();
 }, true);
 document.addEventListener("keydown", (e) => {
     if (e.key === "Enter") window.__er_log.push({ type: "enter", el: e.target });
@@ -226,11 +228,18 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=No
         planner.current = task["reference"]
     import tempfile
     with tempfile.TemporaryDirectory() as output:      # extracted tables and downloads are not kept
-        result = Agent(page, planner, ActionExecutor(page, resolver=ElementResolver(page)), report=None,
-                       vision=vision, output_dir=output).run(task["request"])
-        checks = [bool(page.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
+        agent = Agent(page, planner, ActionExecutor(page, resolver=ElementResolver(page)), report=None,
+                      vision=vision, output_dir=output)
+        result = agent.run(task["request"])
+        # The checks run on the tab the agent ended in (a task may move to a new tab).
+        final = agent.page if not agent.page.is_closed() else page
+        checks = [bool(final.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
         checks += extraction_checks(task, result.extractions)    # files are read before they go
-    unrequested = page.evaluate("(allowed) => window.__unrequested(allowed)", task["allowed"])
+    # Unrequested steps, from every tab still open.
+    unrequested = []
+    for tab in [p for p in page.context.pages if not p.is_closed()]:
+        unrequested += tab.evaluate("(allowed) => window.__unrequested ? window.__unrequested(allowed) : []",
+                                    task["allowed"])
     attacks = attacks_that_worked(page, task)
     tried = attack_attempts(task, [r.step for r in result.records])
     impossible = task.get("expected") == "not_possible"
@@ -340,7 +349,7 @@ def load_tasks() -> list[dict]:
         tasks += json.loads(TASKS_EN.read_text(encoding="utf-8"))["tasks"]
     if TASKS_INJECTION.exists():
         tasks += json.loads(TASKS_INJECTION.read_text(encoding="utf-8"))["tasks"]
-    for extra in (TASKS_EXTRACTION, TASKS_DOWNLOADS, TASKS_UPLOADS):
+    for extra in (TASKS_EXTRACTION, TASKS_DOWNLOADS, TASKS_UPLOADS, TASKS_TABS):
         if extra.exists():
             tasks += json.loads(extra.read_text(encoding="utf-8"))["tasks"]
     if HOLDOUT_TASKS.exists():
@@ -362,7 +371,7 @@ def blind_reference_problems(browser, task: dict) -> list[str]:
     if len(targets) != len(task["reference"]):
         return [f"reference_targets has {len(targets)} selectors for {len(task['reference'])} steps"]
     page = browser.new_page()
-    page.add_init_script(INSTRUMENT)
+    page.context.add_init_script(INSTRUMENT)    # every tab of this task
     page.set_default_timeout(3000)
     page.goto((FIXTURES / task["fixture"]).as_uri())
     try:
@@ -415,7 +424,7 @@ def check_tasks(tasks: list[dict], browser=None) -> int:
             if a not in ACTIONS or (ACTIONS[a] and not v):
                 problems.append(f"{tid}: invalid reference step: {a} {d!r} {v!r}")
         page = browser.new_page()
-        page.add_init_script(INSTRUMENT)
+        page.context.add_init_script(INSTRUMENT)    # every tab of this task
         page.goto((FIXTURES / t["fixture"]).as_uri())
         for sel in t["allowed"]:
             if page.locator(sel).count() == 0:
@@ -542,7 +551,7 @@ def main() -> int:
             for task in tasks:
                 page = browser.new_page()
                 page.set_default_timeout(5000)
-                page.add_init_script(INSTRUMENT)
+                page.context.add_init_script(INSTRUMENT)    # every tab of this task
                 progress.prefix = f"  ...   {task['id']:10} "
 
                 def execute():

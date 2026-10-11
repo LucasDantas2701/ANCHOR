@@ -359,9 +359,13 @@ class Agent:
 
     def _finish(self, result: AgentResult, status: str, message: str, start: float) -> AgentResult:
         """message: already written in the interface language."""
-        # The download listener is for this run only; a file that arrived after the last step is kept.
+        # The download and tab listeners are for this run only; a file that arrived after the last step is kept.
         try:
             self.page.remove_listener("download", self._on_download)
+        except Exception:
+            pass
+        try:
+            self._context.remove_listener("page", self._on_new_tab)
         except Exception:
             pass
         if self._pending_downloads:
@@ -617,6 +621,71 @@ class Agent:
             self.report(t("login.still"))
         return False
 
+    def _on_new_tab(self, page) -> None:
+        self._new_tabs.append(page)
+        self._opened_tabs.append(page)
+
+    def _follow_tabs(self, history: list[str]) -> str:
+        """
+        Moves to a tab that opened during the last step (the newest one), or, when the current tab
+        closed, back to the last one still open. Returns the reason to replan, or "" if nothing
+        changed. Everything that works on "the page" moves with it: the executor, the resolver, the
+        effect watcher and the download listener.
+        """
+        fresh = [p for p in self._new_tabs if not p.is_closed()]
+        self._new_tabs.clear()
+        closed = self.page.is_closed()
+        if fresh:
+            target = fresh[-1]
+        elif closed:
+            still = [p for p in self._context.pages if not p.is_closed()]
+            target = still[-1] if still else None
+        else:
+            return ""
+        if target is None or target is self.page:
+            return ""
+        try:
+            target.wait_for_load_state("domcontentloaded", timeout=10000)
+        except Exception:
+            pass
+        self._switch_to(target)
+        url = self.page.url
+        history.append(mt("hist.tab_back" if closed and not fresh else "hist.new_tab", self.language, url=url))
+        return t("agent.why_tab_back" if closed and not fresh else "agent.why_new_tab", url=url)
+
+    def _switch_to(self, page) -> None:
+        try:
+            if not self.page.is_closed():
+                self.page.remove_listener("download", self._on_download)
+        except Exception:
+            pass
+        self.page = page
+        self.executor.page = page
+        self.executor.resolver.page = page
+        if self.watcher is not None:
+            self.watcher = EffectWatcher(page)
+        page.on("download", self._on_download)
+        try:
+            page.bring_to_front()
+        except Exception:
+            pass
+
+    def close_opened_tabs(self) -> None:
+        """
+        Closes the tabs this run opened, and points the executor and resolver back at the first
+        tab (saved automations reuse the executor for the next spreadsheet row).
+        """
+        first = getattr(self, "_first_page", None)
+        if first is None:
+            return
+        for page in self._opened_tabs:
+            if page is not first and not page.is_closed():
+                try:
+                    page.close()
+                except Exception:
+                    pass
+        self.page = self.executor.page = self.executor.resolver.page = first
+
     def _on_download(self, download) -> None:
         """Saves a file the page downloaded by itself, or after a plain click."""
         if getattr(self.executor, "expecting_download", False):
@@ -751,6 +820,11 @@ class Agent:
         # Any file the page downloads during the run is kept, even after a plain click (the model
         # may plan "click" on a download button): it would be lost otherwise.
         self.page.on("download", self._on_download)
+        # Tabs opened during the run: the agent follows a new one, and goes back when its tab closes.
+        self._first_page, self._context = self.page, self.page.context
+        self._new_tabs: list = []
+        self._opened_tabs: list = []
+        self._context.on("page", self._on_new_tab)
 
         # A password in the request would reach the model: refused before anything is sent.
         if request_has_password(request):
@@ -858,6 +932,16 @@ class Agent:
                                   reason=reason.render(self.language)))
                 continue
 
+            if self.page.is_closed():               # its tab closed by itself (a payment or login window)
+                why = self._follow_tabs(history)
+                if not why:
+                    return self._finish(result, "failed", t("end.no_tab"), start)
+                queue = self._replan(request, history, result, start, why)
+                if isinstance(queue, AgentResult):
+                    return queue
+                after_replan = True
+                continue
+
             url_before = self.page.url
             self.report(f"  → {describe_step(step)}")
 
@@ -865,6 +949,7 @@ class Agent:
             words_before = self._page_words() if (self.watcher and step.expect) else set()
             shot_before = (self.vision.capture(self.page)
                            if self.vision is not None and step.action in ("click", "press") else None)
+            self._new_tabs.clear()                 # only a tab this step opens is followed (not an ad on load)
             outcome = self._execute(step, last_fill)
 
             if outcome.resolved_by == "user":
@@ -935,8 +1020,11 @@ class Agent:
                 if step.action == "fill" and outcome.selected_element is not None:
                     last_fill = outcome.selected_element
 
-                layers_before = self._layer_count()
-                if self.page.url != url_before:
+                tab = self._follow_tabs(history)
+                layers_before = self._layer_count() if not tab else 0
+                if tab:
+                    why = tab
+                elif self.page.url != url_before:
                     self.page.wait_for_load_state()
                     why = t("agent.why_page")
                 elif step.action == "fill":

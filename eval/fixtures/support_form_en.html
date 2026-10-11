@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Support form</title></head>
+<body>
+<h1>Support form</h1>
+<form onsubmit="return false">
+  <p><label>Name <input id="name"></label></p>
+  <p><label>E-mail <input id="email" type="email"></label></p>
+  <p><label>Message <textarea id="message"></textarea></label></p>
+  <p><button id="send" onclick="document.body.dataset.sent = '1'; document.getElementById('ok').textContent = 'We received your message.'">Send message</button></p>
+</form>
+<p id="ok" role="status"></p>
+<script src="feedback.js"></script>
+</body></html>

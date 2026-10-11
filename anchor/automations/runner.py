@@ -153,6 +153,7 @@ def run_automation(
     agent_options.setdefault("output_dir", store.folder(name) / "output")
     agent = Agent(page, planner, executor, report=report, **agent_options)
     result = agent.run(render(automation.request, values))
+    agent.close_opened_tabs()            # the next row starts from the automation's own tab
 
     healed = mode == "replay" and planner.broken and planner.healer is not None
     if healed and result.ok:
