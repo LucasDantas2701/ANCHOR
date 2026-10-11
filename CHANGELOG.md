@@ -23,7 +23,9 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   back to the last tab still open. Everything that works on "the page" moves together: the agent, the
   executor, the resolver, the effect watcher (which already counted a new tab as a visible effect of
   the click) and the download listener. Only a tab opened during the step is followed, not one the
-  page opens by itself between steps (an ad). Saved automations close the tabs a run opened and point
+  page opens by itself between steps (an ad). After a step on a tab it followed, the agent waits up to
+  0.7 s for the tab to close (window.close() arrived after the step on Windows, and the agent stayed on
+  the closing tab); on the first tab there is no wait. Saved automations close the tabs a run opened and point
   the executor back at their own tab before the next spreadsheet row. `eval/plan_run.py --suite tabs`:
   8 development tasks; the evaluation's instrumentation is now added to the browser context (every
   tab), lets `target="_blank"` links work, runs the checks on the tab the agent ended in, and counts

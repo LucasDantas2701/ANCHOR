@@ -120,3 +120,16 @@ def test_the_agent_reads_the_answer_in_the_new_tab_after_the_warning(page):
     assert result.ok, result.message
     assert "48 horas" in result.extractions[0]["text"]
     assert any("pergunta" in " ".join(h) for h in planner.histories)          # the planner got the warning
+
+
+def test_a_tab_that_closes_a_moment_after_the_click_is_still_noticed(page, tmp_path):
+    """On Windows, window.close() arrived after the agent looked: it stayed on the closing tab."""
+    (tmp_path / "popup.html").write_text(
+        '<h1>Pagamento</h1><button onclick="setTimeout(() => window.close(), 300)">Concluir pagamento</button>')
+    (tmp_path / "shop.html").write_text(
+        '<button onclick="window.open(\'popup.html\')">Pagar</button>'
+        '<button onclick="document.body.dataset.done = 1">Ver pedido</button>')
+    page.goto((tmp_path / "shop.html").as_uri())
+    planner = Plans([("click", "Pagar", None)], [("click", "Concluir pagamento", None)], [("click", "Ver pedido", None)])
+    agent, result = run(page, planner, "pague, conclua o pagamento e veja o pedido", verify_effect=False)
+    assert agent.page is page and page.evaluate("document.body.dataset.done") == "1", result.message

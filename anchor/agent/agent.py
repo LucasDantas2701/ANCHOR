@@ -634,6 +634,13 @@ class Agent:
         """
         fresh = [p for p in self._new_tabs if not p.is_closed()]
         self._new_tabs.clear()
+        if not fresh and not self.page.is_closed() and self.page is not self._first_page:
+            # A tab the agent followed (a payment or login window) may close a moment after the
+            # click: window.close() can arrive after the step returns (it did on Windows).
+            try:
+                self.page.wait_for_event("close", timeout=700)
+            except Exception:
+                pass
         closed = self.page.is_closed()
         if fresh:
             target = fresh[-1]
