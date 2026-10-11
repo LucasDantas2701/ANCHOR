@@ -21,6 +21,14 @@ class Plans:
         return Plan(steps=[Step(*s) for s in steps])
 
 
+def trace(agent, result, page):
+    """What happened, for the failure message: each step's result, and the tab each part was on."""
+    name = lambda p: "CLOSED" if p.is_closed() else p.url.rsplit("/", 1)[-1]
+    return (f"{result.status}: {result.message} | steps: {[(r.step.description, r.status) for r in result.records]}"
+            f" | agent.page={name(agent.page)} executor.page={name(agent.executor.page)}"
+            f" | tabs={[name(p) for p in page.context.pages]}")
+
+
 def run(page, planner, request, **kwargs):
     agent = Agent(page, planner, ActionExecutor(page), report=None, **kwargs)
     return agent, agent.run(request)
@@ -58,7 +66,7 @@ def test_when_the_tab_closes_the_agent_goes_back(page, tmp_path):
     page.goto((tmp_path / "shop.html").as_uri())
     planner = Plans([("click", "Pagar", None)], [("click", "Concluir pagamento", None)], [("click", "Ver pedido", None)])
     agent, result = run(page, planner, "pague, conclua o pagamento e veja o pedido", verify_effect=False)
-    assert agent.page is page and page.evaluate("document.body.dataset.done") == "1", result.message
+    assert agent.page is page and page.evaluate("document.body.dataset.done") == "1", trace(agent, result, page)
 
 
 def test_a_download_in_the_new_tab_is_kept(page, tmp_path):
@@ -132,4 +140,108 @@ def test_a_tab_that_closes_a_moment_after_the_click_is_still_noticed(page, tmp_p
     page.goto((tmp_path / "shop.html").as_uri())
     planner = Plans([("click", "Pagar", None)], [("click", "Concluir pagamento", None)], [("click", "Ver pedido", None)])
     agent, result = run(page, planner, "pague, conclua o pagamento e veja o pedido", verify_effect=False)
-    assert agent.page is page and page.evaluate("document.body.dataset.done") == "1", result.message
+    assert agent.page is page and page.evaluate("document.body.dataset.done") == "1", trace(agent, result, page)
+
+
+def test_a_closed_tab_is_noticed_even_before_playwright_says_so(page, tmp_path):
+    """On Windows the tab was closed, but is_closed() still said False: the agent must test the tab."""
+    import time
+    (tmp_path / "popup.html").write_text(
+        '<h1>Pagamento</h1><button onclick="setTimeout(() => window.close(), 1000)">Concluir pagamento</button>')
+    (tmp_path / "shop.html").write_text(
+        '<button onclick="window.open(\'popup.html\')">Pagar</button>'
+        '<button onclick="document.body.dataset.done = 1">Ver pedido</button>')
+    page.goto((tmp_path / "shop.html").as_uri())
+
+    class SlowAfterPaying(Plans):
+        def plan(self, *args, **kwargs):
+            if len(self.histories) == 2:          # after "Concluir pagamento": the tab closes meanwhile,
+                time.sleep(1.5)                   # and nothing tells Playwright (no call to it)
+            return super().plan(*args, **kwargs)
+
+    # After paying, the model proposes "Ver pedido" (it takes a while: the tab closes meanwhile);
+    # back on the shop tab, it proposes it again.
+    planner = SlowAfterPaying([("click", "Pagar", None)], [("click", "Concluir pagamento", None)],
+                              [("click", "Ver pedido", None)], [("click", "Ver pedido", None)])
+    agent, result = run(page, planner, "pague, conclua o pagamento e veja o pedido", verify_effect=False)
+    assert agent.page is page and page.evaluate("document.body.dataset.done") == "1", trace(agent, result, page)
+
+
+def test_a_click_that_fails_because_the_tab_closed_still_goes_back(page, tmp_path):
+    """On Windows, the click whose handler closes the tab failed, and the tab was still closing."""
+    from anchor.engine.action_executor import ActionResult
+    (tmp_path / "popup.html").write_text(
+        '<h1>Pagamento</h1><button onclick="setTimeout(() => window.close(), 200)">Concluir pagamento</button>')
+    (tmp_path / "shop.html").write_text(
+        '<button onclick="window.open(\'popup.html\')">Pagar</button>'
+        '<button onclick="document.body.dataset.done = 1">Ver pedido</button>')
+    page.goto((tmp_path / "shop.html").as_uri())
+    executor = ActionExecutor(page)
+    click = executor.click
+
+    def click_that_fails_like_windows(description, **kwargs):
+        result = click(description, **kwargs)
+        if "Concluir" in description:             # the page went away during the click
+            return ActionResult(status="error", action="click", description=description,
+                                selected_element=result.selected_element,      # it acted on the button
+                                error="Target page, context or browser has been closed")
+        return result
+
+    executor.click = click_that_fails_like_windows
+    planner = Plans([("click", "Pagar", None)], [("click", "Concluir pagamento", None)],
+                    [("click", "Ver pedido", None)], [("click", "Ver pedido", None)])
+    agent = Agent(page, planner, executor, report=None, verify_effect=False)
+    result = agent.run("pague, conclua o pagamento e veja o pedido")
+    assert agent.page is page and page.evaluate("document.body.dataset.done") == "1", trace(agent, result, page)
+
+
+
+def test_a_step_that_meets_its_tab_closing_is_done_again_on_the_tab_underneath(page, tmp_path):
+    """No timing: the window closes right when the agent looks for "Ver pedido" in it."""
+    from anchor.engine.action_executor import ActionResult
+    (tmp_path / "popup.html").write_text('<h1>Pagamento</h1><button>Concluir pagamento</button>')
+    (tmp_path / "shop.html").write_text(
+        '<button onclick="window.open(\'popup.html\')">Pagar</button>'
+        '<button onclick="document.body.dataset.done = 1">Ver pedido</button>')
+    page.goto((tmp_path / "shop.html").as_uri())
+    executor = ActionExecutor(page)
+    click = executor.click
+
+    def click_meeting_the_close(description, **kwargs):
+        if description == "Ver pedido" and executor.page is not page:
+            executor.page.close()                          # the payment window goes away just now
+            return ActionResult(status="not_found", action="click", description=description)
+        return click(description, **kwargs)
+
+    executor.click = click_meeting_the_close
+    planner = Plans([("click", "Pagar", None)], [("click", "Concluir pagamento", None), ("click", "Ver pedido", None)])
+    agent = Agent(page, planner, executor, report=None, verify_effect=False)
+    result = agent.run("pague, conclua o pagamento e veja o pedido")
+    assert agent.page is page and page.evaluate("document.body.dataset.done") == "1", trace(agent, result, page)
+    assert [r.status for r in result.records].count("success") == 3     # no failure counted for it
+
+
+def test_when_a_tab_closes_the_agent_goes_back_where_it_came_from_not_to_another_tab(page, tmp_path):
+    """On Windows "Pagar" once opened the payment window twice: closing one led to the other."""
+    from anchor.engine.action_executor import ActionResult
+    (tmp_path / "popup.html").write_text('<h1>Pagamento</h1><button>Concluir pagamento</button>')
+    (tmp_path / "shop.html").write_text(
+        '<button onclick="window.open(\'popup.html\')">Pagar</button>'
+        '<button onclick="document.body.dataset.done = 1">Ver pedido</button>')
+    page.goto((tmp_path / "shop.html").as_uri())
+    executor = ActionExecutor(page)
+    click = executor.click
+
+    def click_meeting_the_close(description, **kwargs):
+        if description == "Concluir pagamento":       # the shop's second window shows up only now
+            page.evaluate("window.open('popup.html')")
+        if description == "Ver pedido" and executor.page is not page:
+            executor.page.close()
+            return ActionResult(status="not_found", action="click", description=description)
+        return click(description, **kwargs)
+
+    executor.click = click_meeting_the_close
+    planner = Plans([("click", "Pagar", None)], [("click", "Concluir pagamento", None), ("click", "Ver pedido", None)])
+    agent = Agent(page, planner, executor, report=None, verify_effect=False)
+    result = agent.run("pague, conclua o pagamento e veja o pedido")
+    assert agent.page is page and page.evaluate("document.body.dataset.done") == "1", trace(agent, result, page)

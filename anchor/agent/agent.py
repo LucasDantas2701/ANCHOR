@@ -103,6 +103,39 @@ def describe_step(step: Step) -> str:
     return f"{step.action} {step.description}{value}"
 
 
+def _opener(page):
+    """The tab that opened this one, or None when unknown (links that hide it)."""
+    try:
+        return page.opener()
+    except Exception:
+        return None
+
+
+def _pump(page) -> None:
+    """
+    A minimal call, so Playwright processes the events waiting for it (a tab that opened or closed):
+    in the sync API they are only processed during calls.
+    """
+    try:
+        page.evaluate("1")
+    except Exception:
+        pass
+
+
+def _alive(page) -> bool:
+    """
+    Is the tab still open? is_closed() only reflects what Playwright has processed: on Windows a tab
+    closed by window.close() still read as open until the next call to it. A minimal call settles it.
+    """
+    if page.is_closed():
+        return False
+    try:
+        page.evaluate("1")
+        return True
+    except Exception:
+        return False
+
+
 def _size(n: int) -> str:
     return f"{n} B" if n < 1024 else f"{n / 1024:.1f} KB" if n < 1024 ** 2 else f"{n / 1024 ** 2:.1f} MB"
 
@@ -211,6 +244,10 @@ class Agent:
         return lines
 
     def _plan(self, request: str, history: list[str], result: AgentResult) -> Plan:
+        # Every plan (the first, a replan, the end check) reads the page: its tab may have closed
+        # meanwhile (a payment window, after a failed click), so go back first.
+        if hasattr(self, "_context") and not _alive(self.page):
+            self._follow_tabs(history)
         elements = page_elements(self.executor.resolver, request=request, language=self.language)
         context = history + self._context_lines() if history else []
         extra = {"known_goals": set(self._goals)} if self._goals else {}
@@ -632,25 +669,31 @@ class Agent:
         changed. Everything that works on "the page" moves with it: the executor, the resolver, the
         effect watcher and the download listener.
         """
-        fresh = [p for p in self._new_tabs if not p.is_closed()]
+        _pump(self.page)                         # a new tab's event may still be waiting to be processed
+        # Only a tab the current tab opened is this step's doing: a late window from the tab before
+        # (the payment window opened twice) is not. Links that hide their opener are followed.
+        fresh = [p for p in self._new_tabs if not p.is_closed() and _opener(p) in (None, self.page)]
         self._new_tabs.clear()
-        if not fresh and not self.page.is_closed() and self.page is not self._first_page:
-            # A tab the agent followed (a payment or login window) may close a moment after the
-            # click: window.close() can arrive after the step returns (it did on Windows).
-            try:
-                self.page.wait_for_event("close", timeout=700)
-            except Exception:
-                pass
-        closed = self.page.is_closed()
+        if not fresh:
+            self._let_tab_close()
+        closed = not _alive(self.page)
         if fresh:
             target = fresh[-1]
         elif closed:
-            still = [p for p in self._context.pages if not p.is_closed()]
-            target = still[-1] if still else None
+            # Back where it came from (the tab that led here), not just the last tab open.
+            while self._came_from and not _alive(self._came_from[-1]):
+                self._came_from.pop()
+            if self._came_from:
+                target = self._came_from.pop()
+            else:
+                still = [p for p in self._context.pages if p is not self.page and _alive(p)]
+                target = still[-1] if still else None
         else:
             return ""
         if target is None or target is self.page:
             return ""
+        if fresh:
+            self._came_from.append(self.page)
         try:
             target.wait_for_load_state("domcontentloaded", timeout=10000)
         except Exception:
@@ -659,6 +702,19 @@ class Agent:
         url = self.page.url
         history.append(mt("hist.tab_back" if closed and not fresh else "hist.new_tab", self.language, url=url))
         return t("agent.why_tab_back" if closed and not fresh else "agent.why_new_tab", url=url)
+
+    def _let_tab_close(self) -> None:
+        """
+        A tab the agent followed (a payment or login window) may be closing a moment after the
+        click, whether the step succeeded or failed (on Windows the click itself failed): wait up
+        to 0.7 s for it. On the first tab there is no wait.
+        """
+        if self.page is self._first_page or self.page.is_closed():
+            return
+        try:
+            self.page.wait_for_event("close", timeout=700)
+        except Exception:
+            pass
 
     def _switch_to(self, page) -> None:
         try:
@@ -831,6 +887,7 @@ class Agent:
         self._first_page, self._context = self.page, self.page.context
         self._new_tabs: list = []
         self._opened_tabs: list = []
+        self._came_from: list = []             # the tabs that led to the current one
         self._context.on("page", self._on_new_tab)
 
         # A password in the request would reach the model: refused before anything is sent.
@@ -899,6 +956,19 @@ class Agent:
             step = queue.pop(0)
             key = step_key(step)
 
+            # ---------------------------------------------------- the tab closed by itself
+            # First of all: every check below looks at the page.
+            if not _alive(self.page):              # its tab closed by itself (a payment or login window)
+                why = self._follow_tabs(history)
+                if not why:
+                    return self._finish(result, "failed", t("end.no_tab"), start)
+                queue = self._replan(request, history, result, start, why)
+                if isinstance(queue, AgentResult):
+                    return queue
+                after_replan = True
+                continue
+
+
             # ---------------------------------------------------- loop
             repeated_now = after_replan and key == last_done
             if repeated_now or done_count.get(key, 0) >= self.max_repeats:
@@ -939,16 +1009,6 @@ class Agent:
                                   reason=reason.render(self.language)))
                 continue
 
-            if self.page.is_closed():               # its tab closed by itself (a payment or login window)
-                why = self._follow_tabs(history)
-                if not why:
-                    return self._finish(result, "failed", t("end.no_tab"), start)
-                queue = self._replan(request, history, result, start, why)
-                if isinstance(queue, AgentResult):
-                    return queue
-                after_replan = True
-                continue
-
             url_before = self.page.url
             self.report(f"  → {describe_step(step)}")
 
@@ -956,8 +1016,39 @@ class Agent:
             words_before = self._page_words() if (self.watcher and step.expect) else set()
             shot_before = (self.vision.capture(self.page)
                            if self.vision is not None and step.action in ("click", "press") else None)
-            self._new_tabs.clear()                 # only a tab this step opens is followed (not an ad on load)
-            outcome = self._execute(step, last_fill)
+            _pump(self.page)                       # tabs opened before this step (an ad) are seen now,
+            self._new_tabs.clear()                 # and dropped: only a tab this step opens is followed
+            try:
+                outcome = self._execute(step, last_fill)
+            except Exception:
+                if _alive(self.page):
+                    raise
+                outcome = ActionResult(status="error", action=step.action, description=step.description,
+                                       error="the tab closed")       # it closed while the step looked for the element
+            if outcome.status != "success":
+                self._let_tab_close()              # its tab may have closed during the failed step
+                if self.page is not self._first_page and not _alive(self.page):
+                    # The step failed because its tab closed. If it acted on an element, it is what
+                    # closed the tab ("Concluir pagamento"): it is done. If not, it met the tab closing
+                    # ("Ver pedido" looked for on the closing window): do it again on the tab underneath.
+                    acted = outcome.status == "error" and outcome.selected_element is not None
+                    why = self._follow_tabs(history)
+                    if not why:
+                        return self._finish(result, "failed", t("end.no_tab"), start)
+                    if not acted:
+                        queue.insert(0, step)
+                        continue
+                    result.records.append(StepRecord(step, "success", outcome.resolved_by))
+                    history.append(mt("hist.done", self.language, step=describe_step(step)))
+                    if step.goal in self._goal_status:
+                        self._goal_status[step.goal] = "done"
+                    done_count[key] = done_count.get(key, 0) + 1
+                    last_done = key
+                    queue = self._replan(request, history, result, start, why)
+                    if isinstance(queue, AgentResult):
+                        return queue
+                    after_replan = True
+                    continue
 
             if outcome.resolved_by == "user":
                 result.interventions += 1

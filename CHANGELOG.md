@@ -23,9 +23,20 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   back to the last tab still open. Everything that works on "the page" moves together: the agent, the
   executor, the resolver, the effect watcher (which already counted a new tab as a visible effect of
   the click) and the download listener. Only a tab opened during the step is followed, not one the
-  page opens by itself between steps (an ad). After a step on a tab it followed, the agent waits up to
-  0.7 s for the tab to close (window.close() arrived after the step on Windows, and the agent stayed on
-  the closing tab); on the first tab there is no wait. Saved automations close the tabs a run opened and point
+  page opens by itself between steps (an ad). Whether a tab closed is tested, not read: on
+  Windows, a tab closed by window.close() still read as open (`is_closed()` only reflects what
+  Playwright has processed), and the agent went on working on it; a minimal call to the tab settles
+  it. The check comes first in each step, since the barriers also look at the page, and before every
+  plan, since the summary reads the page. In Playwright's sync API, events (a tab that opened or
+  closed) are only processed during calls, so the agent makes a minimal call before reading the new
+  tabs or dropping the ones opened before a step. A step that fails because its tab closed is either
+  done, if it acted on an element (it is what closed the tab), or done again on the tab underneath, if
+  it met the tab closing, without counting as a failure. After a step on a tab it followed, the agent
+  also waits up to 0.7 s for it to close; on the first tab there is no wait. Only a tab opened by
+  the current tab is followed (a late second payment window, opened by the shop, was taken as the
+  doing of the next step on Windows, and the agent switched to it and dropped the steps left); a tab
+  that hides its opener (a `target="_blank"` link) is still followed. When a tab closes, the agent
+  goes back to the tab it came from, not to the last one open. Saved automations close the tabs a run opened and point
   the executor back at their own tab before the next spreadsheet row. `eval/plan_run.py --suite tabs`:
   8 development tasks; the evaluation's instrumentation is now added to the browser context (every
   tab), lets `target="_blank"` links work, runs the checks on the tab the agent ended in, and counts
