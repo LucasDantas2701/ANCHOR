@@ -477,7 +477,9 @@ final numbers will come from the closed sets.
     - [ ] Elements inside iframes
     - [ ] Hidden content: when a step's target is not on the page, try the controls that reveal more
       ("Show more", expanders, tabs) before replanning
-    - [ ] Unattended runs (`--unattended`), for scheduling: never asks, and stops when a login is needed
+    - [ ] Unattended runs (`--unattended`), for scheduling: never asks, stops when a login is needed, and
+      keeps a repair made by the model in quarantine: used only for the row where it happened and recorded
+      for review, it applies to the next rows and runs only once someone approves it
 - [ ] **0.5** — Local frontend (runs on your computer, opens in the browser), with a "Run"
   button for each saved automation
 - [ ] **1.0** — Evaluated version: final runs on the closed sets
