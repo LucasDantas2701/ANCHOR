@@ -245,6 +245,15 @@ _SEND = _re.compile(r"\b(envi\w*|send\w*)\s+(\w+\s+){0,2}?(arquivos?|documentos?
                    r"pictures?|attachments?|proofs?|receipts?|invoices?|certificates?|contracts?)\b", _re.IGNORECASE)
 
 
+_QUESTION = _re.compile(r"^\s*(qual|quais|quanto|quantos|quantas|quando|onde|quem|o\s+que|what|which|"
+                       r"how\s+(?:much|many|long)|when|where|who)\b", _re.IGNORECASE)
+
+
+def is_question(request: str) -> bool:
+    """A question ("qual foi a receita total?", "what is the response time?"), not an order."""
+    return request.strip().endswith("?") or bool(_QUESTION.search(request))
+
+
 def _sends_only_files(request: str) -> bool:
     """Is every "send" in the request followed, within two words, by a file ("envie o comprovante")?"""
     sends = _re.findall(r"\b(?:envi\w*|send\w*)\b", request, _re.IGNORECASE)
@@ -290,6 +299,11 @@ def check_request(steps: list[Step], goals: list[Goal], request: str,
             written = next((w for w in _re.findall(r"\w+", request) if words(w) & forms), verb)
             error.user_values = {"verb": written.lower()}
             raise error
+
+    # A question needs an answer: some step must read it. (The models opened the page with the
+    # answer, or another page, and stopped there.)
+    if is_question(request) and not any(s.action in ("extract_text", "extract_table") for s in steps):
+        raise PlanError.of("plan.missing_answer", language)
 
     plan_text = " ".join(f"{s.description} {s.value or ''}" for s in steps)
     plan_digits = _re.sub(r"\D", "", plan_text)

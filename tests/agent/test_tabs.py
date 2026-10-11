@@ -94,3 +94,29 @@ def test_a_tab_the_page_opened_by_itself_is_not_followed(page, tmp_path):
 
     agent, result = run(page, AdWhilePlanning([("click", "Continuar", None)]), "clique em continuar", verify_effect=False)
     assert agent.page is page and page.evaluate("document.body.dataset.done") == "1"
+
+
+def test_a_question_is_not_done_until_the_answer_is_read():
+    """The models opened the policy tab and stopped: a question needs a step that reads the answer."""
+    import pytest
+
+    from anchor.planner import PlanError
+    from anchor.planner.plan import check_request, is_question
+    assert is_question("qual é o prazo de resposta da política?") and is_question("what is the response time")
+    assert not is_question("abra o formulário de suporte e preencha o nome Ana")
+    with pytest.raises(PlanError, match="pergunta"):
+        check_request([Step("click", "Ver política de atendimento")], [], "qual é o prazo de resposta da política?")
+    check_request([Step("click", "Ver política de atendimento"), Step("extract_text", "Respondemos em até 48 horas")],
+                  [], "qual é o prazo de resposta da política?")
+
+
+def test_the_agent_reads_the_answer_in_the_new_tab_after_the_warning(page):
+    page.goto((FIXTURES / "help.html").as_uri())
+    # 1st: open the policy; after the tab and at the end check: "nothing left" (the models' mistake);
+    # after the warning: read it.
+    planner = Plans([("click", "Ver política de atendimento", None)], [], [],
+                    [("extract_text", "Respondemos todas as mensagens", None)])
+    agent, result = run(page, planner, "qual é o prazo de resposta da política de atendimento?")
+    assert result.ok, result.message
+    assert "48 horas" in result.extractions[0]["text"]
+    assert any("pergunta" in " ".join(h) for h in planner.histories)          # the planner got the warning

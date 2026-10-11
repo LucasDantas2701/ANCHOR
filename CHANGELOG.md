@@ -28,6 +28,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   8 development tasks; the evaluation's instrumentation is now added to the browser context (every
   tab), lets `target="_blank"` links work, runs the checks on the tab the agent ended in, and counts
   unrequested steps on every open tab.
+- **A question needs an answer.** A request that is a question (ending in "?", or starting with
+  "qual", "quanto", "what", "how many"...) is not done until some step has read the answer
+  (`extract_text` or `extract_table`): the request check, which also runs when the model says nothing
+  is left, now says so. Asked for the response time in a policy that opens in a new tab, both models
+  opened it and stopped (the 9B one looked in the FAQ instead); with the warning, the planner reads it
+  in the new tab. Only the four question tasks of the development suites are affected.
 - **No sending, saving, paying or exporting the request did not ask for.** A click in one of those
   sensitive categories is blocked, with the reason for the planner, unless the request has a verb of
   the family ("salve", "envie", "pague", which ask for any of them; for exporting, a verb or a word

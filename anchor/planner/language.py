@@ -142,6 +142,8 @@ TEXT: dict[str, dict[str, str]] = {
                           "en": "step {i}: give the goal it belongs to"},
     "plan.unknown_goal": {"pt": 'passo {i}: a meta "{goal}" não existe; use uma de {ids}',
                           "en": 'step {i}: goal "{goal}" does not exist; use one of {ids}'},
+    "plan.missing_answer": {"pt": "o pedido faz uma pergunta, e nenhum passo lê a resposta; acrescente um passo extract_text com o texto da resposta (se ela estiver em outra página ou aba, abra-a primeiro)",
+                            "en": "the request asks a question, and no step reads the answer; add an extract_text step with the answer's text (if it is on another page or tab, open it first)"},
     "plan.goals_later": {"pt": "meta(s) sem passos por enquanto: {goals}", "en": "goal(s) with no steps yet: {goals}"},
     "plan.empty_goals": {
         "pt": "toda meta precisa de pelo menos um passo; a(s) meta(s) {goals} não tem nenhum: acrescente "
