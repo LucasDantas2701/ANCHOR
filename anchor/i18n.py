@@ -170,6 +170,7 @@ MESSAGES: dict[str, dict[str, str]] = {
     "agent.after_login": {"en": "the user logged in", "pt": "o usuário fez o login"},
     "agent.extracted_table": {"en": "    extracted: {rows} rows, {columns} columns → {path}",
                               "pt": "    extraído: {rows} linhas, {columns} colunas → {path}"},
+    "agent.continuing_plan": {"en": "going on with the plan", "pt": "seguindo com o plano"},
     "agent.why_new_tab": {"en": "a new tab opened: {url}", "pt": "abriu uma aba nova: {url}"},
     "agent.why_tab_back": {"en": "the tab closed; back to {url}", "pt": "a aba fechou; de volta a {url}"},
     "agent.uploaded": {"en": "    sent: {name}", "pt": "    enviado: {name}"},

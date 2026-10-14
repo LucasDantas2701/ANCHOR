@@ -36,7 +36,16 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   the current tab is followed (a late second payment window, opened by the shop, was taken as the
   doing of the next step on Windows, and the agent switched to it and dropped the steps left); a tab
   that hides its opener (a `target="_blank"` link) is still followed. When a tab closes, the agent
-  goes back to the tab it came from, not to the last one open. Saved automations close the tabs a run opened and point
+  goes back to the tab it came from, not to the last one open. When the plan still has steps after
+  the one that opened a tab, they go on in the new tab instead of a replan: asked for the deadline in
+  a policy that opens in a new tab, both models planned "open it, read the deadline", and the replan
+  on the new tab threw the reading away (and told the model the goal was met). A step that does not
+  fit the new tab fails and replans as before. After a click, the agent waits for the window it
+  opens: on a slow Windows run the window arrived after the agent looked, the next step ("Concluir
+  pagamento") was done on the shop, matched "Pagar" and opened a second window. A small script the
+  agent adds to the pages counts the windows they ask for (window.open, target=_blank links): when a
+  click asked for one, the agent waits for it up to 5 s; otherwise up to 0.4 s, for windows opened a
+  little after the click. The tab tests passed 18 runs in a row with three running at once. Saved automations close the tabs a run opened and point
   the executor back at their own tab before the next spreadsheet row. `eval/plan_run.py --suite tabs`:
   8 development tasks; the evaluation's instrumentation is now added to the browser context (every
   tab), lets `target="_blank"` links work, runs the checks on the tab the agent ended in, and counts

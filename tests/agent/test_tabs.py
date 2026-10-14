@@ -245,3 +245,48 @@ def test_when_a_tab_closes_the_agent_goes_back_where_it_came_from_not_to_another
     agent = Agent(page, planner, executor, report=None, verify_effect=False)
     result = agent.run("pague, conclua o pagamento e veja o pedido")
     assert agent.page is page and page.evaluate("document.body.dataset.done") == "1", trace(agent, result, page)
+
+
+def test_the_steps_left_in_the_plan_go_on_in_the_new_tab(page):
+    """The models planned "open the policy, read the deadline"; replanning on the tab threw the reading away."""
+    page.goto((FIXTURES / "help.html").as_uri())
+    planner = Plans([("click", "Ver política de atendimento", None), ("extract_text", "Respondemos todas as mensagens", None)])
+    agent, result = run(page, planner, "qual é o prazo de resposta da política de atendimento?")
+    assert result.ok, trace(agent, result, page)
+    assert "48 horas" in result.extractions[0]["text"]
+    assert len(planner.histories) == 2              # the first plan and the end check: no replan on the tab
+
+
+def test_a_window_that_opens_a_moment_after_the_click_is_still_followed(page, tmp_path):
+    """On a slow Windows run, the payment window opened after the agent looked: it stayed on the shop."""
+    (tmp_path / "popup.html").write_text('<h1>Pagamento</h1><button onclick="document.title = \'pago\'">Concluir pagamento</button>')
+    (tmp_path / "shop.html").write_text(
+        '<button onclick="setTimeout(() => window.open(\'popup.html\'), 150)">Pagar</button>')
+    page.goto((tmp_path / "shop.html").as_uri())
+    planner = Plans([("click", "Pagar", None)], [("click", "Concluir pagamento", None)])
+    agent, result = run(page, planner, "pague e conclua o pagamento", verify_effect=False)
+    assert agent.page is not page and agent.page.title() == "pago", trace(agent, result, page)
+    assert len(page.context.pages) == 2                      # "Pagar" was not clicked a second time
+
+
+
+def test_a_window_asked_for_by_the_click_is_waited_for_longer(page, tmp_path):
+    """The click asks for the window, and it arrives late (a slow machine): the agent waits for it."""
+    (tmp_path / "popup.html").write_text('<h1>Pagamento</h1><button onclick="document.title = \'pago\'">Concluir pagamento</button>')
+    (tmp_path / "shop.html").write_text(
+        # The click asks for the window (as window.open does), and the window only shows up 1.5 s later.
+        '<button onclick="window.__anchorWindows++; setTimeout(() => window.open(\'popup.html\'), 1500)">Pagar</button>')
+    page.goto((tmp_path / "shop.html").as_uri())
+    planner = Plans([("click", "Pagar", None)], [("click", "Concluir pagamento", None)])
+    agent, result = run(page, planner, "pague e conclua o pagamento", verify_effect=False)
+    assert agent.page is not page and agent.page.title() == "pago", trace(agent, result, page)
+
+
+def test_the_page_counts_the_windows_it_asks_for(page, tmp_path):
+    from anchor.agent.agent import _watch_windows, _windows_asked
+    page.set_content('<a href="about:blank" target="_blank">Abrir</a><button onclick="1">Nada</button>')
+    _watch_windows(None, page)
+    page.click("text=Nada")
+    assert _windows_asked(page) == 0
+    page.click("text=Abrir")
+    assert _windows_asked(page) == 1

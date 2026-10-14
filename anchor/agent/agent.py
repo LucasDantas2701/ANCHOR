@@ -103,6 +103,36 @@ def describe_step(step: Step) -> str:
     return f"{step.action} {step.description}{value}"
 
 
+_WINDOWS_JS = """
+(() => {
+  if (window.__anchorWindows !== undefined) return;
+  window.__anchorWindows = 0;
+  const open = window.open;
+  window.open = function (...args) { window.__anchorWindows++; return open.apply(this, args); };
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.closest && e.target.closest('a[target="_blank"]')) window.__anchorWindows++;
+  }, true);
+})();
+"""
+
+
+def _watch_windows(context, page) -> None:
+    """Counts, in the page, the new windows it asks for (window.open, target=_blank links)."""
+    try:
+        if context is not None:
+            context.add_init_script(_WINDOWS_JS)       # pages loaded later
+        page.evaluate(_WINDOWS_JS)                     # the page already open
+    except Exception:
+        pass
+
+
+def _windows_asked(page) -> int:
+    try:
+        return int(page.evaluate("window.__anchorWindows || 0"))
+    except Exception:
+        return 0
+
+
 def _opener(page):
     """The tab that opened this one, or None when unknown (links that hide it)."""
     try:
@@ -662,7 +692,7 @@ class Agent:
         self._new_tabs.append(page)
         self._opened_tabs.append(page)
 
-    def _follow_tabs(self, history: list[str]) -> str:
+    def _follow_tabs(self, history: list[str], acted: bool = False) -> str:
         """
         Moves to a tab that opened during the last step (the newest one), or, when the current tab
         closed, back to the last one still open. Returns the reason to replan, or "" if nothing
@@ -670,6 +700,16 @@ class Agent:
         effect watcher and the download listener.
         """
         _pump(self.page)                         # a new tab's event may still be waiting to be processed
+        if acted and not self._new_tabs and _alive(self.page):
+            # After a click, the window it opens may still be on its way (it came after the agent
+            # looked, on a slow Windows run, and the next step was done on the wrong tab). If the
+            # page asked for one (window.open, a target=_blank link), wait for it up to 5 s;
+            # otherwise just a moment (up to 0.4 s), for windows opened a little after the click.
+            asked = _windows_asked(self.page) > self._asked_before
+            try:
+                self._context.wait_for_event("page", timeout=5000 if asked else 400)
+            except Exception:
+                pass
         # Only a tab the current tab opened is this step's doing: a late window from the tab before
         # (the payment window opened twice) is not. Links that hide their opener are followed.
         fresh = [p for p in self._new_tabs if not p.is_closed() and _opener(p) in (None, self.page)]
@@ -728,6 +768,7 @@ class Agent:
         if self.watcher is not None:
             self.watcher = EffectWatcher(page)
         page.on("download", self._on_download)
+        _watch_windows(None, page)
         try:
             page.bring_to_front()
         except Exception:
@@ -889,6 +930,8 @@ class Agent:
         self._opened_tabs: list = []
         self._came_from: list = []             # the tabs that led to the current one
         self._context.on("page", self._on_new_tab)
+        self._asked_before = 0
+        _watch_windows(self._context, self.page)   # to know when a click asks for a new window
 
         # A password in the request would reach the model: refused before anything is sent.
         if request_has_password(request):
@@ -1018,6 +1061,7 @@ class Agent:
                            if self.vision is not None and step.action in ("click", "press") else None)
             _pump(self.page)                       # tabs opened before this step (an ad) are seen now,
             self._new_tabs.clear()                 # and dropped: only a tab this step opens is followed
+            self._asked_before = _windows_asked(self.page)
             try:
                 outcome = self._execute(step, last_fill)
             except Exception:
@@ -1118,7 +1162,13 @@ class Agent:
                 if step.action == "fill" and outcome.selected_element is not None:
                     last_fill = outcome.selected_element
 
-                tab = self._follow_tabs(history)
+                tab = self._follow_tabs(history, acted=step.action in ("click", "press"))
+                if tab and queue:
+                    # The plan already has the steps for the new tab ("open the policy, read the
+                    # deadline"): go on with them there. Replanning threw them away, and told the
+                    # model the goal was met. A step that does not fit the tab fails and replans.
+                    self.report(f"  {tab}; {t('agent.continuing_plan')}")
+                    continue
                 layers_before = self._layer_count() if not tab else 0
                 if tab:
                     why = tab
