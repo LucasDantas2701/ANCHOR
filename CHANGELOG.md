@@ -18,6 +18,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Every evaluation run records what it ran on**: the Ollama version and each model's digest and date
+  (`environment` in the results `.json`, and printed before the tasks). An automatic Ollama update,
+  with the same model files, changed the 4B model's plan for a task that had been stable for days;
+  without the versions in the results, that took an investigation to find.
 - **Following new tabs.** When a step opens a new tab (a `target="_blank"` link, `window.open`), the
   agent moves to it and replans; when its tab closes by itself (a payment or login window), it goes
   back to the last tab still open. Everything that works on "the page" moves together: the agent, the

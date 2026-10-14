@@ -38,12 +38,29 @@ class OllamaClient:
         base = (base_url or "http://localhost:11434").rstrip("/")
         if base.endswith("/v1"):  # accepts the OpenAI-format address by mistake
             base = base[:-3]
+        self.base = base
         self.url = base + "/api/chat"
         self.timeout_s = timeout_s
         self.think = think
         self.options = options or {}
         self.on_progress = on_progress
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
+
+    def environment(self, model: str) -> dict:
+        """
+        The Ollama version and the model's identifier (digest) and date, so a measurement records
+        exactly what it ran on: with the same model files, an Ollama update changed answers.
+        """
+        env = {"server": "ollama", "server_version": None, "model": model, "model_digest": None,
+               "model_modified": None}
+        try:
+            env["server_version"] = requests.get(self.base + "/api/version", timeout=5).json().get("version")
+            for m in requests.get(self.base + "/api/tags", timeout=5).json().get("models", []):
+                if m.get("name") == model or m.get("model") == model:
+                    env["model_digest"], env["model_modified"] = m.get("digest"), m.get("modified_at")
+        except Exception:
+            pass
+        return env
 
     def _create(self, model, messages, temperature=None, seed=None,
                 response_format=None, extra_body=None, **_ignored):

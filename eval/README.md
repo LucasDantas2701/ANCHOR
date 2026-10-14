@@ -132,6 +132,15 @@ download step of 0.4 makes that checkable.
 
     python -m eval.plan_run --agent --suite extraction --profiles ollama-small ollama-medium -v
 
+### What a run ran on
+
+Every results file (`.json`) has an `environment` entry with, for each profile, the Ollama version
+and the model's digest and date, and `plan_run` prints them before the tasks. On 14/10/2026 an
+automatic Ollama update (to 0.40.4), with the same model files, changed the 4B model's plan for a
+task that had been stable for days: runs on different Ollama versions or model digests are not
+comparable, and the version must be the same through a whole set of measurements (turn off
+Ollama's automatic updates before the final runs).
+
 ### New tabs (`--suite tabs`)
 
 `plans/tasks_tabs.json` has 8 tasks (4 per language) on `fixtures/help.html` and `help_en.html`: a link

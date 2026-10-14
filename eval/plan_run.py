@@ -332,6 +332,14 @@ def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool)
     )
 
 
+def environment(planner) -> dict:
+    """The server and model versions behind a planner (empty for servers that do not tell)."""
+    client = getattr(planner, "client", None)
+    if hasattr(client, "environment"):
+        return client.environment(getattr(planner, "model", ""))
+    return {"model": getattr(planner, "model", "")}
+
+
 def warm_up(planner) -> float:
     """Loads the model before the tasks, so loading does not count in the plans' time."""
     start = time.perf_counter()
@@ -536,6 +544,7 @@ def main() -> int:
     with sync_playwright() as p:
         browser = p.chromium.launch()
         warm = {}
+        environments = {}
         for name, planner in planners:
             print(f"\n=== {name} ({getattr(planner, 'model', '')})")
             is_llm = not isinstance(planner, ReferencePlanner)
@@ -548,6 +557,11 @@ def main() -> int:
                     print(f"  this profile cannot be used: {type(exc).__name__}: {exc}")
                     continue
                 print(f"  model ready in {warm[name]} s (not counted in the plans' time)")
+                env = environment(planner)
+                environments[name] = env
+                if env.get("server_version"):
+                    print(f"  Ollama {env['server_version']}, model {env['model']} "
+                          f"{(env.get('model_digest') or '?')[:12]} (modified {str(env.get('model_modified'))[:10]})")
             for task in tasks:
                 page = browser.new_page()
                 page.set_default_timeout(5000)
@@ -640,6 +654,9 @@ def main() -> int:
         "page_context": not args.no_page, "mode": "agent" if args.agent else "plan",
         "prompt_language": args.prompt_language or "profile", "languages": languages, "suite": args.suite,
         "vision": args.vision,
+        # What the run ran on: the Ollama version and each model's digest (an Ollama update, with the
+        # same model files, changed answers; runs on different versions are not comparable).
+        "environment": environments,
         "summary": summaries,
     }, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nResults saved to {(out / stem).relative_to(ROOT.parent)}.csv (+ .json)")
