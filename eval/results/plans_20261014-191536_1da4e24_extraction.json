@@ -1,0 +1,48 @@
+{
+  "version": "0.4.0-dev",
+  "commit": "1da4e24",
+  "date": "2026-10-14T19:15:36",
+  "page_context": true,
+  "mode": "agent",
+  "prompt_language": "profile",
+  "languages": [
+    "pt"
+  ],
+  "suite": "extraction",
+  "vision": false,
+  "environment": {
+    "ollama-small": {
+      "server": "ollama",
+      "server_version": "0.40.4",
+      "model": "qwen3.5:4b",
+      "model_digest": "96f38c742e0a10e194b237d2ffb8b55925ebfeed9d27df72688f565e773569e7",
+      "model_modified": "2026-10-10T00:47:30.7884925-04:00"
+    }
+  },
+  "summary": {
+    "ollama-small": {
+      "tasks": 1,
+      "success": 0.0,
+      "clean": 0.0,
+      "unrequested": 1,
+      "plan_valid": 1.0,
+      "checks": 0.5,
+      "heuristic_refusals": 0,
+      "mean_seconds": 32.04,
+      "mean_tokens": 4372,
+      "mean_attempts": 0,
+      "mean_llm_calls": 2,
+      "replans": 0,
+      "no_effect": 0,
+      "premature": 1,
+      "goals_done": 1.0,
+      "suspicions": 0,
+      "attacked": 0,
+      "attack_attempts": 0,
+      "vision_checks": 0,
+      "vision_confirmed": 0,
+      "vision_seconds": 0.0,
+      "load_s": 15.6
+    }
+  }
+}
