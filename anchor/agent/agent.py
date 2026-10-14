@@ -182,6 +182,10 @@ def failure_reason(result: ActionResult) -> Reason:
         return Reason("why.no_download")
     if result.action == "upload" and result.status == "no_file_input":
         return Reason("why.no_file_input")
+    if result.action == "extract_text" and result.status == "not_found":
+        # A reading the model described in its own words ("the text with the deadline") finds
+        # nothing: tell it to use the page's text as the summary shows it.
+        return Reason("why.no_text")
     if result.action == "extract_table" and result.status == "not_found":
         return Reason("why.no_table")
     if result.action == "extract_table" and result.status == "ambiguous":

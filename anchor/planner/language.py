@@ -200,6 +200,8 @@ TEXT: dict[str, dict[str, str]] = {
                        "en": "that is not the file the request asks for; if the page does not have it, do not download another"},
     "why.no_download": {"pt": "o clique não baixou nenhum arquivo; talvez seja outro botão ou link",
                         "en": "the click did not download any file; it may be another button or link"},
+    "why.no_text": {"pt": 'nenhum texto da página corresponde a essa descrição; para ler, use o texto exatamente como aparece numa linha "Texto" da lista de elementos',
+                    "en": 'no text on the page matches that description; to read it, use the text exactly as it appears in a "Text" line of the list of elements'},
     "why.no_table": {"pt": "não há tabela nem lista na página", "en": "there is no table or list on the page"},
     "why.which_table": {"pt": "mais de uma tabela ou lista pode ser essa: {names}; use o nome de uma delas",
                         "en": "more than one table or list could be it: {names}; use the name of one of them"},

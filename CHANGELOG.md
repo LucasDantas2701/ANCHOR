@@ -55,7 +55,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   (`extract_text` or `extract_table`): the request check, which also runs when the model says nothing
   is left, now says so. Asked for the response time in a policy that opens in a new tab, both models
   opened it and stopped (the 9B one looked in the FAQ instead); with the warning, the planner reads it
-  in the new tab. Only the four question tasks of the development suites are affected.
+  in the new tab. Only the four question tasks of the development suites are affected. When a text
+  reading finds nothing, the planner is now told to use the text exactly as a "Texto" line of the
+  page summary shows it: the 4B model described the reading in its own words ("the text with the
+  deadline") and kept doing so until its attempts ran out. This only changes what the model reads
+  after a failed text reading (tuned looking at that development task).
 - **No sending, saving, paying or exporting the request did not ask for.** A click in one of those
   sensitive categories is blocked, with the reason for the planner, unless the request has a verb of
   the family ("salve", "envie", "pague", which ask for any of them; for exporting, a verb or a word

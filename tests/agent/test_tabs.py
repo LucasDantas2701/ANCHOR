@@ -290,3 +290,14 @@ def test_the_page_counts_the_windows_it_asks_for(page, tmp_path):
     assert _windows_asked(page) == 0
     page.click("text=Abrir")
     assert _windows_asked(page) == 1
+
+
+def test_a_reading_described_in_other_words_is_told_how_to_describe_it(page):
+    """The 4B model described the reading vaguely ("the text with the deadline") and kept doing so."""
+    page.goto((FIXTURES / "policy.html").as_uri())
+    planner = Plans([("extract_text", "Texto contendo o prazo de resposta", None)],
+                    [("extract_text", "Respondemos todas as mensagens em até 48 horas úteis.", None)])
+    agent, result = run(page, planner, "qual é o prazo de resposta da política de atendimento?")
+    assert result.ok, trace(agent, result, page)
+    hint = " ".join(planner.histories[1])
+    assert 'linha "Texto"' in hint and "48 horas" in result.extractions[0]["text"]
