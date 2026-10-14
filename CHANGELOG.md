@@ -59,7 +59,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   (`extract_text` or `extract_table`): the request check, which also runs when the model says nothing
   is left, now says so. Asked for the response time in a policy that opens in a new tab, both models
   opened it and stopped (the 9B one looked in the FAQ instead); with the warning, the planner reads it
-  in the new tab. Only the four question tasks of the development suites are affected. When a text
+  in the new tab. Only the four question tasks of the development suites are affected. The same goes
+  for a request for the data back ("exporte a tabela", "copy the users table", "me passa a lista"):
+  some step must read it or download it. After an automatic Ollama update, the 4B model answered
+  "exporte a tabela de vendas por região" by clicking "Imprimir relatório" and was done, the only
+  premature end left in the development suites. "Mostre só os usuários inativos" (a filter, not a
+  reading) is not such a request. The rule covers exactly the ten reading tasks of the development
+  suites, all of whose reference plans read. When a text
   reading finds nothing, the planner is now told to use the text exactly as a "Texto" line of the
   page summary shows it: the 4B model described the reading in its own words ("the text with the
   deadline") and kept doing so until its attempts ran out. This only changes what the model reads

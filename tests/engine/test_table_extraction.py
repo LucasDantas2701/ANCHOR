@@ -131,3 +131,38 @@ def test_value_texts_leave_out_tables_menus_links_and_plain_text(page):
     page.set_content("""<nav><p>Menu: 3</p></nav><p>Total: R$ 10</p><p>Sem valor nenhum aqui</p>
         <table><tr><td>Célula 1</td></tr></table><div>Página <a href="#">2</a> de 5</div><p>Prazo: amanhã</p>""")
     assert value_texts(page) == ["Total: R$ 10", "Prazo: amanhã"]
+
+
+def test_a_request_for_the_data_back_is_not_done_until_something_reads_it():
+    """After an Ollama update, the 4B model clicked "Imprimir relatório" for "exporte a tabela" and stopped."""
+    import pytest
+
+    from anchor.planner import PlanError, Step
+    from anchor.planner.plan import check_request
+    from anchor.planner.reading import asks_for_data
+    with pytest.raises(PlanError, match="nenhum passo os lê"):
+        check_request([Step("click", "Imprimir relatório")], [], "exporte a tabela de vendas por região")
+    check_request([Step("extract_table", "Vendas por região")], [], "exporte a tabela de vendas por região")
+    check_request([Step("download", "Baixar relatório")], [], "exporte o relatório")          # a file is the data too
+    assert not asks_for_data("Mostre só os usuários inativos")                                   # a filter
+    check_request([Step("select", "Status", "Inativos")], [], "Mostre só os usuários inativos")
+
+
+def test_the_agent_reads_the_table_after_the_warning(page):
+    from anchor.agent import Agent
+    from anchor.engine.action_executor import ActionExecutor
+    from anchor.planner import Plan, Step
+
+    class Plans:
+        def __init__(self, *plans):
+            self.plans, self.histories = [list(p) for p in plans], []
+
+        def plan(self, request, url, page_elements=None, history=None, **kwargs):
+            self.histories.append(list(history or []))
+            return Plan(steps=[Step(*s) for s in (self.plans.pop(0) if self.plans else [])])
+
+    page.goto((FIXTURES / "report.html").as_uri())
+    planner = Plans([("click", "Imprimir relatório", None)], [], [("extract_table", "Vendas por região", None)])
+    result = Agent(page, planner, ActionExecutor(page), report=None).run("exporte a tabela de vendas por região")
+    assert result.ok and result.extractions and result.extractions[0]["name"] == "Vendas por região"
+    assert any("nenhum passo os lê" in " ".join(h) for h in planner.histories)

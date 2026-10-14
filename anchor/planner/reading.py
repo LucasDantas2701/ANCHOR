@@ -49,3 +49,15 @@ _UPLOAD = re.compile(
 
 def wants_upload(request: str | None) -> bool:
     return bool(_UPLOAD.search(request or ""))
+
+
+# Asking for the data back (to extract, export, copy, read or be handed it), as opposed to having it
+# shown on the screen ("Mostre só os usuários inativos" is a filter, not a reading). Such a request,
+# or a question, is only done once some step has read the data or downloaded it.
+_ASKS_FOR_DATA = re.compile(
+    r"\b(extra[ií]\w*|export\w*|cop(ie|iar|ia|y)\b|leia|ler|read|me\s+(passa|passe|d[aáê])|"
+    r"pass[ae]\s+(a|o|as|os)\s|give\s+me|tell\s+me)\b", re.IGNORECASE)
+
+
+def asks_for_data(request: str | None) -> bool:
+    return bool(_ASKS_FOR_DATA.search(request or ""))

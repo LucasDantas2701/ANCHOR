@@ -302,8 +302,14 @@ def check_request(steps: list[Step], goals: list[Goal], request: str,
 
     # A question needs an answer: some step must read it. (The models opened the page with the
     # answer, or another page, and stopped there.)
-    if is_question(request) and not any(s.action in ("extract_text", "extract_table") for s in steps):
+    reads = any(s.action in ("extract_text", "extract_table", "download") for s in steps)
+    if is_question(request) and not reads:
         raise PlanError.of("plan.missing_answer", language)
+    # The same for a request for the data back ("exporte a tabela"): the 4B model clicked
+    # "Imprimir relatório" and was done, with nothing read.
+    from .reading import asks_for_data
+    if asks_for_data(request) and not reads:
+        raise PlanError.of("plan.missing_reading", language)
 
     plan_text = " ".join(f"{s.description} {s.value or ''}" for s in steps)
     plan_digits = _re.sub(r"\D", "", plan_text)
