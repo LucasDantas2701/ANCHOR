@@ -67,7 +67,7 @@ itself (a payment or login window), it goes back to the last tab still open. Onl
 opened is followed: a tab the page opens on its own between steps (an ad) is not. Saved automations
 close the tabs a run opened, so the next spreadsheet row starts from the automation's own tab.
 
-**Only what was asked.** The agent does not send, save, confirm, pay or export what the request
+**Only what was asked.** The agent does not send, save, confirm, pay, export or print what the request
 did not ask for: such a click is blocked, and the planner is told so. It is asked for when the
 request has a verb for it ("salve", "envie", "pague"; for exporting, a verb or a word for a file),
 or when the request and the button are about the same thing ("reserve a sala" and "Reservar sala").

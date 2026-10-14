@@ -561,14 +561,15 @@ class Agent:
         return Step("upload", step.description, path, step.goal, step.expect) if path else None
 
     def _unrequested_submit(self, request: str, step: Step) -> bool:
-        """A click that sends, saves, confirms, pays or exports what the request did not ask for."""
+        """A click that sends, saves, confirms, pays, exports or prints what the request did not ask for."""
         if step.action != "click":
             return False
-        from anchor.engine.sensitive import classify, unrequested
+        from anchor.engine.sensitive import classify, unrequested, unrequested_print
         description = clean_description(step.description)
         status, found, _ = self.executor._resolve(description, "click")
         name = getattr(found, "text", "") or getattr(found, "label", "") or ""
-        return unrequested(classify("click", description, name), request, description, name)
+        return (unrequested(classify("click", description, name), request, description, name)
+                or unrequested_print(request, description, name))
 
     def _wrong_field(self, request: str, step: Step) -> bool:
         """

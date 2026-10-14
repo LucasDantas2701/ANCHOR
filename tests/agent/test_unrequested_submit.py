@@ -44,3 +44,16 @@ def test_the_agent_sends_it_when_asked(page):
     result = Agent(page, planner, ActionExecutor(page), report=None).run(
         "anexe o currículo eval/fixtures/files/curriculo.pdf e envie a candidatura")
     assert [r.status for r in result.records] == ["success", "success"]
+
+
+def test_printing_is_blocked_unless_the_request_asks_for_it(page):
+    from anchor.engine.sensitive import unrequested_print
+    assert unrequested_print("exporte a tabela de vendas por região", "Imprimir relatório")
+    assert not unrequested_print("imprima o relatório", "Imprimir relatório")
+    assert not unrequested_print("print the report", "Print report")
+    assert not unrequested_print("exporte a tabela", "Vendas por região")
+
+    page.goto((FIXTURES / "report.html").as_uri())
+    planner = OnePlan(("click", "Imprimir relatório", None), ("extract_table", "Vendas por região", None))
+    result = Agent(page, planner, ActionExecutor(page), report=None).run("exporte a tabela de vendas por região")
+    assert result.records[0].status == "blocked"

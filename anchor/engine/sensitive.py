@@ -74,6 +74,14 @@ _CONCLUDING = ("submit", "send", "pay")          # one family: any of their verb
 _ALL_VERBS = set().union(*_STEMS.values()) | _CANCEL_VERBS
 
 
+_PRINT = re.compile(r"\b(imprim\w*|impress\w*|print\w*)\b", re.IGNORECASE)
+
+
+def unrequested_print(request: str, description: str, element_name: str = "") -> bool:
+    """A click that prints (it opens the print dialog, or sends to a printer) the request did not ask for."""
+    return bool(_PRINT.search(f"{description} {element_name}")) and not _PRINT.search(request or "")
+
+
 def unrequested(category: Optional[str], request: str, description: str, element_name: str = "") -> bool:
     """
     Would a click send, save, confirm, pay or export something the request did not ask for?

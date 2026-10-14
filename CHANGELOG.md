@@ -78,6 +78,9 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   they were asked to attach and then clicked "Enviar candidatura" on their own; the 9B one sometimes
   clicked "Exportar planilha" while asked to select users. Checked first on every click of the
   development and resilience reference plans: none is blocked (the closed sets were left out).
+  Printing joined the barrier: with the reading rule, the 4B model answered "exporte a tabela de
+  vendas" by extracting the right table, after clicking "Imprimir relatório" first. No reference
+  click and no request of the development suites mentions printing.
 - **Sending files.** A new action, `upload`: the agent puts the file in the file field, or clicks the
   button that opens the file chooser ("Anexar currículo") and picks it there. The path must come from
   the request (or the notes and parameters): the rule that typed values come from the request now
