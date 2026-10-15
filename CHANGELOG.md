@@ -18,6 +18,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Hidden content.** When a step's target is not on the page, the agent opens what may hide it, a "Show
+  more" button or a collapsed section (`aria-expanded="false"`), finds the target and does the step,
+  instead of a replan (the planner never saw the hidden part, and the LLM-in-control agent beat
+  ANCHOR on level 4 of the resilience benchmark, where two fields hide behind "Show more"). Only
+  controls that say so, with no action verb and nothing sensitive, at most two per step; the planner
+  is told the rest of the page is shown. Nothing changes in what the model reads otherwise, and no
+  development page has such controls. The idea came from a reader's comment on TabNews.
 - **Iframes.** Elements inside an iframe (an embedded form or widget, from the same site or another) are
   found and used like the page's own. The resolver reads the page and then each attached iframe, with
   the iframe's elements numbered apart (`f1-el-0`) and each match acting in its own frame; a page with

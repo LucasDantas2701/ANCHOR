@@ -170,6 +170,8 @@ TEXT: dict[str, dict[str, str]] = {
     "hist.done": {"pt": "feito: {step}", "en": "done: {step}"},
     "hist.failed": {"pt": "falhou: {step} — {reason}", "en": "failed: {step} — {reason}"},
     "hist.blocked": {"pt": "barrado: {step} — {reason}", "en": "blocked: {step} — {reason}"},
+    "hist.revealed_more": {"pt": 'o alvo estava escondido; o robô abriu "{control}", e o resto da página está à vista',
+                           "en": 'the target was hidden; the robot opened "{control}", and the rest of the page is shown'},
     "hist.new_tab": {"pt": "abriu uma aba nova, e o robô passou a trabalhar nela: {url}",
                      "en": "a new tab opened, and the robot now works in it: {url}"},
     "hist.tab_back": {"pt": "a aba fechou, e o robô voltou para: {url}", "en": "the tab closed, and the robot went back to: {url}"},

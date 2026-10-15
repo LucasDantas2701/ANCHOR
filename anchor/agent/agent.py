@@ -237,6 +237,7 @@ class Agent:
         self.output_dir = Path(output_dir) if output_dir is not None else Path("output")
         executor.download_dir = self.output_dir      # downloads go where extracted tables go
         self._pending_downloads: list[dict] = []
+        self._just_revealed: Optional[str] = None
         self._uploaded: set[str] = set()
         self.page = page
         self.planner = planner
@@ -634,7 +635,52 @@ class Agent:
                 if revealed is not None:
                     return revealed
 
-        return run_step(self.executor, step)
+        outcome = run_step(self.executor, step)
+        # The target may be hidden behind "Show more" or a collapsed section: open it and try again,
+        # instead of a replan (the planner never saw the hidden part).
+        if outcome.status == "not_found" and self._reveal_hidden(step, description):
+            outcome = run_step(self.executor, step)
+        return outcome
+
+    _REVEAL = re.compile(
+        r"\b((mostrar|ver|exibir|carregar)\s+(mais|todos|todas|tudo|detalhes)|expandir|mais\s+op[cç][oõ]es|"
+        r"show\s+(more|all|details)|see\s+(more|all)|view\s+(more|all)|load\s+more|expand|more\s+options)\b",
+        re.IGNORECASE)
+
+    def _reveal_hidden(self, step: Step, description: str) -> bool:
+        """
+        Opens what hides the step's target: a "Show more" button, a collapsed section
+        (aria-expanded="false"). Only controls that say so, with no action verb and nothing
+        sensitive, at most two; True once the target is found.
+        """
+        from anchor.engine.sensitive import classify
+        resolver = self.executor.resolver
+        try:
+            resolver.index("interactive")
+        except Exception:
+            return False
+        controls = []
+        for record in resolver.records:
+            text = " ".join(x for x in (record.get("text"), record.get("label")) if x)[:80]
+            collapsed = (record.get("state") or {}).get("expanded") is False
+            if not (collapsed or self._REVEAL.search(text)) or self._destructive(text):
+                continue
+            if classify("click", text) is not None:          # nothing that saves, sends, pays...
+                continue
+            controls.append((record, text))
+        action = "fill" if step.action in ("fill", "upload") else "click"
+        for record, text in controls[:2]:
+            try:
+                resolver.to_match(record).locator.click(timeout=3000)
+                self.page.wait_for_timeout(300)
+            except Exception:
+                continue
+            status, found, _ = self.executor._resolve(description, action)
+            if found is not None and status in ("success", "ambiguous"):
+                self._just_revealed = text
+                self.report(t("agent.revealed_more", control=text))
+                return True
+        return False
 
     def _reveal_and_fill(self, step: Step, description: str) -> Optional[ActionResult]:
         status, trigger, _ = self.executor._resolve(description, "click")
@@ -1074,6 +1120,9 @@ class Agent:
                     raise
                 outcome = ActionResult(status="error", action=step.action, description=step.description,
                                        error="the tab closed")       # it closed while the step looked for the element
+            if self._just_revealed:                 # the hidden part is on the page now: tell the planner
+                history.append(mt("hist.revealed_more", self.language, control=self._just_revealed))
+                self._just_revealed = None
             if outcome.status != "success":
                 self._let_tab_close()              # its tab may have closed during the failed step
                 if self.page is not self._first_page and not _alive(self.page):

@@ -476,7 +476,7 @@ final numbers will come from the closed sets.
     - [x] Uploads, with the file path only from the request or a parameter
     - [x] Following new tabs
     - [x] Elements inside iframes
-    - [ ] Hidden content: when a step's target is not on the page, try the controls that reveal more
+    - [x] Hidden content: when a step's target is not on the page, try the controls that reveal more
       ("Show more", expanders, tabs) before replanning
     - [ ] Unattended runs (`--unattended`), for scheduling: never asks, stops when a login is needed, and
       keeps a repair made by the model in quarantine: used only for the row where it happened and recorded

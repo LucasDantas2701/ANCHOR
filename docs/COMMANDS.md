@@ -61,6 +61,11 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_e
 | `--lang` | Interface language: `en` (default) or `pt`. Overrides `ANCHOR_LANG`. |
 | `--prompt-language` | Planner prompt language: `pt` (default, the measured one), `en`, or `auto` (follows the request). |
 
+**Hidden content.** When a step's target is not on the page, the agent looks for what may hide it, a
+"Show more" / "Mostrar mais" button or a collapsed section (`aria-expanded="false"`), opens it and
+tries the step again, before any replan. Only controls that say so, with no action verb and nothing
+sensitive (never "Save and show more"), at most two per step.
+
 **Iframes.** Elements inside an iframe (an embedded form, a payment or newsletter widget, even from
 another site) are found and used like the page's own: the resolver reads the page and then each
 iframe, and the effect check, the password field, tables and value texts look inside them too. Two
