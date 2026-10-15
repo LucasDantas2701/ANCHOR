@@ -61,6 +61,13 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_e
 | `--lang` | Interface language: `en` (default) or `pt`. Overrides `ANCHOR_LANG`. |
 | `--prompt-language` | Planner prompt language: `pt` (default, the measured one), `en`, or `auto` (follows the request). |
 
+**Iframes.** Elements inside an iframe (an embedded form, a payment or newsletter widget, even from
+another site) are found and used like the page's own: the resolver reads the page and then each
+iframe, and the effect check, the password field, tables and value texts look inside them too. Two
+limits: choosing an element by clicking on it (when the agent asks) only works on the page itself,
+inside an iframe you choose it by number; and the remembered choices' fallback (the saved CSS path)
+only looks at the page itself.
+
 **New tabs.** When a step opens a new tab (a link with `target="_blank"`, a button that opens a
 window), the agent moves to it and replans from there; when the tab it is working in closes by
 itself (a payment or login window), it goes back to the last tab still open. Only a tab the step

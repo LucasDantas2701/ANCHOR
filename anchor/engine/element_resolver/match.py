@@ -27,10 +27,11 @@ class Match:
     in_viewport: bool = True
     obscured: bool = False
     layer: bool = False          # inside an open pop-up, dialog or menu
+    frame: object = field(default=None, repr=False)   # the iframe it is in (None: the page itself)
 
     @property
     def locator(self) -> Locator:
-        return self.page.locator(
+        return (self.frame or self.page).locator(
             f'[data-er-id="{self.id}"]'
         )
 

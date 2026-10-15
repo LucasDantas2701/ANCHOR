@@ -110,11 +110,18 @@ class EffectWatcher:
             self.requests += 1
 
     def _page_counters(self) -> tuple[int, int]:
-        try:
-            self.page.evaluate(OBSERVER_JS)
-            return tuple(self.page.evaluate("() => [window.__er_mut, window.__er_msgs.length]"))
-        except Exception:
+        """Mutations and messages, summed over the page and its iframes (a click inside an iframe
+        changes the iframe, not the page)."""
+        from anchor.engine.frames import evaluate_all
+        evaluate_all(self.page, OBSERVER_JS)
+        counts = evaluate_all(self.page, "() => [window.__er_mut || 0, (window.__er_msgs || []).length]")
+        if not counts:
             return (0, 0)
+        return (sum(c[0] for c in counts), sum(c[1] for c in counts))
+
+    def _messages(self) -> list[str]:
+        from anchor.engine.frames import evaluate_all
+        return [m for msgs in evaluate_all(self.page, "() => window.__er_msgs || []") for m in msgs]
 
     def snapshot(self) -> Snapshot:
         mutations, messages = self._page_counters()
@@ -128,10 +135,7 @@ class EffectWatcher:
         if self.page.url != before.url:
             return Effect(changed=True)
         mutations, messages = self._page_counters()
-        try:
-            new = self.page.evaluate(f"() => window.__er_msgs.slice({before.messages})")
-        except Exception:
-            new = []
+        new = self._messages()[before.messages:]
         changed = (mutations > before.mutations or self.requests > before.requests
                    or self.pages > before.pages or self.downloads > before.downloads)
         return Effect(changed=changed, new_messages=list(dict.fromkeys(new))[:5])

@@ -112,10 +112,8 @@ _TEXTS_JS = r"""
 
 def value_texts(page: Page) -> list[str]:
     """Short texts with a value ("Receita total: R$ 182.400"), outside tables, lists and menus."""
-    try:
-        return page.evaluate(_TEXTS_JS)
-    except Exception:
-        return []
+    from anchor.engine.frames import evaluate_all
+    return [text for texts in evaluate_all(page, _TEXTS_JS) for text in texts][:8]
 
 
 @dataclass
@@ -139,7 +137,8 @@ class TableData:
 
 def find_tables(page: Page) -> list[TableData]:
     """The tables and lists on the page, in document order."""
-    found = page.evaluate(_FIND_JS)
+    from anchor.engine.frames import evaluate_all
+    found = [t for tables in evaluate_all(page, _FIND_JS) for t in tables]
     return [TableData(kind=t["kind"], name=t["name"], headers=t["headers"], rows=t["rows"][:MAX_ROWS]) for t in found]
 
 

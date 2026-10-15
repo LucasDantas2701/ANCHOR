@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Newsletter</title></head>
+<body>
+<h2>Get our newsletter</h2>
+<form onsubmit="return false">
+  <p><label>Name <input id="name"></label></p>
+  <p><label>E-mail <input id="email" type="email"></label></p>
+  <p><label><input id="offers" type="checkbox"> Send me offers</label></p>
+  <p><button id="subscribe" onclick="state.subscribed = document.getElementById('email').value; tell(); document.getElementById('ok').textContent = 'Subscription confirmed'">Subscribe to the newsletter</button></p>
+</form>
+<p id="ok" role="status"></p>
+<script>
+  // The page around this iframe cannot read it (another origin): tell it every change.
+  const state = {name: "", email: "", offers: false, subscribed: ""};
+  function tell() { parent.postMessage(Object.assign({}, state), "*"); }
+  for (const id of ["name", "email"]) document.getElementById(id).addEventListener("input", (e) => { state[id] = e.target.value; tell(); });
+  document.getElementById("offers").addEventListener("change", (e) => { state.offers = e.target.checked; tell(); });
+</script>
+<script src="feedback.js"></script>
+</body></html>

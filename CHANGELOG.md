@@ -18,6 +18,17 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Iframes.** Elements inside an iframe (an embedded form or widget, from the same site or another) are
+  found and used like the page's own. The resolver reads the page and then each attached iframe, with
+  the iframe's elements numbered apart (`f1-el-0`) and each match acting in its own frame; a page with
+  no iframes is read exactly as before. The effect check sums the changes and messages of every frame
+  (otherwise each click inside an iframe would be "no visible effect"), and the password field (a
+  login form inside an iframe), tables, value texts, the candidates' numbers and the count of windows
+  a click asked for look inside iframes too. Limits: choosing an element by clicking on it, and the
+  remembered choices' CSS-path fallback, only work on the page itself. `eval/plan_run.py --suite
+  frames`: 8 development tasks on a page with a newsletter form in an iframe from another file;
+  unrequested steps are counted inside iframes, and a task the page does not allow may allow touching
+  nothing.
 - **Every evaluation run records what it ran on**: the Ollama version and each model's digest and date
   (`environment` in the results `.json`, and printed before the tasks). An automatic Ollama update,
   with the same model files, changed the 4B model's plan for a task that had been stable for days;

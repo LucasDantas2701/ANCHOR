@@ -260,6 +260,7 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
 * The agent only does what was asked: it does not send, save, confirm, pay, export or print unless the
   request says so ("attach the resume" does not end with the application sent).
 * When a step opens a new tab, the agent moves to it, and goes back when that tab closes.
+* Elements inside iframes (embedded forms and widgets) are found and used like the page's own.
 * `--prompt-language` chooses the planner prompt's language: `pt` (default), `en`, or `auto` (it
   follows the request). Requests can be in English or Portuguese either way: the default
   Portuguese prompt did better than the English one on the English tasks too.
@@ -474,7 +475,7 @@ final numbers will come from the closed sets.
     - [x] Downloads
     - [x] Uploads, with the file path only from the request or a parameter
     - [x] Following new tabs
-    - [ ] Elements inside iframes
+    - [x] Elements inside iframes
     - [ ] Hidden content: when a step's target is not on the page, try the controls that reveal more
       ("Show more", expanders, tabs) before replanning
     - [ ] Unattended runs (`--unattended`), for scheduling: never asks, stops when a login is needed, and

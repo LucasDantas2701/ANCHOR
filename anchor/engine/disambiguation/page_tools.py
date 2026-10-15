@@ -94,14 +94,19 @@ _CAPTURE_JS = """
 
 
 def highlight_candidates(page: Page, matches: list[Match]) -> None:
-    page.evaluate(
-        _HIGHLIGHT_JS,
-        [{"id": m.id, "number": i} for i, m in enumerate(matches, 1)],
-    )
+    """Numbers each candidate where it is: the page, or the iframe it is in."""
+    numbered = [{"id": m.id, "number": i, "frame": getattr(m, "frame", None)} for i, m in enumerate(matches, 1)]
+    for doc in {id(x["frame"] or page): (x["frame"] or page) for x in numbered}.values():
+        mine = [{"id": x["id"], "number": x["number"]} for x in numbered if (x["frame"] or page) is doc]
+        try:
+            doc.evaluate(_HIGHLIGHT_JS, mine)
+        except Exception:
+            pass
 
 
 def clear_highlights(page: Page) -> None:
-    page.evaluate(_CLEAR_JS)
+    from anchor.engine.frames import evaluate_all
+    evaluate_all(page, _CLEAR_JS)
 
 
 def capture_click(page: Page, timeout_s: float = 120) -> Optional[Match]:

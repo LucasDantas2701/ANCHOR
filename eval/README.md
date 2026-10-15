@@ -141,6 +141,15 @@ task that had been stable for days: runs on different Ollama versions or model d
 comparable, and the version must be the same through a whole set of measurements (turn off
 Ollama's automatic updates before the final runs).
 
+### Iframes (`--suite frames`)
+
+`plans/tasks_frames.json` has 8 tasks (4 per language) on `fixtures/newsletter.html` and
+`newsletter_en.html`: a blog page with the newsletter form inside an iframe loaded from another file
+(another origin for the browser), and a lookalike button on the page itself ("Assinar plano Premium").
+The page cannot read the iframe, so the form tells it every change with `postMessage`, and the checks
+read `window.__frameState`. Unrequested steps are counted inside iframes too. One task per language
+asks for something the page does not have (cancelling a subscription).
+
 ### New tabs (`--suite tabs`)
 
 `plans/tasks_tabs.json` has 8 tasks (4 per language) on `fixtures/help.html` and `help_en.html`: a link

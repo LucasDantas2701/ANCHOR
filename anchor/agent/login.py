@@ -61,10 +61,9 @@ _PASSWORD_JS = """
 
 def password_field(page: Page) -> Optional[dict]:
     """{"name", "filled"} for the first visible password field on the page, or None."""
-    try:
-        return page.evaluate(_PASSWORD_JS)
-    except Exception:
-        return None
+    from anchor.engine.frames import evaluate_all
+    found = [f for f in evaluate_all(page, _PASSWORD_JS) if f]      # a login form inside an iframe too
+    return found[0] if found else None
 
 
 class TerminalLoginWaiter:

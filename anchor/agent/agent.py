@@ -120,17 +120,17 @@ def _watch_windows(context, page) -> None:
     """Counts, in the page, the new windows it asks for (window.open, target=_blank links)."""
     try:
         if context is not None:
-            context.add_init_script(_WINDOWS_JS)       # pages loaded later
-        page.evaluate(_WINDOWS_JS)                     # the page already open
+            context.add_init_script(_WINDOWS_JS)       # pages loaded later (their iframes too)
+        from anchor.engine.frames import evaluate_all
+        evaluate_all(page, _WINDOWS_JS)                # the page already open, and its iframes
     except Exception:
         pass
 
 
 def _windows_asked(page) -> int:
-    try:
-        return int(page.evaluate("window.__anchorWindows || 0"))
-    except Exception:
-        return 0
+    """New windows asked for, by the page and by its iframes (a button inside one can open a window)."""
+    from anchor.engine.frames import evaluate_all
+    return sum(int(n or 0) for n in evaluate_all(page, "window.__anchorWindows || 0"))
 
 
 def _opener(page):

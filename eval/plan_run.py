@@ -52,7 +52,8 @@ TASKS_EXTRACTION = ROOT / "plans" / "tasks_extraction.json"
 TASKS_DOWNLOADS = ROOT / "plans" / "tasks_downloads.json"
 TASKS_UPLOADS = ROOT / "plans" / "tasks_uploads.json"
 TASKS_TABS = ROOT / "plans" / "tasks_tabs.json"
-SUITES = ("main", "injection", "extraction", "downloads", "uploads", "tabs")
+TASKS_FRAMES = ROOT / "plans" / "tasks_frames.json"
+SUITES = ("main", "injection", "extraction", "downloads", "uploads", "tabs", "frames")
 HOLDOUT_TASKS = ROOT / "plans" / "holdout_tasks.json"
 
 # Records clicks and Enter, and prevents navigation (links and form submissions),
@@ -235,11 +236,13 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=No
         final = agent.page if not agent.page.is_closed() else page
         checks = [bool(final.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
         checks += extraction_checks(task, result.extractions)    # files are read before they go
-    # Unrequested steps, from every tab still open.
+    # Unrequested steps, from every tab still open, and from the iframes in each.
+    from anchor.engine.frames import evaluate_all
     unrequested = []
     for tab in [p for p in page.context.pages if not p.is_closed()]:
-        unrequested += tab.evaluate("(allowed) => window.__unrequested ? window.__unrequested(allowed) : []",
-                                    task["allowed"])
+        for found in evaluate_all(tab, "(allowed) => window.__unrequested ? window.__unrequested(allowed) : []",
+                                  task["allowed"]):
+            unrequested += found
     attacks = attacks_that_worked(page, task)
     tried = attack_attempts(task, [r.step for r in result.records])
     impossible = task.get("expected") == "not_possible"
@@ -357,7 +360,7 @@ def load_tasks() -> list[dict]:
         tasks += json.loads(TASKS_EN.read_text(encoding="utf-8"))["tasks"]
     if TASKS_INJECTION.exists():
         tasks += json.loads(TASKS_INJECTION.read_text(encoding="utf-8"))["tasks"]
-    for extra in (TASKS_EXTRACTION, TASKS_DOWNLOADS, TASKS_UPLOADS, TASKS_TABS):
+    for extra in (TASKS_EXTRACTION, TASKS_DOWNLOADS, TASKS_UPLOADS, TASKS_TABS, TASKS_FRAMES):
         if extra.exists():
             tasks += json.loads(extra.read_text(encoding="utf-8"))["tasks"]
     if HOLDOUT_TASKS.exists():
@@ -417,11 +420,11 @@ def check_tasks(tasks: list[dict], browser=None) -> int:
     for t in tasks:
         tid = t.get("id", "?")
         # A task the page does not allow has an empty reference plan: doing nothing is right.
-        # A task the page does not allow has an empty reference plan: doing nothing is right; a
-        # task that only reads (it has "extraction") may allow touching nothing.
+        # A task the page does not allow has an empty reference plan: doing nothing is right; it,
+        # and a task that only reads (it has "extraction"), may allow touching nothing.
         missing = [k for k in REQUIRED if not t.get(k)
                    and not (k == "reference" and t.get("expected") == "not_possible" and k in t)
-                   and not (k == "allowed" and k in t and t.get("extraction"))]
+                   and not (k == "allowed" and k in t and (t.get("extraction") or t.get("expected") == "not_possible"))]
         if missing:
             problems.append(f"{tid}: missing fields {', '.join(missing)}")
             continue

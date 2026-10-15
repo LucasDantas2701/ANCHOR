@@ -12,6 +12,7 @@
         contextSelectors = [],    // site-specific containers (e.g. ".inventory_item")
         maxElements = 1000,
         maxText = 200,
+        idPrefix = "",            // for elements inside an iframe ("f1-"), so ids never repeat across frames
     } = opts;
 
     const ATTR = "data-er-id";
@@ -354,7 +355,7 @@
         if (!matches(el)) continue;
         if (!includeHidden && !isVisible(el)) continue;
 
-        const id = "el-" + index++;
+        const id = idPrefix + "el-" + index++;
         el.setAttribute(ATTR, id);
 
         const tag = el.tagName.toLowerCase();
