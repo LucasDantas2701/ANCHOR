@@ -234,6 +234,9 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=No
         result = agent.run(task["request"])
         # The checks run on the tab the agent ended in (a task may move to a new tab).
         final = agent.page if not agent.page.is_closed() else page
+        if len(final.frames) > 1:
+            # An iframe tells the page about itself with postMessage, which arrives a moment later.
+            final.wait_for_timeout(300)
         checks = [bool(final.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
         checks += extraction_checks(task, result.extractions)    # files are read before they go
     # Unrequested steps, from every tab still open, and from the iframes in each.

@@ -202,11 +202,12 @@ class ActionExecutor:
             if found is not None:
                 remembered, similarity = found
                 # (ActionResult is falsy unless it succeeded: no "or" here.)
-                denied = self._credential(action_name, description, remembered, "memory")
+                # The guard first: a changed element is the reason worth reporting (unattended only).
+                denied = self._guarded(action_name, description, remembered, "memory")
+                if denied is None:
+                    denied = self._credential(action_name, description, remembered, "memory")
                 if denied is None:
                     denied = self._denied(action_name, description, remembered)
-                if denied is None:
-                    denied = self._guarded(action_name, description, remembered, "memory")
                 if denied is not None:
                     return denied
                 try:
@@ -278,11 +279,12 @@ class ActionExecutor:
         )
 
         # (ActionResult is falsy unless it succeeded: no "or" here.)
-        denied = self._credential(action_name, description, match, resolved_by)
+        # The guard first: a changed element is the reason worth reporting (unattended only).
+        denied = self._guarded(action_name, description, match, resolved_by)
+        if denied is None:
+            denied = self._credential(action_name, description, match, resolved_by)
         if denied is None:
             denied = self._denied(action_name, description, match, resolved_by)
-        if denied is None:
-            denied = self._guarded(action_name, description, match, resolved_by)
         if denied is not None:
             return denied
 

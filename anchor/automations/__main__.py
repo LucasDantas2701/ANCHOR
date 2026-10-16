@@ -151,6 +151,9 @@ def cmd_run(store: AutomationStore, args) -> int:
                     context.close()
                     return 1
                 outcomes.append((number, "error", str(exc)))
+                if args.unattended:                 # with no one there, an error also stops the rest
+                    print(t("auto.unattended_rest", left=len(rows) - number))
+                    break
                 continue
             except KeyboardInterrupt:
                 print("\n\n" + t("cli.interrupted"))

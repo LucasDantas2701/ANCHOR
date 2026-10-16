@@ -30,6 +30,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   spreadsheet; the exit code is 1; the browser closes on its own. It goes further than a comment by
   the Auten team on dev.to ("a repair has to be visible before it is trusted"): an unattended run never
   repairs at all, so the quarantine planned earlier for the model's repairs was not needed.
+  Running the command itself (not only the function) found two bugs before release: an unattended
+  refusal of a sensitive action was saved as a decision, blocking the next runs too (now nothing is
+  saved, and the message says the action was not approved with someone present), and a row ending in
+  an error did not stop the rest of a spreadsheet. The guard now runs before the sensitive-action
+  check, so a changed element is reported as such.
 - **Hidden content.** When a step's target is not on the page, the agent opens what may hide it, a "Show
   more" button or a collapsed section (`aria-expanded="false"`), finds the target and does the step,
   instead of a replan (the planner never saw the hidden part, and the LLM-in-control agent beat

@@ -95,10 +95,15 @@ def _unredone_steps(saved: list, broken_at: int, records: list) -> list[str]:
 
 
 class _NoOneToAsk:
-    """An unattended run asks no one: a sensitive action not approved before is refused."""
+    """
+    An unattended run asks no one: a sensitive action not approved before is refused, and the refusal
+    is NOT saved (an unattended run changes nothing in the automation; the next run with someone
+    present asks again).
+    """
 
-    def confirm(self, request) -> bool:
-        return False
+    def confirm(self, request):
+        from anchor.engine.sensitive import Decision
+        return Decision(False, save=False)
 
 
 def _element_key(text: str) -> str:
@@ -218,6 +223,9 @@ def run_automation(
     if unattended and not result.ok:
         # The guard's own reason (the element that differs from the proving run) says the most.
         changed = next((r.note for r in result.records if r.status == "changed" and r.note), None)
+        if changed is None and result.denied:
+            step = next((r.step for r in result.records if r.status == "denied"), None)
+            changed = t("auto.unattended_sensitive", step=f"{step.action} {step.description}" if step else "")
         result.message = t("auto.unattended_stopped", reason=changed or result.message)
         say(t("agent.ended", message=result.message))
 

@@ -100,3 +100,13 @@ def test_a_cookie_banner_is_still_declined_unattended(page, store):
               '<p>Usamos cookies.</p><button onclick="this.parentElement.remove()">Recusar</button></div>')
     result, _, _ = run(store, page, no_model, FORM.format(save="Salvar", extra=banner), unattended=True)
     assert result.ok and page.evaluate("document.body.dataset.saved") == "Salvar"
+
+
+def test_an_unapproved_sensitive_action_is_refused_and_nothing_is_saved(page, store):
+    """The CLI found it: an unattended refusal was saved as a decision and blocked the next runs."""
+    from anchor.automations.runner import _NoOneToAsk
+    learned(store, page)
+    result, _, _ = run(store, page, no_model, FORM.format(save="Salvar", extra=""), unattended=True,
+                       confirm=_NoOneToAsk())
+    assert not result.ok and "not approved in a run with someone present" in result.message
+    assert store.confirmations("register") == []                  # nothing saved

@@ -237,6 +237,8 @@ MESSAGES: dict[str, dict[str, str]] = {
                       "pt": 'Aprendendo "{name}": nesta primeira vez, o assistente planeja a tarefa.'},
     "auto.replaying": {"en": 'Running "{name}" with the approved plan ({steps} steps, no LLM).',
                        "pt": 'Executando "{name}" com o plano aprovado ({steps} passos, sem LLM).'},
+    "auto.unattended_sensitive": {"en": '"{step}" is a sensitive action not approved in a run with someone present',
+                                  "pt": '"{step}" é uma ação sensível que não foi aprovada numa execução acompanhada'},
     "auto.unattended_rest": {"en": "  the other {left} row(s) were not run: something changed", "pt": "  as outras {left} linha(s) não foram executadas: algo mudou"},
     "auto.not_proven": {"en": 'automation "{name}" cannot run unattended: it has not been done once, with someone present and with no recovery, since its plan last changed: run it once with someone present first',
                         "pt": 'a automação "{name}" não pode rodar sem ninguém: ela não foi feita uma vez, com alguém presente e sem recuperação, desde a última mudança do plano: rode-a antes uma vez acompanhando'},

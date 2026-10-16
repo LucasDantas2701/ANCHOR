@@ -34,7 +34,8 @@ def test_the_executor_acts_inside_the_iframe(page):
     assert executor.fill("E-mail", "ana@exemplo.com").status == "success"
     assert executor.check("Quero receber ofertas").status == "success"
     assert executor.click("Assinar newsletter").status == "success"
-    assert page.evaluate("window.__frameState.subscribed") == "ana@exemplo.com"
+    # The iframe tells the page with postMessage, which arrives a moment later: wait for it.
+    page.wait_for_function("window.__frameState.subscribed === 'ana@exemplo.com'", timeout=3000)
 
 
 def test_a_page_without_iframes_is_indexed_as_before(page):
@@ -59,7 +60,7 @@ def test_the_agent_sees_the_effect_of_a_click_inside_the_iframe(page):
     planner = OnePlan(("fill", "E-mail", "ana@exemplo.com"), ("click", "Assinar newsletter", None))
     result = Agent(page, planner, ActionExecutor(page), report=None).run("assine a newsletter com o e-mail ana@exemplo.com")
     assert result.ok, result.message
-    assert page.evaluate("window.__frameState.subscribed") == "ana@exemplo.com"
+    page.wait_for_function("window.__frameState.subscribed === 'ana@exemplo.com'", timeout=3000)
 
 
 def test_a_login_form_inside_an_iframe_is_recognized(page, tmp_path):
