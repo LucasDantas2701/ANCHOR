@@ -194,6 +194,8 @@ def user_text(exc: Exception) -> str:
 def failure_reason(result: ActionResult) -> Reason:
     """The failure reason, in words that help the planner try another way."""
     element = result.selected_element
+    if result.status == "changed":                  # an unattended run's guard: the element differs
+        return Reason("why.changed", detail=result.error or "")
     if result.action == "download" and result.status == "no_download":
         return Reason("why.no_download")
     if result.action == "upload" and result.status == "no_file_input":

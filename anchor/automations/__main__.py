@@ -126,8 +126,9 @@ def cmd_run(store: AutomationStore, args) -> int:
         else:
             context = p.chromium.launch(headless=False).new_context()
             page = context.new_page()
-        executor = ActionExecutor(page, resolver=ElementResolver(page), disambiguator=TerminalDisambiguator(),
-                                  can_point=True, memory=ChoiceMemory(store.memory_path(args.name)))
+        executor = ActionExecutor(page, resolver=ElementResolver(page),
+                                  disambiguator=None if args.unattended else TerminalDisambiguator(),
+                                  can_point=not args.unattended, memory=ChoiceMemory(store.memory_path(args.name)))
         for number, values in enumerate(rows, 1):
             if len(rows) > 1:
                 print("\n" + t("auto.row", number=number, total=len(rows)))
@@ -142,7 +143,8 @@ def cmd_run(store: AutomationStore, args) -> int:
                                                       relearn=args.relearn and number == 1,
                                                       heal=not args.no_heal, params=values,
                                                       confirm=None if args.allow_sensitive else TerminalConfirmer(remembers=True),
-                                                      vision=vision, login=TerminalLoginWaiter())
+                                                      vision=vision, login=TerminalLoginWaiter(),
+                                                      unattended=args.unattended)
             except (ConfigError, AutomationError) as exc:
                 print(t("auto.error", error=exc))
                 if len(rows) == 1:
@@ -161,9 +163,13 @@ def cmd_run(store: AutomationStore, args) -> int:
                 waited=result.user_wait_seconds))
             outcomes.append((number, "denied" if result.denied else result.status, result.message))
             last_run = run_id
+            if args.unattended and not result.ok and number < len(rows):
+                # Something changed: the rest of the spreadsheet waits for someone to look.
+                print(t("auto.unattended_rest", left=len(rows) - number))
+                break
         # A denial is not a failure: the user stopped the run on purpose.
         failed = [o for o in outcomes if o[1] not in ("success", "denied")]
-        if failed and sys.stdin.isatty():
+        if failed and sys.stdin.isatty() and not args.unattended:
             ask_for_note(store, args.name, last_run if len(rows) == 1 else "")
         if len(rows) > 1:
             done = sum(status == "success" for _, status, _ in outcomes)
@@ -171,12 +177,14 @@ def cmd_run(store: AutomationStore, args) -> int:
             for number, status, message in outcomes:
                 if status != "success":
                     print(f"    {number:4}  {status:10} {message[:80]}")
-        try:
-            input("\n" + t("cli.close_browser"))
-        except KeyboardInterrupt:
-            pass
+        if not args.unattended:                 # with no one there, the browser just closes
+            try:
+                input("\n" + t("cli.close_browser"))
+            except KeyboardInterrupt:
+                pass
         context.close()
-    return 0 if all(status == "success" for _, status, _ in outcomes) else 1
+    done = len(outcomes) == len(rows) and all(status == "success" for _, status, _ in outcomes)
+    return 0 if done else 1
 
 
 def ask_for_note(store: AutomationStore, name: str, run_id: str = "") -> None:
@@ -302,6 +310,9 @@ def main(argv=None) -> int:
                      help="when the other checks doubt a step, asks the model about a screenshot (slower)")
     run.add_argument("--fresh-browser", action="store_true",
                      help="opens a clean browser for this run, without the automation's saved session")
+    run.add_argument("--unattended", action="store_true",
+                     help="run with no one present (for a scheduler): only a proven plan (done once with someone "
+                          "present, with no recovery), nothing repaired or asked, stops at any change; exit code 1")
     run.add_argument("--allow-sensitive", action="store_true",
                      help="does not ask before sensitive actions, and does not save decisions")
     values = run.add_mutually_exclusive_group()

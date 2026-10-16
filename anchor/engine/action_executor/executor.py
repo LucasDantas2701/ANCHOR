@@ -114,6 +114,10 @@ class ActionExecutor:
         self.point_timeout_s = point_timeout_s
         self.memory = memory
         self.confirmer = confirmer
+        # Called with (action, description, element) once the element is found and before acting;
+        # a reason it returns stops the action ("changed"). Unattended runs use it to act only on
+        # the elements of the run that proved the automation.
+        self.guard: Optional[Callable] = None
         # When True, filling a password field is refused (status "credential") instead of typed:
         # the agent turns it on, so credentials never go through the model and the user logs in
         # by hand. Off by default, for the resolver's evaluation on test pages.
@@ -201,6 +205,8 @@ class ActionExecutor:
                 denied = self._credential(action_name, description, remembered, "memory")
                 if denied is None:
                     denied = self._denied(action_name, description, remembered)
+                if denied is None:
+                    denied = self._guarded(action_name, description, remembered, "memory")
                 if denied is not None:
                     return denied
                 try:
@@ -275,6 +281,8 @@ class ActionExecutor:
         denied = self._credential(action_name, description, match, resolved_by)
         if denied is None:
             denied = self._denied(action_name, description, match, resolved_by)
+        if denied is None:
+            denied = self._guarded(action_name, description, match, resolved_by)
         if denied is not None:
             return denied
 
@@ -318,6 +326,16 @@ class ActionExecutor:
             return None
         return ActionResult(status="credential", action=action_name, description=description,
                             selected_element=match, score=match.score, resolved_by=resolved_by)
+
+    def _guarded(self, action_name: str, description: str, match, resolved_by: str = "heuristic"):
+        """The guard's refusal, before acting: status "changed", nothing done."""
+        if self.guard is None:
+            return None
+        reason = self.guard(action_name, description, match)
+        if not reason:
+            return None
+        return ActionResult(status="changed", action=action_name, description=description,
+                            selected_element=match, error=reason, resolved_by=resolved_by)
 
     def _denied(self, action_name: str, description: str, match: Match,
                 resolved_by: str = "memory") -> Optional[ActionResult]:

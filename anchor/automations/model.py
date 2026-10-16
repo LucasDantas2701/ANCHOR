@@ -52,6 +52,11 @@ class ApprovedPlan:
     approved: str = field(default_factory=lambda: datetime.now().isoformat(timespec="seconds"))
     source_run: str = ""
     language: str = "pt"       # the language the model read when the plan was learned
+    # The run, with someone present, that did this exact plan with no recovery, and the element each
+    # step acted on ("action|description" -> element). Only a proven plan can run unattended; any
+    # change to the plan (a repair, relearning, an undo) makes a new plan with no proof.
+    proven_run: str = ""
+    proven_elements: dict = field(default_factory=dict)
 
 
 class AutomationStore:
@@ -104,12 +109,15 @@ class AutomationStore:
             approved=data.get("approved", ""),
             source_run=data.get("source_run", ""),
             language=data.get("language", "pt"),
+            proven_run=data.get("proven_run", ""),
+            proven_elements=data.get("proven_elements", {}),
         )
 
     def save_plan(self, name: str, plan: ApprovedPlan) -> None:
         self._write(self.folder(name) / "plan.json", {
             "version": FORMAT_VERSION, "approved": plan.approved, "source_run": plan.source_run,
             "language": plan.language,
+            "proven_run": plan.proven_run, "proven_elements": plan.proven_elements,
             "goals": [asdict(g) for g in plan.goals], "steps": [asdict(s) for s in plan.steps],
         })
 

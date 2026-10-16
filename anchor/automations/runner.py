@@ -94,6 +94,33 @@ def _unredone_steps(saved: list, broken_at: int, records: list) -> list[str]:
     return missing
 
 
+class _NoOneToAsk:
+    """An unattended run asks no one: a sensitive action not approved before is refused."""
+
+    def confirm(self, request) -> bool:
+        return False
+
+
+def _element_key(text: str) -> str:
+    return " ".join((text or "").lower().split())
+
+
+def _proof_guard(proven: dict, values: dict):
+    """Acts only on the element the proving run acted on for that step; anything else is a change."""
+    expected = {render(k, values): render(v, values) for k, v in proven.items()}
+
+    def guard(action: str, description: str, match) -> Optional[str]:
+        key = f"{action}|{description}"
+        if key not in expected:
+            return t("auto.changed_step", step=description)
+        found = " ".join(x for x in (getattr(match, "text", ""), getattr(match, "label", "")) if x)[:80]
+        if _element_key(found) != _element_key(expected[key]):
+            return t("auto.changed_element", step=description, expected=expected[key], found=found)
+        return None
+
+    return guard
+
+
 def _render_goals(goals, values):
     from dataclasses import replace
     return [replace(g, description=render(g.description, values)) for g in goals]
@@ -115,6 +142,7 @@ def run_automation(
     heal: bool = True,
     params: Optional[dict[str, str]] = None,
     confirm=None,
+    unattended: bool = False,
     **agent_options,
 ) -> tuple[AgentResult, str, str]:
     """
@@ -131,6 +159,19 @@ def run_automation(
         raise AutomationError(str(exc)) from exc
     approved = None if relearn else store.load_plan(name)
     say = report or (lambda _: None)
+    if unattended:
+        # Only a proven plan (done with someone present, with no recovery) runs with no one there,
+        # and nothing may change: no repair by the model, no tie-break, no new sensitive action, no
+        # waiting for a login, and each step acts only on the element of the proving run.
+        if relearn or approved is None or not approved.proven_run:
+            raise AutomationError(t("auto.not_proven", name=name))
+        heal = False
+        if confirm is not None:
+            confirm = _NoOneToAsk()
+        from anchor.agent.login import TerminalLoginWaiter
+        agent_options["login"] = TerminalLoginWaiter(interactive=False)
+        saved_disambiguator, executor.disambiguator = executor.disambiguator, None
+        executor.guard = _proof_guard(approved.proven_elements, values)
     notes = store.recent_notes(name)
     if confirm is not None:
         from .confirmations import AutomationConfirmer
@@ -152,7 +193,11 @@ def run_automation(
     # The caller opens the automation's link (page.goto(automation.url)) before running it.
     agent_options.setdefault("output_dir", store.folder(name) / "output")
     agent = Agent(page, planner, executor, report=report, **agent_options)
-    result = agent.run(render(automation.request, values))
+    try:
+        result = agent.run(render(automation.request, values))
+    finally:
+        if unattended:
+            executor.guard, executor.disambiguator = None, saved_disambiguator
     agent.close_opened_tabs()            # the next row starts from the automation's own tab
 
     healed = mode == "replay" and planner.broken and planner.healer is not None
@@ -170,15 +215,21 @@ def run_automation(
         result.status = "failed" if result.status == "success" else result.status
         result.message = t(key, reason=planner.broken_reason)
         say(t("agent.ended", message=result.message))
+    if unattended and not result.ok:
+        # The guard's own reason (the element that differs from the proving run) says the most.
+        changed = next((r.note for r in result.records if r.status == "changed" and r.note), None)
+        result.message = t("auto.unattended_stopped", reason=changed or result.message)
+        say(t("agent.ended", message=result.message))
 
     run_id = store.save_run(name, {
         "version": __version__, "mode": mode, "status": result.status, "message": result.message,
-        "healed": healed and result.ok,
+        "healed": healed and result.ok, "unattended": unattended,
         "denied": result.denied,
         "parameters": automation.parameters,     # the names only: the values may be personal data
         "steps": [{"action": r.step.action, "description": templatize(r.step.description, values),
                    "value": templatize(r.step.value, values), "status": r.status,
-                   "resolved_by": r.resolved_by, "note": templatize(r.note, values), "score": r.score}
+                   "resolved_by": r.resolved_by, "note": templatize(r.note, values), "score": r.score,
+                   "element": templatize(getattr(r, "element", "") or "", values)}
                   for r in result.records],
         "llm_calls": result.llm_calls, "replans": result.replans, "failures": result.failures,
         "interventions": result.interventions, "no_effect": result.no_effect, "seconds": result.seconds,
@@ -189,12 +240,24 @@ def run_automation(
     })
 
     done = [r for r in result.records if r.status == "success"]
+    # A run with someone present that did the plan with no recovery proves it (the elements it acted
+    # on are what an unattended run may act on).
+    chose = executor.memory is not None and bool(set(executor.memory.entries) - memory_before)
+    proof = {}
+    if result.ok and not unattended and not healed and (mode == "learn" or not chose):
+        proof = {f"{r.step.action}|{templatize(r.step.description, values)}": templatize(getattr(r, "element", "") or "", values)
+                 for r in done}
     if mode == "learn" and result.ok:
         steps = templatize_steps([r.step for r in done], values)
         used = {s.goal for s in steps if s.goal}
         goals = _templatize_goals([g for g in agent._goals.values() if g.id in used], values)
-        store.save_plan(name, ApprovedPlan(steps=steps, goals=goals, source_run=run_id, language=agent.language))
+        store.save_plan(name, ApprovedPlan(steps=steps, goals=goals, source_run=run_id, language=agent.language,
+                                           proven_run=run_id if proof else "", proven_elements=proof))
         say(t("auto.approved", steps=len(steps)))
+    elif mode == "replay" and proof and approved.proven_run == "":
+        approved.proven_run, approved.proven_elements = run_id, proof
+        store.save_plan(name, approved)
+        say(t("auto.proven", name=name))
 
     if healed and result.ok:
         failed = next((r for r in result.records if r.status != "success" and r.status != "skipped"), None)

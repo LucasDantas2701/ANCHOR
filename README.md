@@ -478,9 +478,8 @@ final numbers will come from the closed sets.
     - [x] Elements inside iframes
     - [x] Hidden content: when a step's target is not on the page, try the controls that reveal more
       ("Show more", expanders, tabs) before replanning
-    - [ ] Unattended runs (`--unattended`), for scheduling: never asks, stops when a login is needed, and
-      keeps a repair made by the model in quarantine: used only for the row where it happened and recorded
-      for review, it applies to the next rows and runs only once someone approves it
+    - [x] Unattended runs (`--unattended`), for scheduling: only an automation proven by a run with
+      someone present, and nothing repaired or asked; any change stops it until someone looks
 - [ ] **0.5** — Local frontend (runs on your computer, opens in the browser), with a "Run"
   button for each saved automation
 - [ ] **1.0** — Evaluated version: final runs on the closed sets
@@ -582,7 +581,8 @@ requests and page contents do not leave the computer or the company network.
   extraction ("the price of product X") is the weakest point.
 * Iframes and closed shadow DOM are not read.
 * When the heuristic is wrong with confidence (a silent error), the user is not asked.
-* Unattended runs stop when there is an ambiguity, until the memory learns the answer.
+* Unattended runs (`--unattended`) only run a plan proven with someone present, and stop at any change
+  (an element that differs, a step that fails, a new sensitive action): fixing it takes a run with someone present.
 * The English planner prompt is a translation that was not tuned; on English requests, the default
   Portuguese prompt does better, so it stays the default.
 * In English, the resolver gets more elements right first but also makes more silent errors,

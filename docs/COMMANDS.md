@@ -195,12 +195,43 @@ Options that come **before** the command:
 | `--no-heal` | If a saved step stops working, stops instead of recovering with the LLM. |
 | `--vision` | Confirms doubted steps with a screenshot (see the agent's `--vision`). |
 | `--allow-sensitive` | Does not ask before sensitive actions, and does not save decisions. |
+| `--unattended` | Runs with no one present, for a scheduler (see below). Only a proven plan; nothing is repaired or asked; any change stops the run, and the rest of a spreadsheet. Exit code 1 when it did not finish. |
 | `--fresh-browser` | Opens a clean browser for this run. By default, each automation keeps its own browser profile in its folder (`browser/`), so a login done by hand is kept for the next runs; a `--browser-profile` given at `create` is used instead. |
 | `--param` | The value of a parameter for this run, as `name=value` (repeat it for each parameter). |
 | `--csv` | Runs once per row of a CSV file whose columns are the parameters (`,` or `;` as separator). Cannot be used with `--param`. |
 
 Tables and lists read by an automation are saved in its folder, under `output/`, and each run's
 record lists the files it wrote (not the text it read, which may be personal data).
+
+### Unattended runs (scheduling)
+
+Only an automation whose current plan has been **proven** runs with `--unattended`: done once, with
+someone present, from start to end with no recovery (no repair by the model, no element chosen by
+hand). That run records the element each step acted on. Any change to the plan (a repair, `--relearn`,
+an `undo`) makes a new plan with no proof, which needs another run with someone present.
+
+In an unattended run nothing changes and no one is asked:
+
+* the model is never called, and a saved step that stops working is not repaired;
+* no tie-break: an ambiguous element stops the run;
+* each step acts only on the element of the proving run (same text and label): an element that differs,
+  even one the heuristic would accept with someone present, stops the run before acting;
+* only sensitive actions approved before are done; a new one is refused;
+* a login is never waited for: log in once in a run with someone present (each automation keeps its
+  browser profile);
+* what does not change the plan still happens: a cookie banner in the way is declined, "Show more" is
+  opened, and an element whose id or class changed is still found by its text;
+* the first row that stops ends a spreadsheet run, and the exit code is 1.
+
+To schedule it on Windows (Task Scheduler), every day at 8:00:
+
+```
+schtasks /Create /TN "ANCHOR register" /SC DAILY /ST 08:00 /TR "cmd /c cd /d C:\path\to\ANCHOR && venv\Scripts\python.exe -m anchor.automations run register --unattended --csv people.csv"
+```
+
+On Linux or macOS (cron), the same with `0 8 * * * cd /path/to/ANCHOR && venv/bin/python -m anchor.automations run register --unattended`.
+When a run stops, `show` and the run's record say which step changed and why; run the automation
+once with someone present to look at it.
 
 ### Parameters
 

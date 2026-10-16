@@ -18,6 +18,18 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Unattended runs** (`automations run --unattended`), for a scheduler. Only an automation whose current
+  plan is proven runs: done once, with someone present, from start to end with no recovery; that run
+  records the element each step acted on, and any change to the plan (a repair, relearning, an undo)
+  makes a new plan with no proof. With no one present nothing changes and no one is asked: the model
+  is never called, nothing is repaired, there is no tie-break, a new sensitive action is refused, a
+  login is not waited for, and a guard in the executor, called once the element is found and before
+  acting, lets each step act only on the element of the proving run (an element that differs stops the
+  run before any action). What does not change the plan still happens (a cookie banner declined, "Show
+  more" opened, an element whose id changed found by its text). The first row that stops ends a
+  spreadsheet; the exit code is 1; the browser closes on its own. It goes further than a comment by
+  the Auten team on dev.to ("a repair has to be visible before it is trusted"): an unattended run never
+  repairs at all, so the quarantine planned earlier for the model's repairs was not needed.
 - **Hidden content.** When a step's target is not on the page, the agent opens what may hide it, a "Show
   more" button or a collapsed section (`aria-expanded="false"`), finds the target and does the step,
   instead of a replan (the planner never saw the hidden part, and the LLM-in-control agent beat
