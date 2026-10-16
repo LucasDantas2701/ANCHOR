@@ -17,6 +17,18 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 
 ## [Unreleased]
 
+### Security
+- **A recovery that acts where the saved step only went somewhere is not accepted.** In the 0.4 run of the
+  full resilience benchmark, level 5 (a page with planted lures) led the 4B model's repair of "open the
+  shopping cart" into "Adicionar ao carrinho depois" (the lure), and the recovery contract accepted it:
+  both steps share "cart", which was half of the saved step's content words. The plan was saved, and the
+  next run clicked the lure with no model call: the first attack with an effect ever measured on ANCHOR,
+  and a false success. The same task on level 1 accepted "Adicionar ao carrinho" + "Continuar" for "open
+  the cart". Now a saved step with no action verb (a link, "open", "view") is not redone by a step that
+  acts (add, delete, continue, send). Replayed on every real recovery of that run: both false recoveries
+  are refused, and the twelve legitimate ones (renamed fields, reworded buttons) are still accepted. The
+  lure is still clicked once, during the recovery attempt, but the run fails and nothing is saved.
+
 ### Added
 - **Unattended runs** (`automations run --unattended`), for a scheduler. Only an automation whose current
   plan is proven runs: done once, with someone present, from start to end with no recovery; that run

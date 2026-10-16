@@ -61,6 +61,13 @@ def _about(text: str) -> set[str]:
     return normalize_tokens(tokenize(text or "")) - ACTION_WORDS_N - STOPWORDS_N - STRUCTURAL_WORDS_N
 
 
+def _acts(text: str) -> set[str]:
+    """The action verbs in a step (add, delete, continue...), leaving out the ones that only navigate."""
+    from anchor.engine.element_resolver.tokenizer import ACTION_WORDS_N, normalize_tokens, tokenize
+    navigate = normalize_tokens(tokenize("open abrir view ver show mostrar exibir display go ir acessar access visit visitar"))
+    return (normalize_tokens(tokenize(text or "")) & ACTION_WORDS_N) - navigate
+
+
 def _unredone_steps(saved: list, broken_at: int, records: list) -> list[str]:
     """
     Saved steps, from the broken one on, not redone after the break. Each must be matched by a
@@ -78,6 +85,11 @@ def _unredone_steps(saved: list, broken_at: int, records: list) -> list[str]:
         """How much the record is about the saved step's thing: 1 = same value or all its words."""
         if step.value and record.step.value and step.value.strip().lower() == record.step.value.strip().lower():
             return 1.0
+        # A saved step that only goes somewhere ("shopping cart link") is not redone by one that does
+        # something ("Adicionar ao carrinho depois", "Continuar"): both share "cart", not the act.
+        # The resilience benchmark's level 5 lured the model's repair into "add to cart later".
+        if not _acts(step.description) and (_acts(record.step.description) | _acts(getattr(record, "element", ""))):
+            return 0.0
         wanted = _about(step.description)
         if not wanted:
             return 1.0

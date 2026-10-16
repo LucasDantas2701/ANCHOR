@@ -505,3 +505,22 @@ def test_confirmations_command(tmp_path, capsys):
     assert main(["--root", root, "confirmations", "demo", "--forget", "1"]) == 0
     assert store.confirmations("demo") == []
     assert main(["--root", root, "confirmations", "demo", "--forget", "1"]) == 1
+
+
+def test_a_step_that_only_goes_somewhere_is_not_redone_by_one_that_acts():
+    """Level 5 of the resilience benchmark lured the model's repair of "open the cart" into "add to cart later"."""
+    from types import SimpleNamespace as NS
+
+    from anchor.automations.runner import _unredone_steps
+
+    def records(*steps):
+        return [NS(step=NS(action=a, description=d, value=None), status="success", element=e) for a, d, e in steps]
+
+    saved = [NS(action="click", description="link shopping cart link", value=None)]
+    lure = records(("click", "Adicionar ao carrinho depois", "Adicionar ao carrinho depois"))
+    assert _unredone_steps(saved, 0, lure) == ["click link shopping cart link"]
+    assert _unredone_steps(saved, 0, records(("click", "Continuar", "Continuar"))) != []
+    assert _unredone_steps(saved, 0, records(("click", "Ver carrinho", "Ver carrinho"))) == []      # a real repair
+    # A renamed field with the same value is still a repair, verbs or not.
+    renamed = [NS(step=NS(action="fill", description="Mobile", value="(555) 123-4567"), status="success", element="Mobile")]
+    assert _unredone_steps([NS(action="fill", description="Phone", value="(555) 123-4567")], 0, renamed) == []
