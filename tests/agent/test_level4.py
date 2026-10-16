@@ -62,3 +62,15 @@ def test_another_layer_over_show_more_is_not_closed_and_the_planner_is_told(page
     run(page, planner, "preencha o telefone 92 99999-0000")
     assert page.evaluate("!!document.querySelector('[role=dialog]')")          # left for the planner to decide
     assert any('atrás de "Mostrar mais"' in " ".join(h) for h in planner.histories)
+
+
+def test_a_banner_over_the_target_is_declined_before_trying_the_click(page):
+    """Seen on Windows: the click waited 30 s for the covered button before the banner was declined."""
+    import time
+    page.goto((Path(__file__).parent / "cookie_banner_page.html").as_uri())     # the page of that run
+    start = time.monotonic()
+    result = run(page, Plans([("fill", "Nome", "Maria Silva"), ("click", "Salvar cadastro", None)]),
+                 "preencha o nome Maria Silva e salve o cadastro")
+    assert result.ok and not page.evaluate("!!document.getElementById('cookies')"), result.message
+    assert "salvo" in page.inner_text("#ok")
+    assert time.monotonic() - start < 10

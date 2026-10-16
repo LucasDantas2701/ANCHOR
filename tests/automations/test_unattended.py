@@ -110,3 +110,23 @@ def test_an_unapproved_sensitive_action_is_refused_and_nothing_is_saved(page, st
                        confirm=_NoOneToAsk())
     assert not result.ok and "not approved in a run with someone present" in result.message
     assert store.confirmations("register") == []                  # nothing saved
+
+
+def test_a_learning_run_says_the_plan_is_proven(page, store):
+    lines = []
+    page.set_content(FORM.format(save="Salvar", extra=""))
+    executor = ActionExecutor(page, memory=ChoiceMemory(store.memory_path("register")))
+    run_automation(store, "register", page, executor, lambda _: Learner((GOALS, PLAN), ([], [])), report=lines.append)
+    assert any("unattended" in line for line in lines), lines
+
+
+def test_an_unattended_stop_says_it_once(page, store):
+    """Seen on Windows: three "Stopped:" lines and an "attempt 2 of 3" that has no meaning unattended."""
+    learned(store, page)
+    lines = []
+    page.set_content(FORM.format(save="Salvar rascunho", extra=""))
+    executor = ActionExecutor(page, memory=ChoiceMemory(store.memory_path("register")))
+    run_automation(store, "register", page, executor, no_model, report=lines.append, unattended=True)
+    stops = [line for line in lines if line.startswith("Stopped:")]
+    assert len(stops) == 1 and "proving run" in stops[0], lines
+    assert not any("continuing with the saved plan" in line for line in lines), lines

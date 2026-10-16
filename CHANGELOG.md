@@ -35,6 +35,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   saved, and the message says the action was not approved with someone present), and a row ending in
   an error did not stop the rest of a spreadsheet. The guard now runs before the sensitive-action
   check, so a changed element is reported as such.
+  A first try on Windows, with a real automation, found three more: a cookie banner over the target
+  made the click wait 30 s before the banner was declined (now it is declined before trying, when the
+  target is covered: 32 s became 2 s on that page); an unattended stop said "Stopped" three times and
+  "attempt 2 of 3" (now the first failure ends the run, and the stop is said once); and a learning run
+  did not say that it had proven the plan.
 - **Hidden content.** When a step's target is not on the page, the agent opens what may hide it, a "Show
   more" button or a collapsed section (`aria-expanded="false"`), finds the target and does the step,
   instead of a replan (the planner never saw the hidden part, and the LLM-in-control agent beat

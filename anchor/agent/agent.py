@@ -257,6 +257,7 @@ class Agent:
         self._pending_downloads: list[dict] = []
         self._just_revealed: Optional[str] = None
         self._covered_control: Optional[str] = None
+        self._just_declined: Optional[str] = None
         self._uploaded: set[str] = set()
         self.page = page
         self.planner = planner
@@ -653,6 +654,16 @@ class Agent:
                 revealed = self._reveal_and_fill(step, description)
                 if revealed is not None:
                     return revealed
+
+        # A cookie banner over the target: declined before trying (the covered click waited 30 s).
+        if step.action in ("click", "check", "uncheck", "select", "hover"):
+            _, target, _ = self.executor._resolve(description, "select" if step.action == "select" else "click")
+            if target is not None and getattr(target, "obscured", False):
+                from .consent import decline_cookies
+                declined = decline_cookies(self.page)
+                if declined:
+                    self.report(t("agent.cookies_declined", button=declined))
+                    self._just_declined = declined
 
         # A step that names something not on the page ("Add to cart do UltraBook 14", with the
         # UltraBook behind "Show more") must not be done on a lookalike: reveal it first, or stop.
@@ -1187,6 +1198,9 @@ class Agent:
             if outcome.status != "success" and self._covered_control:
                 history.append(mt("hist.reveal_covered", self.language, control=self._covered_control))
                 self._covered_control = None
+            if self._just_declined:                 # a cookie banner was declined before the step
+                history.append(mt("hist.cookies_declined", self.language, button=self._just_declined))
+                self._just_declined = None
             if self._just_revealed:                 # the hidden part is on the page now: tell the planner
                 history.append(mt("hist.revealed_more", self.language, control=self._just_revealed))
                 self._just_revealed = None

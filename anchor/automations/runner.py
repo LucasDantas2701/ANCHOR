@@ -177,6 +177,10 @@ def run_automation(
         agent_options["login"] = TerminalLoginWaiter(interactive=False)
         saved_disambiguator, executor.disambiguator = executor.disambiguator, None
         executor.guard = _proof_guard(approved.proven_elements, values)
+        agent_options["max_failures"] = 1      # nothing is repaired: no second attempt
+        if report is not None:                  # the run's own "Stopped" line is said once, at the end
+            ended = t("agent.ended", message="")
+            report = (lambda say_it: lambda line: None if line.startswith(ended) else say_it(line))(report)
     notes = store.recent_notes(name)
     if confirm is not None:
         from .confirmations import AutomationConfirmer
@@ -219,7 +223,8 @@ def run_automation(
         key = "auto.heal_failed" if healed else "auto.broken"
         result.status = "failed" if result.status == "success" else result.status
         result.message = t(key, reason=planner.broken_reason)
-        say(t("agent.ended", message=result.message))
+        if not unattended:
+            say(t("agent.ended", message=result.message))
     if unattended and not result.ok:
         # The guard's own reason (the element that differs from the proving run) says the most.
         changed = next((r.note for r in result.records if r.status == "changed" and r.note), None)
@@ -262,6 +267,8 @@ def run_automation(
         store.save_plan(name, ApprovedPlan(steps=steps, goals=goals, source_run=run_id, language=agent.language,
                                            proven_run=run_id if proof else "", proven_elements=proof))
         say(t("auto.approved", steps=len(steps)))
+        if proof:
+            say(t("auto.proven", name=name))
     elif mode == "replay" and proof and approved.proven_run == "":
         approved.proven_run, approved.proven_elements = run_id, proof
         store.save_plan(name, approved)
