@@ -103,6 +103,22 @@ def describe_step(step: Step) -> str:
     return f"{step.action} {step.description}{value}"
 
 
+# What a visible element is called counts as shown too: aria-label ("Excluir" on an icon button),
+# placeholder ("Search products"), title, alt, a button's value.
+_SHOWN_TEXT_JS = """
+() => {
+  if (!document.body) return '';
+  const names = [];
+  for (const e of document.querySelectorAll('[aria-label], [placeholder], [title], [alt], input[value]')) {
+    const r = e.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden') {
+      for (const a of ['aria-label', 'placeholder', 'title', 'alt', 'value']) if (e.getAttribute(a)) names.push(e.getAttribute(a));
+    }
+  }
+  return document.body.innerText + ' ' + names.join(' ');
+}
+"""
+
 _WINDOWS_JS = """
 (() => {
   if (window.__anchorWindows !== undefined) return;
@@ -238,6 +254,7 @@ class Agent:
         executor.download_dir = self.output_dir      # downloads go where extracted tables go
         self._pending_downloads: list[dict] = []
         self._just_revealed: Optional[str] = None
+        self._covered_control: Optional[str] = None
         self._uploaded: set[str] = set()
         self.page = page
         self.planner = planner
@@ -635,6 +652,13 @@ class Agent:
                 if revealed is not None:
                     return revealed
 
+        # A step that names something not on the page ("Add to cart do UltraBook 14", with the
+        # UltraBook behind "Show more") must not be done on a lookalike: reveal it first, or stop.
+        missing = self._names_not_shown(description) if step.action in self._NAMED_ACTIONS else []
+        if missing and not self._reveal_hidden(step, description, words=missing):
+            return ActionResult(status="not_found", action=step.action, description=step.description,
+                                error=f"not on the page: {', '.join(missing)}")
+
         outcome = run_step(self.executor, step)
         # The target may be hidden behind "Show more" or a collapsed section: open it and try again,
         # instead of a replan (the planner never saw the hidden part).
@@ -642,12 +666,34 @@ class Agent:
             outcome = run_step(self.executor, step)
         return outcome
 
+    _NAMED_ACTIONS = ("click", "check", "uncheck", "select", "fill", "hover")
+    # Words that describe the kind of element, not which one (they are not looked for on the page).
+    _KINDS = {"botão", "botao", "campo", "caixa", "link", "menu", "aba", "opção", "opcao", "lista", "seção", "secao",
+              "button", "field", "box", "checkbox", "tab", "option", "list", "section", "dropdown", "icon", "ícone"}
+
+    # What the element is about comes after these ("Add to cart do UltraBook 14", "Delete for Bruno
+    # Lima"); the element's own name comes before, and may be reworded (the resolver handles that).
+    _ABOUT = re.compile(r"\b(do|da|dos|das|de|of|for|from)\b\s+(.+)$", re.IGNORECASE)
+
+    def _names_not_shown(self, description: str) -> list[str]:
+        """Proper names of what the element is about (a capital letter) that the page does not show."""
+        about = self._ABOUT.search(description)
+        if not about:
+            return []
+        words = re.findall(r"[\wÀ-ÿ][\w\-À-ÿ]*", about.group(2))
+        names = [w for w in words if any(c.isupper() for c in w) and w.lower() not in self._KINDS]
+        if not names:
+            return []
+        from anchor.engine.frames import evaluate_all
+        shown = " ".join(evaluate_all(self.page, _SHOWN_TEXT_JS)).lower()
+        return [w for w in names if w.lower() not in shown]
+
     _REVEAL = re.compile(
         r"\b((mostrar|ver|exibir|carregar)\s+(mais|todos|todas|tudo|detalhes)|expandir|mais\s+op[cç][oõ]es|"
         r"show\s+(more|all|details)|see\s+(more|all)|view\s+(more|all)|load\s+more|expand|more\s+options)\b",
         re.IGNORECASE)
 
-    def _reveal_hidden(self, step: Step, description: str) -> bool:
+    def _reveal_hidden(self, step: Step, description: str, words: Optional[list] = None) -> bool:
         """
         Opens what hides the step's target: a "Show more" button, a collapsed section
         (aria-expanded="false"). Only controls that say so, with no action verb and nothing
@@ -673,7 +719,15 @@ class Agent:
             try:
                 resolver.to_match(record).locator.click(timeout=3000)
                 self.page.wait_for_timeout(300)
-            except Exception:
+            except Exception as exc:
+                if "intercepts pointer events" in str(exc) or record.get("obscured"):
+                    self._covered_control = text      # something covers it: the planner is told
+                continue
+            if words is not None:                     # it must show what the step names
+                if not self._names_not_shown(description):
+                    self._just_revealed = text
+                    self.report(t("agent.revealed_more", control=text))
+                    return True
                 continue
             status, found, _ = self.executor._resolve(description, action)
             if found is not None and status in ("success", "ambiguous"):
@@ -1120,6 +1174,17 @@ class Agent:
                     raise
                 outcome = ActionResult(status="error", action=step.action, description=step.description,
                                        error="the tab closed")       # it closed while the step looked for the element
+            if outcome.status != "success":
+                from .consent import decline_cookies
+                declined = decline_cookies(self.page)
+                if declined:                        # a cookie banner was in the way: declined, never accepted
+                    self.report(t("agent.cookies_declined", button=declined))
+                    history.append(mt("hist.cookies_declined", self.language, button=declined))
+                    self._covered_control = None
+                    outcome = self._execute(step, last_fill)
+            if outcome.status != "success" and self._covered_control:
+                history.append(mt("hist.reveal_covered", self.language, control=self._covered_control))
+                self._covered_control = None
             if self._just_revealed:                 # the hidden part is on the page now: tell the planner
                 history.append(mt("hist.revealed_more", self.language, control=self._just_revealed))
                 self._just_revealed = None

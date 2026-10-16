@@ -25,6 +25,20 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   controls that say so, with no action verb and nothing sensitive, at most two per step; the planner
   is told the rest of the page is shown. Nothing changes in what the model reads otherwise, and no
   development page has such controls. The idea came from a reader's comment on TabNews.
+- **Cookie banners are declined when they are in the way.** On level 4 the "Show more" sat under a cookie
+  banner, and the hidden-content step changed nothing. When a step fails and a cookie or consent banner
+  is on the page, the agent clicks its most restrictive option ("Recusar", "Reject all", "Only
+  essential"), says so, and tries the step again; it never accepts cookies on its own (a banner with no
+  way to decline is left alone). Another layer over a "Show more" is not closed: the planner is told.
+- **A step that names what its element is about is not done on a lookalike.** With the banner gone, the
+  store tasks of level 4 ended in false successes: "Add to cart of the UltraBook 14", with the UltraBook
+  behind "Show more", clicked the only visible "Add to cart". When the name after "of / do / for" is
+  not on the page (visible text and the accessible names of visible elements), the agent reveals
+  hidden content first; otherwise the step is "not found". Checked on every resilience level with no
+  model at all (the code alone): level 4 went from 6 to 30 of 30 tasks, levels 1, 2, 3 and 5 are
+  unchanged, and no false success was added. A false success that was already there on level 2
+  ("Delete of Brian Lee" resolved to the "Tick Brian Lee" checkbox) is a separate resolver issue, left
+  for later.
 - **Iframes.** Elements inside an iframe (an embedded form or widget, from the same site or another) are
   found and used like the page's own. The resolver reads the page and then each attached iframe, with
   the iframe's elements numbered apart (`f1-el-0`) and each match acting in its own frame; a page with

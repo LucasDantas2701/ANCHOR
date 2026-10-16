@@ -64,7 +64,15 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_e
 **Hidden content.** When a step's target is not on the page, the agent looks for what may hide it, a
 "Show more" / "Mostrar mais" button or a collapsed section (`aria-expanded="false"`), opens it and
 tries the step again, before any replan. Only controls that say so, with no action verb and nothing
-sensitive (never "Save and show more"), at most two per step.
+sensitive (never "Save and show more"), at most two per step. A step that names what its element is
+about ("Add to cart of the UltraBook 14") is not done on a lookalike when that name is not on the
+page: the agent reveals hidden content first, and otherwise the step is "not found".
+
+**Cookie banners.** When a cookie or consent banner is in the way of a step, the agent declines it,
+with the most restrictive option the banner offers ("Recusar", "Reject all", "Only essential"), says
+so, and tries the step again. It never accepts cookies on its own: a banner with no way to decline is
+left alone, and so is any other layer (a promotion, a notice); when such a layer covers a "Show more",
+the planner is told to close it first.
 
 **Iframes.** Elements inside an iframe (an embedded form, a payment or newsletter widget, even from
 another site) are found and used like the page's own: the resolver reads the page and then each

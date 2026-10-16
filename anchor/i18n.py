@@ -177,6 +177,8 @@ MESSAGES: dict[str, dict[str, str]] = {
     "agent.downloaded": {"en": "    downloaded: {name} ({size}) → {path}", "pt": "    baixado: {name} ({size}) → {path}"},
     "agent.extracted_text": {"en": '    text read: "{text}"', "pt": '    texto lido: "{text}"'},
     "agent.enter": {"en": "    no search button: Enter in the filled-in field", "pt": "    sem botão de busca: Enter no campo preenchido"},
+    "agent.cookies_declined": {"en": '    a cookie banner was in the way: clicked "{button}" (cookies are never accepted on their own)',
+                               "pt": '    um aviso de cookies atrapalhava: clicou em "{button}" (cookies nunca são aceitos sozinhos)'},
     "agent.revealed_more": {"en": '    not on the page: opened "{control}" and found it', "pt": '    não estava na página: abriu "{control}" e encontrou'},
     "agent.revealed": {"en": '    field not found: clicked "{description}" to reveal it',
                        "pt": '    campo não encontrado: clicou em "{description}" para revelá-lo'},

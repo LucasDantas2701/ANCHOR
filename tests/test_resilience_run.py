@@ -33,10 +33,14 @@ def test_a_level_the_saved_plan_survives_needs_no_model(browser, tmp_path):
     assert [r.success for r in rows] == [True, True] and all(r.llm_calls == 0 for r in rows)
 
 
+# A saved step that no longer matches anything on the page: the code alone cannot fix it (the
+# level-4 cookie banner and "Show more" it can, since the 0.4 hidden-content step), the model must.
+BROKEN = dict(ALL["p-log-02@L4"], reference=[["select", "lista Language", "Brasil"]])   # no such option
+
+
 def test_a_broken_plan_is_healed_and_then_reused_without_the_model(browser, tmp_path):
-    task = ALL["p-log-02@L4"]                       # a cookie banner covers the page; the list is hidden
-    healer = Healer([("click", "Aceitar cookies", None)], [("click", "Mostrar mais", None)],
-                    [("select", "Language", "Português")])
+    task = BROKEN
+    healer = Healer([("select", "Language", "Português")])
     rows = run_anchor(browser, task, lambda _a: healer, "fake", tmp_path)
     first, second = rows
     assert first.success and first.healed and first.llm_calls >= 1
@@ -53,7 +57,13 @@ def test_the_report_counts_reuse_only_without_the_model():
 
 
 def test_a_recovery_that_does_not_redo_the_saved_step_is_not_a_success(browser, tmp_path):
-    """The model closes the banner and says nothing is left: the language was never chosen."""
-    task = ALL["p-log-02@L4"]
-    rows = run_anchor(browser, task, lambda _a: Healer([("click", "Aceitar cookies", None)]), "fake", tmp_path)
+    """The model only closes the banner, and says nothing is left: the language was never chosen."""
+    task = BROKEN
+    rows = run_anchor(browser, task, lambda _a: Healer([("click", "Mostrar mais", None)]), "fake", tmp_path)
     assert not rows[0].success and not rows[0].claimed_success and not rows[0].false_success
+
+
+def test_level_4_is_now_done_by_the_code_alone(browser, tmp_path):
+    """The cookie banner is declined and "Show more" opened: the saved plan works with no model call."""
+    rows = run_anchor(browser, ALL["p-log-02@L4"], no_model, "fake", tmp_path)
+    assert [r.success for r in rows] == [True, True] and all(r.llm_calls == 0 for r in rows)
