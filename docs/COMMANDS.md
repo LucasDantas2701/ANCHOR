@@ -69,8 +69,9 @@ about ("Add to cart of the UltraBook 14") is not done on a lookalike when that n
 page: the agent reveals hidden content first, and otherwise the step is "not found".
 
 **Cookie banners.** When a cookie or consent banner is in the way of a step, the agent declines it,
-with the most restrictive option the banner offers ("Recusar", "Reject all", "Only essential"), says
-so, and tries the step again. It never accepts cookies on its own: a banner with no way to decline is
+with the most restrictive option the banner offers ("Recusar", "Reject all", "Only essential"), and
+says so: before the step, when the step's element is covered, and otherwise after the step fails,
+which is then tried again. It never accepts cookies on its own: a banner with no way to decline is
 left alone, and so is any other layer (a promotion, a notice); when such a layer covers a "Show more",
 the planner is told to close it first.
 
@@ -157,6 +158,13 @@ python -m anchor.planner --profile ollama-small --url eval/fixtures/registration
 Describe a task once and run it whenever you want. The first run learns the plan with the
 LLM; the next runs replay the approved plan without the LLM. When the site changes and a saved
 step stops working, the automation heals itself and records the recovery.
+
+A recovery is accepted only if every saved step that stopped working was redone: by a step of the
+same action about the same thing (the same value, as a renamed field filled with the same text, or at
+least half of its words). A step that only went somewhere (a link, "open the cart", "view details")
+is not redone by one that acts ("add to cart later", "continue", "delete"): a page with lures led a
+model's repair into exactly that. A recovery that does not keep this contract fails the run, and the
+saved plan is not changed.
 
 ```sh
 python -m anchor.automations create register-maria --url eval/fixtures/registration_en.html --profile ollama-small "Register Maria Silva in the IT department and save the registration"
