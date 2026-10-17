@@ -68,6 +68,45 @@ def _acts(text: str) -> set[str]:
     return (normalize_tokens(tokenize(text or "")) & ACTION_WORDS_N) - navigate
 
 
+def _closeness(step, description: str, value, element: str = "") -> float:
+    """How much a step (its description, value and element) is about a saved step's thing: 1 = same
+    value or all its words."""
+    if step.value and value and step.value.strip().lower() == str(value).strip().lower():
+        return 1.0
+    # A saved step that only goes somewhere ("shopping cart link") is not redone by one that does
+    # something ("Adicionar ao carrinho depois", "Continuar"): both share "cart", not the act.
+    # The resilience benchmark's level 5 lured the model's repair into "add to cart later".
+    if not _acts(step.description) and (_acts(description) | _acts(element)):
+        return 0.0
+    wanted = _about(step.description)
+    if not wanted:
+        return 1.0
+    return len(wanted & (_about(description) | _about(element))) / len(wanted)
+
+
+def _recovery_guard(planner, saved: list):
+    """
+    During a recovery, a step that acts (add, delete, continue...) must be the redo of a saved step
+    still to redo, one that acts too, about the same thing: checked once the element is found and
+    before acting, so a lure ("Adicionar ao carrinho depois") is never clicked. Steps that only go
+    somewhere or prepare (close, open, show more) are left to the contract checked at the end.
+    """
+    clicks = ("click", "check", "uncheck")     # clicking a box is checking it
+
+    def guard(action: str, description: str, match) -> Optional[str]:
+        if not getattr(planner, "broken", False) or action not in clicks:
+            return None          # the saved plan itself before any break; fields keep the contract (by value)
+        element = " ".join(x for x in (getattr(match, "text", ""), getattr(match, "label", "")) if x)[:80]
+        if not (_acts(description) | _acts(element)):
+            return None
+        for step in saved[planner.broken_at:]:
+            if step.action in clicks and _acts(step.description) and _closeness(step, description, None, element) >= 0.5:
+                return None
+        return t("auto.recovery_acts", step=description, element=element or description)
+
+    return guard
+
+
 def _unredone_steps(saved: list, broken_at: int, records: list) -> list[str]:
     """
     Saved steps, from the broken one on, not redone after the break. Each must be matched by a
@@ -82,18 +121,7 @@ def _unredone_steps(saved: list, broken_at: int, records: list) -> list[str]:
     missing = []
 
     def closeness(step, record) -> float:
-        """How much the record is about the saved step's thing: 1 = same value or all its words."""
-        if step.value and record.step.value and step.value.strip().lower() == record.step.value.strip().lower():
-            return 1.0
-        # A saved step that only goes somewhere ("shopping cart link") is not redone by one that does
-        # something ("Adicionar ao carrinho depois", "Continuar"): both share "cart", not the act.
-        # The resilience benchmark's level 5 lured the model's repair into "add to cart later".
-        if not _acts(step.description) and (_acts(record.step.description) | _acts(getattr(record, "element", ""))):
-            return 0.0
-        wanted = _about(step.description)
-        if not wanted:
-            return 1.0
-        return len(wanted & (_about(record.step.description) | _about(getattr(record, "element", "")))) / len(wanted)
+        return _closeness(step, record.step.description, record.step.value, getattr(record, "element", ""))
 
     for step in saved[broken_at:]:
         options = [(closeness(step, r), -i, i) for i, r in enumerate(done) if i not in used and r.step.action == step.action]
@@ -213,12 +241,15 @@ def run_automation(
 
     # The caller opens the automation's link (page.goto(automation.url)) before running it.
     agent_options.setdefault("output_dir", store.folder(name) / "output")
+    if mode == "replay" and heal and not unattended:
+        executor.guard = _recovery_guard(planner, render_steps(approved.steps, values))
     agent = Agent(page, planner, executor, report=report, **agent_options)
     try:
         result = agent.run(render(automation.request, values))
     finally:
+        executor.guard = None
         if unattended:
-            executor.guard, executor.disambiguator = None, saved_disambiguator
+            executor.disambiguator = saved_disambiguator
     agent.close_opened_tabs()            # the next row starts from the automation's own tab
 
     healed = mode == "replay" and planner.broken and planner.healer is not None

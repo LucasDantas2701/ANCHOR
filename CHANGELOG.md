@@ -27,7 +27,21 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   the cart". Now a saved step with no action verb (a link, "open", "view") is not redone by a step that
   acts (add, delete, continue, send). Replayed on every real recovery of that run: both false recoveries
   are refused, and the twelve legitimate ones (renamed fields, reworded buttons) are still accepted. The
-  lure is still clicked once, during the recovery attempt, but the run fails and nothing is saved.
+  lure was still clicked once, during the recovery attempt; the next entry stops that too.
+- **During a recovery, a click that acts is checked before it happens.** The executor's guard (the one
+  unattended runs use) is on during every recovery: a click that does something (add, delete,
+  continue) must be the redo of a saved step still to redo that acts too, about the same thing; a lure
+  is refused before the click, and the planner is told why. Fields are left to the contract (it knows
+  their values), and steps that only go somewhere or prepare are let through. Replayed on every real
+  recovery of the 0.4 benchmark runs: the lures ("Adicionar ao carrinho depois", "Add to cart later",
+  and "Delete everything", which the 9B model also tried) are refused, and no step of a legitimate
+  recovery is.
+- **"Delete of Brian Lee" no longer resolves to the "Tick Brian Lee" checkbox.** On level 2 the delete
+  button lost its text (an icon titled "Remove"), and the checkbox, the only element with Brian's name,
+  won: the last false success of ANCHOR on the benchmark. "Tick" was not a verb for the resolver; it
+  now means "check", so the checkbox announces another action and the row's "Remove" wins. With no
+  model at all, every level is the same as before except level 2 (17 → 18 of 30, the false success
+  gone); every development suite's reference plans still pass.
 
 ### Added
 - **Unattended runs** (`automations run --unattended`), for a scheduler. Only an automation whose current

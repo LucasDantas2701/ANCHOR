@@ -109,6 +109,10 @@ SYNONYMS = {
     "marque": "check",
     "desmarcar": "uncheck",
     "desmarque": "uncheck",
+    # "Tick Brian Lee" (a checkbox) announces checking: it must not win "Delete of Brian Lee"
+    # (level 2 of the resilience benchmark, where the delete button lost its text).
+    "tick": "check",
+    "untick": "uncheck",
     "alternar": "toggle",
     "expandir": "expand",
     "expanda": "expand",
