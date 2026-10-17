@@ -66,8 +66,9 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-<!-- Screenshot or GIF of the agent at work: add images/demo.gif and uncomment the line below. -->
-<!-- [![ANCHOR at work][product-screenshot]](https://github.com/LucasDantas2701/ANCHOR) -->
+<p align="center">
+  <img src="docs/images/anchor_overview.gif" alt="ANCHOR in 25 seconds: the model only plans, the code acts and checks every step; a request done start to finish, and the resilience numbers" width="900">
+</p>
 
 Traditional RPA depends on fixed selectors, written by a developer:
 
@@ -671,4 +672,3 @@ Research project at Faculdade Matias Machline (Manaus, Brazil).
 [playwright-url]: https://playwright.dev
 [ollama-shield]: https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white
 [ollama-url]: https://ollama.com
-[product-screenshot]: images/demo.gif
