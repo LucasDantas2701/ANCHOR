@@ -50,6 +50,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   while the view is open, follows the tab the run is on, and keeps coming while the run waits. Under each
   step, the element it was done on ("on the button “Save customer”"), from a listener the action
   executor now calls after each action.
+- **A guide for the first time.** When ANCHOR opens, a short guide (four pages) says what it does,
+  where things are, what happens during a run (watching, the questions, Stop, Try again, never a
+  password in a request) and which model to use: the small one first, the medium one for big pages
+  and long requests, and that saved automations do not use the AI at all. It opens until the person
+  turns it off, and again from "Guide" in the header.
 - **Try again and the run's details.** After a run that was not done, "Try again" opens the
   request's form filled in with the last try (request, page, model, window), or the automation's
   page with the same values. "Save the details of this run" saves a file on this computer with what

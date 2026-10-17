@@ -2,10 +2,11 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { ACTIVE, Api, RunListItem, Runs, takeCodeFromAddress } from './api';
+import { Guide, guideOnStart } from './guide';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Guide],
   template: `
     <header class="top">
       <a routerLink="/automations" class="brand" aria-label="ANCHOR, home">
@@ -15,6 +16,7 @@ import { ACTIVE, Api, RunListItem, Runs, takeCodeFromAddress } from './api';
         <button class="theme" type="button" (click)="toggleTheme()" [attr.aria-label]="'Switch to ' + (theme() === 'dark' ? 'light' : 'dark') + ' theme'">
           {{ theme() === 'dark' ? 'Light' : 'Dark' }} theme
         </button>
+        <button class="theme" type="button" (click)="guide.set(true)">Guide</button>
         <a class="btn" [href]="docs()" target="_blank" rel="noopener noreferrer">Docs <span aria-hidden="true">↗</span></a>
       </div>
     </header>
@@ -35,6 +37,7 @@ import { ACTIVE, Api, RunListItem, Runs, takeCodeFromAddress } from './api';
       </nav>
       <main><router-outlet /></main>
     </div>
+    @if (guide()) { <app-guide (close)="guide.set(false)" /> }
   `,
   styles: [`
     :host { display: grid; grid-template-rows: 64px 1fr; height: 100vh; }
@@ -66,6 +69,7 @@ export class App implements OnInit {
   theme = signal<'dark' | 'light'>((localStorage.getItem('anchor-theme') as 'dark' | 'light') || 'dark');
   docs = signal('https://github.com/LucasDantas2701/ANCHOR#readme');
   version = signal('');
+  guide = signal(guideOnStart());
   private runs = inject(Runs);
   current = signal<RunListItem | null>(null);
   queued = signal(0);
