@@ -166,6 +166,12 @@ is not redone by one that acts ("add to cart later", "continue", "delete"): a pa
 model's repair into exactly that. A recovery that does not keep this contract fails the run, and the
 saved plan is not changed.
 
+The same rule is checked during the recovery, before each click: a click that acts (add, delete,
+continue, send) is only done if it redoes a saved step still to redo that acts too, about the same
+thing. A lure is refused before it is clicked, and the planner is told why. Filling a field is left to
+the contract above (it knows the values), and clicks that only go somewhere or prepare (close, open,
+show more) are let through.
+
 ```sh
 python -m anchor.automations create register-maria --url eval/fixtures/registration_en.html --profile ollama-small "Register Maria Silva in the IT department and save the registration"
 python -m anchor.automations run register-maria
