@@ -65,8 +65,21 @@ const WHAT: Record<string, string> = {
               }
               <div class="actions">
                 @if (q.can_point) { <button class="btn" type="button" (click)="answer(q, { choice: 'point' })">I'll point at it on the live view</button> }
+                <button class="btn" type="button" (click)="answer(q, { choice: 'login' })" title="Log in on the live view; then ANCHOR plans again from there">It needs a login first</button>
+                <button class="btn" type="button" (click)="noneOpen.set(!noneOpen())" [attr.aria-expanded]="noneOpen()">It's none of these</button>
                 <button class="btn quiet" type="button" (click)="answer(q, { choice: 'skip' })">Skip this step</button>
               </div>
+              @if (noneOpen()) {
+                <form class="none" (submit)="$event.preventDefault(); answer(q, { choice: 'none', note: note(), keep: keep() }); noneOpen.set(false); note.set('')">
+                  <label for="none-why">Tell ANCHOR why (optional). The AI reads it and plans again.</label>
+                  <textarea id="none-why" rows="2" [value]="note()" (input)="note.set($any($event.target).value)"
+                    placeholder="The reports are inside the portal: you have to log in first"></textarea>
+                  @if (q.keeps_notes) {
+                    <label class="keep"><input type="checkbox" [checked]="keep()" (change)="keep.set($any($event.target).checked)"> Keep this note for next runs of this automation</label>
+                  }
+                  <div><button class="btn primary" type="submit">Send</button></div>
+                </form>
+              }
             }
             @case ('point') {
               <h2 id="ask-title" class="heading">Click the element <em>on the live view</em></h2>
@@ -198,6 +211,11 @@ const WHAT: Record<string, string> = {
     .save input { flex: 1; max-width: 360px; background: var(--surface-page); color: var(--ink); border: 1px solid var(--border-strong);
                   border-radius: var(--radius-sm); padding: 8px 12px; font: 400 14px var(--font-mono); }
     .err { color: var(--refused); margin: 0; font-size: 13px; }
+    .none { display: grid; gap: 8px; margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+    .none label { font-size: 13px; color: var(--ink-muted); }
+    .none textarea { width: 100%; background: var(--surface-page); color: var(--ink); border: 1px solid var(--border-strong);
+                     border-radius: var(--radius-sm); padding: 8px 10px; font: 400 14px/20px var(--font-sans); resize: vertical; }
+    .none .keep { display: flex; gap: 8px; align-items: center; color: var(--ink); }
     .summary { margin: 0; font: 600 18px/24px var(--font-sans); letter-spacing: -0.01em; }
     .hint { margin: 0; color: var(--ink); max-width: 760px; }
     .detail { margin: 0; font-size: 12px; }
@@ -281,6 +299,9 @@ export class RunPage implements OnDestroy {
   lower(text?: string): string { const t = text ?? ''; return t.charAt(0).toLowerCase() + t.slice(1); }
 
   /** The same run again: the request's form filled in, or the automation's page with the same values. */
+  noneOpen = signal(false);
+  note = signal('');
+  keep = signal(false);
   saveName = signal('');
   saveError = signal('');
   nameFor = nameFor;
@@ -336,6 +357,8 @@ export class RunPage implements OnDestroy {
       case 'allow': return 'Allow'; case 'deny': return "Don't allow"; case 'not_now': return 'Not now';
       case 'candidate': return `option ${a['number']}`; case 'point': return "I'll point at it on the live view";
       case 'skip': return 'Skip this step'; case 'done': return "I've logged in"; case 'cancel': return 'Cancel';
+      case 'login': return 'It needs a login first';
+      case 'none': return a['note'] ? `It's none of these: “${a['note']}”` : "It's none of these";
       case undefined: return (e['answer'] === null) ? 'the element, by clicking it' : 'no answer';
       default: return 'no answer (the run was stopped)';
     }

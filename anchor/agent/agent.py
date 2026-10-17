@@ -211,6 +211,8 @@ def failure_reason(result: ActionResult) -> Reason:
         return Reason("why.which_table", names=", ".join(f'"{n}"' for n in names))
     if element is not None and getattr(element, "obscured", False):
         return Reason("why.obscured")
+    if result.resolved_by == "user_none":
+        return Reason("why.person_none_note", note=result.note) if result.note else Reason("why.person_none")
     if result.status == "not_found":
         return Reason("why.not_found")
     if result.status == "ambiguous":
@@ -1352,6 +1354,17 @@ class Agent:
                 result.denied = True
                 # No replanning: the model could look for another way to do what was denied.
                 return self._finish(result, "cancelled", t("end.denied", step=describe_step(step)), start)
+
+            # ---------------------------------------------------- the person: a login comes first
+            if outcome.resolved_by == "user_login":
+                result.records.append(StepRecord(step, "login", "user_login"))
+                if self._wait_login(result, history) is not True:
+                    return self._finish(result, "cancelled", t("end.login_needed"), start)
+                queue = self._replan(request, history, result, start, t("agent.after_login"))
+                if isinstance(queue, AgentResult):
+                    return queue
+                after_replan = True
+                continue
 
             # ---------------------------------------------------- skipped by the user
             if outcome.resolved_by == "user_skipped":

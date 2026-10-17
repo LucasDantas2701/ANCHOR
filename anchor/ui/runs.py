@@ -47,6 +47,7 @@ class Job:
     frame_meta: Optional[dict] = None             # the page's size behind the live view's image
     found: Any = None                             # what a question waited for besides an answer (a pointed element)
     learned: Optional[dict] = None                # a checked request's steps and goals, to save as an automation
+    keep_note: Optional[Callable[[str], None]] = None   # an automation's: keeps what the person said for next runs
     pump: Optional[Callable[[], None]] = None     # lets the browser's events through while a question waits
     stop: bool = False
     created: float = field(default_factory=time.time)
@@ -94,7 +95,7 @@ class Job:
             return None
         with self.lock:
             number = sum(e["type"] == "question" for e in self.events) + 1
-            self.question, self.answer = {"number": number, "kind": kind, **data}, None
+            self.question, self.answer = {"number": number, "kind": kind, "keeps_notes": self.keep_note is not None, **data}, None
             self.answered.clear()
         previous, self.state = self.state, "waiting"
         self.add("question", **self.question)
@@ -206,6 +207,13 @@ class WebDisambiguator:
         if answer.get("choice") == "candidate" and isinstance(answer.get("number"), int) \
                 and 1 <= answer["number"] <= len(request.candidates):
             return UserChoice("candidate", answer["number"])
+        if answer.get("choice") == "none":                 # none of these, and maybe why: the planner hears it
+            note = " ".join(str(answer.get("note") or "").split())[:300]
+            if note and answer.get("keep") and self.job.keep_note is not None:
+                self.job.keep_note(note)                   # an automation's note: sent to its planner on every run
+            return UserChoice("none", note=note or None)
+        if answer.get("choice") == "login":                # the page needs a login first
+            return UserChoice("login")
         if answer.get("choice") == "point" and request.can_point:
             return UserChoice("point")
         return UserChoice("skip")

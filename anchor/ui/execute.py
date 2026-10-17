@@ -238,6 +238,7 @@ class Executor:
                 executor = ActionExecutor(page, resolver=ElementResolver(page), disambiguator=WebDisambiguator(job),
                                           can_point=True, memory=ChoiceMemory(store.memory_path(name)))
                 live = _attach(job, executor)
+                job.keep_note = lambda text: store.add_note(name, text)
                 page.goto(automation.url)
                 result, mode, run_id = run_automation(
                     store, name, page, executor, make_planner, report=job.say,

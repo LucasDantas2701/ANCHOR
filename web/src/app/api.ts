@@ -103,7 +103,7 @@ export interface Question {
   action?: string; reason?: 'ambiguous' | 'not_found'; can_point?: boolean; screenshot?: string | null;
   candidates?: { number: number; kind: string; name: string; near: string }[];
   // login
-  url?: string; signup?: boolean; window?: boolean;
+  url?: string; signup?: boolean; window?: boolean; keeps_notes?: boolean;
 }
 
 export interface RunEvent { seq: number; at: string; type: 'line' | 'used' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }

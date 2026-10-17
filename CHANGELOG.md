@@ -50,6 +50,14 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   while the view is open, follows the tab the run is on, and keeps coming while the run waits. Under each
   step, the element it was done on ("on the button “Save customer”"), from a listener the action
   executor now calls after each action.
+- **"It's none of these" and "It needs a login first".** When ANCHOR asks which element a step
+  meant, the person can now say it is none of the ones found, and why ("the reports are inside the
+  portal: log in first"): the step fails with those words as its reason, so the planner hears them
+  when it plans again; for an automation, the words can also be kept as one of its notes, sent to
+  its planner on every run. Or say that a login comes first: ANCHOR waits for the login (on the live
+  view) and plans again from the page after it, as it does when a step meets a password field. In
+  the engine: two new answers to "which element" (none, with a note; login), the note in the step's
+  result, and a failure reason with the person's words, in the model's language.
 - **The interface, step 5a: creating automations.** "New automation" creates one the way the
   command line does (the values in braces become the fields each run asks for, shown as they are
   typed; a suggested name; no password in the request). After a request that was done and

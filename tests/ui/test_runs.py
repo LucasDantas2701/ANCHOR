@@ -320,3 +320,21 @@ def test_logging_in_to_an_automations_site_asks_and_keeps_the_session(tmp_path):
     client.post(f"/api/runs/{run['id']}/answer", json={"number": question["number"], "answer": {"choice": "done"}}, headers=HEADERS)
     assert run_until_done(client, run["id"])["state"] == "checked"
     assert client.post("/api/automations/none-such/login", headers=HEADERS).status_code == 404
+
+
+def test_none_of_these_with_why_goes_to_the_engine_and_can_be_kept_as_the_automations_note():
+    from anchor.engine.disambiguation.types import CandidateView, ChoiceRequest
+    from anchor.ui.runs import Job, WebDisambiguator
+    job, kept, got = Job(1, "automation", "portal", {}), [], {}
+    job.keep_note = kept.append
+    request = ChoiceRequest(action="click", description="relatorios", reason="not_found",
+                            candidates=[CandidateView(number=1, kind="Button", name="ACESSAR", near="PORTAL DO ALUNO")],
+                            screenshot=None, can_point=True)
+    worker = threading.Thread(target=lambda: got.setdefault("choice", WebDisambiguator(job).choose(request)))
+    worker.start()
+    question = wait_for(lambda: job.question)
+    assert question["keeps_notes"] and question["kind"] == "choose"
+    job.give(question["number"], {"choice": "none", "note": "  The reports are inside the portal:\n log in first ", "keep": True})
+    worker.join(5)
+    assert got["choice"].kind == "none" and got["choice"].note == "The reports are inside the portal: log in first"
+    assert kept == ["The reports are inside the portal: log in first"]

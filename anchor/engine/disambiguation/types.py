@@ -34,8 +34,9 @@ class ChoiceRequest:
 
 @dataclass
 class UserChoice:
-    kind: Literal["candidate", "point", "skip"]
+    kind: Literal["candidate", "point", "skip", "none", "login"]
     number: Optional[int] = None     # only for kind == "candidate"
+    note: Optional[str] = None       # only for kind == "none": why, in the person's words, for the planner
 
 
 class Disambiguator(Protocol):

@@ -120,6 +120,7 @@ class ActionExecutor:
         # the elements of the run that proved the automation.
         self.guard: Optional[Callable] = None
         self.on_result: Optional[Callable[[ActionResult], None]] = None   # told after each action
+        self._last_choice = None          # the person's last answer to "which element" (none, login, skip...)
         # When True, filling a password field is refused (status "credential") instead of typed:
         # the agent turns it on, so credentials never go through the model and the user logs in
         # by hand. Off by default, for the resolver's evaluation on test pages.
@@ -271,12 +272,17 @@ class ActionExecutor:
             )
 
             if match is None:
+                # The person skipped the step, said it is none of these (maybe saying why), or that a
+                # login comes first: the agent replans with what they said, or waits for the login.
+                choice = self._last_choice
+                kind = choice.kind if choice is not None else "skip"
                 return ActionResult(
                     status=status,
                     action=action_name,
                     description=description,
                     candidates=candidates,
-                    resolved_by="user_skipped",
+                    resolved_by={"none": "user_none", "login": "user_login"}.get(kind, "user_skipped"),
+                    note=" ".join((choice.note or "").split())[:300] if choice is not None else "",
                 )
 
             resolved_by = "user"
@@ -492,6 +498,7 @@ class ActionExecutor:
 
         shown = self._choices_to_show(reason, candidates)
         waited = time.perf_counter()
+        self._last_choice = None
 
         try:
             highlight_candidates(self.page, shown)
@@ -510,6 +517,7 @@ class ActionExecutor:
         finally:
             clear_highlights(self.page)
 
+        self._last_choice = choice
         if choice.kind == "candidate" and choice.number:
             self.user_wait_s += time.perf_counter() - waited
             return shown[choice.number - 1]

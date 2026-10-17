@@ -196,6 +196,12 @@ TEXT: dict[str, dict[str, str]] = {
     # ------------------------------------------------------------ failure reasons (model and user)
     "why.obscured": {"pt": "o elemento está coberto por outro (um modal, aviso ou banner); feche-o antes",
                      "en": "the element is covered by another one (a modal, notice or banner); close it first"},
+    # The person, asked which element it was, said it was none of the ones found (and maybe why).
+    "why.person_none": {"pt": "a pessoa que usa o ANCHOR disse que não é nenhum dos elementos encontrados",
+                        "en": "the person using ANCHOR said it is none of the elements found"},
+    "why.person_none_note": {"pt": "a pessoa que usa o ANCHOR disse que não é nenhum dos elementos encontrados, "
+                                   "e explicou: \"{note}\"",
+                             "en": "the person using ANCHOR said it is none of the elements found, and explained: \"{note}\""},
     "why.not_found": {"pt": "nenhum elemento da página corresponde a essa descrição",
                       "en": "no element on the page matches this description"},
     "why.unrequested_submit": {"pt": "o pedido não pede para enviar, salvar, confirmar, pagar, exportar ou imprimir; não faça isso por conta própria",
