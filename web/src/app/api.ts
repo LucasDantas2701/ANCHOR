@@ -87,13 +87,14 @@ export interface Question {
   url?: string; signup?: boolean;
 }
 
-export interface RunEvent { seq: number; type: 'line' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }
+export interface RunEvent { seq: number; at: string; type: 'line' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }
 
-export interface RunResult { state: JobState; message: string; steps?: number; seconds?: number; model_calls?: number; mode?: string; }
+export interface RunResult { state: JobState; message: string; summary?: string; hint?: string; steps?: number; seconds?: number; model_calls?: number; mode?: string; }
 
 export interface RunView {
   id: number; kind: 'automation' | 'request'; title: string; state: JobState; position: number;
   question: Question | null; result: RunResult | null; events: RunEvent[]; spec: Record<string, unknown>;
+  activity: { phase: string; seconds: number; tokens: number; attempt: number } | null;
 }
 
 export interface RunListItem { id: number; kind: string; title: string; state: JobState; position: number; }
@@ -103,11 +104,11 @@ export interface Profile { name: string; label: string; }
 @Injectable({ providedIn: 'root' })
 export class Runs {
   private http = inject(HttpClient);
-  startAutomation(name: string, values: Record<string, string>, relearn: boolean, freshBrowser: boolean) {
-    return this.http.post<{ id: number }>('/api/runs', { kind: 'automation', name, values, relearn, fresh_browser: freshBrowser });
+  startAutomation(name: string, values: Record<string, string>, relearn: boolean, freshBrowser: boolean, showBrowser: boolean) {
+    return this.http.post<{ id: number }>('/api/runs', { kind: 'automation', name, values, relearn, fresh_browser: freshBrowser, show_browser: showBrowser });
   }
-  startRequest(request: string, url: string, profile: string) {
-    return this.http.post<{ id: number }>('/api/runs', { kind: 'request', request, url, profile });
+  startRequest(request: string, url: string, profile: string, showBrowser: boolean) {
+    return this.http.post<{ id: number }>('/api/runs', { kind: 'request', request, url, profile, show_browser: showBrowser });
   }
   view(id: number, after: number) { return this.http.get<RunView>(`/api/runs/${id}?after=${after}`); }
   list() { return this.http.get<RunListItem[]>('/api/runs'); }

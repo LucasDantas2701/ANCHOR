@@ -29,6 +29,7 @@ const ACTIONS: Record<string, string> = {
         }
         <div class="go">
           <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Starting…' : (a.learned ? 'Run' : 'Run and learn') }}</button>
+          <label class="check window"><input type="checkbox" name="show" [(ngModel)]="show"> Show the browser window</label>
           <details class="more"><summary class="muted">More options</summary>
             <label class="check"><input type="checkbox" name="relearn" [(ngModel)]="relearn"> Learn the plan again with the AI</label>
             <label class="check"><input type="checkbox" name="fresh" [(ngModel)]="fresh"> Use a clean browser (no saved logins)</label>
@@ -129,13 +130,13 @@ export class AutomationPage {
   private runs = inject(Runs);
   private router = inject(Router);
   values: Record<string, string> = {};
-  relearn = false; fresh = false;
+  relearn = false; fresh = false; show = true;
   busy = signal(false);
   error = signal('');
 
   run(a: AutomationDetail) {
     this.error.set(''); this.busy.set(true);
-    this.runs.startAutomation(a.name, this.values, this.relearn, this.fresh).subscribe({
+    this.runs.startAutomation(a.name, this.values, this.relearn, this.fresh, this.show).subscribe({
       next: r => this.router.navigate(['/runs', r.id]),
       error: e => { this.busy.set(false); this.error.set(apiError(e, 'The run could not start.')); },
     });

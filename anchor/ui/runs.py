@@ -38,6 +38,7 @@ class Job:
     question: Optional[dict] = None              # the open question, if any
     answer: Optional[dict] = None
     result: Optional[dict] = None
+    activity: Optional[dict] = None               # what the AI is doing right now (phase, since, tokens)
     stop: bool = False
     created: float = field(default_factory=time.time)
     lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
@@ -45,7 +46,7 @@ class Job:
 
     def add(self, event_type: str, /, **data) -> dict:
         with self.lock:
-            event = {"seq": len(self.events) + 1, "type": event_type, **data}
+            event = {"seq": len(self.events) + 1, "type": event_type, "at": time.strftime("%H:%M:%S"), **data}
             self.events.append(event)
             return event
 
@@ -87,8 +88,9 @@ class Job:
 
     def view(self, after: int = 0) -> dict:
         with self.lock:
+            activity = dict(self.activity, seconds=round(time.time() - self.activity["since"])) if self.activity else None
             return {"id": self.id, "kind": self.kind, "title": self.title, "state": self.state,
-                    "question": self.question, "result": self.result, "spec": _public(self.spec),
+                    "question": self.question, "result": self.result, "spec": _public(self.spec), "activity": activity,
                     "events": [e for e in self.events if e["seq"] > after]}
 
 
@@ -143,10 +145,14 @@ class WebDisambiguator:
 class WebLoginWaiter:
     """The task needs a login: the person logs in in the browser window, then says so."""
 
-    def __init__(self, job: Job):
-        self.job = job
+    def __init__(self, job: Job, can_log_in: bool = True):
+        self.job, self.can_log_in = job, can_log_in
 
     def wait(self, url: str, signup: bool = False) -> bool:
+        if not self.can_log_in:          # the browser has no window: no one can log in in it
+            self.job.add("line", text="This page needs you to log in, and the browser window is hidden. "
+                                      "Run it again with \"Show the browser window\" on.")
+            return False
         answer = self.job.ask("login", url=url, signup=signup)
         return (answer or {}).get("choice") == "done"
 
@@ -222,6 +228,9 @@ class RunManager:
                 result = {"state": "error", "message": f"The run could not go on: {exc}"}
             if job.stop and result.get("state") not in ("checked",):
                 result["state"] = "stopped"
+            from .explain import explain
+            result = explain(result)
+            job.activity = None
             job.result, job.state = result, result.get("state", "not_done")
             job.add("result", **result)
             with self.cond:

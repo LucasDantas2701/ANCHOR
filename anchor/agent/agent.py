@@ -1066,8 +1066,11 @@ class Agent:
                 queue, plan_error = list(self._plan(request, history, result).steps), None
             except Exception as exc:  # invalid plan, connection, missing model...
                 queue, plan_error = [], exc
-            # Nothing can be planned on a page that asks for a login: the task is behind it.
-            if queue or password_field(self.page) is None or self._wait_login(result, history) is not True:
+            # Nothing can be planned on a page that asks for a login: the task is behind it. A
+            # request that asks to log in, on a page whose login is behind a link ("Sign in"),
+            # fails to plan the same way (the model tries to type what it does not have).
+            behind_login = password_field(self.page) is not None or (plan_error is not None and wants_login(request))
+            if queue or not behind_login or self._wait_login(result, history) is not True:
                 break
         if plan_error is not None:
             result.plan_failed = True

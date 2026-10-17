@@ -149,3 +149,53 @@ def test_a_saved_automation_really_runs_and_its_sensitive_step_is_asked_in_the_i
     assert done["state"] == "checked", done["result"]
     assert store.runs("new-customer")[-1]["status"] == "success"
     assert store.confirmations("new-customer")             # the decision is kept, as in the command line
+
+
+def test_every_event_has_its_time_of_day():
+    from anchor.ui.runs import Job
+    job = Job(1, "request", "x", {})
+    job.say("Planning...")
+    assert len(job.events[0]["at"]) == 8 and job.events[0]["at"].count(":") == 2      # 13:15:02
+
+
+def test_the_interface_sees_what_the_ai_is_doing_and_why_a_plan_was_not_usable():
+    from anchor.planner import Plan, PlanError
+    from anchor.ui.execute import StepwisePlanner
+    from anchor.ui.runs import Job
+    job, seen = Job(1, "request", "x", {}), []
+
+    class Inner:
+        language = "pt"
+
+        def __init__(self, progress):
+            self.progress, self.last_attempts = progress, []
+
+        def plan(self, *a, **k):
+            self.progress("thinking", 40)
+            seen.append(dict(job.activity))
+            self.progress("writing", 3)                # a second attempt starts from nothing
+            seen.append(dict(job.activity))
+            self.last_attempts = [("{}", 'step 2: the "fill" action needs a value')]
+            raise PlanError("could not generate the plan")
+
+    planner = StepwisePlanner(job, Inner)
+    with pytest.raises(PlanError):
+        planner.plan("faça login e pesquise")
+    assert seen[0]["phase"] == "thinking" and seen[1]["attempt"] == 2 and job.activity is None
+    assert job.events[-1]["text"] == 'The AI\'s plan (attempt 1) was not usable: step 2: the "fill" action needs a value'
+
+
+def test_an_outcome_is_said_in_plain_words_with_what_to_do():
+    from anchor.ui.explain import explain
+    linkedin = explain({"state": "not_done", "message": 'could not generate the plan: invalid plan after 2 attempts: '
+                                                        'step 2: the "fill" action needs a value'})
+    assert linkedin["summary"] == "The AI could not make a plan for this page." and "log in" in linkedin["hint"]
+    assert explain({"state": "checked", "message": "goal reached"})["summary"] == "Done, and every step was checked."
+    assert explain({"state": "not_done", "message": "something new"})["summary"] == "Something new"
+
+
+def test_with_the_window_hidden_a_login_is_not_waited_for_and_the_person_is_told_why():
+    from anchor.ui.runs import Job, WebLoginWaiter
+    job = Job(1, "request", "x", {})
+    assert WebLoginWaiter(job, can_log_in=False).wait("https://example.com") is False
+    assert job.question is None and "browser window is hidden" in job.events[-1]["text"]

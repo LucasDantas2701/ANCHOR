@@ -141,7 +141,8 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
             if missing:
                 raise HTTPException(400, "Fill in: " + ", ".join(missing) + ".")
             job = runs.submit("automation", name, {"name": name, "values": values, "relearn": bool(body.get("relearn")),
-                                                   "fresh_browser": bool(body.get("fresh_browser"))})
+                                                   "fresh_browser": bool(body.get("fresh_browser")),
+                                                   "show_browser": bool(body.get("show_browser", True))})
         elif kind == "request":
             request, url, profile = (str(body.get(k, "")).strip() for k in ("request", "url", "profile"))
             if not request or not url:
@@ -153,7 +154,8 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
             url = to_url(url)
             if "://" not in url:                 # "crm.example.com" is a website, as a person writes it
                 url = "https://" + url
-            job = runs.submit("request", request, {"request": request, "url": url, "profile": profile})
+            job = runs.submit("request", request, {"request": request, "url": url, "profile": profile,
+                                                   "show_browser": bool(body.get("show_browser", True))})
         else:
             raise HTTPException(400, "unknown kind of run")
         return {"id": job.id, "position": runs.position(job)}

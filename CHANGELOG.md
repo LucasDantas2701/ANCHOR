@@ -37,6 +37,19 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   which still opens on its own; the live view inside the interface is step 3). Stopping with a
   question open answers no, and keeps no decision. A run does exactly what the command line does
   (run_automation, the Agent), and a request with a password is refused before it is queued.
+- **Runs, told step by step.** Every event has its time of day; while the AI works, a live line
+  says whether it is thinking or writing the plan, for how long and on which attempt; a plan the
+  AI gave that was not usable is shown with why, as soon as it is known; steps, refusals and checks
+  are told apart; and the outcome is said in plain words, with what to do next, above the engine's
+  own message. Each run can show the browser window or not (with it hidden, a page that needs a
+  login says so instead of waiting).
+
+### Fixed
+- **A request that asks to log in, on a page whose login is behind a link, waits for the login.**
+  LinkedIn's home has no password field until "Sign in" is clicked, so ANCHOR planned instead of
+  waiting; the model then planned to type an e-mail it does not have, and the run ended, after two
+  refused plans, with "the fill action needs a value". Now, when such a request fails to plan,
+  ANCHOR asks the person to log in and plans again (with no one to ask, nothing changes).
 
 ## [0.4.0] - 2026-10-17
 

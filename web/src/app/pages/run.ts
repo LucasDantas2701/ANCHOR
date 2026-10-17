@@ -1,7 +1,7 @@
 import { Component, ElementRef, OnDestroy, effect, inject, input, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { ACTIVE, JOB_CLASS, JOB_WORDS, Question, RunEvent, RunView, Runs } from '../api';
+import { ACTIVE, JOB_CLASS, JOB_WORDS, JobState, Question, RunEvent, RunView, Runs } from '../api';
 
 const WHAT: Record<string, string> = {
   delete: 'delete something', submit: 'save or submit a form', send: 'send a message', pay: 'make a payment',
@@ -22,7 +22,7 @@ const WHAT: Record<string, string> = {
         @if (active(r)) { <button class="btn stop" type="button" (click)="stop()" [disabled]="stopping()">{{ stopping() ? 'Stopping…' : 'Stop' }}</button> }
       </div>
       @if (r.kind === 'request') { <blockquote class="request">{{ r.title }}</blockquote> }
-      @if (r.state === 'running' || r.state === 'waiting') {
+      @if ((r.state === 'running' || r.state === 'waiting') && r.spec['show_browser'] !== false) {
         <p class="muted note">The browser is open in its own window, so you can watch every step.</p>
       }
 
@@ -73,9 +73,11 @@ const WHAT: Record<string, string> = {
       @if (r.result; as res) {
         <section [class]="'outcome card ' + jobClass[res.state]">
           <span [class]="'badge ' + jobClass[res.state]">{{ jobWords[res.state] }}</span>
-          <p class="message">{{ res.message }}</p>
+          <p class="summary">{{ res.summary || res.message }}</p>
+          @if (res.hint) { <p class="hint">{{ res.hint }}</p> }
+          @if (res.summary && res.message && res.state !== 'checked') { <p class="detail mono muted">{{ res.message }}</p> }
           @if (res.steps !== undefined) {
-            <p class="muted small mono">{{ res.steps }} steps · {{ res.seconds }} s · {{ res.model_calls ? res.model_calls + ' AI calls' : 'no AI calls' }}</p>
+            <p class="muted small mono">{{ res.steps }} steps done · {{ res.seconds }} s · {{ res.model_calls ? res.model_calls + ' AI calls' : 'no AI calls' }}</p>
           }
         </section>
       }
@@ -84,9 +86,15 @@ const WHAT: Record<string, string> = {
         <p class="eyebrow">What happened</p>
         <ol class="log card" #log>
           @for (e of events(); track e.seq) {
-            @if (e.type === 'line') { <li class="line">{{ e.text }}</li> }
-            @if (e.type === 'answered') { <li class="you">You answered: {{ said(e) }}</li> }
-          } @empty { <li class="line muted">{{ r.state === 'queued' ? 'Waiting for the run before it to finish…' : 'Starting…' }}</li> }
+            @if (e.type === 'line') { <li [class]="'row ' + kindOf(e.text)"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ shown(e.text) }}</span></li> }
+            @if (e.type === 'question') { <li class="row ask-row"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">ANCHOR asked you a question</span></li> }
+            @if (e.type === 'answered') { <li class="row you"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">You answered: {{ said(e) }}</span></li> }
+            @if (e.type === 'result') { <li [class]="'row end ' + jobClass[stateOf(e)]"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ jobWords[stateOf(e)] }}</span></li> }
+          } @empty { @if (!r.activity) { <li class="row muted"><time></time><span class="mark"></span><span class="text">{{ r.state === 'queued' ? 'Waiting for the run before it to finish…' : 'Starting…' }}</span></li> } }
+          @if (r.activity; as a) {
+            <li class="row live"><time>now</time><span class="mark pulse" aria-hidden="true"></span>
+              <span class="text">{{ a.phase === 'writing' ? 'The AI is writing the plan' : 'The AI is thinking' }}@if (a.attempt > 1) { (attempt {{ a.attempt }}) }… {{ a.seconds }} s</span></li>
+          }
         </ol>
       </section>
     } @else if (missing()) {
@@ -119,10 +127,23 @@ const WHAT: Record<string, string> = {
     .shot { max-width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border); margin: var(--space-3) 0; }
     .outcome { padding: var(--space-4) var(--space-6); display: grid; gap: var(--space-2); justify-items: start; }
     .outcome.checked { border-color: var(--checked); } .outcome.refused { border-color: var(--refused); } .outcome.waiting { border-color: var(--waiting); }
-    .message { margin: 0; font-size: 16px; }
-    .log { list-style: none; margin: 0; padding: var(--space-3) 0; max-height: 52vh; overflow: auto; }
-    .log li { padding: 6px var(--space-6); font: 400 13px/20px var(--font-mono); white-space: pre-wrap; }
-    .log .you { color: var(--accent); }
+    .summary { margin: 0; font: 600 18px/24px var(--font-sans); letter-spacing: -0.01em; }
+    .hint { margin: 0; color: var(--ink); max-width: 760px; }
+    .detail { margin: 0; font-size: 12px; }
+    .log { list-style: none; margin: 0; padding: var(--space-3) 0; max-height: 56vh; overflow: auto; }
+    .row { display: grid; grid-template-columns: 72px 20px 1fr; align-items: baseline; padding: 6px var(--space-6); }
+    .row time { font: 400 12px/20px var(--font-mono); color: var(--ink-muted); }
+    .row .text { font: 400 14px/20px var(--font-sans); white-space: pre-wrap; }
+    .mark { width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); justify-self: center; align-self: center; }
+    .row.step .text { font: 400 13px/20px var(--font-mono); } .row.step .mark { background: var(--ink-muted); }
+    .row.good .mark, .row.end.checked .mark { background: var(--checked); } .row.good .text, .row.end.checked .text { color: var(--checked); }
+    .row.bad .mark, .row.end.refused .mark { background: var(--refused); } .row.bad .text, .row.end.refused .text { color: var(--refused); }
+    .row.end .text { font-weight: 600; }
+    .row.you .mark, .row.ask-row .mark { background: var(--accent); } .row.you .text { color: var(--accent); }
+    .row.ask-row .text { color: var(--waiting); } .row.ask-row .mark { background: var(--waiting); }
+    .row.live .text { color: var(--ink-muted); } .pulse { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .3; transform: scale(.7); } }
+    @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
   `],
 })
 export class RunPage implements OnDestroy {
@@ -154,7 +175,7 @@ export class RunPage implements OnDestroy {
           setTimeout(() => { const el = this.log()?.nativeElement; if (el) el.scrollTop = el.scrollHeight; });
         }
         this.run.set(v);
-        if (this.active(v)) this.timer = setTimeout(() => this.poll(id), 500);
+        if (this.active(v)) this.timer = setTimeout(() => this.poll(id), v.activity ? 1000 : 500);
       },
       error: () => this.missing.set(true),
     });
@@ -174,6 +195,19 @@ export class RunPage implements OnDestroy {
     this.stopping.set(true);
     this.runs.stop(r.id).subscribe({ error: () => this.stopping.set(false) });
   }
+
+  stateOf(e: RunEvent): JobState { return e['state'] as JobState; }
+
+  /** What a line is, to show it as a step, a success or a refusal. */
+  kindOf(text?: string): string {
+    const t = (text ?? '').toLowerCase();
+    if (t.startsWith('→') || t.startsWith('->')) return 'step';
+    if (t.startsWith('stopped') || t.includes('was not usable') || t.includes('refused') || t.includes('failed') || t.includes('not found')) return 'bad';
+    if (t.startsWith('done') || t.includes('checked') || t.startsWith('allowed')) return 'good';
+    return 'plain';
+  }
+
+  shown(text?: string): string { return (text ?? '').replace(/^(→|->)\s*/, ''); }
 
   said(e: RunEvent): string {
     const a = (e['answer'] ?? {}) as Record<string, unknown>;

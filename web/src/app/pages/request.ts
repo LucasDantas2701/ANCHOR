@@ -29,6 +29,7 @@ import { Profile, Runs, apiError } from '../api';
           </select>
         </div>
       </div>
+      <label class="check"><input type="checkbox" name="show" [(ngModel)]="show"> Show the browser window (needed when the page asks you to log in)</label>
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
       <div class="actions">
         <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Starting…' : 'Run' }}</button>
@@ -47,6 +48,8 @@ import { Profile, Runs, apiError } from '../api';
     .actions { display: flex; align-items: center; gap: var(--space-4); margin-top: var(--space-2); }
     .small { font-size: 13px; }
     .error { color: var(--refused); margin: 0; }
+    .check { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--ink); margin: 0; }
+    .check input { width: auto; }
     .btn:disabled { opacity: .6; }
   `],
 })
@@ -54,7 +57,7 @@ export class RequestPage {
   private runs = inject(Runs);
   private router = inject(Router);
   profiles = signal<Profile[]>([]);
-  request = ''; url = ''; profile = 'ollama-small';
+  request = ''; url = ''; profile = 'ollama-small'; show = true;
   busy = signal(false);
   error = signal('');
 
@@ -64,7 +67,7 @@ export class RequestPage {
 
   start() {
     this.error.set(''); this.busy.set(true);
-    this.runs.startRequest(this.request, this.url, this.profile).subscribe({
+    this.runs.startRequest(this.request, this.url, this.profile, this.show).subscribe({
       next: r => this.router.navigate(['/runs', r.id]),
       error: e => { this.busy.set(false); this.error.set(apiError(e, 'The run could not start.')); },
     });
