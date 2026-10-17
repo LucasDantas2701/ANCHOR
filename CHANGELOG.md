@@ -50,6 +50,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   while the view is open, follows the tab the run is on, and keeps coming while the run waits. Under each
   step, the element it was done on ("on the button “Save customer”"), from a listener the action
   executor now calls after each action.
+- **The interface, step 5a: creating automations.** "New automation" creates one the way the
+  command line does (the values in braces become the fields each run asks for, shown as they are
+  typed; a suggested name; no password in the request). After a request that was done and
+  checked, "Save as an automation" keeps the steps of that very run and the goals they reached,
+  with no new run; it is not proven yet, so it needs one clean run with someone there before it may
+  run unattended. And "See the plan first" asks the AI for the plan on the page and shows its steps
+  and what it would check, doing nothing: its state is "Planned", never "Checked".
 - **The interface, step 4: logging in and pointing on the live view.** When a page needs a login,
   or the person chooses to point at an element, the live view opens by itself and takes the
   person's clicks, scrolling, keys and Ctrl+V, which the run delivers to the browser; at any other

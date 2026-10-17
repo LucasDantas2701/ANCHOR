@@ -5,6 +5,7 @@ same run_automation and Agent, the same rules. Only the questions go to the inte
 from __future__ import annotations
 
 import base64
+import dataclasses
 import time
 from pathlib import Path
 from typing import Callable
@@ -18,7 +19,7 @@ from anchor.engine.action_executor import ActionExecutor
 from anchor.engine.disambiguation.describe import describe
 from anchor.engine.element_resolver import ElementResolver
 from anchor.engine.memory import ChoiceMemory
-from anchor.planner import ConfigError, get_profile
+from anchor.planner import ConfigError, PlanError, get_profile, page_elements
 
 from .runs import Job, WebConfirmer, WebDisambiguator, WebLoginWaiter
 
@@ -207,6 +208,8 @@ class Executor:
                 return self.saved(job)
             if job.kind == "login":
                 return self.login(job)
+            if job.kind == "plan":
+                return self.preview(job)
             return self.request(job)
         except (ConfigError, AutomationError) as exc:
             return {"state": "error", "message": str(exc)}
@@ -271,6 +274,31 @@ class Executor:
             return {"state": "checked", "message": "You logged in. The automation's runs will use this session."}
         return {"state": "stopped", "message": "Nothing was changed."}
 
+    def preview(self, job: Job) -> dict:
+        """The plan the AI would make for a request, on the page, without doing any of it."""
+        spec = job.spec
+        profile = get_profile(spec["profile"])
+        planner = StepwisePlanner(job, lambda progress: profile.planner(on_progress=progress))
+        with sync_playwright() as p:
+            context = p.chromium.launch(headless=True).new_context()
+            page = context.new_page()
+            try:
+                job.say("Opening the page...")
+                page.goto(spec["url"])
+                job.say("Reading the page and asking the AI for a plan. Nothing will be done on the page.")
+                elements = page_elements(ElementResolver(page), request=spec["request"],
+                                         language=planner.language_for(spec["request"]))
+                try:
+                    plan = planner.plan(spec["request"], page.url, elements)
+                except PlanError as exc:
+                    return {"state": "not_done", "message": f"could not generate the plan: {exc}"}
+            finally:
+                context.close()
+        steps = [{"action": s.action, "description": s.description, "value": s.value, "goal": s.goal} for s in plan.steps]
+        goals = [{"id": g.id, "description": g.description, "conclusive": g.conclusive} for g in plan.goals]
+        return {"state": "planned", "message": f"The AI would do {len(steps)} steps.", "plan": {"steps": steps, "goals": goals},
+                "seconds": round(plan.latency_s, 1), "model_calls": plan.attempts}
+
     def request(self, job: Job) -> dict:
         spec = job.spec
         profile = get_profile(spec["profile"])
@@ -285,8 +313,16 @@ class Executor:
                                           can_point=True, memory=ChoiceMemory(spec.get("memory", "memory/agent.json")),   # the same file as the command line
                                           confirmer=WebConfirmer(job, remembers=False))
                 live = _attach(job, executor)
-                result = Agent(page, planner, executor, report=job.say, login=WebLoginWaiter(job),
-                               output_dir=self.output_dir).run(spec["request"])
+                agent = Agent(page, planner, executor, report=job.say, login=WebLoginWaiter(job), output_dir=self.output_dir)
+                result = agent.run(spec["request"])
+                if result.ok:
+                    # What an automation would keep from this run, as its first run would: the steps that
+                    # worked and the goals they reached.
+                    done = [r.step for r in result.records if r.status == "success"]
+                    used = {s.goal for s in done if s.goal}
+                    job.learned = {"steps": [dataclasses.asdict(s) for s in done],
+                                   "goals": [dataclasses.asdict(g) for g in agent._goals.values() if g.id in used],
+                                   "language": agent.language}
             finally:
                 if "live" in locals():
                     _detach(job, live)

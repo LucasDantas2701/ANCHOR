@@ -13,8 +13,9 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from anchor import __version__
 from anchor.agent.__main__ import to_url
 from anchor.agent.login import request_has_password
-from anchor.automations.model import AutomationError, AutomationStore
+from anchor.automations.model import ApprovedPlan, Automation, AutomationError, AutomationStore
 from anchor.i18n import set_language, t
+from anchor.planner import Goal, Step
 from anchor.planner.config import ConfigError, load_profiles
 
 from .runs import RunManager, Runner
@@ -145,7 +146,7 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
             job = runs.submit("automation", name, {"name": name, "values": values, "relearn": bool(body.get("relearn")),
                                                    "fresh_browser": bool(body.get("fresh_browser")),
                                                    "show_browser": bool(body.get("show_browser", False))})
-        elif kind == "request":
+        elif kind in ("request", "plan"):
             request, url, profile = (str(body.get(k, "")).strip() for k in ("request", "url", "profile"))
             if not request or not url:
                 raise HTTPException(400, "Write the request and the page's address.")
@@ -156,8 +157,8 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
             url = to_url(url)
             if "://" not in url:                 # "crm.example.com" is a website, as a person writes it
                 url = "https://" + url
-            job = runs.submit("request", request, {"request": request, "url": url, "profile": profile,
-                                                   "show_browser": bool(body.get("show_browser", False))})
+            job = runs.submit(kind, request, {"request": request, "url": url, "profile": profile,
+                                              "show_browser": bool(body.get("show_browser", False))})
         else:
             raise HTTPException(400, "unknown kind of run")
         return {"id": job.id, "position": runs.position(job)}
@@ -207,6 +208,44 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
         if len(job.inputs) < 200:
             job.inputs.append({k: body.get(k) for k in ("type", "x", "y", "dy", "text", "key")})
         return {"ok": True}
+
+    def create(name: str, request: str, url: str, profile: str):
+        """A new automation, the way the command line creates one (the store checks the name)."""
+        name, request, url = name.strip(), request.strip(), url.strip()
+        if not request or not url:
+            raise HTTPException(400, "Write the request and the page's address.")
+        if request_has_password(request):
+            raise HTTPException(400, t("end.password_in_request"))
+        if profile not in {p["name"] for p in _profiles()}:
+            raise HTTPException(400, "Choose a model.")
+        url = to_url(url)
+        if "://" not in url:
+            url = "https://" + url
+        try:
+            store.create(Automation(name=name, request=request, url=url, profile=profile))
+        except AutomationError as exc:
+            raise HTTPException(400, str(exc))
+        return name
+
+    @app.post("/api/automations")
+    def new_automation(body: dict = Body(...)):
+        name = create(*(str(body.get(k, "")) for k in ("name", "request", "url", "profile")))
+        return _summary(store, name)
+
+    @app.post("/api/runs/{run_id}/save")
+    def save_as_automation(run_id: int, body: dict = Body(...)):
+        """A checked request becomes an automation with the plan of that very run (no run again)."""
+        job = job_or_404(run_id)
+        if not job.view()["can_save"]:
+            raise HTTPException(409, "Only a request that was done and checked can become an automation.")
+        spec = job.spec
+        name = create(str(body.get("name", "")), spec["request"], spec["url"], spec["profile"])
+        learned = job.learned
+        # Not proven: before it may run with no one present, it needs one clean run with someone there.
+        store.save_plan(name, ApprovedPlan(steps=[Step(**s) for s in learned["steps"]],
+                                           goals=[Goal(**g) for g in learned["goals"]],
+                                           source_run="", language=learned.get("language") or "pt"))
+        return _summary(store, name)
 
     @app.post("/api/automations/{name}/login")
     def log_in(name: str):

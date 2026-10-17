@@ -38,6 +38,8 @@ def explain(result: dict) -> dict:
     state, message = result.get("state"), str(result.get("message", ""))
     if state == "checked":
         return {**result, "summary": "Done, and every step was checked.", "hint": ""}
+    if state == "planned":                     # a plan only: nothing was done, so nothing was checked
+        return {**result, "summary": "This is what the AI would do. Nothing was done on the page.", "hint": ""}
     if state == "stopped":
         return {**result, "summary": "Stopped.", "hint": "Nothing else was done after that point."}
     for pattern, summary, hint in _RULES:

@@ -39,6 +39,9 @@ export class Api {
   info() { return this.http.get<{ version: string; docs: string }>('/api/info'); }
   automations() { return this.http.get<AutomationSummary[]>('/api/automations'); }
   automation(name: string) { return this.http.get<AutomationDetail>(`/api/automations/${encodeURIComponent(name)}`); }
+  create(name: string, request: string, url: string, profile: string) {
+    return this.http.post<AutomationSummary>('/api/automations', { name, request, url, profile });
+  }
 }
 
 /** "20261017-101500" → "17 Oct 2026, 10:15" */
@@ -47,6 +50,22 @@ export function runDate(id: string): string {
   if (!m) return id;
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${+m[3]} ${months[+m[2] - 1]} ${m[1]}, ${m[4]}:${m[5]}`;
+}
+
+/** The values a request names ({name} → "name"), as the automation store finds them. */
+export function valuesIn(request: string): string[] {
+  return [...new Set([...request.matchAll(/\{([A-Za-z_][A-Za-z0-9_]*)\}/g)].map(m => m[1]))];
+}
+
+/** A name for an automation from its request: lowercase letters, digits and hyphens. */
+const SMALL_WORDS = new Set(['a', 'an', 'the', 'and', 'or', 'of', 'to', 'in', 'on', 'for', 'with', 'from', 'at', 'it', 'its', 'my', 'your',
+  'o', 'os', 'as', 'um', 'uma', 'e', 'ou', 'de', 'do', 'da', 'dos', 'das', 'no', 'na', 'nos', 'nas', 'em', 'para', 'com', 'por', 'meu', 'minha']);
+
+/** A name for an automation from its request: its first meaningful words, lowercase, with hyphens. */
+export function nameFor(request: string): string {
+  const words = request.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+    .replace(/[{}]/g, ' ').split(/[^a-z0-9]+/).filter(w => w && !SMALL_WORDS.has(w));
+  return [...new Set(words)].slice(0, 4).join('-').slice(0, 64) || 'my-automation';
 }
 
 export function host(url: string): string {
@@ -74,7 +93,7 @@ export function isoDate(iso: string): string {
 
 // --- Runs ---------------------------------------------------------------------------------------
 
-export type JobState = 'queued' | 'running' | 'waiting' | 'checked' | 'not_done' | 'stopped' | 'error';
+export type JobState = 'queued' | 'running' | 'waiting' | 'checked' | 'planned' | 'not_done' | 'stopped' | 'error';
 
 export interface Question {
   number: number; kind: 'confirm' | 'choose' | 'login' | 'point';
@@ -89,10 +108,11 @@ export interface Question {
 
 export interface RunEvent { seq: number; at: string; type: 'line' | 'used' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }
 
-export interface RunResult { state: JobState; message: string; summary?: string; hint?: string; steps?: number; seconds?: number; model_calls?: number; mode?: string; }
+export interface RunResult { state: JobState; message: string; summary?: string; hint?: string;
+  plan?: { steps: Step[]; goals: { id: string; description: string; conclusive: boolean }[] }; steps?: number; seconds?: number; model_calls?: number; mode?: string; }
 
 export interface RunView {
-  id: number; kind: 'automation' | 'request' | 'login'; title: string; state: JobState; position: number;
+  id: number; kind: 'automation' | 'request' | 'login' | 'plan'; title: string; can_save: boolean; state: JobState; position: number;
   question: Question | null; result: RunResult | null; events: RunEvent[]; spec: Record<string, unknown>;
   activity: { phase: string; seconds: number; tokens: number; attempt: number } | null;
 }
@@ -118,17 +138,21 @@ export class Runs {
     return this.http.get(`/api/runs/${id}/frame?after=${after}`, { observe: 'response', responseType: 'blob' });
   }
   details(id: number) { return this.http.get(`/api/runs/${id}/details`, { responseType: 'blob' }); }
+  plan(request: string, url: string, profile: string) {
+    return this.http.post<{ id: number }>('/api/runs', { kind: 'plan', request, url, profile });
+  }
+  save(id: number, name: string) { return this.http.post<AutomationSummary>(`/api/runs/${id}/save`, { name }); }
   input(id: number, event: Record<string, unknown>) { return this.http.post(`/api/runs/${id}/input`, event); }
   logIn(name: string) { return this.http.post<{ id: number }>(`/api/automations/${encodeURIComponent(name)}/login`, {}); }
   profiles() { return this.http.get<Profile[]>('/api/profiles'); }
 }
 
 export const JOB_WORDS: Record<JobState, string> = {
-  queued: 'Waiting its turn', running: 'Running', waiting: 'Waiting for you', checked: 'Checked',
+  queued: 'Waiting its turn', running: 'Running', waiting: 'Waiting for you', checked: 'Checked', planned: 'Planned',
   not_done: 'Not done', stopped: 'Stopped', error: 'Could not run',
 };
 export const JOB_CLASS: Record<JobState, string> = {
-  queued: '', running: 'accent', waiting: 'waiting', checked: 'checked', not_done: 'refused', stopped: 'waiting', error: 'refused',
+  queued: '', running: 'accent', waiting: 'waiting', checked: 'checked', planned: 'accent', not_done: 'refused', stopped: 'waiting', error: 'refused',
 };
 export const ACTIVE: JobState[] = ['queued', 'running', 'waiting'];
 

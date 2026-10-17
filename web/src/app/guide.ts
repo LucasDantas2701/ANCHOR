@@ -32,8 +32,8 @@ export function guideOnStart(): boolean {
           <p class="eyebrow">Where things are</p>
           <h2 id="guide-title" class="title">Four places, <em>one idea each</em></h2>
           <dl class="places">
-            <div><dt>Automations</dt><dd>Tasks you run often. ANCHOR learns them once, then repeats the steps with one click, without the AI.</dd></div>
-            <div><dt>Run a request</dt><dd>Something you need done once. Write it, pick the page and the model, and run it.</dd></div>
+            <div><dt>Automations</dt><dd>Tasks you run often. ANCHOR learns them once, then repeats the steps with one click, without the AI. Create one with New automation, or save a request that worked.</dd></div>
+            <div><dt>Run a request</dt><dd>Something you need done once. Write it, pick the page and the model, and run it. Not sure it will work? "See the plan first" shows the steps without doing any.</dd></div>
             <div><dt>Schedules</dt><dd>Automations that run by themselves at a set time, while ANCHOR is open. Coming soon.</dd></div>
             <div><dt>Settings</dt><dd>Your preferences. Coming soon.</dd></div>
             <div><dt>Docs</dt><dd>The full documentation, in your browser, from the top right of every screen.</dd></div>

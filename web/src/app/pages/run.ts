@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 
 import { LiveView } from './live';
 
-import { ACTIVE, JOB_CLASS, JOB_WORDS, JobState, Question, RunEvent, RunView, Runs } from '../api';
+import { ACTIVE, JOB_CLASS, JOB_WORDS, JobState, Question, RunEvent, RunView, Runs, apiError, nameFor } from '../api';
 
 const WHAT: Record<string, string> = {
   delete: 'delete something', submit: 'save or submit a form', send: 'send a message', pay: 'make a payment',
@@ -19,17 +19,17 @@ const WHAT: Record<string, string> = {
       <div class="top">
       @if (r.kind === 'automation' || r.kind === 'login') { <a [routerLink]="['/automations', r.title]" class="back muted">← {{ r.title }}</a> }
       @else { <a routerLink="/run" class="back muted">← Run a request</a> }
-      <p class="eyebrow">{{ r.kind === 'automation' ? 'Running an automation' : r.kind === 'login' ? 'Logging in' : 'Running a request' }}</p>
+      <p class="eyebrow">{{ r.kind === 'automation' ? 'Running an automation' : r.kind === 'login' ? 'Logging in' : r.kind === 'plan' ? 'Planning only: nothing is done' : 'Running a request' }}</p>
       <div class="head">
-        <h1 class="title">{{ r.kind === 'request' ? 'Your request' : r.title }}</h1>
+        <h1 class="title">{{ r.kind === 'request' ? 'Your request' : r.kind === 'plan' ? 'The plan for your request' : r.title }}</h1>
         <span [class]="'badge ' + jobClass[r.state]">{{ jobWords[r.state] }}@if (r.state === 'queued' && r.position > 1) { · {{ r.position - 1 }} ahead }</span>
         <div class="head-actions">
           @if (watching()) { <button class="btn" type="button" (click)="watching.set(false)">Close the live view</button> }
-          @else if (r.state !== 'queued') { <button class="btn" type="button" (click)="watching.set(true)">{{ active(r) ? 'Watch it run' : 'See the last view' }}</button> }
+          @else if (r.state !== 'queued' && r.kind !== 'plan') { <button class="btn" type="button" (click)="watching.set(true)">{{ active(r) ? 'Watch it run' : 'See the last view' }}</button> }
           @if (active(r)) { <button class="btn" type="button" (click)="stop()" [disabled]="stopping()">{{ stopping() ? 'Stopping…' : 'Stop' }}</button> }
         </div>
       </div>
-      @if (r.kind === 'request') { <blockquote class="request">{{ r.title }}</blockquote> }
+      @if (r.kind === 'request' || r.kind === 'plan') { <blockquote class="request">{{ r.title }}</blockquote> }
       </div>
       @if ((r.state === 'running' || r.state === 'waiting') && r.spec['show_browser']) {
         <p class="muted note">The browser is also open in its own window.</p>
@@ -93,12 +93,36 @@ const WHAT: Record<string, string> = {
           <span [class]="'badge ' + jobClass[res.state]">{{ jobWords[res.state] }}</span>
           <p class="summary">{{ res.summary || res.message }}</p>
           @if (res.hint) { <p class="hint">{{ res.hint }}</p> }
-          @if (res.summary && res.message && res.state !== 'checked') { <p class="detail mono muted">{{ res.message }}</p> }
+          @if (res.plan; as plan) {
+            <ol class="plan">
+              @for (s of plan.steps; track $index) {
+                <li><span class="n mono">{{ $index + 1 }}</span><span class="step mono">{{ s.action }} {{ s.description }}@if (s.value !== null && s.value !== undefined) { <span class="val">= "{{ s.value }}"</span> }</span></li>
+              }
+            </ol>
+            @if (plan.goals.length) {
+              <p class="muted small goals-head">What it would check at the end:</p>
+              <ul class="goals">@for (g of plan.goals; track g.id) { <li>{{ g.description }}</li> }</ul>
+            }
+          }
+          @if (r.can_save) {
+            <form class="save" (submit)="$event.preventDefault(); save(r)">
+              <label for="save-name">Save it as an automation, to run it again with one click and no AI:</label>
+              <div class="save-row">
+                <input id="save-name" name="save-name" class="mono" [value]="saveName() || nameFor(r.title)" (input)="saveName.set($any($event.target).value)">
+                <button class="btn primary" type="submit">Save as an automation</button>
+              </div>
+              <p class="save-note muted">It will do exactly what this run did, with the same values. For an automation that asks for a value each time, use New automation with the value in braces.</p>
+              @if (saveError()) { <p class="err">{{ saveError() }}</p> }
+            </form>
+          }
+          @if (res.summary && res.message && res.state !== 'checked' && res.state !== 'planned') { <p class="detail mono muted">{{ res.message }}</p> }
           @if (res.steps !== undefined) {
             <p class="muted small mono">{{ res.steps }} steps done · {{ res.seconds }} s · {{ res.model_calls ? res.model_calls + ' AI calls' : 'no AI calls' }}</p>
           }
           <div class="actions">
-            @if (res.state !== 'checked') { <button class="btn primary" type="button" (click)="retry(r)">Try again</button> }
+            @if (res.state === 'planned') { <button class="btn primary" type="button" (click)="runIt(r)">Run it</button>
+              <button class="btn" type="button" (click)="retry(r)">Change the request</button> }
+            @else if (res.state !== 'checked') { <button class="btn primary" type="button" (click)="retry(r)">Try again</button> }
             <button class="btn" type="button" (click)="saveDetails(r)">Save the details of this run</button>
           </div>
         </section>
@@ -164,6 +188,16 @@ const WHAT: Record<string, string> = {
     .shot { max-width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border); margin: var(--space-3) 0; }
     .outcome { padding: var(--space-4) var(--space-6); display: grid; gap: var(--space-2); justify-items: start; }
     .outcome.checked { border-color: var(--checked); } .outcome.refused { border-color: var(--refused); } .outcome.waiting { border-color: var(--waiting); }
+    .plan { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: grid; gap: 4px; width: 100%; }
+    .plan li { display: grid; grid-template-columns: 28px 1fr; } .plan .n { color: var(--ink-muted); font-size: 12px; }
+    .plan .step { font-size: 14px; } .plan .val { color: var(--accent); margin-left: 6px; }
+    .goals-head { margin: var(--space-2) 0 0; } .goals { margin: 0; padding-left: 1.2em; font-size: 14px; }
+    .save-note { margin: 0; font-size: 13px; }
+    .save { display: grid; gap: 8px; width: 100%; margin-top: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+    .save label { font-size: 14px; } .save-row { display: flex; gap: var(--space-3); }
+    .save input { flex: 1; max-width: 360px; background: var(--surface-page); color: var(--ink); border: 1px solid var(--border-strong);
+                  border-radius: var(--radius-sm); padding: 8px 12px; font: 400 14px var(--font-mono); }
+    .err { color: var(--refused); margin: 0; font-size: 13px; }
     .summary { margin: 0; font: 600 18px/24px var(--font-sans); letter-spacing: -0.01em; }
     .hint { margin: 0; color: var(--ink); max-width: 760px; }
     .detail { margin: 0; font-size: 12px; }
@@ -247,9 +281,28 @@ export class RunPage implements OnDestroy {
   lower(text?: string): string { const t = text ?? ''; return t.charAt(0).toLowerCase() + t.slice(1); }
 
   /** The same run again: the request's form filled in, or the automation's page with the same values. */
+  saveName = signal('');
+  saveError = signal('');
+  nameFor = nameFor;
+
+  save(r: RunView) {
+    this.saveError.set('');
+    this.runs.save(r.id, (this.saveName() || nameFor(r.title)).trim()).subscribe({
+      next: a => this.router.navigate(['/automations', a.name]),
+      error: e => this.saveError.set(apiError(e, 'It could not be saved.')),
+    });
+  }
+
+  /** The plan looked right: run the same request for real. */
+  runIt(r: RunView) {
+    const s = r.spec as Record<string, unknown>;
+    this.runs.startRequest(String(s['request']), String(s['url']), String(s['profile']), !!s['show_browser'])
+      .subscribe(x => this.router.navigate(['/runs', x.id]));
+  }
+
   retry(r: RunView) {
     const s = r.spec as Record<string, unknown>;
-    if (r.kind === 'request') {
+    if (r.kind === 'request' || r.kind === 'plan') {
       this.router.navigate(['/run'], { queryParams: { request: s['request'], url: s['url'], profile: s['profile'], window: s['show_browser'] ? 1 : null } });
     } else {
       this.router.navigate(['/automations', r.title], { state: { values: s['values'], relearn: s['relearn'], fresh: s['fresh_browser'], window: s['show_browser'] } });

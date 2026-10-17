@@ -46,6 +46,7 @@ class Job:
     inputs: deque = field(default_factory=deque)   # clicks and keys from the live view, for the browser
     frame_meta: Optional[dict] = None             # the page's size behind the live view's image
     found: Any = None                             # what a question waited for besides an answer (a pointed element)
+    learned: Optional[dict] = None                # a checked request's steps and goals, to save as an automation
     pump: Optional[Callable[[], None]] = None     # lets the browser's events through while a question waits
     stop: bool = False
     created: float = field(default_factory=time.time)
@@ -134,6 +135,7 @@ class Job:
             activity = dict(self.activity, seconds=round(time.time() - self.activity["since"])) if self.activity else None
             return {"id": self.id, "kind": self.kind, "title": self.title, "state": self.state,
                     "question": self.question, "result": self.result, "spec": _public(self.spec), "activity": activity,
+                    "can_save": self.kind == "request" and self.state == "checked" and self.learned is not None,
                     "events": [e for e in self.events if e["seq"] > after]}
 
 

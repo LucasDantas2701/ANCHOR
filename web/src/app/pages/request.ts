@@ -33,6 +33,7 @@ import { Profile, Runs, apiError } from '../api';
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
       <div class="actions">
         <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Starting…' : 'Run' }}</button>
+        <button class="btn" type="button" (click)="seePlan()" [disabled]="busy()" title="The AI plans the steps on the page; nothing is done">See the plan first</button>
         <span class="muted small">Never write a password here: when a page needs a login, ANCHOR waits for you to do it.</span>
       </div>
     </form>
@@ -66,6 +67,14 @@ export class RequestPage {
     this.request = q.get('request') ?? ''; this.url = q.get('url') ?? '';
     this.profile = q.get('profile') ?? this.profile; this.show = q.get('window') === '1';
     this.runs.profiles().subscribe(p => { this.profiles.set(p); if (p.length && !p.some(x => x.name === this.profile)) this.profile = p[0].name; });
+  }
+
+  seePlan() {
+    this.error.set(''); this.busy.set(true);
+    this.runs.plan(this.request, this.url, this.profile).subscribe({
+      next: r => this.router.navigate(['/runs', r.id]),
+      error: e => { this.busy.set(false); this.error.set(apiError(e, 'The plan could not start.')); },
+    });
   }
 
   start() {

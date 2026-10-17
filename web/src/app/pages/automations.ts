@@ -7,8 +7,13 @@ import { Api, AutomationSummary, STATE_CLASS, STATE_WORDS, host, parts, runDate 
   selector: 'app-automations',
   imports: [RouterLink],
   template: `
-    <p class="eyebrow">Saved automations</p>
-    <h1 class="title">Your <em>automations</em></h1>
+    <div class="top">
+      <div>
+        <p class="eyebrow">Saved automations</p>
+        <h1 class="title">Your <em>automations</em></h1>
+      </div>
+      <a class="btn primary" routerLink="/automations/new">New automation</a>
+    </div>
     <p class="lead muted">Each one is a request that ANCHOR learned once and now repeats with no AI, checking every step.</p>
 
     @if (error()) {
@@ -19,8 +24,8 @@ import { Api, AutomationSummary, STATE_CLASS, STATE_WORDS, host, parts, runDate 
     } @else if (items()!.length === 0) {
       <div class="card empty">
         <p class="heading">No automations yet</p>
-        <p class="muted">An automation is a request you can run again, like "Register a customer and save". Creating
-          them from here comes in the next version; for now, they are created with the command line.</p>
+        <p class="muted">An automation is a request you can run again, like "Register a customer and save". Create one
+          with <a routerLink="/automations/new">New automation</a>, or run a request and save it when it is done.</p>
       </div>
     } @else {
       <ul class="list">
@@ -48,6 +53,7 @@ import { Api, AutomationSummary, STATE_CLASS, STATE_WORDS, host, parts, runDate 
     }
   `,
   styles: [`
+    .top { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-4); max-width: 1080px; }
     .lead { max-width: 560px; margin: var(--space-3) 0 var(--space-8); }
     .list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); max-width: 1080px; }
     .row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); padding: var(--space-4) var(--space-6);
