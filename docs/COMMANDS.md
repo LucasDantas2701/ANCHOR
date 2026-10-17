@@ -313,7 +313,9 @@ The local program's interface: a server on this computer only, and the app it se
 lists, creates and runs the saved automations (with the values they need), runs a one-off request
 or only shows its plan, and saves a request that was done and checked as an automation; runs go one
 at a time, in a queue, and their questions (a sensitive action, which element, a login) are
-answered in the interface, where the browser is shown live and a login is done on it. Taking care
+answered in the interface, where the browser is shown live and a login is done on it. When ANCHOR
+asks which element a step meant, the interface also lets the person say it is none of the ones
+found (and why: the planner reads it when it plans again) or that a login comes first. Taking care
 of the automations (fixes, notes, decisions, the choice memory), spreadsheets, scheduling and the
 installer come in the next steps of 0.5. While it is in development, build the app once and start
 the server by hand:

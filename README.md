@@ -121,8 +121,9 @@ nothing:
 > **Status:** version 0.4.0. The engine, the planner, the agent loop, effect verification, saved
 > automations with self-healing, confirmation of sensitive actions and the defenses against prompt
 > injection are done, and 0.4 added data extraction, downloads, uploads, new tabs, iframes, hidden
-> content, cookie banners and unattended runs for scheduling. A local frontend (0.5) is next. See the
-> [roadmap](#roadmap) and the [changelog](CHANGELOG.md).
+> content, cookie banners and unattended runs for scheduling. 0.5, in development, is a local program
+> for people who do not program: the interface (`python -m anchor.ui` for now), saved logins,
+> schedules and a Windows installer. See the [roadmap](#roadmap) and the [changelog](CHANGELOG.md).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -492,8 +493,19 @@ final numbers will come from the closed sets.
       ("Show more", expanders) before replanning; cookie banners in the way are declined
     - [x] Unattended runs (`--unattended`), for scheduling: only an automation proven by a run with
       someone present, and nothing repaired or asked; any change stops it until someone looks
-- [ ] **0.5** — Local frontend (runs on your computer, opens in the browser), with a "Run"
-  button for each saved automation
+- [ ] **0.5** — A local program for people who do not program: an interface on this computer only,
+  in English, that does what the commands do
+    - [x] The server and the automations (list, page), with the design system
+    - [x] Runs from the interface: a queue, what happens as it happens, the questions answered there
+    - [x] The live view: the browser beside the run; logging in and pointing at an element on it
+    - [x] Creating automations, saving a request that worked as one, seeing a plan first
+    - [x] "It's none of these" (with why, for the planner) and "It needs a login first"
+    - [ ] Taking care of the automations: fixes and undo, notes, decisions, the choice memory;
+      spreadsheets
+    - [ ] Saved logins: in Windows' Credential Manager, filled by ANCHOR only on their own site and
+      only in a password field; the model never sees a password
+    - [ ] Schedules, kept on this computer, run while ANCHOR is open
+    - [ ] A Windows installer, with its own window and no terminal
 - [ ] **1.0** — Evaluated version: final runs on the closed sets
 - [ ] **Later** — A documentation site (GitHub Pages), with guides, examples and the command reference
 
@@ -542,12 +554,14 @@ ANCHOR/
 │   ├── engine/
 │   │   ├── element_resolver/      # perception (index_script.js) + ranking
 │   │   ├── action_executor/       # validation and execution of actions
-│   │   ├── disambiguation/        # the user's disambiguation (terminal; contract for the frontend)
+│   │   ├── disambiguation/        # the user's disambiguation (terminal; the interface's is in anchor/ui)
 │   │   └── memory/                # choice memory + review commands
 │   ├── browser/                   # persistent profiles, session and login
 │   ├── i18n.py                    # interface messages (English and Portuguese)
 │   ├── main.py                    # end-to-end example on SauceDemo, with a fixed plan
-│   └── automations/               # saved automations: learn once, replay, heal
+│   ├── automations/               # saved automations: learn once, replay, heal
+│   └── ui/                        # the local interface's server (python -m anchor.ui)
+├── web/                           # the interface (Angular), built into anchor/ui/static
 ├── eval/                          # evaluation: test pages, cases, tasks, results, closed sets
 ├── docs/COMMANDS.md               # the complete command reference
 ├── examples/                      # demos (and legacy_saucedemo.py, fixed selectors: the "before")
