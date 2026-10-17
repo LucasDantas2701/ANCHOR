@@ -1,0 +1,121 @@
+/* ANCHOR: the colours, type and shapes of the design system (tokens.json), in both themes. */
+@font-face { font-family: 'Geist'; src: url('/fonts/Geist-400.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: block; }
+@font-face { font-family: 'Geist'; src: url('/fonts/Geist-500.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: block; }
+@font-face { font-family: 'Geist'; src: url('/fonts/Geist-600.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: block; }
+@font-face { font-family: 'Geist'; src: url('/fonts/Geist-700.woff2') format('woff2'); font-weight: 700; font-style: normal; font-display: block; }
+@font-face { font-family: 'Instrument Serif'; src: url('/fonts/InstrumentSerif-Italic.woff2') format('woff2'); font-weight: 400; font-style: italic; font-display: block; }
+@font-face { font-family: 'Geist Mono'; src: url('/fonts/GeistMono-400.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: block; }
+@font-face { font-family: 'Geist Mono'; src: url('/fonts/GeistMono-500.woff2') format('woff2'); font-weight: 500; font-style: normal; font-display: block; }
+
+:root, [data-theme="dark"] {
+  --surface-page: #0C0A12;
+  --surface-raised: #15121D;
+  --surface-sunken: #08070C;
+  --border: #29243A;
+  --border-strong: #6B6385;
+  --ink: #F3F1F7;
+  --ink-muted: #A39DB3;
+  --brand: #D2F57A;
+  --lime: #D2F57A;
+  --accent: #B9A3F5;
+  --action: #D2F57A;
+  --action-hover: #DDF89A;
+  --on-action: #0C0A12;
+  --checked: #D2F57A;
+  --checked-soft: #232B10;
+  --refused: #FF7A59;
+  --refused-soft: #38190F;
+  --waiting: #F5C35B;
+  --waiting-soft: #352A10;
+  --focus: #B9A3F5;
+  color-scheme: dark;
+}
+[data-theme="light"] {
+  --surface-page: #F4F2F7;
+  --surface-raised: #FFFFFF;
+  --surface-sunken: #EAE7F0;
+  --border: #DCD7E5;
+  --border-strong: #857E96;
+  --ink: #14121A;
+  --ink-muted: #5D576B;
+  --brand: #14121A;
+  --lime: #D2F57A;
+  --accent: #6A4BC0;
+  --action: #14121A;
+  --action-hover: #2A2535;
+  --on-action: #D2F57A;
+  --checked: #3E6A00;
+  --checked-soft: #EEF7D6;
+  --refused: #B3381A;
+  --refused-soft: #FBE4DC;
+  --waiting: #875700;
+  --waiting-soft: #FBF0D9;
+  --focus: #6A4BC0;
+  color-scheme: light;
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-full: 999px;
+  --font-sans: "Geist", system-ui, sans-serif;
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-mono: "Geist Mono", ui-monospace, monospace;
+  --shadow-raised: 0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 32px rgba(0,0,0,0.35);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--surface-page); color: var(--ink);
+  font: 400 15px/23px var(--font-sans); -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: var(--radius-sm); }
+
+/* Section openers: a mono eyebrow and a tight title with one serif emphasis. */
+.eyebrow {
+  font: 500 12px/16px var(--font-mono); letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--ink-muted); display: flex; align-items: center; gap: var(--space-3); margin: 0 0 var(--space-3);
+}
+.eyebrow::before { content: ""; width: 24px; height: 1px; background: var(--border-strong); }
+.title { font: 600 32px/36px var(--font-sans); letter-spacing: -0.035em; margin: 0; }
+.title em, .display em { font: italic 400 1.1em/1 var(--font-serif); letter-spacing: -0.01em; color: var(--accent); }
+.display { font: 600 56px/58px var(--font-sans); letter-spacing: -0.045em; margin: 0; }
+.muted { color: var(--ink-muted); }
+.mono { font-family: var(--font-mono); }
+
+/* Buttons are pills: one primary per screen, the rest quiet. */
+.btn {
+  display: inline-flex; align-items: center; gap: var(--space-2); height: 40px; padding: 0 var(--space-6);
+  border-radius: var(--radius-full); border: 1px solid var(--border-strong); background: transparent;
+  color: var(--ink); font: 500 14px/1 var(--font-sans); text-decoration: none; cursor: pointer;
+}
+.btn:hover { border-color: var(--ink-muted); }
+.btn.primary { background: var(--action); color: var(--on-action); border-color: transparent; }
+.btn.primary:hover { background: var(--action-hover); }
+
+/* States: always a word and a mark, never colour alone. */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px;
+  border-radius: var(--radius-full); font: 500 12px/1 var(--font-sans); white-space: nowrap;
+  border: 1px solid var(--border); color: var(--ink-muted);
+}
+.badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge.checked { background: var(--checked-soft); color: var(--checked); border-color: transparent; }
+.badge.refused { background: var(--refused-soft); color: var(--refused); border-color: transparent; }
+.badge.waiting { background: var(--waiting-soft); color: var(--waiting); border-color: transparent; }
+.badge.accent { color: var(--accent); border-color: var(--accent); }
+
+.card { background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-md); }
+
+/* A value the person gives ({name} in a request): a small lavender chip. */
+.param { display: inline-block; padding: 0 8px; margin: 0 2px; border-radius: var(--radius-full); font: 500 0.82em/1.6 var(--font-mono);
+         font-style: normal; color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); vertical-align: 0.08em; }

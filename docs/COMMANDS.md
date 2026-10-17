@@ -307,6 +307,23 @@ Pressing Enter, or having no terminal to answer, saves nothing: the next run ask
 After a run that did not work, `run` also asks whether you want to leave a note (Enter skips);
 with `--csv`, it asks once, at the end, if some row failed.
 
+## Interface (`anchor.ui`, in development)
+
+The local program's interface: a server on this computer only, and the app it serves. For now it
+lists the saved automations and shows each one; running, the live view, scheduling and the
+installer come in the next steps of 0.5. While it is in development, build the app once and start
+the server by hand:
+
+```
+cd web && npm install && npm run build && cd ..
+python -m anchor.ui
+```
+
+It opens the browser on `http://127.0.0.1:<port>/`. Options: `--automations <folder>` (default
+`automations`), `--port <n>` (default: a free one), `--no-browser`. Every request to its API must
+carry the code made at this start, which the app receives in the address it opens; no other
+program or website on the computer can use it.
+
 ## Choice memory (`anchor.engine.memory`)
 
 Reviews what the assistant learned from your choices, and forgets a wrong one.

@@ -17,6 +17,17 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 
 ## [Unreleased]
 
+### Added
+- **The local interface, step 1** (`python -m anchor.ui`): a server on this computer only
+  (127.0.0.1, a free port) and an Angular app it serves, in English, with the ANCHOR design system
+  (the waterline wordmark, a dark violet theme with lime and lavender, and a light theme). For now
+  it lists the saved automations and shows each one: its request (the values you give as chips),
+  its site and model, its plan, its last runs, and how many fixes, notes and decisions it has.
+  A Docs link on every screen opens the documentation. Every API request must carry a code made at
+  each start (handed to the app in the address's fragment and taken off the address bar), and come
+  from the app's own address and origin: no other program or website can drive ANCHOR. The server
+  reads through the same automation store as the command line and adds no rules of its own.
+
 ## [0.4.0] - 2026-10-17
 
 ### Security

@@ -288,3 +288,8 @@ __marimo__/
 
 # Tables and lists extracted by anchor.agent (--output-dir)
 /output/
+
+# The interface: its dependencies, and the build (made by `npm run build` in web/)
+/web/node_modules/
+/web/.angular/
+/anchor/ui/static/
