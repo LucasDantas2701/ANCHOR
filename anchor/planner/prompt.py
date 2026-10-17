@@ -136,8 +136,55 @@ request requires something they do not cover.
 Answer only with the JSON: {"goals": [...], "steps": [...]}"""
 
 
-def system_prompt(language: str = DEFAULT_PROMPT_LANGUAGE) -> str:
-    return SYSTEM_EN if language == "en" else SYSTEM
+# Added only when the request is about reading data (see reading.py): other requests get the
+# prompt exactly as it was before data extraction existed.
+_READING = {
+    "pt": ("- \"action\": uma de click, hover, check, uncheck, fill, select, press, extract_text",
+           "- click: botões, links, abas e áreas clicáveis.\n",
+           "- extract_table: para ler, copiar ou exportar uma tabela ou lista inteira; a descrição é o \
+nome dela, como aparece em \"Tabela\" ou \"Lista\" no fim da lista de elementos.\n"
+           "- extract_text: para ler um texto só, ou responder a uma pergunta sobre um valor; a \
+descrição é o texto, como aparece em \"Texto\" no fim da lista de elementos (ex.: \"Receita total\").\n"),
+    "en": ("- \"action\": one of click, hover, check, uncheck, fill, select, press, extract_text",
+           "- click: buttons, links, tabs and clickable areas.\n",
+           "- extract_table: to read, copy or export a whole table or list; the description is its \
+name, as shown in \"Table\" or \"List\" at the end of the list of elements.\n"
+           "- extract_text: to read a single text, or answer a question about a value; the \
+description is the text, as shown in \"Text\" at the end of the list of elements (e.g. \"Total revenue\").\n"),
+}
+
+
+_FILES = {
+    "pt": "- download: para baixar um arquivo (relatório, PDF, planilha, comprovante): o botão ou \
+link que baixa; o robô salva o arquivo.\n",
+    "en": "- download: to download a file (report, PDF, spreadsheet, receipt): the button or link \
+that downloads it; the robot saves the file.\n",
+}
+
+
+_UPLOADS = {
+    "pt": "- upload: para enviar um arquivo; a descrição é o campo ou botão de envio (ex.: \"Anexar \
+currículo\") e o valor é o caminho do arquivo, copiado exatamente do pedido.\n",
+    "en": "- upload: to send a file; the description is the file field or button (e.g. \"Attach \
+resume\") and the value is the file's path, copied exactly from the request.\n",
+}
+
+
+def system_prompt(language: str = DEFAULT_PROMPT_LANGUAGE, reading: bool = False, files: bool = False,
+                  uploads: bool = False) -> str:
+    """The prompt; the extraction, download and upload parts only for requests about them (see reading.py)."""
+    base = SYSTEM_EN if language == "en" else SYSTEM
+    lang = "en" if language == "en" else "pt"
+    actions, after, lines = _READING[lang]
+    assert actions in base and after in base
+    extra_actions, extra_lines = "", ""
+    if reading:
+        extra_actions, extra_lines = extra_actions + ", extract_table", extra_lines + lines
+    if files:
+        extra_actions, extra_lines = extra_actions + ", download", extra_lines + _FILES[lang]
+    if uploads:
+        extra_actions, extra_lines = extra_actions + ", upload", extra_lines + _UPLOADS[lang]
+    return base.replace(actions, actions + extra_actions, 1).replace(after, after + extra_lines, 1)
 
 
 def user_message(

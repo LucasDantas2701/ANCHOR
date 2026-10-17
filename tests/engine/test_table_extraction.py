@@ -1,0 +1,168 @@
+"""Tables and lists: finding, naming, choosing, saving, and the agent's extract_table."""
+
+import csv
+from pathlib import Path
+
+from anchor.agent import Agent
+from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.tables import TableData, find_tables, match_table, save_csv
+from anchor.planner import Plan, Step
+
+FIXTURES = Path(__file__).resolve().parents[2] / "eval" / "fixtures"
+
+
+def open_report(page, name="report.html"):
+    page.goto((FIXTURES / name).as_uri())
+    return find_tables(page)
+
+
+def test_tables_and_lists_are_found_with_their_names_and_menus_are_left_out(page):
+    tables = open_report(page)
+    assert [(t.kind, t.name) for t in tables] == [
+        ("table", "Vendas por região"), ("table", "Metas do trimestre"), ("list", "Pendências")]
+    assert tables[0].headers == ["Região", "Pedidos", "Receita"] and tables[0].rows[0] == ["Norte", "412", "R$ 61.800"]
+    assert tables[1].headers == ["Meta", "Responsável", "Situação"] and len(tables[1].rows) == 3   # header row in the body
+    assert tables[2].rows == [["Revisar contrato do fornecedor"], ["Aprovar orçamento de outubro"],
+                              ["Enviar relatório à diretoria"]]
+
+
+def test_the_description_picks_a_table_by_name_or_by_its_columns(page):
+    tables = open_report(page)
+    assert match_table(tables, "exporte a tabela de vendas por região")[0].name == "Vendas por região"
+    assert match_table(tables, "a tabela de receita")[0].name == "Vendas por região"          # a column
+    assert match_table(tables, "lista de pendências")[0].name == "Pendências"
+    best, candidates = match_table(tables, "a tabela")                                       # names none
+    assert best is None and len(candidates) == 3
+
+
+def test_a_single_table_needs_no_name(page):
+    page.set_content("<h2>Clientes</h2><table><tr><th>Nome</th></tr><tr><td>Ana</td></tr><tr><td>Bia</td></tr></table>")
+    assert match_table(find_tables(page), "extraia a tabela")[0].name == "Clientes"
+
+
+def test_tables_without_headers_get_numbered_columns_and_short_rows_are_padded(tmp_path):
+    table = TableData(kind="table", name="Sem cabeçalho", headers=[], rows=[["a", "b", "c"], ["d"]])
+    assert table.columns == ["column 1", "column 2", "column 3"]
+    path = save_csv(table, tmp_path, ";")
+    rows = list(csv.reader(path.open(encoding="utf-8-sig"), delimiter=";"))
+    assert rows == [["column 1", "column 2", "column 3"], ["a", "b", "c"], ["d", "", ""]]
+    assert path.name.startswith("sem-cabecalho_") and save_csv(table, tmp_path, ";") != path   # never overwritten
+
+
+class OnePlan:
+    def __init__(self, *steps):
+        self.steps, self.calls, self.histories = list(steps), 0, []
+
+    def plan(self, request, url, page_elements=None, history=None, **kwargs):
+        self.calls += 1
+        self.histories.append(list(history or []))
+        return Plan(steps=[Step(*s) for s in self.steps] if self.calls == 1 else [])
+
+
+def test_the_agent_saves_the_table_as_csv_and_keeps_what_was_read(page, tmp_path):
+    page.goto((FIXTURES / "report_en.html").as_uri())
+    result = Agent(page, OnePlan(("extract_table", "Sales by region", None), ("extract_text", "Total revenue", None)),
+                   ActionExecutor(page), report=None, output_dir=tmp_path).run("export the sales by region table")
+    assert result.ok, result.message
+    table, text = result.extractions
+    assert table["kind"] == "table" and table["rows"] == 4 and table["columns"] == ["Region", "Orders", "Revenue"]
+    rows = list(csv.reader(Path(table["path"]).open(encoding="utf-8-sig")))
+    assert rows[1] == ["North", "412", "$61,800"]
+    assert text["kind"] == "text" and "182,400" in text["text"]
+
+
+def test_an_unclear_table_fails_with_the_names_for_the_planner(page, tmp_path):
+    page.goto((FIXTURES / "report.html").as_uri())
+    planner = OnePlan(("extract_table", "a tabela", None))
+    result = Agent(page, planner, ActionExecutor(page), report=None, output_dir=tmp_path).run("exporte a tabela")
+    assert not result.ok and result.records[0].status == "ambiguous"
+    history = " ".join(" ".join(h) for h in planner.histories)
+    assert "Vendas por região" in history and "Pendências" in history
+
+
+def test_the_page_summary_lists_the_tables_at_the_end(page):
+    from anchor.engine.element_resolver import ElementResolver
+    from anchor.planner import page_elements
+    page.goto((FIXTURES / "report.html").as_uri())
+    lines = page_elements(ElementResolver(page), request="exporte as vendas", language="pt")
+    assert lines[-4:] == ['Tabela "Vendas por região" [colunas: Região | Pedidos | Receita; 4 linhas]',
+                          'Tabela "Metas do trimestre" [colunas: Meta | Responsável | Situação; 3 linhas]',
+                          'Lista "Pendências" [3 itens]',
+                          'Texto "Receita total: R$ 182.400"']          # a value the planner can ask for
+
+
+def test_pages_without_tables_get_the_same_summary(page):
+    from anchor.engine.element_resolver import ElementResolver
+    from anchor.planner import page_elements
+    page.goto((FIXTURES / "registration.html").as_uri())
+    lines = page_elements(ElementResolver(page), request="cadastre", language="pt")
+    assert not any(line.startswith(('Tabela "', 'Lista "')) for line in lines)   # not: Lista de opções
+
+
+def test_requests_about_reading_data_are_told_apart():
+    from anchor.planner.reading import wants_data
+    for request in ("exporte a tabela de vendas", "me passa a lista de pendências", "qual foi a receita total?",
+                    "copy the users table", "what was the total revenue?", "how many orders are late?"):
+        assert wants_data(request), request
+    for request in ("Selecione a Ana e a Carla na lista", "Pesquise Pi Network", "Register Maria Silva, contractor",
+                    "Troque o idioma da página para português", "add the thermos bottle to my cart"):
+        assert not wants_data(request), request
+
+
+def test_other_requests_get_the_prompt_as_it_was_before_extraction():
+    from anchor.planner.prompt import SYSTEM, SYSTEM_EN, system_prompt
+    assert system_prompt("pt") == SYSTEM and system_prompt("en") == SYSTEM_EN and "extract_table" not in SYSTEM
+    assert "extract_table" in system_prompt("pt", reading=True) and "extract_table" in system_prompt("en", reading=True)
+
+
+def test_the_tables_are_in_the_summary_only_for_a_request_about_reading(page):
+    from anchor.engine.element_resolver import ElementResolver
+    from anchor.planner import page_elements
+    page.goto((FIXTURES / "report.html").as_uri())
+    reading = page_elements(ElementResolver(page), request="exporte as vendas", language="pt")
+    other = page_elements(ElementResolver(page), request="imprima o relatório", language="pt")
+    assert any(line.startswith('Tabela "') for line in reading)
+    assert not any(line.startswith(('Tabela "', 'Lista "')) for line in other)
+
+
+
+def test_value_texts_leave_out_tables_menus_links_and_plain_text(page):
+    from anchor.engine.tables import value_texts
+    page.set_content("""<nav><p>Menu: 3</p></nav><p>Total: R$ 10</p><p>Sem valor nenhum aqui</p>
+        <table><tr><td>Célula 1</td></tr></table><div>Página <a href="#">2</a> de 5</div><p>Prazo: amanhã</p>""")
+    assert value_texts(page) == ["Total: R$ 10", "Prazo: amanhã"]
+
+
+def test_a_request_for_the_data_back_is_not_done_until_something_reads_it():
+    """After an Ollama update, the 4B model clicked "Imprimir relatório" for "exporte a tabela" and stopped."""
+    import pytest
+
+    from anchor.planner import PlanError, Step
+    from anchor.planner.plan import check_request
+    from anchor.planner.reading import asks_for_data
+    with pytest.raises(PlanError, match="nenhum passo os lê"):
+        check_request([Step("click", "Imprimir relatório")], [], "exporte a tabela de vendas por região")
+    check_request([Step("extract_table", "Vendas por região")], [], "exporte a tabela de vendas por região")
+    check_request([Step("download", "Baixar relatório")], [], "exporte o relatório")          # a file is the data too
+    assert not asks_for_data("Mostre só os usuários inativos")                                   # a filter
+    check_request([Step("select", "Status", "Inativos")], [], "Mostre só os usuários inativos")
+
+
+def test_the_agent_reads_the_table_after_the_warning(page):
+    from anchor.agent import Agent
+    from anchor.engine.action_executor import ActionExecutor
+    from anchor.planner import Plan, Step
+
+    class Plans:
+        def __init__(self, *plans):
+            self.plans, self.histories = [list(p) for p in plans], []
+
+        def plan(self, request, url, page_elements=None, history=None, **kwargs):
+            self.histories.append(list(history or []))
+            return Plan(steps=[Step(*s) for s in (self.plans.pop(0) if self.plans else [])])
+
+    page.goto((FIXTURES / "report.html").as_uri())
+    planner = Plans([("click", "Imprimir relatório", None)], [], [("extract_table", "Vendas por região", None)])
+    result = Agent(page, planner, ActionExecutor(page), report=None).run("exporte a tabela de vendas por região")
+    assert result.ok and result.extractions and result.extractions[0]["name"] == "Vendas por região"
+    assert any("nenhum passo os lê" in " ".join(h) for h in planner.histories)

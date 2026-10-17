@@ -139,15 +139,27 @@ class ElementResolver:
             "content": interactive elements + elements with text (extraction).
         """
 
-        self._records = self.page.evaluate(
-            self._script,
-            {
-                "mode": mode,
-                "selector": self.selector,
-                "includeHidden": self.include_hidden,
-                "contextSelectors": self.context_selectors,
-            },
-        )
+        options = {
+            "mode": mode,
+            "selector": self.selector,
+            "includeHidden": self.include_hidden,
+            "contextSelectors": self.context_selectors,
+        }
+        self._records = self.page.evaluate(self._script, options)
+        # Then each iframe, its elements numbered apart ("f1-el-0") and marked with the frame they are
+        # in. A page with no iframes gets exactly the records it got before.
+        self._frames = {}
+        for number, frame in enumerate(self.page.frames[1:], start=1):
+            try:
+                if frame.is_detached():
+                    continue
+                records = frame.evaluate(self._script, {**options, "idPrefix": f"f{number}-"})
+            except Exception:
+                continue                     # a frame that went away, or cannot be read
+            for record in records:
+                record["frame"] = number
+            self._frames[number] = frame
+            self._records += records
 
         return len(self._records)
 
@@ -179,6 +191,7 @@ class ElementResolver:
             in_viewport=record.get("inViewport", True),
             obscured=record.get("obscured", False),
             layer=record.get("layer", False),
+            frame=getattr(self, "_frames", {}).get(record.get("frame")),
         )
 
     def query(

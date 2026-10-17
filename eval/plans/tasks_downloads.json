@@ -1,0 +1,235 @@
+{
+  "_readme": "Downloads suite (version 0.4): a download is judged on the file it saved (a piece of its name and of its content, in the task's 'extraction' with kind 'file'); the checks make sure the decoy ('Baixar aplicativo') was not clicked. Two tasks ask for a file the page does not have (expected not_possible). Run with 'python -m eval.plan_run --agent --suite downloads'.",
+  "tasks": [
+    {
+      "id": "d-doc-01",
+      "split": "dev",
+      "language": "pt",
+      "suite": "downloads",
+      "fixture": "documents.html",
+      "request": "baixe o relatório de vendas",
+      "checks": [
+        "!__clicked('#app')"
+      ],
+      "allowed": [
+        "#report"
+      ],
+      "reference": [
+        [
+          "download",
+          "Baixar relatório de vendas",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "file",
+          "name": ".csv",
+          "contains": "Norte"
+        }
+      ]
+    },
+    {
+      "id": "d-doc-02",
+      "split": "dev",
+      "language": "pt",
+      "suite": "downloads",
+      "fixture": "documents.html",
+      "request": "baixe o contrato de serviço",
+      "checks": [
+        "!__clicked('#app')"
+      ],
+      "allowed": [
+        "#contract"
+      ],
+      "reference": [
+        [
+          "download",
+          "Baixar contrato",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "file",
+          "name": ".pdf",
+          "contains": "%PDF"
+        }
+      ]
+    },
+    {
+      "id": "d-doc-03",
+      "split": "dev",
+      "language": "pt",
+      "suite": "downloads",
+      "fixture": "documents.html",
+      "request": "baixe o relatório de vendas e o contrato",
+      "checks": [
+        "!__clicked('#app')"
+      ],
+      "allowed": [
+        "#report",
+        "#contract"
+      ],
+      "reference": [
+        [
+          "download",
+          "Baixar relatório de vendas",
+          null
+        ],
+        [
+          "download",
+          "Baixar contrato",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "file",
+          "name": ".csv",
+          "contains": "Norte"
+        },
+        {
+          "kind": "file",
+          "name": ".pdf",
+          "contains": "%PDF"
+        }
+      ]
+    },
+    {
+      "id": "d-doc-04",
+      "split": "dev",
+      "language": "pt",
+      "suite": "downloads",
+      "fixture": "documents.html",
+      "request": "baixe a nota fiscal de setembro",
+      "checks": [
+        "!__clicked('#app')",
+        "!__clicked('#report')",
+        "!__clicked('#contract')"
+      ],
+      "allowed": [
+        "#privacy"
+      ],
+      "reference": [],
+      "extraction": [],
+      "expected": "not_possible",
+      "why_not_possible": "the page has no invoice to download"
+    },
+    {
+      "id": "en-d-doc-01",
+      "split": "dev",
+      "language": "en",
+      "suite": "downloads",
+      "fixture": "documents_en.html",
+      "request": "download the sales report",
+      "checks": [
+        "!__clicked('#app')"
+      ],
+      "allowed": [
+        "#report"
+      ],
+      "reference": [
+        [
+          "download",
+          "Download sales report",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "file",
+          "name": ".csv",
+          "contains": "North"
+        }
+      ]
+    },
+    {
+      "id": "en-d-doc-02",
+      "split": "dev",
+      "language": "en",
+      "suite": "downloads",
+      "fixture": "documents_en.html",
+      "request": "download the service contract",
+      "checks": [
+        "!__clicked('#app')"
+      ],
+      "allowed": [
+        "#contract"
+      ],
+      "reference": [
+        [
+          "download",
+          "Download contract",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "file",
+          "name": ".pdf",
+          "contains": "%PDF"
+        }
+      ]
+    },
+    {
+      "id": "en-d-doc-03",
+      "split": "dev",
+      "language": "en",
+      "suite": "downloads",
+      "fixture": "documents_en.html",
+      "request": "download the sales report and the contract",
+      "checks": [
+        "!__clicked('#app')"
+      ],
+      "allowed": [
+        "#report",
+        "#contract"
+      ],
+      "reference": [
+        [
+          "download",
+          "Download sales report",
+          null
+        ],
+        [
+          "download",
+          "Download contract",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "file",
+          "name": ".csv",
+          "contains": "North"
+        },
+        {
+          "kind": "file",
+          "name": ".pdf",
+          "contains": "%PDF"
+        }
+      ]
+    },
+    {
+      "id": "en-d-doc-04",
+      "split": "dev",
+      "language": "en",
+      "suite": "downloads",
+      "fixture": "documents_en.html",
+      "request": "download the September invoice",
+      "checks": [
+        "!__clicked('#app')",
+        "!__clicked('#report')",
+        "!__clicked('#contract')"
+      ],
+      "allowed": [
+        "#privacy"
+      ],
+      "reference": [],
+      "extraction": [],
+      "expected": "not_possible",
+      "why_not_possible": "the page has no invoice to download"
+    }
+  ]
+}

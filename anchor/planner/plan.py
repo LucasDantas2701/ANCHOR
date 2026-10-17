@@ -26,6 +26,9 @@ ACTIONS = {
     "select": True,        # value = option text
     "press": True,         # value = key (e.g. "Enter")
     "extract_text": False,
+    "extract_table": False, # a whole table or list, saved as a CSV file
+    "download": False,      # clicks a button or link and saves the file it downloads
+    "upload": True,         # sends a file; value = its path, which must come from the request
 }
 
 # JSON schema required from the model (OpenAI "structured outputs" format).
@@ -81,11 +84,13 @@ class PlanError(ValueError):
     def of(cls, key: str, language: str, **values) -> "PlanError":
         return cls(mt(key, language, **values), key, values)
 
+    user_values: Optional[dict] = None       # values to show the user instead (see check_request)
+
     def user_text(self) -> str:
         if self.key is None:
             return str(self)
         from anchor.i18n import get_language
-        return mt(self.key, get_language(), **self.values)
+        return mt(self.key, get_language(), **{**self.values, **(self.user_values or {})})
 
 
 @dataclass
@@ -235,6 +240,26 @@ def request_values(request: str) -> list[str]:
     return list(dict.fromkeys(v.strip() for v in found if v.strip()))
 
 
+_SEND = _re.compile(r"\b(envi\w*|send\w*)\s+(\w+\s+){0,2}?(arquivos?|documentos?|curr[ií]culos?|comprovantes?|fotos?|"
+                   r"imagens?|anexos?|recibos?|notas?|boletos?|certid\w+|contratos?|files?|documents?|resumes?|cvs?|photos?|"
+                   r"pictures?|attachments?|proofs?|receipts?|invoices?|certificates?|contracts?)\b", _re.IGNORECASE)
+
+
+_QUESTION = _re.compile(r"^\s*(qual|quais|quanto|quantos|quantas|quando|onde|quem|o\s+que|what|which|"
+                       r"how\s+(?:much|many|long)|when|where|who)\b", _re.IGNORECASE)
+
+
+def is_question(request: str) -> bool:
+    """A question ("qual foi a receita total?", "what is the response time?"), not an order."""
+    return request.strip().endswith("?") or bool(_QUESTION.search(request))
+
+
+def _sends_only_files(request: str) -> bool:
+    """Is every "send" in the request followed, within two words, by a file ("envie o comprovante")?"""
+    sends = _re.findall(r"\b(?:envi\w*|send\w*)\b", request, _re.IGNORECASE)
+    return bool(sends) and len(_SEND.findall(request)) == len(sends)
+
+
 def check_request(steps: list[Step], goals: list[Goal], request: str,
                   language: str = DEFAULT_PROMPT_LANGUAGE) -> None:
     from anchor.engine.element_resolver.tokenizer import expand_actions, normalize_tokens, tokenize
@@ -250,7 +275,7 @@ def check_request(steps: list[Step], goals: list[Goal], request: str,
     # Neither a goal's description ("vaga salva") nor a fill counts.
     concluding_words = set()
     for s in steps:
-        if s.action in ("click", "press"):
+        if s.action in ("click", "press", "download"):     # a download is a click that saves a file
             concluding_words |= words(s.description)
         # Pressing Enter in a field is a search, whatever the field is called ("Type a coin").
         if s.action == "press" and (s.value or "").strip().lower() == "enter":
@@ -263,7 +288,28 @@ def check_request(steps: list[Step], goals: list[Goal], request: str,
             continue
         equivalents = forms | expand_actions(forms)
         if not equivalents & concluding_words:
-            raise PlanError.of("plan.missing_verb", language, verb=verb)
+            # "envie o comprovante" (send a file) is done by the upload, as long as every "send"
+            # in the request is about a file: "anexe o currículo e envie a candidatura" still
+            # needs the click on the send button.
+            if verb in ("enviar", "send") and any(s.action == "upload" for s in steps) and _sends_only_files(request):
+                continue
+            # The model gets the verb as listed (unchanged, so retries see the same message); the
+            # user sees it as they wrote it ("download", not "baixar").
+            error = PlanError.of("plan.missing_verb", language, verb=verb)
+            written = next((w for w in _re.findall(r"\w+", request) if words(w) & forms), verb)
+            error.user_values = {"verb": written.lower()}
+            raise error
+
+    # A question needs an answer: some step must read it. (The models opened the page with the
+    # answer, or another page, and stopped there.)
+    reads = any(s.action in ("extract_text", "extract_table", "download") for s in steps)
+    if is_question(request) and not reads:
+        raise PlanError.of("plan.missing_answer", language)
+    # The same for a request for the data back ("exporte a tabela"): the 4B model clicked
+    # "Imprimir relatório" and was done, with nothing read.
+    from .reading import asks_for_data
+    if asks_for_data(request) and not reads:
+        raise PlanError.of("plan.missing_reading", language)
 
     plan_text = " ".join(f"{s.description} {s.value or ''}" for s in steps)
     plan_digits = _re.sub(r"\D", "", plan_text)
@@ -297,16 +343,17 @@ def _tokens(text: str) -> set[str]:
 def check_values_from_request(steps: list[Step], sources: list[str],
                               language: str = DEFAULT_PROMPT_LANGUAGE) -> None:
     """
-    What a plan types (fill) must come from the request (or the user's notes), never from the
-    page: a page may try to make the agent type data it chose, such as an attacker's e-mail.
+    What a plan types (fill) or uploads (upload) must come from the request (or the user's notes),
+    never from the page or the model: a page may try to make the agent type data it chose, such as
+    an attacker's e-mail, and the model must never choose a file from the user's computer.
     A value is accepted if, ignoring case, accents and punctuation, it is part of the sources,
     or all its words are in them.
     """
     text = " ".join(s for s in sources if s)
     flat, words = _alnum(text), _tokens(text)
     for i, step in enumerate(steps, 1):
-        if step.action != "fill" or not step.value:
-            continue
+        if step.action not in ("fill", "upload") or not step.value:
+            continue                    # (a file to upload too: the model never picks one)
         value = step.value
         if _alnum(value) and (_alnum(value) in flat or _tokens(value) <= words):
             continue

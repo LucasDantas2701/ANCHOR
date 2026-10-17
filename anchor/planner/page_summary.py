@@ -76,7 +76,44 @@ def page_elements(resolver: ElementResolver, limit: int = 80, request: str | Non
             lines.append(line)
         if len(lines) >= limit:
             break
-    return lines
+    # The tables and lists, only for a request about reading data (see reading.py).
+    from .reading import wants_data
+    return lines + (_tables(resolver, language) + _value_texts(resolver, language) if wants_data(request) else [])
+
+
+def _value_texts(resolver: ElementResolver, language: str) -> list[str]:
+    """
+    The page's short texts with a value, for a request about reading: the planner only sees
+    interactive elements and tables otherwise, and could not ask for "Receita total: R$ 182.400".
+    """
+    from anchor.engine.tables import value_texts
+    return [mt("summary.text", language, text=without_instructions(text)[:80])
+            for text in value_texts(resolver.page) if not looks_like_instruction(text)]
+
+
+def _tables(resolver: ElementResolver, language: str, limit: int = 6) -> list[str]:
+    """
+    One line per table or list on the page, at the end, so the planner can name them in
+    extract_table. Pages without tables get nothing here, and their summary does not change.
+    Names come from the page, so the ones that look like instructions are left out.
+    """
+    from anchor.engine.tables import find_tables
+    try:
+        tables = find_tables(resolver.page)
+    except Exception:
+        return []
+    out = []
+    for t in tables[:limit]:
+        name = t.label()
+        if not name or looks_like_instruction(name):
+            name = mt("summary.untitled", language)
+        name = without_instructions(name)[:60]
+        if t.kind == "list":
+            out.append(mt("summary.list", language, name=name, rows=len(t.rows)))
+        else:
+            columns = " | ".join(c for c in t.columns[:8] if not looks_like_instruction(c))
+            out.append(mt("summary.table", language, name=name, columns=columns, rows=len(t.rows)))
+    return out
 
 
 def _safe_name(name: str, record: dict, language: str) -> str:

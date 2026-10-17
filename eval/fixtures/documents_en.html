@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>My documents</title>
+<style>body{font-family:sans-serif} .doc{border:1px solid #ccc;margin:8px;padding:8px;max-width:520px}</style></head>
+<body>
+<h1>Account documents</h1>
+<p>Files generated on 09/30/2026</p>
+<div class="doc"><h2>Sales report — September</h2>
+  <button id="report" onclick="save('sales-report.csv','text/csv','Region,Revenue\nNorth,61800\nSouth,25700\n')">Download sales report</button></div>
+<div class="doc"><h2>Service contract</h2>
+  <button id="contract" onclick="save('service-contract.pdf','application/pdf','%PDF-1.4\n% ANCHOR test contract\n%%EOF\n')">Download contract</button></div>
+<p><a id="privacy" href="privacy.html">View privacy policy</a></p>
+<p><button id="app">Download the app</button></p>
+<script>
+  // A real download, made in the page (no server): a link with the download attribute.
+  function save(name, type, text) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text.replace(/\\n/g, "\n")], {type}));
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  }
+</script>
+<script src="feedback.js"></script>
+</body></html>

@@ -1,0 +1,253 @@
+{
+  "_readme": "New tabs suite (version 0.4): links and buttons that open a new tab (target=_blank, window.open). The checks run on the tab the agent ended in: three tasks need the agent to follow the new tab; the last one is a plain link that must not leave the first tab. Needs --agent (the plan mode does not follow tabs).",
+  "tasks": [
+    {
+      "id": "t-tab-01",
+      "split": "dev",
+      "language": "pt",
+      "suite": "tabs",
+      "fixture": "help.html",
+      "request": "abra o formulário de suporte e preencha o nome Ana Souza",
+      "checks": [
+        "location.pathname.endsWith('/support_form.html')",
+        "document.getElementById('name')?.value === 'Ana Souza'"
+      ],
+      "allowed": [
+        "#open-form",
+        "#name"
+      ],
+      "reference": [
+        [
+          "click",
+          "Abrir formulário de suporte",
+          null
+        ],
+        [
+          "fill",
+          "Nome",
+          "Ana Souza"
+        ]
+      ]
+    },
+    {
+      "id": "t-tab-02",
+      "split": "dev",
+      "language": "pt",
+      "suite": "tabs",
+      "fixture": "help.html",
+      "request": "abra o formulário de suporte, preencha o nome Ana Souza e o e-mail ana@exemplo.com e envie a mensagem",
+      "checks": [
+        "location.pathname.endsWith('/support_form.html')",
+        "document.getElementById('name')?.value === 'Ana Souza'",
+        "document.getElementById('email')?.value === 'ana@exemplo.com'",
+        "document.body.dataset.sent === '1'"
+      ],
+      "allowed": [
+        "#open-form",
+        "#name",
+        "#email",
+        "#send"
+      ],
+      "reference": [
+        [
+          "click",
+          "Abrir formulário de suporte",
+          null
+        ],
+        [
+          "fill",
+          "Nome",
+          "Ana Souza"
+        ],
+        [
+          "fill",
+          "E-mail",
+          "ana@exemplo.com"
+        ],
+        [
+          "click",
+          "Enviar mensagem",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "t-tab-03",
+      "split": "dev",
+      "language": "pt",
+      "suite": "tabs",
+      "fixture": "help.html",
+      "request": "qual é o prazo de resposta da política de atendimento?",
+      "checks": [
+        "location.pathname.endsWith('/policy.html')"
+      ],
+      "allowed": [
+        "#open-policy"
+      ],
+      "reference": [
+        [
+          "click",
+          "Ver política de atendimento",
+          null
+        ],
+        [
+          "extract_text",
+          "Respondemos todas as mensagens",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "text",
+          "contains": "48 horas"
+        }
+      ]
+    },
+    {
+      "id": "t-tab-04",
+      "split": "dev",
+      "language": "pt",
+      "suite": "tabs",
+      "fixture": "help.html",
+      "request": "abra as perguntas frequentes",
+      "checks": [
+        "location.pathname.endsWith('/help.html')",
+        "__clicked('#faq')"
+      ],
+      "allowed": [
+        "#faq"
+      ],
+      "reference": [
+        [
+          "click",
+          "Perguntas frequentes",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "en-t-tab-01",
+      "split": "dev",
+      "language": "en",
+      "suite": "tabs",
+      "fixture": "help_en.html",
+      "request": "open the support form and fill in the name Ana Souza",
+      "checks": [
+        "location.pathname.endsWith('/support_form_en.html')",
+        "document.getElementById('name')?.value === 'Ana Souza'"
+      ],
+      "allowed": [
+        "#open-form",
+        "#name"
+      ],
+      "reference": [
+        [
+          "click",
+          "Open support form",
+          null
+        ],
+        [
+          "fill",
+          "Name",
+          "Ana Souza"
+        ]
+      ]
+    },
+    {
+      "id": "en-t-tab-02",
+      "split": "dev",
+      "language": "en",
+      "suite": "tabs",
+      "fixture": "help_en.html",
+      "request": "open the support form, fill in the name Ana Souza and the e-mail ana@example.com and send the message",
+      "checks": [
+        "location.pathname.endsWith('/support_form_en.html')",
+        "document.getElementById('name')?.value === 'Ana Souza'",
+        "document.getElementById('email')?.value === 'ana@example.com'",
+        "document.body.dataset.sent === '1'"
+      ],
+      "allowed": [
+        "#open-form",
+        "#name",
+        "#email",
+        "#send"
+      ],
+      "reference": [
+        [
+          "click",
+          "Open support form",
+          null
+        ],
+        [
+          "fill",
+          "Name",
+          "Ana Souza"
+        ],
+        [
+          "fill",
+          "E-mail",
+          "ana@example.com"
+        ],
+        [
+          "click",
+          "Send message",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "en-t-tab-03",
+      "split": "dev",
+      "language": "en",
+      "suite": "tabs",
+      "fixture": "help_en.html",
+      "request": "what is the response time in the service policy?",
+      "checks": [
+        "location.pathname.endsWith('/policy_en.html')"
+      ],
+      "allowed": [
+        "#open-policy"
+      ],
+      "reference": [
+        [
+          "click",
+          "View service policy",
+          null
+        ],
+        [
+          "extract_text",
+          "We answer every message",
+          null
+        ]
+      ],
+      "extraction": [
+        {
+          "kind": "text",
+          "contains": "48 business hours"
+        }
+      ]
+    },
+    {
+      "id": "en-t-tab-04",
+      "split": "dev",
+      "language": "en",
+      "suite": "tabs",
+      "fixture": "help_en.html",
+      "request": "open the frequently asked questions",
+      "checks": [
+        "location.pathname.endsWith('/help_en.html')",
+        "__clicked('#faq')"
+      ],
+      "allowed": [
+        "#faq"
+      ],
+      "reference": [
+        [
+          "click",
+          "Frequently asked questions",
+          null
+        ]
+      ]
+    }
+  ]
+}

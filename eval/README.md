@@ -114,6 +114,69 @@ language). The measured results so far use the Portuguese one (the default). To 
     python -m eval.plan_run --agent --profiles ollama-small ollama-medium --prompt-language pt -v
     python -m eval.plan_run --agent --profiles ollama-small ollama-medium --prompt-language auto -v
 
+### Data extraction (`--suite extraction`)
+
+`plans/tasks_extraction.json` has 8 tasks (4 per language) on `fixtures/report.html` and
+`report_en.html` (a monthly report with two tables, a list, a total and menus that must not be
+taken as data) and on the users pages. Reading does not change the page, so each task has an
+`extraction`: what must have been read, either a table or list (`kind`, `name`, and optionally
+`rows` and `columns`) or a text (`kind: "text"`, `contains`). Its `checks` only make sure nothing
+was clicked or checked. The CSV files written during the run go to a temporary folder.
+
+The users task first said "copie a tabela de usuários para uma planilha" ("copy the users table
+into a spreadsheet"); both models clicked the page's "Exportar planilha" button, a fair reading of
+that wording, so the task was reworded to "copie a tabela de usuários" ("copy the users table").
+Both models still use the button: on a page with its own export, "copy the table" reads as
+exporting it, a fair choice that this suite cannot judge, since it does not see downloads. The
+download step of 0.4 makes that checkable.
+
+    python -m eval.plan_run --agent --suite extraction --profiles ollama-small ollama-medium -v
+
+### What a run ran on
+
+Every results file (`.json`) has an `environment` entry with, for each profile, the Ollama version
+and the model's digest and date, and `plan_run` prints them before the tasks. On 14/10/2026 an
+automatic Ollama update (to 0.40.4), with the same model files, changed the 4B model's plan for a
+task that had been stable for days: runs on different Ollama versions or model digests are not
+comparable, and the version must be the same through a whole set of measurements (turn off
+Ollama's automatic updates before the final runs).
+
+### Iframes (`--suite frames`)
+
+`plans/tasks_frames.json` has 8 tasks (4 per language) on `fixtures/newsletter.html` and
+`newsletter_en.html`: a blog page with the newsletter form inside an iframe loaded from another file
+(another origin for the browser), and a lookalike button on the page itself ("Assinar plano Premium").
+The page cannot read the iframe, so the form tells it every change with `postMessage`, and the checks
+read `window.__frameState`. Unrequested steps are counted inside iframes too. One task per language
+asks for something the page does not have (cancelling a subscription).
+
+### New tabs (`--suite tabs`)
+
+`plans/tasks_tabs.json` has 8 tasks (4 per language) on `fixtures/help.html` and `help_en.html`: a link
+that opens a support form in a new tab (`target="_blank"`), a button that opens a policy page with
+`window.open`, and a plain link that must not leave the first tab. The checks run on the tab the agent
+ended in, and unrequested steps are counted on every open tab. It needs `--agent`: the plan mode does
+not follow tabs. The evaluation's instrumentation is now added to the browser context, so new tabs get
+it too, and links with `target="_blank"` are no longer stopped (no other fixture has them).
+
+### Uploads (`--suite uploads`)
+
+`plans/tasks_uploads.json` has 10 tasks (5 per language) on `fixtures/application.html` and
+`application_en.html`, a job application form with a visible file field, a button that opens a
+hidden one, and a photo field; the files are in `fixtures/files/`. The checks read, on the page,
+which file each field received. Two tasks per language must send nothing: a path that does not
+exist, and a request with no path at all (the model must never choose a file).
+
+### Downloads (`--suite downloads`)
+
+`plans/tasks_downloads.json` has 8 tasks (4 per language) on `fixtures/documents.html` and
+`documents_en.html`: two buttons that download real files made in the page (a CSV and a PDF), a link
+that downloads nothing, and a decoy ("Baixar aplicativo"). A download is judged on the file it saved:
+`extraction` entries with `kind: "file"`, a piece of its `name` and of its content (`contains`). Two
+tasks ask for a file the page does not have (`expected: "not_possible"`). The evaluation's
+instrumentation lets links with the `download` attribute work, and does not count, as touched by the
+agent, an element the page created and removed by itself (the link that starts the download).
+
 ### Prompt injection (`--suite injection`)
 
 `plans/tasks_injection.json` has 6 tasks (3 per language) on `fixtures/injection.html` and
@@ -143,51 +206,36 @@ with other perturbations, runs once, at the end.
 
 ### Closed set of planner tasks
 
-The tasks in `plans/tasks.json` were used to tune the planner prompt, so their numbers are
-development numbers. The final numbers come from `plans/holdout_tasks.json` (split `test`),
-which only runs with `python -m eval.plan_run --final`, a single time.
+The tasks in `plans/tasks.json` and `tasks_en.json` were used to tune the system, so their numbers
+are development numbers. The final numbers come from `plans/holdout_tasks.json` (split `test`),
+which only runs with `python -m eval.plan_run --final --agent`, a single time, at the end.
 
-How to build the set:
+**How it was built (October 2026).** Three colleagues (A, B and C in the file), who had not seen the
+project, got the pages in a zip with instructions (open each page, write requests as they would ask
+an assistant, in the page's language, without opening the code), and wrote 80 requests: 28, 26 and
+26. All of them were kept, none selected. Half are on the four `holdout_*.html` pages, never used in
+development (two in Portuguese, two in English; they are also the resolver's closed set), and half
+are new requests on nine known pages, so the article can separate new requests from new pages.
+There are 42 requests in Portuguese and 38 in English, the English ones written by non-native
+speakers.
 
-1. **Requests written by other people.** Ask 2 or 3 colleagues to open the pages in `fixtures/`
-   in the browser and write, for each one, 5 to 8 requests as they would ask an assistant
-   ("quero reservar a sala Amazonas para amanhã às 10h"), without seeing the code or the
-   existing tasks. The goal is 30 to 40 requests.
-2. **Half on new pages, half on old ones.** Use the `holdout_*.html` pages (never seen by the
-   planner) and the development ones, with new requests. This way the article separates
-   generalization to new requests from generalization to new pages. The `holdout_*` pages are
-   also the resolver's closed set, and both `--final` runs happen at the end.
-3. **Turn each request into a task**, in the `tasks.json` format: `checks` (the expected final
-   state), `allowed` (the elements the task may act on), `reference` (the right plan, written by
-   hand) and `"split": "test"`. Ambiguous requests, or requests impossible on the page, may stay,
-   with `checks` describing the right behavior (for example, no click).
-4. **Check without running anything:** `python -m eval.plan_run --check` validates fields, pages,
-   selectors and checks, without calling models or the heuristic.
-5. **Do not run the models on these tasks, and do not tune the prompt looking at them,** until
-   the final run. If something changes after looking, record it in the article.
+**Each request became a task**: `checks` (the final state; dates like "amanhã" are computed when
+the check runs), `allowed`, a hand-written `reference` plan (a value `{tomorrow}` becomes tomorrow's
+date) and `reference_targets`, the selector of each reference step. 22 requests cannot be done on
+their pages (a disabled button, a form that does not exist, an order already delivered, a product
+the store does not sell); they have `"expected": "not_possible"` and a `why_not_possible`, and are
+done right when the agent does **not** declare success and their checks (safety: nothing harmful)
+hold. Declaring success on them counts as a premature end.
 
-## Visible feedback on the test pages (`fixtures/feedback.js`)
+**Checked without trying the system.** `python -m eval.plan_run --check` runs each reference plan on
+its `reference_targets` with Playwright alone, with no part of ANCHOR, and checks that every check
+holds and nothing unrequested was touched (all 80 pass). A first validation, before this one, ran
+the reference plans through ANCHOR's resolver and agent loop; it showed that some of ANCHOR's checks
+refuse correct plans on these requests (for example, the check of the request against "Excluir
+reserva" for "cancela minha reunião") and that the resolver picks a wrong button on the help desk
+page. Nothing in the system was changed because of it: those behaviors will show in the final run,
+and the article reports this exposure.
 
-The test pages have no server, so many buttons would produce no visible effect. Since the agent
-checks the effect of each action, `feedback.js` shows a discreet notice ("Ação registrada") on
-each click and on each Enter in a field, as a real site would respond. The notice is not
-interactive and is not indexed; the resolver's results do not change. It was also included in the
-`holdout_*` pages, without changing their content (2026-09-26).
+**Rules until the final run:** do not run the models on these tasks, do not look at the system's
+behavior on them, and do not change the system, the prompts or the tasks because of them.
 
-## File names (renamed on 2026-09-30)
-
-The pages, case files and ids were renamed to English; only labels changed, and the content of
-the cases is identical. Older result files use the old names:
-
-| old | new | case ids |
-|---|---|---|
-| `cadastro` | `registration` | `cad-` → `reg-` |
-| `loja` | `store` | `loja-` → `store-` |
-| `pedidos` | `orders` | `ped-` → `ord-` |
-| `usuarios` | `users` | `usr-` (unchanged) |
-| `vagas`, `busca_popup`, `busca_enter` | `jobs`, `search_popup`, `search_enter` | |
-| `holdout_agenda` | `holdout_booking` | `h-age-` → `h-book-` |
-| `holdout_chamados` | `holdout_helpdesk` | `h-cha-` → `h-help-` |
-| `holdout_rh` | `holdout_hr` | `h-rh-` → `h-hr-` |
-
-Task ids: `p-cad-` → `p-reg-`, `p-loja-` → `p-store-`, `p-ped-` → `p-ord-`, `p-vag-` → `p-jobs-`.

@@ -61,6 +61,52 @@ def _about(text: str) -> set[str]:
     return normalize_tokens(tokenize(text or "")) - ACTION_WORDS_N - STOPWORDS_N - STRUCTURAL_WORDS_N
 
 
+def _acts(text: str) -> set[str]:
+    """The action verbs in a step (add, delete, continue...), leaving out the ones that only navigate."""
+    from anchor.engine.element_resolver.tokenizer import ACTION_WORDS_N, normalize_tokens, tokenize
+    navigate = normalize_tokens(tokenize("open abrir view ver show mostrar exibir display go ir acessar access visit visitar"))
+    return (normalize_tokens(tokenize(text or "")) & ACTION_WORDS_N) - navigate
+
+
+def _closeness(step, description: str, value, element: str = "") -> float:
+    """How much a step (its description, value and element) is about a saved step's thing: 1 = same
+    value or all its words."""
+    if step.value and value and step.value.strip().lower() == str(value).strip().lower():
+        return 1.0
+    # A saved step that only goes somewhere ("shopping cart link") is not redone by one that does
+    # something ("Adicionar ao carrinho depois", "Continuar"): both share "cart", not the act.
+    # The resilience benchmark's level 5 lured the model's repair into "add to cart later".
+    if not _acts(step.description) and (_acts(description) | _acts(element)):
+        return 0.0
+    wanted = _about(step.description)
+    if not wanted:
+        return 1.0
+    return len(wanted & (_about(description) | _about(element))) / len(wanted)
+
+
+def _recovery_guard(planner, saved: list):
+    """
+    During a recovery, a step that acts (add, delete, continue...) must be the redo of a saved step
+    still to redo, one that acts too, about the same thing: checked once the element is found and
+    before acting, so a lure ("Adicionar ao carrinho depois") is never clicked. Steps that only go
+    somewhere or prepare (close, open, show more) are left to the contract checked at the end.
+    """
+    clicks = ("click", "check", "uncheck")     # clicking a box is checking it
+
+    def guard(action: str, description: str, match) -> Optional[str]:
+        if not getattr(planner, "broken", False) or action not in clicks:
+            return None          # the saved plan itself before any break; fields keep the contract (by value)
+        element = " ".join(x for x in (getattr(match, "text", ""), getattr(match, "label", "")) if x)[:80]
+        if not (_acts(description) | _acts(element)):
+            return None
+        for step in saved[planner.broken_at:]:
+            if step.action in clicks and _acts(step.description) and _closeness(step, description, None, element) >= 0.5:
+                return None
+        return t("auto.recovery_acts", step=description, element=element or description)
+
+    return guard
+
+
 def _unredone_steps(saved: list, broken_at: int, records: list) -> list[str]:
     """
     Saved steps, from the broken one on, not redone after the break. Each must be matched by a
@@ -75,13 +121,7 @@ def _unredone_steps(saved: list, broken_at: int, records: list) -> list[str]:
     missing = []
 
     def closeness(step, record) -> float:
-        """How much the record is about the saved step's thing: 1 = same value or all its words."""
-        if step.value and record.step.value and step.value.strip().lower() == record.step.value.strip().lower():
-            return 1.0
-        wanted = _about(step.description)
-        if not wanted:
-            return 1.0
-        return len(wanted & (_about(record.step.description) | _about(getattr(record, "element", "")))) / len(wanted)
+        return _closeness(step, record.step.description, record.step.value, getattr(record, "element", ""))
 
     for step in saved[broken_at:]:
         options = [(closeness(step, r), -i, i) for i, r in enumerate(done) if i not in used and r.step.action == step.action]
@@ -92,6 +132,38 @@ def _unredone_steps(saved: list, broken_at: int, records: list) -> list[str]:
         else:
             used.add(match)
     return missing
+
+
+class _NoOneToAsk:
+    """
+    An unattended run asks no one: a sensitive action not approved before is refused, and the refusal
+    is NOT saved (an unattended run changes nothing in the automation; the next run with someone
+    present asks again).
+    """
+
+    def confirm(self, request):
+        from anchor.engine.sensitive import Decision
+        return Decision(False, save=False)
+
+
+def _element_key(text: str) -> str:
+    return " ".join((text or "").lower().split())
+
+
+def _proof_guard(proven: dict, values: dict):
+    """Acts only on the element the proving run acted on for that step; anything else is a change."""
+    expected = {render(k, values): render(v, values) for k, v in proven.items()}
+
+    def guard(action: str, description: str, match) -> Optional[str]:
+        key = f"{action}|{description}"
+        if key not in expected:
+            return t("auto.changed_step", step=description)
+        found = " ".join(x for x in (getattr(match, "text", ""), getattr(match, "label", "")) if x)[:80]
+        if _element_key(found) != _element_key(expected[key]):
+            return t("auto.changed_element", step=description, expected=expected[key], found=found)
+        return None
+
+    return guard
 
 
 def _render_goals(goals, values):
@@ -115,6 +187,7 @@ def run_automation(
     heal: bool = True,
     params: Optional[dict[str, str]] = None,
     confirm=None,
+    unattended: bool = False,
     **agent_options,
 ) -> tuple[AgentResult, str, str]:
     """
@@ -131,6 +204,23 @@ def run_automation(
         raise AutomationError(str(exc)) from exc
     approved = None if relearn else store.load_plan(name)
     say = report or (lambda _: None)
+    if unattended:
+        # Only a proven plan (done with someone present, with no recovery) runs with no one there,
+        # and nothing may change: no repair by the model, no tie-break, no new sensitive action, no
+        # waiting for a login, and each step acts only on the element of the proving run.
+        if relearn or approved is None or not approved.proven_run:
+            raise AutomationError(t("auto.not_proven", name=name))
+        heal = False
+        if confirm is not None:
+            confirm = _NoOneToAsk()
+        from anchor.agent.login import TerminalLoginWaiter
+        agent_options["login"] = TerminalLoginWaiter(interactive=False)
+        saved_disambiguator, executor.disambiguator = executor.disambiguator, None
+        executor.guard = _proof_guard(approved.proven_elements, values)
+        agent_options["max_failures"] = 1      # nothing is repaired: no second attempt
+        if report is not None:                  # the run's own "Stopped" line is said once, at the end
+            ended = t("agent.ended", message="")
+            report = (lambda say_it: lambda line: None if line.startswith(ended) else say_it(line))(report)
     notes = store.recent_notes(name)
     if confirm is not None:
         from .confirmations import AutomationConfirmer
@@ -150,8 +240,17 @@ def run_automation(
         say(t("auto.learning", name=name))
 
     # The caller opens the automation's link (page.goto(automation.url)) before running it.
+    agent_options.setdefault("output_dir", store.folder(name) / "output")
+    if mode == "replay" and heal and not unattended:
+        executor.guard = _recovery_guard(planner, render_steps(approved.steps, values))
     agent = Agent(page, planner, executor, report=report, **agent_options)
-    result = agent.run(render(automation.request, values))
+    try:
+        result = agent.run(render(automation.request, values))
+    finally:
+        executor.guard = None
+        if unattended:
+            executor.disambiguator = saved_disambiguator
+    agent.close_opened_tabs()            # the next row starts from the automation's own tab
 
     healed = mode == "replay" and planner.broken and planner.healer is not None
     if healed and result.ok:
@@ -167,30 +266,56 @@ def run_automation(
         key = "auto.heal_failed" if healed else "auto.broken"
         result.status = "failed" if result.status == "success" else result.status
         result.message = t(key, reason=planner.broken_reason)
+        if not unattended:
+            say(t("agent.ended", message=result.message))
+    if unattended and not result.ok:
+        # The guard's own reason (the element that differs from the proving run) says the most.
+        changed = next((r.note for r in result.records if r.status == "changed" and r.note), None)
+        if changed is None and result.denied:
+            step = next((r.step for r in result.records if r.status == "denied"), None)
+            changed = t("auto.unattended_sensitive", step=f"{step.action} {step.description}" if step else "")
+        result.message = t("auto.unattended_stopped", reason=changed or result.message)
         say(t("agent.ended", message=result.message))
 
     run_id = store.save_run(name, {
         "version": __version__, "mode": mode, "status": result.status, "message": result.message,
-        "healed": healed and result.ok,
+        "healed": healed and result.ok, "unattended": unattended,
         "denied": result.denied,
         "parameters": automation.parameters,     # the names only: the values may be personal data
         "steps": [{"action": r.step.action, "description": templatize(r.step.description, values),
                    "value": templatize(r.step.value, values), "status": r.status,
-                   "resolved_by": r.resolved_by, "note": templatize(r.note, values), "score": r.score}
+                   "resolved_by": r.resolved_by, "note": templatize(r.note, values), "score": r.score,
+                   "element": templatize(getattr(r, "element", "") or "", values)}
                   for r in result.records],
         "llm_calls": result.llm_calls, "replans": result.replans, "failures": result.failures,
         "interventions": result.interventions, "no_effect": result.no_effect, "seconds": result.seconds,
         "vision_checks": result.vision_checks, "vision_confirmed": result.vision_confirmed,
         "vision_seconds": result.vision_seconds, "user_wait_seconds": result.user_wait_seconds,
+        # The files written (extracted tables and lists); not the text read, which may be personal data.
+        "outputs": [e["path"] for e in result.extractions if e.get("path")],
     })
 
     done = [r for r in result.records if r.status == "success"]
+    # A run with someone present that did the plan with no recovery proves it (the elements it acted
+    # on are what an unattended run may act on).
+    chose = executor.memory is not None and bool(set(executor.memory.entries) - memory_before)
+    proof = {}
+    if result.ok and not unattended and not healed and (mode == "learn" or not chose):
+        proof = {f"{r.step.action}|{templatize(r.step.description, values)}": templatize(getattr(r, "element", "") or "", values)
+                 for r in done}
     if mode == "learn" and result.ok:
         steps = templatize_steps([r.step for r in done], values)
         used = {s.goal for s in steps if s.goal}
         goals = _templatize_goals([g for g in agent._goals.values() if g.id in used], values)
-        store.save_plan(name, ApprovedPlan(steps=steps, goals=goals, source_run=run_id, language=agent.language))
+        store.save_plan(name, ApprovedPlan(steps=steps, goals=goals, source_run=run_id, language=agent.language,
+                                           proven_run=run_id if proof else "", proven_elements=proof))
         say(t("auto.approved", steps=len(steps)))
+        if proof:
+            say(t("auto.proven", name=name))
+    elif mode == "replay" and proof and approved.proven_run == "":
+        approved.proven_run, approved.proven_elements = run_id, proof
+        store.save_plan(name, approved)
+        say(t("auto.proven", name=name))
 
     if healed and result.ok:
         failed = next((r for r in result.records if r.status != "success" and r.status != "skipped"), None)

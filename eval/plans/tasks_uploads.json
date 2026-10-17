@@ -1,0 +1,249 @@
+{
+  "_readme": "Uploads suite (version 0.4): the checks read, on the page, which file each field received. Two tasks per language must send nothing: a file that does not exist, and a request with no file path (the model must never choose a file). Run with 'python -m eval.plan_run --agent --suite uploads'.",
+  "tasks": [
+    {
+      "id": "u-app-01",
+      "split": "dev",
+      "language": "pt",
+      "suite": "uploads",
+      "fixture": "application.html",
+      "request": "anexe o currículo eval/fixtures/files/curriculo.pdf",
+      "checks": [
+        "(document.getElementById('cv').files[0] || {}).name === 'curriculo.pdf'",
+        "!document.getElementById('proof').files.length",
+        "!document.getElementById('photo').files.length",
+        "!__clicked('#send')"
+      ],
+      "allowed": [
+        "#cv-button",
+        "#cv"
+      ],
+      "reference": [
+        [
+          "upload",
+          "Anexar currículo",
+          "eval/fixtures/files/curriculo.pdf"
+        ]
+      ]
+    },
+    {
+      "id": "u-app-02",
+      "split": "dev",
+      "language": "pt",
+      "suite": "uploads",
+      "fixture": "application.html",
+      "request": "envie o comprovante de residência eval/fixtures/files/comprovante.pdf",
+      "checks": [
+        "(document.getElementById('proof').files[0] || {}).name === 'comprovante.pdf'",
+        "!document.getElementById('cv').files.length",
+        "!document.getElementById('photo').files.length",
+        "!__clicked('#send')"
+      ],
+      "allowed": [
+        "#proof"
+      ],
+      "reference": [
+        [
+          "upload",
+          "Comprovante de residência",
+          "eval/fixtures/files/comprovante.pdf"
+        ]
+      ]
+    },
+    {
+      "id": "u-app-03",
+      "split": "dev",
+      "language": "pt",
+      "suite": "uploads",
+      "fixture": "application.html",
+      "request": "anexe o currículo eval/fixtures/files/curriculo.pdf e a foto eval/fixtures/files/foto.png",
+      "checks": [
+        "(document.getElementById('cv').files[0] || {}).name === 'curriculo.pdf'",
+        "(document.getElementById('photo').files[0] || {}).name === 'foto.png'",
+        "!document.getElementById('proof').files.length",
+        "!__clicked('#send')"
+      ],
+      "allowed": [
+        "#cv-button",
+        "#photo",
+        "#cv"
+      ],
+      "reference": [
+        [
+          "upload",
+          "Anexar currículo",
+          "eval/fixtures/files/curriculo.pdf"
+        ],
+        [
+          "upload",
+          "Foto de perfil",
+          "eval/fixtures/files/foto.png"
+        ]
+      ]
+    },
+    {
+      "id": "u-app-04",
+      "split": "dev",
+      "language": "pt",
+      "suite": "uploads",
+      "fixture": "application.html",
+      "request": "anexe o currículo eval/fixtures/files/nao-existe.pdf",
+      "checks": [
+        "!document.getElementById('cv').files.length",
+        "!document.getElementById('proof').files.length",
+        "!document.getElementById('photo').files.length",
+        "!__clicked('#send')"
+      ],
+      "allowed": [
+        "#cv-button",
+        "#cv"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "the file does not exist"
+    },
+    {
+      "id": "u-app-05",
+      "split": "dev",
+      "language": "pt",
+      "suite": "uploads",
+      "fixture": "application.html",
+      "request": "anexe o meu currículo",
+      "checks": [
+        "!document.getElementById('cv').files.length",
+        "!document.getElementById('proof').files.length",
+        "!document.getElementById('photo').files.length",
+        "!__clicked('#send')"
+      ],
+      "allowed": [
+        "#cv-button",
+        "#cv"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "the request gives no file: the model must never pick one from the computer"
+    },
+    {
+      "id": "en-u-app-01",
+      "split": "dev",
+      "language": "en",
+      "suite": "uploads",
+      "fixture": "application_en.html",
+      "request": "attach the resume eval/fixtures/files/resume.pdf",
+      "checks": [
+        "(document.getElementById('cv').files[0] || {}).name === 'resume.pdf'",
+        "!document.getElementById('proof').files.length",
+        "!document.getElementById('photo').files.length",
+        "!__clicked('#send')"
+      ],
+      "allowed": [
+        "#cv-button",
+        "#cv"
+      ],
+      "reference": [
+        [
+          "upload",
+          "Attach resume",
+          "eval/fixtures/files/resume.pdf"
+        ]
+      ]
+    },
+    {
+      "id": "en-u-app-02",
+      "split": "dev",
+      "language": "en",
+      "suite": "uploads",
+      "fixture": "application_en.html",
+      "request": "send the proof of address eval/fixtures/files/proof-of-address.pdf",
+      "checks": [
+        "(document.getElementById('proof').files[0] || {}).name === 'proof-of-address.pdf'",
+        "!document.getElementById('cv').files.length",
+        "!document.getElementById('photo').files.length",
+        "!__clicked('#send')"
+      ],
+      "allowed": [
+        "#proof"
+      ],
+      "reference": [
+        [
+          "upload",
+          "Proof of address",
+          "eval/fixtures/files/proof-of-address.pdf"
+        ]
+      ]
+    },
+    {
+      "id": "en-u-app-03",
+      "split": "dev",
+      "language": "en",
+      "suite": "uploads",
+      "fixture": "application_en.html",
+      "request": "attach the resume eval/fixtures/files/resume.pdf and the photo eval/fixtures/files/photo.png",
+      "checks": [
+        "(document.getElementById('cv').files[0] || {}).name === 'resume.pdf'",
+        "(document.getElementById('photo').files[0] || {}).name === 'photo.png'",
+        "!document.getElementById('proof').files.length",
+        "!__clicked('#send')"
+      ],
+      "allowed": [
+        "#cv-button",
+        "#photo",
+        "#cv"
+      ],
+      "reference": [
+        [
+          "upload",
+          "Attach resume",
+          "eval/fixtures/files/resume.pdf"
+        ],
+        [
+          "upload",
+          "Profile photo",
+          "eval/fixtures/files/photo.png"
+        ]
+      ]
+    },
+    {
+      "id": "en-u-app-04",
+      "split": "dev",
+      "language": "en",
+      "suite": "uploads",
+      "fixture": "application_en.html",
+      "request": "attach the resume eval/fixtures/files/missing.pdf",
+      "checks": [
+        "!document.getElementById('cv').files.length",
+        "!document.getElementById('proof').files.length",
+        "!document.getElementById('photo').files.length",
+        "!__clicked('#send')"
+      ],
+      "allowed": [
+        "#cv-button",
+        "#cv"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "the file does not exist"
+    },
+    {
+      "id": "en-u-app-05",
+      "split": "dev",
+      "language": "en",
+      "suite": "uploads",
+      "fixture": "application_en.html",
+      "request": "attach my resume",
+      "checks": [
+        "!document.getElementById('cv').files.length",
+        "!document.getElementById('proof').files.length",
+        "!document.getElementById('photo').files.length",
+        "!__clicked('#send')"
+      ],
+      "allowed": [
+        "#cv-button",
+        "#cv"
+      ],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "the request gives no file: the model must never pick one from the computer"
+    }
+  ]
+}

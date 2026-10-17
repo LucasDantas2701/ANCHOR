@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import Any, Callable, Optional
 
 from playwright.sync_api import Page
@@ -24,6 +25,18 @@ from .constants import (
 )
 from .result import ActionResult
 
+_NO_DOWNLOAD = object()
+_NO_FILE_INPUT = object()
+
+
+def _free_path(folder: Path, name: str) -> Path:
+    """folder/name, or folder/name (2), (3)... if taken: a download never overwrites a file."""
+    folder.mkdir(parents=True, exist_ok=True)
+    name = Path(name).name or "download"
+    path, stem, suffix, n = folder / name, Path(name).stem, Path(name).suffix, 2
+    while path.exists():
+        path, n = folder / f"{stem} ({n}){suffix}", n + 1
+    return path
 
 class ActionExecutor:
     """
@@ -101,10 +114,17 @@ class ActionExecutor:
         self.point_timeout_s = point_timeout_s
         self.memory = memory
         self.confirmer = confirmer
+        # Called with (action, description, element) once the element is found and before acting;
+        # a reason it returns stops the action ("changed"). Unattended runs use it to act only on
+        # the elements of the run that proved the automation.
+        self.guard: Optional[Callable] = None
         # When True, filling a password field is refused (status "credential") instead of typed:
         # the agent turns it on, so credentials never go through the model and the user logs in
         # by hand. Off by default, for the resolver's evaluation on test pages.
         self.refuse_passwords = False
+        # Where download() saves files; the agent points it at its output folder.
+        self.download_dir = Path("output")
+        self.expecting_download = False
         # Time spent waiting for the user (disambiguation and confirmations), kept apart so it
         # does not inflate the measured execution time.
         self.user_wait_s = 0.0
@@ -182,7 +202,10 @@ class ActionExecutor:
             if found is not None:
                 remembered, similarity = found
                 # (ActionResult is falsy unless it succeeded: no "or" here.)
-                denied = self._credential(action_name, description, remembered, "memory")
+                # The guard first: a changed element is the reason worth reporting (unattended only).
+                denied = self._guarded(action_name, description, remembered, "memory")
+                if denied is None:
+                    denied = self._credential(action_name, description, remembered, "memory")
                 if denied is None:
                     denied = self._denied(action_name, description, remembered)
                 if denied is not None:
@@ -256,7 +279,10 @@ class ActionExecutor:
         )
 
         # (ActionResult is falsy unless it succeeded: no "or" here.)
-        denied = self._credential(action_name, description, match, resolved_by)
+        # The guard first: a changed element is the reason worth reporting (unattended only).
+        denied = self._guarded(action_name, description, match, resolved_by)
+        if denied is None:
+            denied = self._credential(action_name, description, match, resolved_by)
         if denied is None:
             denied = self._denied(action_name, description, match, resolved_by)
         if denied is not None:
@@ -302,6 +328,16 @@ class ActionExecutor:
             return None
         return ActionResult(status="credential", action=action_name, description=description,
                             selected_element=match, score=match.score, resolved_by=resolved_by)
+
+    def _guarded(self, action_name: str, description: str, match, resolved_by: str = "heuristic"):
+        """The guard's refusal, before acting: status "changed", nothing done."""
+        if self.guard is None:
+            return None
+        reason = self.guard(action_name, description, match)
+        if not reason:
+            return None
+        return ActionResult(status="changed", action=action_name, description=description,
+                            selected_element=match, error=reason, resolved_by=resolved_by)
 
     def _denied(self, action_name: str, description: str, match: Match,
                 resolved_by: str = "memory") -> Optional[ActionResult]:
@@ -537,6 +573,73 @@ class ActionExecutor:
             ),
         )
 
+    def download(
+        self,
+        description: str,
+        timeout_ms: int = 8000,
+    ) -> ActionResult:
+        """
+        Clicks the button or link the description names and waits for the file it downloads,
+        saving it in download_dir with the name the site suggests (never overwriting one).
+        value = {"name", "path", "bytes"}. A click that downloads nothing is "no_download".
+        """
+        from playwright.sync_api import TimeoutError as PlaywrightTimeout
+
+        def act(match: Match):
+            self.expecting_download = True       # this file is saved here, not by a listener
+            try:
+                with self.page.expect_download(timeout=timeout_ms) as info:
+                    match.locator.click()
+            except PlaywrightTimeout:
+                return _NO_DOWNLOAD
+            finally:
+                self.expecting_download = False
+            file = info.value
+            path = _free_path(Path(self.download_dir), file.suggested_filename or "download")
+            file.save_as(str(path))
+            return {"name": path.name, "path": str(path), "bytes": path.stat().st_size}
+
+        result = self._run(description, "download", act)
+        if result.status == "success" and result.value is _NO_DOWNLOAD:
+            result.status, result.value, result.error = "no_download", None, "the click did not download any file"
+        return result
+
+    def upload(
+        self,
+        description: str,
+        value: str,
+        timeout_ms: int = 5000,
+    ) -> ActionResult:
+        """
+        Sends the file at value (a path) through the file field the description names, or
+        through the button that opens the file chooser ("Anexar currículo"). A path that does
+        not exist is "no_such_file", checked before anything on the page is touched; an element
+        that opens no file chooser is "no_file_input".
+        """
+        from playwright.sync_api import TimeoutError as PlaywrightTimeout
+
+        path = Path(str(value).strip().strip("\"'")).expanduser()
+        if not path.is_file():
+            return ActionResult(status="no_such_file", action="upload", description=description,
+                                error=f"file not found: {path}")
+
+        def act(match: Match):
+            if (match.tag or "").lower() == "input" and (match.type or "").lower() == "file":
+                match.locator.set_input_files(str(path))
+                return {"name": path.name, "path": str(path)}
+            try:
+                with self.page.expect_file_chooser(timeout=timeout_ms) as info:
+                    match.locator.click()
+            except PlaywrightTimeout:
+                return _NO_FILE_INPUT
+            info.value.set_files(str(path))
+            return {"name": path.name, "path": str(path)}
+
+        result = self._run(description, "upload", act)
+        if result.status == "success" and result.value is _NO_FILE_INPUT:
+            result.status, result.value, result.error = "no_file_input", None, "the element opened no file chooser"
+        return result
+
     def hover(
         self,
         description: str,
@@ -660,6 +763,29 @@ class ActionExecutor:
             "extract_text",
             lambda match: match.locator.inner_text(),
         )
+
+    def extract_table(
+        self,
+        description: str,
+    ) -> ActionResult:
+        """
+        Reads the table or list the description names (by its caption, title or column
+        headers), whole. value = the TableData. With several that could be it, refuses
+        ("ambiguous") and error lists their names, so the planner can pick one.
+        """
+        from anchor.engine.tables import find_tables, match_table
+
+        tables = find_tables(self.page)
+        table, candidates = match_table(tables, description)
+        if table is not None:
+            return ActionResult(status="success", action="extract_table", description=description, value=table)
+        if not tables:
+            return ActionResult(status="not_found", action="extract_table", description=description,
+                                error="no table or list on the page")
+        names = [t.label() for t in candidates[:6]]
+        return ActionResult(status="ambiguous", action="extract_table", description=description,
+                            value=names, error="more than one table or list could be it: "
+                            + ", ".join(f'"{n}"' for n in names))
 
     def extract_attribute(
         self,

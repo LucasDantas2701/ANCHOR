@@ -21,6 +21,7 @@ from __future__ import annotations
 import re
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Callable, Optional
 
 from playwright.sync_api import Page
@@ -37,7 +38,7 @@ from anchor.i18n import get_language, t
 from anchor.planner import Plan, PlanError, Step, check_request, page_elements, run_step
 from anchor.planner.execute import clean_description, clean_value
 from anchor.planner.language import DEFAULT_PROMPT_LANGUAGE, Reason, mt
-from anchor.planner.untrusted import looks_like_instruction
+from anchor.planner.untrusted import looks_like_instruction, without_instructions
 
 from .effects import EffectWatcher, state_problem
 from .login import password_field, request_has_password, wants_login
@@ -84,6 +85,9 @@ class AgentResult:
     tokens_in: int = 0
     tokens_out: int = 0
     seconds: float = 0.0
+    # What was read: {"kind": "table" | "list" | "text", "description", "name", "rows", "columns",
+    # "path"} for tables and lists (saved as CSV); {"kind": "text", "description", "text"} for texts.
+    extractions: list[dict] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -99,6 +103,89 @@ def describe_step(step: Step) -> str:
     return f"{step.action} {step.description}{value}"
 
 
+# What a visible element is called counts as shown too: aria-label ("Excluir" on an icon button),
+# placeholder ("Search products"), title, alt, a button's value.
+_SHOWN_TEXT_JS = """
+() => {
+  if (!document.body) return '';
+  const names = [];
+  for (const e of document.querySelectorAll('[aria-label], [placeholder], [title], [alt], input[value]')) {
+    const r = e.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden') {
+      for (const a of ['aria-label', 'placeholder', 'title', 'alt', 'value']) if (e.getAttribute(a)) names.push(e.getAttribute(a));
+    }
+  }
+  return document.body.innerText + ' ' + names.join(' ');
+}
+"""
+
+_WINDOWS_JS = """
+(() => {
+  if (window.__anchorWindows !== undefined) return;
+  window.__anchorWindows = 0;
+  const open = window.open;
+  window.open = function (...args) { window.__anchorWindows++; return open.apply(this, args); };
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.closest && e.target.closest('a[target="_blank"]')) window.__anchorWindows++;
+  }, true);
+})();
+"""
+
+
+def _watch_windows(context, page) -> None:
+    """Counts, in the page, the new windows it asks for (window.open, target=_blank links)."""
+    try:
+        if context is not None:
+            context.add_init_script(_WINDOWS_JS)       # pages loaded later (their iframes too)
+        from anchor.engine.frames import evaluate_all
+        evaluate_all(page, _WINDOWS_JS)                # the page already open, and its iframes
+    except Exception:
+        pass
+
+
+def _windows_asked(page) -> int:
+    """New windows asked for, by the page and by its iframes (a button inside one can open a window)."""
+    from anchor.engine.frames import evaluate_all
+    return sum(int(n or 0) for n in evaluate_all(page, "window.__anchorWindows || 0"))
+
+
+def _opener(page):
+    """The tab that opened this one, or None when unknown (links that hide it)."""
+    try:
+        return page.opener()
+    except Exception:
+        return None
+
+
+def _pump(page) -> None:
+    """
+    A minimal call, so Playwright processes the events waiting for it (a tab that opened or closed):
+    in the sync API they are only processed during calls.
+    """
+    try:
+        page.evaluate("1")
+    except Exception:
+        pass
+
+
+def _alive(page) -> bool:
+    """
+    Is the tab still open? is_closed() only reflects what Playwright has processed: on Windows a tab
+    closed by window.close() still read as open until the next call to it. A minimal call settles it.
+    """
+    if page.is_closed():
+        return False
+    try:
+        page.evaluate("1")
+        return True
+    except Exception:
+        return False
+
+
+def _size(n: int) -> str:
+    return f"{n} B" if n < 1024 else f"{n / 1024:.1f} KB" if n < 1024 ** 2 else f"{n / 1024 ** 2:.1f} MB"
+
+
 def user_text(exc: Exception) -> str:
     """An error for the user, in the interface language (plan errors are written for the model)."""
     return exc.user_text() if isinstance(exc, PlanError) else str(exc)
@@ -107,6 +194,21 @@ def user_text(exc: Exception) -> str:
 def failure_reason(result: ActionResult) -> Reason:
     """The failure reason, in words that help the planner try another way."""
     element = result.selected_element
+    if result.status == "changed":                  # an unattended run's guard: the element differs
+        return Reason("why.changed", detail=result.error or "")
+    if result.action == "download" and result.status == "no_download":
+        return Reason("why.no_download")
+    if result.action == "upload" and result.status == "no_file_input":
+        return Reason("why.no_file_input")
+    if result.action == "extract_text" and result.status == "not_found":
+        # A reading the model described in its own words ("the text with the deadline") finds
+        # nothing: tell it to use the page's text as the summary shows it.
+        return Reason("why.no_text")
+    if result.action == "extract_table" and result.status == "not_found":
+        return Reason("why.no_table")
+    if result.action == "extract_table" and result.status == "ambiguous":
+        names = [without_instructions(n)[:60] for n in (result.value or []) if n and not looks_like_instruction(n)]
+        return Reason("why.which_table", names=", ".join(f'"{n}"' for n in names))
     if element is not None and getattr(element, "obscured", False):
         return Reason("why.obscured")
     if result.status == "not_found":
@@ -139,14 +241,24 @@ class Agent:
         verify_effect: bool = True,
         report: Optional[Callable[[str], None]] = print,
         vision=None,
+        output_dir=None,
         login=None,
     ):
         """
+        output_dir: where extracted tables and lists are saved (default: ./output).
         login: whatever asks the user to log in by hand when the task needs it (e.g.
                TerminalLoginWaiter). The agent never types a password; without it, a task that
                needs a login stops.
         """
         self.login = login
+        from pathlib import Path
+        self.output_dir = Path(output_dir) if output_dir is not None else Path("output")
+        executor.download_dir = self.output_dir      # downloads go where extracted tables go
+        self._pending_downloads: list[dict] = []
+        self._just_revealed: Optional[str] = None
+        self._covered_control: Optional[str] = None
+        self._just_declined: Optional[str] = None
+        self._uploaded: set[str] = set()
         self.page = page
         self.planner = planner
         self.executor = executor
@@ -187,6 +299,10 @@ class Agent:
         return lines
 
     def _plan(self, request: str, history: list[str], result: AgentResult) -> Plan:
+        # Every plan (the first, a replan, the end check) reads the page: its tab may have closed
+        # meanwhile (a payment window, after a failed click), so go back first.
+        if hasattr(self, "_context") and not _alive(self.page):
+            self._follow_tabs(history)
         elements = page_elements(self.executor.resolver, request=request, language=self.language)
         context = history + self._context_lines() if history else []
         extra = {"known_goals": set(self._goals)} if self._goals else {}
@@ -335,6 +451,17 @@ class Agent:
 
     def _finish(self, result: AgentResult, status: str, message: str, start: float) -> AgentResult:
         """message: already written in the interface language."""
+        # The download and tab listeners are for this run only; a file that arrived after the last step is kept.
+        try:
+            self.page.remove_listener("download", self._on_download)
+        except Exception:
+            pass
+        try:
+            self._context.remove_listener("page", self._on_new_tab)
+        except Exception:
+            pass
+        if self._pending_downloads:
+            self._keep_pending_downloads(result, result.records[-1].step if result.records else Step("download", "", None))
         if self.vision is not None:
             result.vision_checks = self.vision.checks
             result.vision_seconds = round(self.vision.seconds, 2)
@@ -397,6 +524,98 @@ class Agent:
         about = self._object(description)
         return bool(about) and not about & self._object(request)
 
+    _FILE_WORDS = {"arquivo", "arquivos", "file", "files", "documento", "documentos", "document", "documents"}
+
+    def _wrong_file(self, request: str, step: Step) -> bool:
+        """
+        Would the step download something other than what the request names? ("Baixar relatório
+        de vendas" for "baixe a nota fiscal"), by the download action or by a plain click on a
+        download button. Like the destructive barrier, it compares what the step is about with what
+        the request is about; a request that names nothing passes.
+        """
+        if step.action not in ("download", "click"):
+            return False
+        description = clean_description(step.description)
+        status, found, _ = self.executor._resolve(description, "click")
+        if step.action == "click":
+            # A plain click on a download button also downloads (and keeps) its file.
+            from anchor.engine.sensitive import classify
+            if classify("click", description, getattr(found, "text", "") or "") != "download":
+                return False
+        about = self._object(description + " " + (getattr(found, "text", "") or ""))
+        asked = self._object(request) - self._object(" ".join(self._FILE_WORDS))
+        return bool(about) and bool(asked) and not about & asked
+
+    _ATTACH = re.compile(r"\b(anex\w*|attach\w*|upload\w*|carreg\w*|escolh\w*\s+arquivo|choose\s+file|browse|"
+                         r"selecion\w*\s+arquivo|select\s+file)\b", re.IGNORECASE)
+    _PATH = re.compile(r"[\w./\\:~-]+\.(?:pdf|docx?|xlsx?|csv|txt|png|jpe?g|zip)\b", re.IGNORECASE)
+
+    def _upload_target(self, description: str):
+        """The element for a step, if it is a file field or a button that attaches a file."""
+        status, found, _ = self.executor._resolve(clean_description(description), "click")
+        if found is None:
+            return None
+        is_field = (found.tag or "").lower() == "input" and (found.type or "").lower() == "file"
+        text = f"{description} {found.text or ''} {found.label or ''}"
+        return found if is_field or self._ATTACH.search(text) else None
+
+    def _best_path(self, request: str, about: set[str]) -> Optional[str]:
+        """Among the request's file paths not sent yet, the one whose name matches the field."""
+        paths = [p for p in dict.fromkeys(self._PATH.findall(request)) if p not in self._uploaded]
+        if not paths:
+            return None
+        named = [p for p in paths if self._object(re.sub(r"[._-]", " ", Path(p).stem)) & about]
+        return named[0] if len(named) == 1 else (paths[0] if len(paths) == 1 else None)
+
+    def _as_upload(self, request: str, step: Step) -> Optional[Step]:
+        """
+        A click on a file field, or on an "attach" button, in a request that gives file paths, is
+        an upload of the matching path (the model may plan "click"; the chooser would open with
+        nobody to pick the file). The path still comes only from the request.
+        """
+        if step.action != "click" or not self._PATH.search(request):
+            return None
+        found = self._upload_target(step.description)
+        if found is None:
+            return None
+        path = self._best_path(request, self._object(f"{step.description} {found.text or ''} {found.label or ''}"))
+        return Step("upload", step.description, path, step.goal, step.expect) if path else None
+
+    def _unrequested_submit(self, request: str, step: Step) -> bool:
+        """A click that sends, saves, confirms, pays, exports or prints what the request did not ask for."""
+        if step.action != "click":
+            return False
+        from anchor.engine.sensitive import classify, unrequested, unrequested_print
+        description = clean_description(step.description)
+        status, found, _ = self.executor._resolve(description, "click")
+        name = getattr(found, "text", "") or getattr(found, "label", "") or ""
+        return (unrequested(classify("click", description, name), request, description, name)
+                or unrequested_print(request, description, name))
+
+    def _wrong_field(self, request: str, step: Step) -> bool:
+        """
+        Would the file go to another field than the one it belongs to? The comprovante sent
+        through "Anexar currículo", while the page has "Comprovante de residência". Only when
+        another field on the page matches the file and this one does not.
+        """
+        if step.action != "upload" or not step.value:
+            return False
+        stem = self._object(re.sub(r"[._-]", " ", Path(str(step.value)).stem))
+        if not stem:
+            return False
+        found = self._upload_target(step.description)
+        mine = self._object(f"{step.description} {getattr(found, 'text', '') or ''} {getattr(found, 'label', '') or ''}")
+        if mine & stem:
+            return False
+        resolver = self.executor.resolver
+        resolver.index("interactive")
+        for record in resolver.records:
+            is_field = record.get("tag") == "input" and (record.get("type") or "").lower() == "file"
+            text = f"{record.get('label') or ''} {record.get('text') or ''}"
+            if (is_field or self._ATTACH.search(text)) and self._object(text) & stem:
+                return True
+        return False
+
     def _execute(self, step: Step, last_fill) -> ActionResult:
         """Runs a step, with the Enter and field-reveal safety nets."""
         description = clean_description(step.description)
@@ -436,7 +655,99 @@ class Agent:
                 if revealed is not None:
                     return revealed
 
-        return run_step(self.executor, step)
+        # A cookie banner over the target: declined before trying (the covered click waited 30 s).
+        if step.action in ("click", "check", "uncheck", "select", "hover"):
+            _, target, _ = self.executor._resolve(description, "select" if step.action == "select" else "click")
+            if target is not None and getattr(target, "obscured", False):
+                from .consent import decline_cookies
+                declined = decline_cookies(self.page)
+                if declined:
+                    self.report(t("agent.cookies_declined", button=declined))
+                    self._just_declined = declined
+
+        # A step that names something not on the page ("Add to cart do UltraBook 14", with the
+        # UltraBook behind "Show more") must not be done on a lookalike: reveal it first, or stop.
+        missing = self._names_not_shown(description) if step.action in self._NAMED_ACTIONS else []
+        if missing and not self._reveal_hidden(step, description, words=missing):
+            return ActionResult(status="not_found", action=step.action, description=step.description,
+                                error=f"not on the page: {', '.join(missing)}")
+
+        outcome = run_step(self.executor, step)
+        # The target may be hidden behind "Show more" or a collapsed section: open it and try again,
+        # instead of a replan (the planner never saw the hidden part).
+        if outcome.status == "not_found" and self._reveal_hidden(step, description):
+            outcome = run_step(self.executor, step)
+        return outcome
+
+    _NAMED_ACTIONS = ("click", "check", "uncheck", "select", "fill", "hover")
+    # Words that describe the kind of element, not which one (they are not looked for on the page).
+    _KINDS = {"botão", "botao", "campo", "caixa", "link", "menu", "aba", "opção", "opcao", "lista", "seção", "secao",
+              "button", "field", "box", "checkbox", "tab", "option", "list", "section", "dropdown", "icon", "ícone"}
+
+    # What the element is about comes after these ("Add to cart do UltraBook 14", "Delete for Bruno
+    # Lima"); the element's own name comes before, and may be reworded (the resolver handles that).
+    _ABOUT = re.compile(r"\b(do|da|dos|das|de|of|for|from)\b\s+(.+)$", re.IGNORECASE)
+
+    def _names_not_shown(self, description: str) -> list[str]:
+        """Proper names of what the element is about (a capital letter) that the page does not show."""
+        about = self._ABOUT.search(description)
+        if not about:
+            return []
+        words = re.findall(r"[\wÀ-ÿ][\w\-À-ÿ]*", about.group(2))
+        names = [w for w in words if any(c.isupper() for c in w) and w.lower() not in self._KINDS]
+        if not names:
+            return []
+        from anchor.engine.frames import evaluate_all
+        shown = " ".join(evaluate_all(self.page, _SHOWN_TEXT_JS)).lower()
+        return [w for w in names if w.lower() not in shown]
+
+    _REVEAL = re.compile(
+        r"\b((mostrar|ver|exibir|carregar)\s+(mais|todos|todas|tudo|detalhes)|expandir|mais\s+op[cç][oõ]es|"
+        r"show\s+(more|all|details)|see\s+(more|all)|view\s+(more|all)|load\s+more|expand|more\s+options)\b",
+        re.IGNORECASE)
+
+    def _reveal_hidden(self, step: Step, description: str, words: Optional[list] = None) -> bool:
+        """
+        Opens what hides the step's target: a "Show more" button, a collapsed section
+        (aria-expanded="false"). Only controls that say so, with no action verb and nothing
+        sensitive, at most two; True once the target is found.
+        """
+        from anchor.engine.sensitive import classify
+        resolver = self.executor.resolver
+        try:
+            resolver.index("interactive")
+        except Exception:
+            return False
+        controls = []
+        for record in resolver.records:
+            text = " ".join(x for x in (record.get("text"), record.get("label")) if x)[:80]
+            collapsed = (record.get("state") or {}).get("expanded") is False
+            if not (collapsed or self._REVEAL.search(text)) or self._destructive(text):
+                continue
+            if classify("click", text) is not None:          # nothing that saves, sends, pays...
+                continue
+            controls.append((record, text))
+        action = "fill" if step.action in ("fill", "upload") else "click"
+        for record, text in controls[:2]:
+            try:
+                resolver.to_match(record).locator.click(timeout=3000)
+                self.page.wait_for_timeout(300)
+            except Exception as exc:
+                if "intercepts pointer events" in str(exc) or record.get("obscured"):
+                    self._covered_control = text      # something covers it: the planner is told
+                continue
+            if words is not None:                     # it must show what the step names
+                if not self._names_not_shown(description):
+                    self._just_revealed = text
+                    self.report(t("agent.revealed_more", control=text))
+                    return True
+                continue
+            status, found, _ = self.executor._resolve(description, action)
+            if found is not None and status in ("success", "ambiguous"):
+                self._just_revealed = text
+                self.report(t("agent.revealed_more", control=text))
+                return True
+        return False
 
     def _reveal_and_fill(self, step: Step, description: str) -> Optional[ActionResult]:
         status, trigger, _ = self.executor._resolve(description, "click")
@@ -495,6 +806,148 @@ class Agent:
             self.report(t("login.still"))
         return False
 
+    def _on_new_tab(self, page) -> None:
+        self._new_tabs.append(page)
+        self._opened_tabs.append(page)
+
+    def _follow_tabs(self, history: list[str], acted: bool = False) -> str:
+        """
+        Moves to a tab that opened during the last step (the newest one), or, when the current tab
+        closed, back to the last one still open. Returns the reason to replan, or "" if nothing
+        changed. Everything that works on "the page" moves with it: the executor, the resolver, the
+        effect watcher and the download listener.
+        """
+        _pump(self.page)                         # a new tab's event may still be waiting to be processed
+        if acted and not self._new_tabs and _alive(self.page):
+            # After a click, the window it opens may still be on its way (it came after the agent
+            # looked, on a slow Windows run, and the next step was done on the wrong tab). If the
+            # page asked for one (window.open, a target=_blank link), wait for it up to 5 s;
+            # otherwise just a moment (up to 0.4 s), for windows opened a little after the click.
+            asked = _windows_asked(self.page) > self._asked_before
+            try:
+                self._context.wait_for_event("page", timeout=5000 if asked else 400)
+            except Exception:
+                pass
+        # Only a tab the current tab opened is this step's doing: a late window from the tab before
+        # (the payment window opened twice) is not. Links that hide their opener are followed.
+        fresh = [p for p in self._new_tabs if not p.is_closed() and _opener(p) in (None, self.page)]
+        self._new_tabs.clear()
+        if not fresh:
+            self._let_tab_close()
+        closed = not _alive(self.page)
+        if fresh:
+            target = fresh[-1]
+        elif closed:
+            # Back where it came from (the tab that led here), not just the last tab open.
+            while self._came_from and not _alive(self._came_from[-1]):
+                self._came_from.pop()
+            if self._came_from:
+                target = self._came_from.pop()
+            else:
+                still = [p for p in self._context.pages if p is not self.page and _alive(p)]
+                target = still[-1] if still else None
+        else:
+            return ""
+        if target is None or target is self.page:
+            return ""
+        if fresh:
+            self._came_from.append(self.page)
+        try:
+            target.wait_for_load_state("domcontentloaded", timeout=10000)
+        except Exception:
+            pass
+        self._switch_to(target)
+        url = self.page.url
+        history.append(mt("hist.tab_back" if closed and not fresh else "hist.new_tab", self.language, url=url))
+        return t("agent.why_tab_back" if closed and not fresh else "agent.why_new_tab", url=url)
+
+    def _let_tab_close(self) -> None:
+        """
+        A tab the agent followed (a payment or login window) may be closing a moment after the
+        click, whether the step succeeded or failed (on Windows the click itself failed): wait up
+        to 0.7 s for it. On the first tab there is no wait.
+        """
+        if self.page is self._first_page or self.page.is_closed():
+            return
+        try:
+            self.page.wait_for_event("close", timeout=700)
+        except Exception:
+            pass
+
+    def _switch_to(self, page) -> None:
+        try:
+            if not self.page.is_closed():
+                self.page.remove_listener("download", self._on_download)
+        except Exception:
+            pass
+        self.page = page
+        self.executor.page = page
+        self.executor.resolver.page = page
+        if self.watcher is not None:
+            self.watcher = EffectWatcher(page)
+        page.on("download", self._on_download)
+        _watch_windows(None, page)
+        try:
+            page.bring_to_front()
+        except Exception:
+            pass
+
+    def close_opened_tabs(self) -> None:
+        """
+        Closes the tabs this run opened, and points the executor and resolver back at the first
+        tab (saved automations reuse the executor for the next spreadsheet row).
+        """
+        first = getattr(self, "_first_page", None)
+        if first is None:
+            return
+        for page in self._opened_tabs:
+            if page is not first and not page.is_closed():
+                try:
+                    page.close()
+                except Exception:
+                    pass
+        self.page = self.executor.page = self.executor.resolver.page = first
+
+    def _on_download(self, download) -> None:
+        """Saves a file the page downloaded by itself, or after a plain click."""
+        if getattr(self.executor, "expecting_download", False):
+            return                                   # the download action saves its own file
+        from anchor.engine.action_executor.executor import _free_path
+        try:
+            path = _free_path(self.output_dir, download.suggested_filename or "download")
+            download.save_as(str(path))
+            self._pending_downloads.append({"name": path.name, "path": str(path), "bytes": path.stat().st_size})
+        except Exception:
+            pass
+
+    def _keep_pending_downloads(self, result: AgentResult, step: Step) -> None:
+        for file in self._pending_downloads:
+            result.extractions.append({"kind": "file", "description": step.description, "name": file["name"],
+                                       "bytes": file["bytes"], "path": file["path"]})
+            self.report(t("agent.downloaded", name=file["name"], size=_size(file["bytes"]), path=file["path"]))
+        self._pending_downloads.clear()
+
+    def _keep_extraction(self, result: AgentResult, step: Step, outcome: ActionResult) -> None:
+        """Saves an extracted table or list as CSV, and keeps what was read in the result."""
+        if step.action == "download":
+            file = outcome.value
+            result.extractions.append({"kind": "file", "description": step.description, "name": file["name"],
+                                       "bytes": file["bytes"], "path": file["path"]})
+            self.report(t("agent.downloaded", name=file["name"], size=_size(file["bytes"]), path=file["path"]))
+            return
+        if step.action == "extract_text":
+            text = " ".join(str(outcome.value).split())
+            result.extractions.append({"kind": "text", "description": step.description, "text": text})
+            self.report(t("agent.extracted_text", text=text[:300]))
+            return
+        from anchor.engine.tables import save_csv
+        table = outcome.value
+        separator = ";" if get_language() == "pt" else ","
+        path = save_csv(table, self.output_dir, separator)
+        result.extractions.append({"kind": table.kind, "description": step.description, "name": table.label(),
+                                   "rows": len(table.rows), "columns": table.columns, "path": str(path)})
+        self.report(t("agent.extracted_table", rows=len(table.rows), columns=len(table.columns), path=path))
+
     def _verify(self, step: Step, outcome: ActionResult, before):
         """
         Checks the effect of a step that was run. Returns (problem, messages):
@@ -502,8 +955,8 @@ class Agent:
         gives the focus; a Reason = what went wrong.
         """
         action = outcome.action if outcome.action in ("fill", "select", "check", "uncheck", "press") else step.action
-        if action in ("hover", "extract_text"):
-            return None, []
+        if action in ("hover", "extract_text", "extract_table", "download", "upload"):
+            return None, []                          # (a download is checked by its file)
         effect = self.watcher.effect_since(before)
         errors = effect.errors
         others = [m for m in effect.new_messages if m not in errors]
@@ -586,6 +1039,18 @@ class Agent:
         last_fill = None                    # element of the last "fill", for the Enter
         blocked: set[tuple] = set()         # blocked destructive steps
 
+        # Any file the page downloads during the run is kept, even after a plain click (the model
+        # may plan "click" on a download button): it would be lost otherwise.
+        self.page.on("download", self._on_download)
+        # Tabs opened during the run: the agent follows a new one, and goes back when its tab closes.
+        self._first_page, self._context = self.page, self.page.context
+        self._new_tabs: list = []
+        self._opened_tabs: list = []
+        self._came_from: list = []             # the tabs that led to the current one
+        self._context.on("page", self._on_new_tab)
+        self._asked_before = 0
+        _watch_windows(self._context, self.page)   # to know when a click asks for a new window
+
         # A password in the request would reach the model: refused before anything is sent.
         if request_has_password(request):
             return self._finish(result, "failed", t("end.password_in_request"), start)
@@ -652,6 +1117,19 @@ class Agent:
             step = queue.pop(0)
             key = step_key(step)
 
+            # ---------------------------------------------------- the tab closed by itself
+            # First of all: every check below looks at the page.
+            if not _alive(self.page):              # its tab closed by itself (a payment or login window)
+                why = self._follow_tabs(history)
+                if not why:
+                    return self._finish(result, "failed", t("end.no_tab"), start)
+                queue = self._replan(request, history, result, start, why)
+                if isinstance(queue, AgentResult):
+                    return queue
+                after_replan = True
+                continue
+
+
             # ---------------------------------------------------- loop
             repeated_now = after_replan and key == last_done
             if repeated_now or done_count.get(key, 0) >= self.max_repeats:
@@ -666,9 +1144,16 @@ class Agent:
                 continue
             after_replan = False
 
+            # ---------------------------------------------------- a click that should be an upload
+            step = self._as_upload(request, step) or step
+
             # ---------------------------------------------------- unrequested destructive action
-            if self._unrequested_destructive(request, step):
-                reason = Reason("why.destructive")
+            wrong_file = self._wrong_file(request, step)
+            wrong_field = not wrong_file and self._wrong_field(request, step)
+            unasked = not (wrong_file or wrong_field) and self._unrequested_submit(request, step)
+            if wrong_file or wrong_field or unasked or self._unrequested_destructive(request, step):
+                reason = Reason("why.wrong_file" if wrong_file else "why.wrong_field" if wrong_field
+                                else "why.unrequested_submit" if unasked else "why.destructive")
                 self.report(t("agent.blocked", step=describe_step(step)))
                 if key in blocked:
                     outcome = self._fail(request, history, result, start, step, "blocked", "", reason)
@@ -692,7 +1177,57 @@ class Agent:
             words_before = self._page_words() if (self.watcher and step.expect) else set()
             shot_before = (self.vision.capture(self.page)
                            if self.vision is not None and step.action in ("click", "press") else None)
-            outcome = self._execute(step, last_fill)
+            _pump(self.page)                       # tabs opened before this step (an ad) are seen now,
+            self._new_tabs.clear()                 # and dropped: only a tab this step opens is followed
+            self._asked_before = _windows_asked(self.page)
+            try:
+                outcome = self._execute(step, last_fill)
+            except Exception:
+                if _alive(self.page):
+                    raise
+                outcome = ActionResult(status="error", action=step.action, description=step.description,
+                                       error="the tab closed")       # it closed while the step looked for the element
+            if outcome.status != "success":
+                from .consent import decline_cookies
+                declined = decline_cookies(self.page)
+                if declined:                        # a cookie banner was in the way: declined, never accepted
+                    self.report(t("agent.cookies_declined", button=declined))
+                    history.append(mt("hist.cookies_declined", self.language, button=declined))
+                    self._covered_control = None
+                    outcome = self._execute(step, last_fill)
+            if outcome.status != "success" and self._covered_control:
+                history.append(mt("hist.reveal_covered", self.language, control=self._covered_control))
+                self._covered_control = None
+            if self._just_declined:                 # a cookie banner was declined before the step
+                history.append(mt("hist.cookies_declined", self.language, button=self._just_declined))
+                self._just_declined = None
+            if self._just_revealed:                 # the hidden part is on the page now: tell the planner
+                history.append(mt("hist.revealed_more", self.language, control=self._just_revealed))
+                self._just_revealed = None
+            if outcome.status != "success":
+                self._let_tab_close()              # its tab may have closed during the failed step
+                if self.page is not self._first_page and not _alive(self.page):
+                    # The step failed because its tab closed. If it acted on an element, it is what
+                    # closed the tab ("Concluir pagamento"): it is done. If not, it met the tab closing
+                    # ("Ver pedido" looked for on the closing window): do it again on the tab underneath.
+                    acted = outcome.status == "error" and outcome.selected_element is not None
+                    why = self._follow_tabs(history)
+                    if not why:
+                        return self._finish(result, "failed", t("end.no_tab"), start)
+                    if not acted:
+                        queue.insert(0, step)
+                        continue
+                    result.records.append(StepRecord(step, "success", outcome.resolved_by))
+                    history.append(mt("hist.done", self.language, step=describe_step(step)))
+                    if step.goal in self._goal_status:
+                        self._goal_status[step.goal] = "done"
+                    done_count[key] = done_count.get(key, 0) + 1
+                    last_done = key
+                    queue = self._replan(request, history, result, start, why)
+                    if isinstance(queue, AgentResult):
+                        return queue
+                    after_replan = True
+                    continue
 
             if outcome.resolved_by == "user":
                 result.interventions += 1
@@ -741,6 +1276,12 @@ class Agent:
                     element=" ".join(x for x in (getattr(chosen, "text", ""), getattr(chosen, "label", "")) if x)[:80]
                     if chosen is not None else ""))
                 self._remember_state(result.records[-1], step, chosen)
+                if step.action in ("extract_table", "extract_text", "download") and outcome.value is not None:
+                    self._keep_extraction(result, step, outcome)
+                if step.action == "upload" and outcome.value:
+                    self._uploaded.add(str(step.value).strip())
+                    self.report(t("agent.uploaded", name=outcome.value["name"]))
+                self._keep_pending_downloads(result, step)
                 history.append(mt("hist.done", self.language, step=describe_step(step)))
                 history.extend(mt("hist.message", self.language, message=m) for m in self._safe_messages(messages))
                 if step.goal in self._goal_status and not (self.watcher is not None and focus_only):
@@ -756,8 +1297,17 @@ class Agent:
                 if step.action == "fill" and outcome.selected_element is not None:
                     last_fill = outcome.selected_element
 
-                layers_before = self._layer_count()
-                if self.page.url != url_before:
+                tab = self._follow_tabs(history, acted=step.action in ("click", "press"))
+                if tab and queue:
+                    # The plan already has the steps for the new tab ("open the policy, read the
+                    # deadline"): go on with them there. Replanning threw them away, and told the
+                    # model the goal was met. A step that does not fit the tab fails and replans.
+                    self.report(f"  {tab}; {t('agent.continuing_plan')}")
+                    continue
+                layers_before = self._layer_count() if not tab else 0
+                if tab:
+                    why = tab
+                elif self.page.url != url_before:
                     self.page.wait_for_load_state()
                     why = t("agent.why_page")
                 elif step.action == "fill":
@@ -776,6 +1326,11 @@ class Agent:
                         return queue
                     after_replan = True
                 continue
+
+            # ---------------------------------------------------- a file that does not exist
+            if outcome.status == "no_such_file":      # the model cannot fix a path: stop and say so
+                result.records.append(StepRecord(step, "no_such_file", ""))
+                return self._finish(result, "failed", t("end.no_such_file", path=step.value), start)
 
             # ---------------------------------------------------- a password field
             if outcome.status == "credential":

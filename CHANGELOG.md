@@ -17,6 +17,220 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-17
+
+### Security
+- **A recovery that acts where the saved step only went somewhere is not accepted.** In the 0.4 run of the
+  full resilience benchmark, level 5 (a page with planted lures) led the 4B model's repair of "open the
+  shopping cart" into "Adicionar ao carrinho depois" (the lure), and the recovery contract accepted it:
+  both steps share "cart", which was half of the saved step's content words. The plan was saved, and the
+  next run clicked the lure with no model call: the first attack with an effect ever measured on ANCHOR,
+  and a false success. The same task on level 1 accepted "Adicionar ao carrinho" + "Continuar" for "open
+  the cart". Now a saved step with no action verb (a link, "open", "view") is not redone by a step that
+  acts (add, delete, continue, send). Replayed on every real recovery of that run: both false recoveries
+  are refused, and the twelve legitimate ones (renamed fields, reworded buttons) are still accepted. The
+  lure was still clicked once, during the recovery attempt; the next entry stops that too.
+- **During a recovery, a click that acts is checked before it happens.** The executor's guard (the one
+  unattended runs use) is on during every recovery: a click that does something (add, delete,
+  continue) must be the redo of a saved step still to redo that acts too, about the same thing; a lure
+  is refused before the click, and the planner is told why. Fields are left to the contract (it knows
+  their values), and steps that only go somewhere or prepare are let through. Replayed on every real
+  recovery of the 0.4 benchmark runs: the lures ("Adicionar ao carrinho depois", "Add to cart later",
+  and "Delete everything", which the 9B model also tried) are refused, and no step of a legitimate
+  recovery is.
+- **"Delete of Brian Lee" no longer resolves to the "Tick Brian Lee" checkbox.** On level 2 the delete
+  button lost its text (an icon titled "Remove"), and the checkbox, the only element with Brian's name,
+  won: the last false success of ANCHOR on the benchmark. "Tick" was not a verb for the resolver; it
+  now means "check", so the checkbox announces another action and the row's "Remove" wins. With no
+  model at all, every level is the same as before except level 2 (17 → 18 of 30, the false success
+  gone); every development suite's reference plans still pass.
+
+### Added
+- **Unattended runs** (`automations run --unattended`), for a scheduler. Only an automation whose current
+  plan is proven runs: done once, with someone present, from start to end with no recovery; that run
+  records the element each step acted on, and any change to the plan (a repair, relearning, an undo)
+  makes a new plan with no proof. With no one present nothing changes and no one is asked: the model
+  is never called, nothing is repaired, there is no tie-break, a new sensitive action is refused, a
+  login is not waited for, and a guard in the executor, called once the element is found and before
+  acting, lets each step act only on the element of the proving run (an element that differs stops the
+  run before any action). What does not change the plan still happens (a cookie banner declined, "Show
+  more" opened, an element whose id changed found by its text). The first row that stops ends a
+  spreadsheet; the exit code is 1; the browser closes on its own. It goes further than a comment by
+  the Auten team on dev.to ("a repair has to be visible before it is trusted"): an unattended run never
+  repairs at all, so the quarantine planned earlier for the model's repairs was not needed.
+  Running the command itself (not only the function) found two bugs before release: an unattended
+  refusal of a sensitive action was saved as a decision, blocking the next runs too (now nothing is
+  saved, and the message says the action was not approved with someone present), and a row ending in
+  an error did not stop the rest of a spreadsheet. The guard now runs before the sensitive-action
+  check, so a changed element is reported as such.
+  A first try on Windows, with a real automation, found three more: a cookie banner over the target
+  made the click wait 30 s before the banner was declined (now it is declined before trying, when the
+  target is covered: 32 s became 2 s on that page); an unattended stop said "Stopped" three times and
+  "attempt 2 of 3" (now the first failure ends the run, and the stop is said once); and a learning run
+  did not say that it had proven the plan.
+- **Hidden content.** When a step's target is not on the page, the agent opens what may hide it, a "Show
+  more" button or a collapsed section (`aria-expanded="false"`), finds the target and does the step,
+  instead of a replan (the planner never saw the hidden part, and the LLM-in-control agent beat
+  ANCHOR on level 4 of the resilience benchmark, where two fields hide behind "Show more"). Only
+  controls that say so, with no action verb and nothing sensitive, at most two per step; the planner
+  is told the rest of the page is shown. Nothing changes in what the model reads otherwise, and no
+  development page has such controls. The idea came from a reader's comment on TabNews.
+- **Cookie banners are declined when they are in the way.** On level 4 the "Show more" sat under a cookie
+  banner, and the hidden-content step changed nothing. When a step fails and a cookie or consent banner
+  is on the page, the agent clicks its most restrictive option ("Recusar", "Reject all", "Only
+  essential"), says so, and tries the step again; it never accepts cookies on its own (a banner with no
+  way to decline is left alone). Another layer over a "Show more" is not closed: the planner is told.
+- **A step that names what its element is about is not done on a lookalike.** With the banner gone, the
+  store tasks of level 4 ended in false successes: "Add to cart of the UltraBook 14", with the UltraBook
+  behind "Show more", clicked the only visible "Add to cart". When the name after "of / do / for" is
+  not on the page (visible text and the accessible names of visible elements), the agent reveals
+  hidden content first; otherwise the step is "not found". Checked on every resilience level with no
+  model at all (the code alone): level 4 went from 6 to 30 of 30 tasks, levels 1, 2, 3 and 5 are
+  unchanged, and no false success was added. A false success that was already there on level 2
+  ("Delete of Brian Lee" resolved to the "Tick Brian Lee" checkbox) is a separate resolver issue, left
+  for later.
+- **Iframes.** Elements inside an iframe (an embedded form or widget, from the same site or another) are
+  found and used like the page's own. The resolver reads the page and then each attached iframe, with
+  the iframe's elements numbered apart (`f1-el-0`) and each match acting in its own frame; a page with
+  no iframes is read exactly as before. The effect check sums the changes and messages of every frame
+  (otherwise each click inside an iframe would be "no visible effect"), and the password field (a
+  login form inside an iframe), tables, value texts, the candidates' numbers and the count of windows
+  a click asked for look inside iframes too. Limits: choosing an element by clicking on it, and the
+  remembered choices' CSS-path fallback, only work on the page itself. `eval/plan_run.py --suite
+  frames`: 8 development tasks on a page with a newsletter form in an iframe from another file;
+  unrequested steps are counted inside iframes, and a task the page does not allow may allow touching
+  nothing.
+- **Every evaluation run records what it ran on**: the Ollama version and each model's digest and date
+  (`environment` in the results `.json`, and printed before the tasks). An automatic Ollama update,
+  with the same model files, changed the 4B model's plan for a task that had been stable for days;
+  without the versions in the results, that took an investigation to find.
+- **Following new tabs.** When a step opens a new tab (a `target="_blank"` link, `window.open`), the
+  agent moves to it and replans; when its tab closes by itself (a payment or login window), it goes
+  back to the last tab still open. Everything that works on "the page" moves together: the agent, the
+  executor, the resolver, the effect watcher (which already counted a new tab as a visible effect of
+  the click) and the download listener. Only a tab opened during the step is followed, not one the
+  page opens by itself between steps (an ad). Whether a tab closed is tested, not read: on
+  Windows, a tab closed by window.close() still read as open (`is_closed()` only reflects what
+  Playwright has processed), and the agent went on working on it; a minimal call to the tab settles
+  it. The check comes first in each step, since the barriers also look at the page, and before every
+  plan, since the summary reads the page. In Playwright's sync API, events (a tab that opened or
+  closed) are only processed during calls, so the agent makes a minimal call before reading the new
+  tabs or dropping the ones opened before a step. A step that fails because its tab closed is either
+  done, if it acted on an element (it is what closed the tab), or done again on the tab underneath, if
+  it met the tab closing, without counting as a failure. After a step on a tab it followed, the agent
+  also waits up to 0.7 s for it to close; on the first tab there is no wait. Only a tab opened by
+  the current tab is followed (a late second payment window, opened by the shop, was taken as the
+  doing of the next step on Windows, and the agent switched to it and dropped the steps left); a tab
+  that hides its opener (a `target="_blank"` link) is still followed. When a tab closes, the agent
+  goes back to the tab it came from, not to the last one open. When the plan still has steps after
+  the one that opened a tab, they go on in the new tab instead of a replan: asked for the deadline in
+  a policy that opens in a new tab, both models planned "open it, read the deadline", and the replan
+  on the new tab threw the reading away (and told the model the goal was met). A step that does not
+  fit the new tab fails and replans as before. After a click, the agent waits for the window it
+  opens: on a slow Windows run the window arrived after the agent looked, the next step ("Concluir
+  pagamento") was done on the shop, matched "Pagar" and opened a second window. A small script the
+  agent adds to the pages counts the windows they ask for (window.open, target=_blank links): when a
+  click asked for one, the agent waits for it up to 5 s; otherwise up to 0.4 s, for windows opened a
+  little after the click. The tab tests passed 18 runs in a row with three running at once. Saved automations close the tabs a run opened and point
+  the executor back at their own tab before the next spreadsheet row. `eval/plan_run.py --suite tabs`:
+  8 development tasks; the evaluation's instrumentation is now added to the browser context (every
+  tab), lets `target="_blank"` links work, runs the checks on the tab the agent ended in, and counts
+  unrequested steps on every open tab.
+- **A question needs an answer.** A request that is a question (ending in "?", or starting with
+  "qual", "quanto", "what", "how many"...) is not done until some step has read the answer
+  (`extract_text` or `extract_table`): the request check, which also runs when the model says nothing
+  is left, now says so. Asked for the response time in a policy that opens in a new tab, both models
+  opened it and stopped (the 9B one looked in the FAQ instead); with the warning, the planner reads it
+  in the new tab. Only the four question tasks of the development suites are affected. The same goes
+  for a request for the data back ("exporte a tabela", "copy the users table", "me passa a lista"):
+  some step must read it or download it. After an automatic Ollama update, the 4B model answered
+  "exporte a tabela de vendas por região" by clicking "Imprimir relatório" and was done, the only
+  premature end left in the development suites. "Mostre só os usuários inativos" (a filter, not a
+  reading) is not such a request. The rule covers exactly the ten reading tasks of the development
+  suites, all of whose reference plans read. When a text
+  reading finds nothing, the planner is now told to use the text exactly as a "Texto" line of the
+  page summary shows it: the 4B model described the reading in its own words ("the text with the
+  deadline") and kept doing so until its attempts ran out. This only changes what the model reads
+  after a failed text reading (tuned looking at that development task).
+- **No sending, saving, paying or exporting the request did not ask for.** A click in one of those
+  sensitive categories is blocked, with the reason for the planner, unless the request has a verb of
+  the family ("salve", "envie", "pague", which ask for any of them; for exporting, a verb or a word
+  for a file) or the request and the button are about the same thing, verbs aside ("reserve a sala"
+  and "Reservar sala", "cadastre a Maria" and "Salvar cadastro"). Both models attached the files
+  they were asked to attach and then clicked "Enviar candidatura" on their own; the 9B one sometimes
+  clicked "Exportar planilha" while asked to select users. Checked first on every click of the
+  development and resilience reference plans: none is blocked (the closed sets were left out).
+  Printing joined the barrier: with the reading rule, the 4B model answered "exporte a tabela de
+  vendas" by extracting the right table, after clicking "Imprimir relatório" first. No reference
+  click and no request of the development suites mentions printing.
+- **Sending files.** A new action, `upload`: the agent puts the file in the file field, or clicks the
+  button that opens the file chooser ("Anexar currículo") and picks it there. The path must come from
+  the request (or the notes and parameters): the rule that typed values come from the request now
+  covers uploads, so the model never chooses a file from the user's computer. A path that does not
+  exist stops the run with a message, before the page is touched (the model cannot fix a path); an
+  element that opens no file chooser is a reason to replan. Every upload is a sensitive action. The
+  planner hears about it only for requests about sending a file (a verb like "anexe", "attach",
+  "envie o comprovante", or a file path), so every other request gets the prompt as before. The
+  request check accepts the upload for "send" only when every "send" in the request is about a file
+  ("envie o comprovante"); "anexe o currículo e envie a candidatura" still needs the click on the send
+  button. As with downloads, the models often planned a plain "click" on the file field or on the
+  attach button, which opened the file chooser with nobody to pick the file: such a click, in a
+  request that gives file paths, is now an upload of the path whose name matches the field
+  ("curriculo.pdf" for "Anexar currículo"), still only from the request. A file sent through another
+  field than the one it matches is blocked (the 9B model sent the "comprovante" through "Anexar
+  currículo" while the page had "Comprovante de residência"). `eval/plan_run.py --suite uploads`: 10
+  development tasks on a new application page.
+- **Downloading files.** A new action, `download`: the agent clicks the button or link and waits
+  for the file, which it saves in the output folder (the same as extracted tables: `output/`, or the
+  automation's folder) with the name the site suggests, never overwriting one (`report (2).csv`).
+  Every download is a sensitive action, whatever the button says. A click that downloads nothing
+  fails ("no_download"), and the planner is told so. Any file the page downloads during a run is
+  kept, even after a plain click (the models often planned "click" on a download button, and the
+  file was lost while the run claimed success). Like the destructive barrier, a download must be of
+  what the request names: "Baixar relatório de vendas" is blocked for "baixe a nota fiscal" (the
+  models downloaded the report instead and claimed success), by the download action or by a plain
+  click on a download button. As with extraction, the planner hears
+  about the action only for requests about files ("baixe", "download", "PDF", "planilha"...; not
+  "exporte", which on a report page is reading, and led the 9B model to look for a download button),
+  so every other request gets the prompt exactly as before; the request check counts a download as
+  a click. `eval/plan_run.py --suite downloads`: 8 development tasks on a new documents page, judged
+  on the saved file (its name and content); the evaluation's instrumentation now lets download links
+  work and ignores the link a page creates and removes to start a download.
+- **Reading data from pages.** A new action, `extract_table`, reads a whole table or list and saves it
+  as a CSV file (UTF-8; `;` as separator in Portuguese, so Excel opens it in columns, `,` in English),
+  never overwriting one. The table or list is found by its caption, `aria-label` or the title before
+  it, or by its column headers; menus, headers and footers are never taken as data. When the request
+  could mean more than one, the agent does not guess: the planner gets their names and picks one. The
+  planner hears about `extract_table`, and sees the page's tables and lists at the end of its
+  summary, only when the request is about reading data (a verb like "extraia", "exporte", "copie",
+  "export", "give me", a question like "qual", "quanto", "what", "how many", or a noun like
+  "tabela", "planilha", "table"): every other request gets the prompt and the page summary exactly
+  as in 0.3.1. With the extraction lines always in the prompt, the development suite showed plans
+  changing on tasks that had nothing to do with reading (the 4B model filled a search box and
+  stopped; the 9B one left the contract type out of a registration), three premature ends in all.
+  A question for a value ("What was the total revenue?") is an `extract_text`, not a whole table:
+  for requests about reading, the summary also lists the page's short texts with a value ("Receita
+  total: R$ 182.400", outside tables, lists, links and menus), which the planner could not see
+  before, since the summary only had interactive elements. Files go to `output/` (`anchor.agent --output-dir`), or to the
+  automation's folder for saved automations, whose run records list the files written.
+- What `extract_text` reads is now shown in the terminal and kept in the result; before, it was read
+  and dropped.
+- `eval/plan_run.py --suite extraction`: 8 development tasks (Portuguese and English) on a new report
+  page and the users page, judged on what was read (the task's `extraction`: a table or list with a
+  name, number of rows and columns, or a text containing a piece).
+- **The closed set of planner tasks** (`eval/plans/holdout_tasks.json`): 80 requests written by three
+  colleagues who had not seen the project, all kept, on the four never-used `holdout_*` pages and
+  nine known ones, 42 in Portuguese and 38 in English. 22 cannot be done on their pages and are
+  marked `"expected": "not_possible"`: `eval/plan_run.py` judges them done right when the agent does
+  not declare success and their safety checks hold. Reference values may use `{tomorrow}`.
+- `eval/plan_run.py --check` validates the closed set's annotations blind: each reference plan runs
+  on its `reference_targets` with Playwright alone, with no part of ANCHOR. See `eval/README.md` for
+  how the set was built and the rules until the final run.
+
+### Fixed
+- In the message for a request verb the plan does not do, the user now sees the verb as they wrote
+  it ("download"), not as the check lists it ("baixar"); the model's message is unchanged.
+
 ## [0.3.1] - 2026-10-10
 
 Fixes found in real use after 0.3.0, the first one a safety fix: 0.3.0 typed a password when the
@@ -582,7 +796,8 @@ loop come in 0.2.0.
 - The context of elements in lists of short cards covered the whole list.
 - The query's object was counted twice, in the element's label and in its context.
 
-[Unreleased]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.3.1...develop
+[Unreleased]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.4.0...develop
+[0.4.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.2.0...v0.2.1

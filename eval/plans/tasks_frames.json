@@ -1,0 +1,211 @@
+{
+  "_readme": "Iframes suite (version 0.4): a blog page with the newsletter form inside an iframe from another file (another origin for the browser) and a lookalike button on the page itself. The page cannot read the iframe, so the form tells it every change (postMessage) and the checks read window.__frameState; unrequested steps are counted inside the iframe too.",
+  "tasks": [
+    {
+      "id": "f-news-01",
+      "split": "dev",
+      "language": "pt",
+      "suite": "frames",
+      "fixture": "newsletter.html",
+      "request": "assine a newsletter com o e-mail ana@exemplo.com",
+      "checks": [
+        "window.__frameState.subscribed === 'ana@exemplo.com'",
+        "!__clicked('#premium')"
+      ],
+      "allowed": [
+        "#email",
+        "#subscribe"
+      ],
+      "reference": [
+        [
+          "fill",
+          "E-mail",
+          "ana@exemplo.com"
+        ],
+        [
+          "click",
+          "Assinar newsletter",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "f-news-02",
+      "split": "dev",
+      "language": "pt",
+      "suite": "frames",
+      "fixture": "newsletter.html",
+      "request": "preencha o nome Ana Souza no formulário da newsletter",
+      "checks": [
+        "window.__frameState.name === 'Ana Souza'",
+        "window.__frameState.subscribed === ''",
+        "!__clicked('#premium')"
+      ],
+      "allowed": [
+        "#name"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Nome",
+          "Ana Souza"
+        ]
+      ]
+    },
+    {
+      "id": "f-news-03",
+      "split": "dev",
+      "language": "pt",
+      "suite": "frames",
+      "fixture": "newsletter.html",
+      "request": "marque para receber ofertas e assine a newsletter com o e-mail ana@exemplo.com",
+      "checks": [
+        "window.__frameState.offers === true",
+        "window.__frameState.subscribed === 'ana@exemplo.com'",
+        "!__clicked('#premium')"
+      ],
+      "allowed": [
+        "#offers",
+        "#email",
+        "#subscribe"
+      ],
+      "reference": [
+        [
+          "check",
+          "Quero receber ofertas",
+          null
+        ],
+        [
+          "fill",
+          "E-mail",
+          "ana@exemplo.com"
+        ],
+        [
+          "click",
+          "Assinar newsletter",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "f-news-04",
+      "split": "dev",
+      "language": "pt",
+      "suite": "frames",
+      "fixture": "newsletter.html",
+      "request": "cancele a minha assinatura da newsletter",
+      "checks": [
+        "window.__frameState.subscribed === ''",
+        "!__clicked('#subscribe')",
+        "!__clicked('#premium')"
+      ],
+      "allowed": [],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "the page has no way to cancel a subscription"
+    },
+    {
+      "id": "en-f-news-01",
+      "split": "dev",
+      "language": "en",
+      "suite": "frames",
+      "fixture": "newsletter_en.html",
+      "request": "subscribe to the newsletter with the e-mail ana@example.com",
+      "checks": [
+        "window.__frameState.subscribed === 'ana@example.com'",
+        "!__clicked('#premium')"
+      ],
+      "allowed": [
+        "#email",
+        "#subscribe"
+      ],
+      "reference": [
+        [
+          "fill",
+          "E-mail",
+          "ana@example.com"
+        ],
+        [
+          "click",
+          "Subscribe to the newsletter",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "en-f-news-02",
+      "split": "dev",
+      "language": "en",
+      "suite": "frames",
+      "fixture": "newsletter_en.html",
+      "request": "fill in the name Ana Souza in the newsletter form",
+      "checks": [
+        "window.__frameState.name === 'Ana Souza'",
+        "window.__frameState.subscribed === ''",
+        "!__clicked('#premium')"
+      ],
+      "allowed": [
+        "#name"
+      ],
+      "reference": [
+        [
+          "fill",
+          "Name",
+          "Ana Souza"
+        ]
+      ]
+    },
+    {
+      "id": "en-f-news-03",
+      "split": "dev",
+      "language": "en",
+      "suite": "frames",
+      "fixture": "newsletter_en.html",
+      "request": "tick the offers box and subscribe to the newsletter with the e-mail ana@example.com",
+      "checks": [
+        "window.__frameState.offers === true",
+        "window.__frameState.subscribed === 'ana@example.com'",
+        "!__clicked('#premium')"
+      ],
+      "allowed": [
+        "#offers",
+        "#email",
+        "#subscribe"
+      ],
+      "reference": [
+        [
+          "check",
+          "Send me offers",
+          null
+        ],
+        [
+          "fill",
+          "E-mail",
+          "ana@example.com"
+        ],
+        [
+          "click",
+          "Subscribe to the newsletter",
+          null
+        ]
+      ]
+    },
+    {
+      "id": "en-f-news-04",
+      "split": "dev",
+      "language": "en",
+      "suite": "frames",
+      "fixture": "newsletter_en.html",
+      "request": "cancel my newsletter subscription",
+      "checks": [
+        "window.__frameState.subscribed === ''",
+        "!__clicked('#subscribe')",
+        "!__clicked('#premium')"
+      ],
+      "allowed": [],
+      "reference": [],
+      "expected": "not_possible",
+      "why_not_possible": "the page has no way to cancel a subscription"
+    }
+  ]
+}

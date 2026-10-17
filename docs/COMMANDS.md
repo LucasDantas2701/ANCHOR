@@ -57,8 +57,43 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_e
 | `--max-attempts` | Failures before the run is cancelled. Default: 3. |
 | `--vision` | When the other checks doubt a step (a field that does not show the value, a click with no visible effect in the page's code, an expected text that did not appear), asks the model about a screenshot, scaled to 640 pixels. It can only confirm a doubted step, never fail one that worked. Slower: about 5 s per question with the 4B model and 9 s with the 9B, on the test machine. The model must have the `vision` capability. |
 | `--allow-sensitive` | Does not ask before sensitive actions. By default, before deleting, saving or submitting, sending, paying, downloading or uploading, the agent shows the element and asks; a denial stops the run. |
+| `--output-dir` | Where tables and lists read by the agent are saved (one CSV file each) and where downloaded files go, never overwriting a file. Default: `output`. |
 | `--lang` | Interface language: `en` (default) or `pt`. Overrides `ANCHOR_LANG`. |
 | `--prompt-language` | Planner prompt language: `pt` (default, the measured one), `en`, or `auto` (follows the request). |
+
+**Hidden content.** When a step's target is not on the page, the agent looks for what may hide it, a
+"Show more" / "Mostrar mais" button or a collapsed section (`aria-expanded="false"`), opens it and
+tries the step again, before any replan. Only controls that say so, with no action verb and nothing
+sensitive (never "Save and show more"), at most two per step. A step that names what its element is
+about ("Add to cart of the UltraBook 14") is not done on a lookalike when that name is not on the
+page: the agent reveals hidden content first, and otherwise the step is "not found".
+
+**Cookie banners.** When a cookie or consent banner is in the way of a step, the agent declines it,
+with the most restrictive option the banner offers ("Recusar", "Reject all", "Only essential"), and
+says so: before the step, when the step's element is covered, and otherwise after the step fails,
+which is then tried again. It never accepts cookies on its own: a banner with no way to decline is
+left alone, and so is any other layer (a promotion, a notice); when such a layer covers a "Show more",
+the planner is told to close it first.
+
+**Iframes.** Elements inside an iframe (an embedded form, a payment or newsletter widget, even from
+another site) are found and used like the page's own: the resolver reads the page and then each
+iframe, and the effect check, the password field, tables and value texts look inside them too. Two
+limits: choosing an element by clicking on it (when the agent asks) only works on the page itself,
+inside an iframe you choose it by number; and the remembered choices' fallback (the saved CSS path)
+only looks at the page itself.
+
+**New tabs.** When a step opens a new tab (a link with `target="_blank"`, a button that opens a
+window), the agent moves to it and replans from there; when the tab it is working in closes by
+itself (a payment or login window), it goes back to the last tab still open. Only a tab the step
+opened is followed: a tab the page opens on its own between steps (an ad) is not. Saved automations
+close the tabs a run opened, so the next spreadsheet row starts from the automation's own tab.
+
+**Only what was asked.** The agent does not send, save, confirm, pay, export or print what the request
+did not ask for: such a click is blocked, and the planner is told so. It is asked for when the
+request has a verb for it ("salve", "envie", "pague"; for exporting, a verb or a word for a file),
+or when the request and the button are about the same thing ("reserve a sala" and "Reservar sala").
+So "attach the resume" does not end with the application sent; "attach the resume and send the
+application" does. Destructive actions (deleting, cancelling) have their own barrier.
 
 **Logging in.** The agent never types a password: a fill that would land on a password field is
 not done. A request that seems to contain a password ("senha: ...", "password ...") is refused
@@ -67,6 +102,36 @@ plan reaches a password field, or nothing can be planned on a page that asks for
 asks in the terminal: log in (or fill in the password) yourself in the browser window and press
 Enter, or `q` to cancel. If the page still shows an empty password field, it asks again. With
 `--browser-profile`, the session is kept for the next runs.
+
+**Sending files.** A request to send a file ("Attach the resume C:/Users/ana/cv.pdf") is planned
+as an `upload` step: the agent puts the file in the file field, or clicks the button that opens the
+file chooser ("Attach resume") and picks it there. The path must be written in the request (or in
+the automation's notes or parameters): the model never chooses a file from your computer, and a
+plan with a path that is not in the request is refused. A path that does not exist stops the run
+with a message, before anything on the page is touched. Every upload is a sensitive action, so it
+asks first. In a saved automation, a parameter can give a different file per spreadsheet row
+(`--param file=...`, or a `file` column).
+
+**Downloading files.** A request to download a file ("Download the sales report") is planned as
+a `download` step: the agent clicks the button or link and waits for the file, which it saves in
+the output folder with the name the site suggests (`report (2).csv` if the name is taken). Every
+download is a sensitive action, whatever the button says, so it asks first. A click that
+downloads nothing fails, and the planner is told so.
+
+**Reading data from a page.** A request to read, copy or export a table or a list ("Export the
+sales by region table") is planned as an `extract_table` step: the agent finds the table or list
+by its caption, title or column headers, and saves it as a CSV file, in UTF-8 with the
+separator of the interface language (`;` in Portuguese, so Excel opens it in columns; `,` in
+English). Menus, headers and footers are never taken as data. When the request could mean more
+than one table, the agent does not guess: it tells the planner their names, and the planner
+picks one. A single text ("What was the total revenue?") is an `extract_text` step, and what was
+read is shown in the terminal. A request that is a question (ending in "?", or starting with
+"qual", "quanto", "what", "how many"...) is not done until some step has read the answer: if the
+model stops before that, it is told to read it, and to open the page or tab that has it first.
+
+```sh
+python -m anchor.agent --profile ollama-small --url eval/fixtures/report_en.html "Export the sales by region table"
+```
 
 ## Planner (`anchor.planner`)
 
@@ -93,6 +158,13 @@ python -m anchor.planner --profile ollama-small --url eval/fixtures/registration
 Describe a task once and run it whenever you want. The first run learns the plan with the
 LLM; the next runs replay the approved plan without the LLM. When the site changes and a saved
 step stops working, the automation heals itself and records the recovery.
+
+A recovery is accepted only if every saved step that stopped working was redone: by a step of the
+same action about the same thing (the same value, as a renamed field filled with the same text, or at
+least half of its words). A step that only went somewhere (a link, "open the cart", "view details")
+is not redone by one that acts ("add to cart later", "continue", "delete"): a page with lures led a
+model's repair into exactly that. A recovery that does not keep this contract fails the run, and the
+saved plan is not changed.
 
 ```sh
 python -m anchor.automations create register-maria --url eval/fixtures/registration_en.html --profile ollama-small "Register Maria Silva in the IT department and save the registration"
@@ -131,9 +203,43 @@ Options that come **before** the command:
 | `--no-heal` | If a saved step stops working, stops instead of recovering with the LLM. |
 | `--vision` | Confirms doubted steps with a screenshot (see the agent's `--vision`). |
 | `--allow-sensitive` | Does not ask before sensitive actions, and does not save decisions. |
+| `--unattended` | Runs with no one present, for a scheduler (see below). Only a proven plan; nothing is repaired or asked; any change stops the run, and the rest of a spreadsheet. Exit code 1 when it did not finish. |
 | `--fresh-browser` | Opens a clean browser for this run. By default, each automation keeps its own browser profile in its folder (`browser/`), so a login done by hand is kept for the next runs; a `--browser-profile` given at `create` is used instead. |
 | `--param` | The value of a parameter for this run, as `name=value` (repeat it for each parameter). |
 | `--csv` | Runs once per row of a CSV file whose columns are the parameters (`,` or `;` as separator). Cannot be used with `--param`. |
+
+Tables and lists read by an automation are saved in its folder, under `output/`, and each run's
+record lists the files it wrote (not the text it read, which may be personal data).
+
+### Unattended runs (scheduling)
+
+Only an automation whose current plan has been **proven** runs with `--unattended`: done once, with
+someone present, from start to end with no recovery (no repair by the model, no element chosen by
+hand). That run records the element each step acted on. Any change to the plan (a repair, `--relearn`,
+an `undo`) makes a new plan with no proof, which needs another run with someone present.
+
+In an unattended run nothing changes and no one is asked:
+
+* the model is never called, and a saved step that stops working is not repaired;
+* no tie-break: an ambiguous element stops the run;
+* each step acts only on the element of the proving run (same text and label): an element that differs,
+  even one the heuristic would accept with someone present, stops the run before acting;
+* only sensitive actions approved before are done; a new one is refused;
+* a login is never waited for: log in once in a run with someone present (each automation keeps its
+  browser profile);
+* what does not change the plan still happens: a cookie banner in the way is declined, "Show more" is
+  opened, and an element whose id or class changed is still found by its text;
+* the first row that stops ends a spreadsheet run, and the exit code is 1.
+
+To schedule it on Windows (Task Scheduler), every day at 8:00:
+
+```
+schtasks /Create /TN "ANCHOR register" /SC DAILY /ST 08:00 /TR "cmd /c cd /d C:\path\to\ANCHOR && venv\Scripts\python.exe -m anchor.automations run register --unattended --csv people.csv"
+```
+
+On Linux or macOS (cron), the same with `0 8 * * * cd /path/to/ANCHOR && venv/bin/python -m anchor.automations run register --unattended`.
+When a run stops, `show` and the run's record say which step changed and why; run the automation
+once with someone present to look at it.
 
 ### Parameters
 
@@ -274,7 +380,7 @@ python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama
 | `--agent` | Runs the tasks through the full agent loop (replanning, effect checks, end check). |
 | `--language` | Only the tasks in this language: `pt` or `en`. Default: both. |
 | `--vision` | With `--agent`: confirms doubted steps with a screenshot; the table adds the questions asked, the steps confirmed and the time spent. |
-| `--suite` | `main` (default): the ordinary tasks. `injection`: tasks on pages that try to hijack the agent; the table adds the `attacked` column (runs in which some attack worked) and `attempts` (steps that tried to do what the page asked, even if a barrier stopped them). |
+| `--suite` | `main` (default): the ordinary tasks. `injection`: tasks on pages that try to hijack the agent; the table adds the `attacked` column (runs in which some attack worked) and `attempts` (steps that tried to do what the page asked, even if a barrier stopped them). `extraction`: tasks that read tables, lists and texts, judged on what was read (the task's `extraction`), with the CSV files written to a temporary folder. |
 | `--prompt-language` | Planner prompt language: `pt`, `en` or `auto`. Default: the profile's. |
 | `--task` | Runs only one task (by id). |
 | `--no-page` | Does not send the list of the page's elements to the model. |

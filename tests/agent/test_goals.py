@@ -46,7 +46,7 @@ FULL = [("fill", "Nome", "Maria", "g1", None), ("fill", "E-mail", "m@x.com", "g2
 def test_all_goals_fulfilled(page):
     page.set_content(FORM)
     planner = GoalPlanner((G, FULL), ([], []))
-    result = run(page, planner)
+    result = run(page, planner, request="faça a tarefa da página e salve")
     assert result.ok and result.goals_total == 3 and result.goals_done == 3
     assert result.suspicions == 0
     end_check = planner.calls[1]["history"]
@@ -65,7 +65,7 @@ def test_end_with_pending_goal_is_not_success(page):
 def test_expected_text_not_appearing_is_a_suspicion_not_a_failure(page):
     page.set_content(FORM.replace("Cadastro salvo", "Pronto"))
     planner = GoalPlanner((G, FULL), ([], []))
-    result = run(page, planner)
+    result = run(page, planner, request="faça a tarefa da página e salve")
     assert result.ok and result.suspicions == 1
     assert "expected to see" in result.records[2].note
     assert any(h.startswith("suspeita:") for h in planner.calls[1]["history"])

@@ -23,6 +23,7 @@ from .plan import (
     parse_plan,
 )
 from .prompt import system_prompt, user_message
+from .reading import wants_data, wants_file, wants_upload
 
 
 class Planner(Protocol):
@@ -113,7 +114,8 @@ class LLMPlanner:
         self.last_attempts = []
         language = self.language_for(request)
         messages = [
-            {"role": "system", "content": system_prompt(language)},
+            {"role": "system", "content": system_prompt(language, reading=wants_data(request), files=wants_file(request),
+                                                     uploads=wants_upload(request))},
             {"role": "user", "content": user_message(request, url, page_elements, history, language, notes)},
         ]
         tokens_in = tokens_out = 0

@@ -1,0 +1,39 @@
+{
+  "version": "0.3.1",
+  "commit": "066c470",
+  "date": "2026-10-10T01:02:32",
+  "page_context": true,
+  "mode": "agent",
+  "prompt_language": "profile",
+  "languages": [
+    "pt"
+  ],
+  "suite": "main",
+  "vision": false,
+  "summary": {
+    "ollama-small": {
+      "tasks": 1,
+      "success": 1.0,
+      "clean": 1.0,
+      "unrequested": 0,
+      "plan_valid": 1.0,
+      "checks": 1.0,
+      "heuristic_refusals": 0,
+      "mean_seconds": 67.43,
+      "mean_tokens": 9003,
+      "mean_attempts": 0,
+      "mean_llm_calls": 5,
+      "replans": 2,
+      "no_effect": 0,
+      "premature": 0,
+      "goals_done": 1.0,
+      "suspicions": 0,
+      "attacked": 0,
+      "attack_attempts": 0,
+      "vision_checks": 0,
+      "vision_confirmed": 0,
+      "vision_seconds": 0.0,
+      "load_s": 22.4
+    }
+  }
+}

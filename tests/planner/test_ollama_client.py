@@ -142,3 +142,31 @@ def test_indicator_shows_phase_tokens_and_time():
     assert "model thinking... 3 tokens" in text
     assert "writing the plan... 40 tokens" in text
     assert text.endswith("\r")                # the line is cleared at the end
+
+
+def test_the_environment_records_the_ollama_version_and_the_model_digest(monkeypatch):
+    """With the same model files, an Ollama update changed answers: every run records both."""
+    from types import SimpleNamespace
+
+    from anchor.planner.ollama_client import OllamaClient
+
+    def fake_get(url, timeout=None):
+        data = ({"version": "0.40.4"} if url.endswith("/api/version") else
+                {"models": [{"name": "qwen3.5:4b", "digest": "96f38c742e0a" + "0" * 52, "modified_at": "2026-10-10T09:00:00Z"},
+                            {"name": "qwen3.5:9b", "digest": "c97eb11d70b1", "modified_at": "2026-10-10T09:00:00Z"}]})
+        return SimpleNamespace(json=lambda: data)
+
+    monkeypatch.setattr("anchor.planner.ollama_client.requests.get", fake_get)
+    env = OllamaClient().environment("qwen3.5:4b")
+    assert env["server_version"] == "0.40.4" and env["model_digest"].startswith("96f38c742e0a")
+    assert env["model_modified"].startswith("2026-10-10")
+
+
+def test_the_environment_does_not_break_a_run_when_ollama_does_not_answer(monkeypatch):
+    from anchor.planner.ollama_client import OllamaClient
+
+    def down(url, timeout=None):
+        raise ConnectionError("no server")
+
+    monkeypatch.setattr("anchor.planner.ollama_client.requests.get", down)
+    assert OllamaClient().environment("qwen3.5:4b")["server_version"] is None

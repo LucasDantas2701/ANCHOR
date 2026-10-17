@@ -505,3 +505,40 @@ def test_confirmations_command(tmp_path, capsys):
     assert main(["--root", root, "confirmations", "demo", "--forget", "1"]) == 0
     assert store.confirmations("demo") == []
     assert main(["--root", root, "confirmations", "demo", "--forget", "1"]) == 1
+
+
+def test_a_step_that_only_goes_somewhere_is_not_redone_by_one_that_acts():
+    """Level 5 of the resilience benchmark lured the model's repair of "open the cart" into "add to cart later"."""
+    from types import SimpleNamespace as NS
+
+    from anchor.automations.runner import _unredone_steps
+
+    def records(*steps):
+        return [NS(step=NS(action=a, description=d, value=None), status="success", element=e) for a, d, e in steps]
+
+    saved = [NS(action="click", description="link shopping cart link", value=None)]
+    lure = records(("click", "Adicionar ao carrinho depois", "Adicionar ao carrinho depois"))
+    assert _unredone_steps(saved, 0, lure) == ["click link shopping cart link"]
+    assert _unredone_steps(saved, 0, records(("click", "Continuar", "Continuar"))) != []
+    assert _unredone_steps(saved, 0, records(("click", "Ver carrinho", "Ver carrinho"))) == []      # a real repair
+    # A renamed field with the same value is still a repair, verbs or not.
+    renamed = [NS(step=NS(action="fill", description="Mobile", value="(555) 123-4567"), status="success", element="Mobile")]
+    assert _unredone_steps([NS(action="fill", description="Phone", value="(555) 123-4567")], 0, renamed) == []
+
+
+def test_during_a_recovery_a_click_that_acts_must_redo_a_saved_step():
+    from types import SimpleNamespace as NS
+
+    from anchor.automations.runner import _recovery_guard
+    saved = [NS(action="click", description="botão Adicionar ao carrinho da Caneca", value=None),
+             NS(action="click", description="link shopping cart link", value=None),
+             NS(action="check", description="caixa Selecionar Ana Souza", value=None)]
+    planner = NS(broken=True, broken_at=1)                      # the cart link broke
+    guard = _recovery_guard(planner, saved)
+    element = lambda text: NS(text=text, label="")
+    assert guard("click", "Adicionar ao carrinho depois", element("Adicionar ao carrinho depois"))   # the lure
+    assert guard("click", "Excluir tudo", element("Excluir tudo"))
+    assert guard("click", "Ver carrinho", element("Ver carrinho")) is None                         # only goes somewhere
+    assert guard("click", "Marcar Ana Souza", element("Marcar Ana Souza")) is None                 # redoes a saved step
+    assert guard("fill", "Comentários", element("Comentários")) is None                            # fields: the contract
+    assert _recovery_guard(NS(broken=False, broken_at=0), saved)("click", "Excluir tudo", element("Excluir tudo")) is None

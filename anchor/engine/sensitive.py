@@ -47,13 +47,17 @@ _CANCEL_WITH_OBJECT = set().union(*(tokenize(w) for w in CANCEL_WITH_OBJECT))
 _CANCEL_OBJECTS = set().union(*(tokenize(w) for w in CANCEL_OBJECTS))
 
 _ORDER = ("pay", "delete", "cancel", "send", "upload", "download", "submit")   # the most serious first
-SENSITIVE_ACTIONS = ("click",)
+SENSITIVE_ACTIONS = ("click", "download", "upload")
 
 
 def classify(action: str, description: str, element_name: str = "") -> Optional[str]:
     """The sensitive category of an action, or None."""
     if action not in SENSITIVE_ACTIONS:
         return None
+    if action == "download":
+        return "download"                 # whatever the button says, it saves a file
+    if action == "upload":
+        return "upload"                   # whatever the field says, it sends a file
     outside = re.sub(r"\([^)]*\)", " ", description or "")
     words = tokenize(outside) | tokenize(element_name or "")
     everything = words | tokenize(description or "")
@@ -64,6 +68,41 @@ def classify(action: str, description: str, element_name: str = "") -> Optional[
         elif words & _STEMS[category]:
             return category
     return None
+
+
+_CONCLUDING = ("submit", "send", "pay")          # one family: any of their verbs asks for any of them
+_ALL_VERBS = set().union(*_STEMS.values()) | _CANCEL_VERBS
+
+
+_PRINT = re.compile(r"\b(imprim\w*|impress\w*|print\w*)\b", re.IGNORECASE)
+
+
+def unrequested_print(request: str, description: str, element_name: str = "") -> bool:
+    """A click that prints (it opens the print dialog, or sends to a printer) the request did not ask for."""
+    return bool(_PRINT.search(f"{description} {element_name}")) and not _PRINT.search(request or "")
+
+
+def unrequested(category: Optional[str], request: str, description: str, element_name: str = "") -> bool:
+    """
+    Would a click send, save, confirm, pay or export something the request did not ask for?
+    The models tend to "complete" a form on their own ("Enviar candidatura" after attaching the
+    files they were asked to attach). It is asked for when the request has a verb of the family
+    ("salve", "envie", "pague"; for exporting, a verb or a word for a file), or when the request
+    and the button are about the same thing, verbs aside ("reserve a sala" and "Reservar sala",
+    "cadastre a Maria" and "Salvar cadastro").
+    """
+    if category not in _CONCLUDING + ("download",):
+        return False
+    asked = tokenize(request or "")
+    if category in _CONCLUDING and asked & set().union(*(_STEMS[c] for c in _CONCLUDING)):
+        return False
+    if category == "download":
+        from anchor.planner.reading import wants_file
+        if asked & _STEMS["download"] or wants_file(request):
+            return False
+    about = (tokenize(re.sub(r"\([^)]*\)", " ", description or "")) | tokenize(element_name or "")) - _ALL_VERBS
+    from anchor.engine.element_resolver.tokenizer import STOPWORDS_N
+    return not (about - STOPWORDS_N) & asked
 
 
 @dataclass

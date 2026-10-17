@@ -117,10 +117,11 @@ nothing:
   and page contents do not leave the computer or the company network. Logins use persistent
   browser profiles: credentials never go through the AI.
 
-> **Status:** version 0.3.1. The engine, the planner, the agent loop, effect verification, saved
+> **Status:** version 0.4.0. The engine, the planner, the agent loop, effect verification, saved
 > automations with self-healing, confirmation of sensitive actions and the defenses against prompt
-> injection are done; uploads, downloads, new tabs and iframes (0.4) and a local frontend (0.5) are
-> next. See the [roadmap](#roadmap) and the [changelog](CHANGELOG.md).
+> injection are done, and 0.4 added data extraction, downloads, uploads, new tabs, iframes, hidden
+> content, cookie banners and unattended runs for scheduling. A local frontend (0.5) is next. See the
+> [roadmap](#roadmap) and the [changelog](CHANGELOG.md).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -257,6 +258,10 @@ python -m anchor.agent --profile ollama-small --url <link or .html file> "<reque
 * Before a sensitive action (deleting, saving or submitting, sending, paying, downloading,
   uploading, or cancelling an order, a subscription or a booking), the agent shows the element
   and asks; a denial stops the run. `--allow-sensitive` turns the question off.
+* The agent only does what was asked: it does not send, save, confirm, pay, export or print unless the
+  request says so ("attach the resume" does not end with the application sent).
+* When a step opens a new tab, the agent moves to it, and goes back when that tab closes.
+* Elements inside iframes (embedded forms and widgets) are found and used like the page's own.
 * `--prompt-language` chooses the planner prompt's language: `pt` (default), `en`, or `auto` (it
   follows the request). Requests can be in English or Portuguese either way: the default
   Portuguese prompt did better than the English one on the English tasks too.
@@ -274,6 +279,20 @@ python -m anchor.agent --profile ollama-small --browser-profile profiles/work --
 With `--browser-profile`, the session is kept on your computer, and the next runs start logged in.
 Saved automations keep their own browser profile in their folder, so you log in once per
 automation (`run --fresh-browser` opens a clean browser for one run).
+
+**Send files.** Write the file's path in the request ("Attach the resume C:/Users/ana/cv.pdf") and
+the agent sends it, asking first; the model never picks a file on its own.
+
+**Download files.** Ask for a file ("Download the sales report") and the agent clicks the button or
+link, asks first (every download is sensitive), and saves the file in `output/`.
+
+**Read data from a page.** Ask for a table or a list ("Export the sales by region table") and the
+agent saves it as a CSV file in `output/` (`--output-dir` changes the folder); ask for a single
+value ("What was the total revenue?") and it shows the text it read:
+
+```sh
+python -m anchor.agent --profile ollama-small --url eval/fixtures/report_en.html "Export the sales by region table"
+```
 
 **Save an automation** and run it whenever you want. The first run learns the plan with the LLM;
 the next ones replay the approved plan without the LLM, much faster:
@@ -395,32 +414,42 @@ SauceDemo), version 0.3.0:
 | The Executor decides and gets it wrong (silent error) | 1.7% | 5.0% |
 | The Executor refuses and asks the user | 16.7% | 8.3% |
 
-**Complete tasks** — 15 development tasks per language, on local pages, through the full agent
-loop, with no human help and the default (Portuguese) planner prompt, version 0.3.0
-(i7-7700HQ, 16 GB RAM, GTX 1050 Ti 4 GB):
+**Complete tasks** — the development suites, on local pages, through the full agent loop, with no
+human help and the default (Portuguese) planner prompt, version 0.4.0, Ollama 0.40.4, Qwen 3.5 4B and
+9B (i7-7700HQ, 16 GB RAM, GTX 1050 Ti 4 GB). Tasks done, Portuguese / English requests:
 
-| Model (Ollama) | Requests | Tasks done | Done with no unrequested step | Premature ends |
-|---|---|---|---|---|
-| Qwen 3.5, 4B | Portuguese | 87% | 80% | 0 |
-| Qwen 3.5, 4B | English | 87%* | 80% | 0 |
-| Qwen 3.5, 9B | Portuguese | 100% | 87% | 0 |
-| Qwen 3.5, 9B | English | 93% | 87% | 0 |
+| Suite | Tasks | 4B (PT / EN) | 9B (PT / EN) |
+|---|---|---|---|
+| Main (forms, logins, stores, lists, pop-ups) | 30 | 87% / 93% | 100% / 93% |
+| Prompt injection | 6 | 100% / 100% | 100% / 100% |
+| Data extraction | 8 | 100% / 100% | 100% / 100% |
+| Downloads | 8 | 100% / 100% | 100% / 100% |
+| Uploads | 10 | 100% / 100% | 100% / 100% |
+| New tabs | 8 | 75% / 100% | 100% / 100% |
+| Iframes | 8 | 100% / 100% | 100% / 100% |
 
-A task takes about 32 s with the 4B model and 50 s with the 9B one. \* `en-reg-01` failed with the
-4B model in this run and passes after the last fix of 0.3.0 (checked alone, not in a full run).
+No suite has a premature end (a success declared without the request done), with either model or
+language: the failures left (a pop-up with a misleading name, a job that is not on the page, a question
+whose answer is in a new tab) end saying the request was not done. A task takes about 30 s with the 4B
+model and 45 s with the 9B one. The extraction, download, upload and tab numbers came after fixes made
+looking at their own tasks; the iframe suite was at 100% on its first run, with no fix after it.
 
 **Resilience** — the 30 tasks on pages altered in 5 levels (superficial, semantic, structural,
-behavioral, adversarial), 150 runs per executor and model, both languages, with no user:
+behavioral, adversarial), 150 runs per executor and model, both languages, with no user, version 0.4.0:
 
-| Executor | Tasks done | False successes | Model calls per run |
-|---|---|---|---|
-| Fixed-selector script (classic RPA) | 53% | 0 | 0 |
-| LLM in control, 4B / 9B | 68% / 72% | 33 / 41 | 3.7 |
-| **ANCHOR**, 4B / 9B | **82% / 84%** | **2 / 1** | 0.8 |
-| ANCHOR replaying the healed plan, 4B / 9B | 80% / 82% | — | **0** |
+| Executor | Tasks done | False successes | Attacks that worked | Model calls per run |
+|---|---|---|---|---|
+| Fixed-selector script (classic RPA) | 53% | 0 | 0 | 0 |
+| LLM in control, 4B / 9B | 66% / 73% | 32 / 40 | 0 | 3.6 |
+| **ANCHOR**, 4B / 9B | **95% / 96%** | **0 / 0** | **0** | 0.3 / 0.2 |
+| ANCHOR replaying the healed plan, 4B / 9B | 93% / 95% | 0 / 0 | 0 | **0.1–0.2** |
 
-**Prompt injection** — 6 tasks on pages that try to hijack the agent: no attack worked, and the
-defenses brought the 9B model's attempts to follow the page from 2 to 0. **Interventions** — with a
+In 0.3.0 the same benchmark gave ANCHOR 82% / 84% (on an earlier Ollama version: the numbers are not
+strictly comparable). Part of 0.4 was tuned looking at these pages (level 4, and the two safety fixes
+of the recoveries): the closed sets will say how much carries over to new pages.
+
+**Prompt injection** — 6 tasks on pages that try to hijack the agent: no attack worked, with either
+model or language. **Interventions** — with a
 simulated user, the system asked in 16.7% (Portuguese) and 8.3% (English) of the resolver cases on the
 first pass, and in none on the second and third.
 
@@ -451,10 +480,21 @@ final numbers will come from the closed sets.
     - [x] Intervention experiment with a simulated user
     - [x] Resilience benchmark: changed versions of the pages, comparing fixed-selector scripts,
       an LLM-in-control agent and ANCHOR
-- [ ] **0.4** — Uploads, downloads, new tabs, data extraction and iframes
+- [x] **0.3.1** — Logging in by hand: ANCHOR never types a password, and waits for the user's login
+- [x] **0.4** — Uploads, downloads, new tabs, data extraction and iframes
+    - [x] Data extraction: tables and lists saved as CSV, and single values read from the page
+    - [x] Downloads
+    - [x] Uploads, with the file path only from the request or a parameter
+    - [x] Following new tabs
+    - [x] Elements inside iframes
+    - [x] Hidden content: when a step's target is not on the page, try the controls that reveal more
+      ("Show more", expanders) before replanning; cookie banners in the way are declined
+    - [x] Unattended runs (`--unattended`), for scheduling: only an automation proven by a run with
+      someone present, and nothing repaired or asked; any change stops it until someone looks
 - [ ] **0.5** — Local frontend (runs on your computer, opens in the browser), with a "Run"
   button for each saved automation
 - [ ] **1.0** — Evaluated version: final runs on the closed sets
+- [ ] **Later** — A documentation site (GitHub Pages), with guides, examples and the command reference
 
 See the [changelog](CHANGELOG.md) for what changed in each version, and the
 [open issues](https://github.com/LucasDantas2701/ANCHOR/issues) for known problems.
@@ -548,19 +588,26 @@ requests and page contents do not leave the computer or the company network.
 <!-- KNOWN LIMITATIONS -->
 ## Known Limitations
 
-* Text matching is word-based, with a synonym dictionary; there is no real semantics. Data
-  extraction ("the price of product X") is the weakest point.
-* Iframes and closed shadow DOM are not read.
+* Text matching is word-based, with a synonym dictionary; there is no real semantics. Reading a
+  single value described in other words than the page's ("the text with the deadline") often finds
+  nothing, and the model has to copy the page's text (it is told so).
+* Closed shadow DOM is not read. Inside iframes, choosing an element by clicking on it (when the agent
+  asks) and the remembered choices' fallback (a saved CSS path) do not work: you choose by number.
+* Hidden content and cookie banners are recognized by their words ("Show more", "Mostrar mais",
+  "Load more", `aria-expanded`; "cookies", "consent", and a "Reject" / "Recusar" button): a "See the
+  rest" button or a banner that never says "cookies" is not.
 * When the heuristic is wrong with confidence (a silent error), the user is not asked.
-* Unattended runs stop when there is an ambiguity, until the memory learns the answer.
+* Unattended runs (`--unattended`) only run a plan proven with someone present, and stop at any change
+  (an element that differs, a step that fails, a new sensitive action): fixing it takes a run with someone present.
 * The English planner prompt is a translation that was not tuned; on English requests, the default
   Portuguese prompt does better, so it stays the default.
 * In English, the resolver gets more elements right first but also makes more silent errors,
   mostly in data extraction.
 * The defenses against prompt injection detect instructions to the assistant with patterns
   written knowing the test attacks; new kinds of attack may get past them, so the barriers
-  (destructive actions, confirmation of sensitive actions, typed values only from the request)
-  remain the last line of defense.
+  (destructive actions, confirmation of sensitive actions, typed values only from the request,
+  unrequested sends and prints, and the check of each click during a recovery) remain the last line
+  of defense.
 * The check of what was done treats capitalized words and acronyms in the request ("IT", "CPF")
   as data some step must use. If the site renames a field the request names by its acronym, the
   run may end as not fulfilled even when it was (a false "not fulfilled", never a false success).

@@ -36,12 +36,12 @@ FORM = """<html><body>
 </body></html>"""
 
 
-def run(page, planner, **kwargs):
+def run(page, planner, request="faça a tarefa da página", **kwargs):
     # Effect verification has its own tests (test_effects.py); here the pages
     # only change internal variables, with no visible effect.
     kwargs.setdefault("verify_effect", False)
     page.set_default_timeout(1500)
-    return Agent(page, planner, ActionExecutor(page), report=None, **kwargs).run("faça a tarefa da página")
+    return Agent(page, planner, ActionExecutor(page), report=None, **kwargs).run(request)
 
 
 def test_runs_the_plan_and_checks_the_end(page):
@@ -50,7 +50,7 @@ def test_runs_the_plan_and_checks_the_end(page):
         [("fill", "Nome", "Maria"), ("fill", "E-mail", "maria@x.com"), ("click", "Salvar", None)],
         [],  # end check: nothing is left
     )
-    result = run(page, planner)
+    result = run(page, planner, request="faça a tarefa da página e salve")
 
     assert result.ok and result.message == "goal reached"
     assert page.input_value("#nome") == "Maria" and page.evaluate("window.salvo") is True
@@ -66,7 +66,7 @@ def test_end_check_completes_what_was_missing(page):
         [("click", "Salvar", None)],   # the check found a missing step
         [],
     )
-    result = run(page, planner)
+    result = run(page, planner, request="faça a tarefa da página e salve")
     assert result.ok and page.evaluate("window.salvo") is True
     assert result.llm_calls == 3 and result.replans == 1
 
@@ -109,7 +109,7 @@ def test_failure_triggers_replanning_with_the_reason(page):
         [("click", "Salvar", None)],
         [],
     )
-    result = run(page, planner)
+    result = run(page, planner, request="faça a tarefa da página e salve")
 
     assert result.ok and result.failures == 1 and result.replans == 1
     assert result.records[0].status == "not_found"
@@ -141,7 +141,7 @@ def test_modal_covering_the_button_is_closed_when_replanning(page):
         [("click", "Salvar", None)],   # replanned because the pop-up closed
         [],
     )
-    result = run(page, planner)
+    result = run(page, planner, request="faça a tarefa da página e salve")
 
     assert result.ok and page.evaluate("window.salvo") is True
     assert "coberto por outro" in planner.calls[1]["history"][0]
@@ -277,7 +277,7 @@ def test_step_repeated_after_replanning_is_blocked(page):
         [("click", "Salvar vaga", None)],       # once warned, it moves on
         [],
     )
-    result = run(page, planner)
+    result = run(page, planner, request="faça a tarefa da página e salve")
 
     assert result.ok and page.evaluate("window.salva") is True
     assert page.evaluate("window.fechada") is None
@@ -292,7 +292,7 @@ def test_end_check_has_a_limit(page):
         [("fill", "E-mail", "a@x.com")],        # 1st check: finds something
         [("click", "Salvar", None)],            # 2nd check: finds more
     )
-    result = run(page, planner)
+    result = run(page, planner, request="faça a tarefa da página e salve")
     assert result.status == "cancelled" and "end check" in result.message
     assert page.evaluate("window.salvo") is True
 
@@ -311,7 +311,7 @@ def test_request_without_verb_does_not_pick_the_destructive_action(page):
 def test_end_check_repeating_only_done_steps_counts_as_the_end(page):
     page.set_content(FORM)
     planner = ScriptedPlanner([("click", "Salvar", None)], [("click", "Salvar", None)])
-    result = run(page, planner)
+    result = run(page, planner, request="faça a tarefa da página e salve")
     assert result.ok and result.message == "goal reached" and result.failures == 0
 
 

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Cadastro de clientes</title>
+<style>body{font-family:sans-serif;max-width:520px;margin:40px auto} label{display:block;margin:12px 0} input{width:100%;padding:6px}
+button{margin-top:12px;padding:8px 16px} #ok{color:green;margin-top:16px}
+#cookies{position:fixed;inset:auto 0 0 0;background:#222;color:#fff;padding:20px;text-align:center}</style></head>
+<body>
+<h1>Cadastro de clientes</h1>
+<form onsubmit="return false">
+  <label>Nome <input id="nome"></label>
+  <label>E-mail <input id="email" type="email"></label>
+  <button id="salvar" onclick="document.getElementById('ok').textContent = 'Cliente ' + document.getElementById('nome').value + ' salvo.'">Salvar cadastro</button>
+</form>
+<p id="ok" role="status"></p>
+<div id="cookies" role="dialog" aria-modal="true" style="inset:0;display:flex;flex-direction:column;justify-content:center">
+  <p>Usamos cookies para melhorar sua experiência.</p>
+  <p><button onclick="this.closest('#cookies').remove()">Aceitar cookies</button>
+     <button onclick="this.closest('#cookies').remove()">Recusar</button></p></div>
+</body></html>
