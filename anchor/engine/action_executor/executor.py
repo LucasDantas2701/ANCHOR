@@ -16,6 +16,7 @@ from anchor.engine.disambiguation import (
 )
 from anchor.engine.element_resolver import ElementResolver, Match
 from anchor.engine.memory import ChoiceMemory
+from anchor.i18n import t
 
 from .constants import (
     DEFAULT_AMBIGUITY_GAP,
@@ -514,10 +515,10 @@ class ActionExecutor:
             return shown[choice.number - 1]
 
         if choice.kind == "point" and self.can_point:
-            self.disambiguator.notify(
-                "Clique no elemento na janela do navegador."
-            )
-            captured = capture_click(self.page, self.point_timeout_s)
+            self.disambiguator.notify(t("dis.point_now"))
+            # A disambiguator may capture the click its own way (the interface: through the live view).
+            capture = getattr(self.disambiguator, "capture_click", None) or capture_click
+            captured = capture(self.page, self.point_timeout_s)
             self.user_wait_s += time.perf_counter() - waited
             return self._enrich_captured(captured, action_name) if captured else None
 

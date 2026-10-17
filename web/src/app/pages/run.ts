@@ -17,11 +17,11 @@ const WHAT: Record<string, string> = {
     @if (run(); as r) {
       <div class="layout" [class.theater]="watching()">
       <div class="top">
-      @if (r.kind === 'automation') { <a [routerLink]="['/automations', r.title]" class="back muted">← {{ r.title }}</a> }
+      @if (r.kind === 'automation' || r.kind === 'login') { <a [routerLink]="['/automations', r.title]" class="back muted">← {{ r.title }}</a> }
       @else { <a routerLink="/run" class="back muted">← Run a request</a> }
-      <p class="eyebrow">{{ r.kind === 'automation' ? 'Running an automation' : 'Running a request' }}</p>
+      <p class="eyebrow">{{ r.kind === 'automation' ? 'Running an automation' : r.kind === 'login' ? 'Logging in' : 'Running a request' }}</p>
       <div class="head">
-        <h1 class="title">{{ r.kind === 'automation' ? r.title : 'Your request' }}</h1>
+        <h1 class="title">{{ r.kind === 'request' ? 'Your request' : r.title }}</h1>
         <span [class]="'badge ' + jobClass[r.state]">{{ jobWords[r.state] }}@if (r.state === 'queued' && r.position > 1) { · {{ r.position - 1 }} ahead }</span>
         <div class="head-actions">
           @if (watching()) { <button class="btn" type="button" (click)="watching.set(false)">Close the live view</button> }
@@ -34,7 +34,7 @@ const WHAT: Record<string, string> = {
       @if ((r.state === 'running' || r.state === 'waiting') && r.spec['show_browser']) {
         <p class="muted note">The browser is also open in its own window.</p>
       }
-      @if (watching()) { <app-live class="live" [run]="r.id" [state]="r.state" [ended]="!active(r)" (close)="watching.set(false)" /> }
+      @if (watching()) { <app-live class="live" [run]="r.id" [state]="r.state" [ended]="!active(r)" [interactive]="takesInput(r)" (close)="watching.set(false)" /> }
 
       @if (r.question; as q) {
         <section class="ask card" role="alertdialog" aria-labelledby="ask-title">
@@ -64,13 +64,21 @@ const WHAT: Record<string, string> = {
                 </div>
               }
               <div class="actions">
-                @if (q.can_point) { <button class="btn" type="button" (click)="answer(q, { choice: 'point' })">I'll click it in the browser</button> }
+                @if (q.can_point) { <button class="btn" type="button" (click)="answer(q, { choice: 'point' })">I'll point at it on the live view</button> }
                 <button class="btn quiet" type="button" (click)="answer(q, { choice: 'skip' })">Skip this step</button>
+              </div>
+            }
+            @case ('point') {
+              <h2 id="ask-title" class="heading">Click the element <em>on the live view</em></h2>
+              <p class="muted">ANCHOR will use what you click for this step, and remember it for next time.</p>
+              <div class="actions">
+                <button class="btn" type="button" (click)="answer(q, { choice: 'cancel' })">Cancel</button>
               </div>
             }
             @case ('login') {
               <h2 id="ask-title" class="heading">This page needs you to <em>{{ q.signup ? 'sign up' : 'log in' }}</em></h2>
-              <p class="muted">Log in in the browser window, then come back here. ANCHOR never types or sees your password.</p>
+              <p class="muted">@if (q.window) { A browser window opened: log in there, or on the live view. } @else { Log in on the live view: click and type on the page (paste with Ctrl+V). }
+                ANCHOR never types, keeps or sees your password.</p>
               <div class="actions">
                 <button class="btn primary" type="button" (click)="answer(q, { choice: 'done' })">I've logged in, continue</button>
                 <button class="btn" type="button" (click)="answer(q, { choice: 'cancel' })">Cancel the run</button>
@@ -188,10 +196,16 @@ export class RunPage implements OnDestroy {
   log = viewChild<ElementRef<HTMLElement>>('log');
   jobWords = JOB_WORDS; jobClass = JOB_CLASS;
   private timer: ReturnType<typeof setTimeout> | undefined;
+  private opened = 0;
   private last = 0;
 
   constructor() {
     effect(() => { const id = +this.id(); this.reset(); this.poll(id); });
+    // A login or a pointing needs the live view: it opens by itself, once for each question.
+    effect(() => {
+      const q = this.run()?.question;
+      if (q && (q.kind === 'login' || q.kind === 'point') && q.number !== this.opened) { this.opened = q.number; this.watching.set(true); }
+    });
   }
 
   ngOnDestroy() { clearTimeout(this.timer); }
@@ -214,6 +228,7 @@ export class RunPage implements OnDestroy {
   }
 
   active(r: RunView) { return ACTIVE.includes(r.state); }
+  takesInput(r: RunView) { return !!r.question && (r.question.kind === 'login' || r.question.kind === 'point'); }
   what(category?: string) { return WHAT[category ?? ''] ?? 'do something sensitive'; }
 
   answer(q: Question, answer: Record<string, unknown>) {
@@ -266,8 +281,9 @@ export class RunPage implements OnDestroy {
     const a = (e['answer'] ?? {}) as Record<string, unknown>;
     switch (a['choice']) {
       case 'allow': return 'Allow'; case 'deny': return "Don't allow"; case 'not_now': return 'Not now';
-      case 'candidate': return `option ${a['number']}`; case 'point': return "I'll click it in the browser";
+      case 'candidate': return `option ${a['number']}`; case 'point': return "I'll point at it on the live view";
       case 'skip': return 'Skip this step'; case 'done': return "I've logged in"; case 'cancel': return 'Cancel';
+      case undefined: return (e['answer'] === null) ? 'the element, by clicking it' : 'no answer';
       default: return 'no answer (the run was stopped)';
     }
   }

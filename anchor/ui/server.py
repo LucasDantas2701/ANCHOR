@@ -198,6 +198,26 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
         return Response(json.dumps(body, ensure_ascii=False, indent=1, default=str), media_type="application/json",
                         headers={"Content-Disposition": f'attachment; filename="anchor-run-{job.id}.json"'})
 
+    @app.post("/api/runs/{run_id}/input")
+    def give_input(run_id: int, body: dict = Body(...)):
+        """A click or keys from the live view: taken only while a login or a pointing waits for them."""
+        job = job_or_404(run_id)
+        if not job.takes_input():
+            raise HTTPException(409, "the browser takes your clicks and keys only when ANCHOR asks for them")
+        if len(job.inputs) < 200:
+            job.inputs.append({k: body.get(k) for k in ("type", "x", "y", "dy", "text", "key")})
+        return {"ok": True}
+
+    @app.post("/api/automations/{name}/login")
+    def log_in(name: str):
+        """Log in to the automation's site once; the session stays in its browser profile."""
+        try:
+            store.load(name)
+        except (AutomationError, FileNotFoundError):
+            raise HTTPException(404, "no such automation")
+        job = runs.submit("login", name, {"name": name})
+        return {"id": job.id, "position": runs.position(job)}
+
     @app.post("/api/runs/{run_id}/stop")
     def stop(run_id: int):
         runs.stop(job_or_404(run_id))

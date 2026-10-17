@@ -67,8 +67,10 @@ _CAPTURE_JS = """
     const finish = (value) => {
         events.forEach((t) => document.removeEventListener(t, t === "click" ? onClick : block, true));
         banner.remove();
+        window.__erCancelPick = undefined;
         resolve(value);
     };
+    window.__erCancelPick = () => finish(null);     // the person gave up pointing
 
     const onClick = (ev) => {
         block(ev);
@@ -112,6 +114,35 @@ def clear_highlights(page: Page) -> None:
 def capture_click(page: Page, timeout_s: float = 120) -> Optional[Match]:
     """Waits for the user to click an element on the page and returns a Match for it."""
     info = page.evaluate(_CAPTURE_JS, {"timeoutMs": int(timeout_s * 1000), "bannerText": t("dis.banner")})
+    return _captured(page, info)
+
+
+def start_capture(page: Page, timeout_s: float = 120) -> None:
+    """
+    The same capture, without waiting for it: the page listens for the click, and read_capture
+    tells whether it came. For a click that comes through the live view, which the run itself has
+    to deliver to the page while it waits.
+    """
+    page.evaluate("""(args) => {
+        window.__erPick = undefined;
+        Promise.resolve((""" + _CAPTURE_JS + """)(args)).then((r) => { window.__erPick = r || null; });
+    }""", {"timeoutMs": int(timeout_s * 1000), "bannerText": t("dis.banner")})
+
+
+def cancel_capture(page: Page) -> None:
+    """Stops a capture started with start_capture (the page no longer waits for a click)."""
+    page.evaluate("() => window.__erCancelPick && window.__erCancelPick()")
+
+
+def read_capture(page: Page) -> tuple[bool, Optional[Match]]:
+    """(done, the element): done once the click came or the capture timed out."""
+    info = page.evaluate("() => window.__erPick === undefined ? { waiting: true } : { info: window.__erPick }")
+    if info.get("waiting"):
+        return False, None
+    return True, _captured(page, info.get("info"))
+
+
+def _captured(page: Page, info) -> Optional[Match]:
     if not info:
         return None
     return Match(

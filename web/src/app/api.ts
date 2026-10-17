@@ -77,14 +77,14 @@ export function isoDate(iso: string): string {
 export type JobState = 'queued' | 'running' | 'waiting' | 'checked' | 'not_done' | 'stopped' | 'error';
 
 export interface Question {
-  number: number; kind: 'confirm' | 'choose' | 'login';
+  number: number; kind: 'confirm' | 'choose' | 'login' | 'point';
   // confirm
   category?: string; element?: string; description?: string; remembers?: boolean;
   // choose
   action?: string; reason?: 'ambiguous' | 'not_found'; can_point?: boolean; screenshot?: string | null;
   candidates?: { number: number; kind: string; name: string; near: string }[];
   // login
-  url?: string; signup?: boolean;
+  url?: string; signup?: boolean; window?: boolean;
 }
 
 export interface RunEvent { seq: number; at: string; type: 'line' | 'used' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }
@@ -92,7 +92,7 @@ export interface RunEvent { seq: number; at: string; type: 'line' | 'used' | 'st
 export interface RunResult { state: JobState; message: string; summary?: string; hint?: string; steps?: number; seconds?: number; model_calls?: number; mode?: string; }
 
 export interface RunView {
-  id: number; kind: 'automation' | 'request'; title: string; state: JobState; position: number;
+  id: number; kind: 'automation' | 'request' | 'login'; title: string; state: JobState; position: number;
   question: Question | null; result: RunResult | null; events: RunEvent[]; spec: Record<string, unknown>;
   activity: { phase: string; seconds: number; tokens: number; attempt: number } | null;
 }
@@ -118,6 +118,8 @@ export class Runs {
     return this.http.get(`/api/runs/${id}/frame?after=${after}`, { observe: 'response', responseType: 'blob' });
   }
   details(id: number) { return this.http.get(`/api/runs/${id}/details`, { responseType: 'blob' }); }
+  input(id: number, event: Record<string, unknown>) { return this.http.post(`/api/runs/${id}/input`, event); }
+  logIn(name: string) { return this.http.post<{ id: number }>(`/api/automations/${encodeURIComponent(name)}/login`, {}); }
   profiles() { return this.http.get<Profile[]>('/api/profiles'); }
 }
 

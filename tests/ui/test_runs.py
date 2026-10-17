@@ -250,3 +250,73 @@ def test_the_details_of_a_run_are_a_file_with_what_the_model_read_and_answered(s
     r = client.get(f"/api/runs/{run['id']}/details", headers=HEADERS)
     assert r.status_code == 200 and "attachment" in r.headers["content-disposition"]
     assert r.json()["plannings"][0]["page"] == ['Button "Jobs"'] and r.json()["state"] == "checked"
+
+
+def test_the_persons_clicks_and_keys_reach_the_page_and_only_known_keys_are_pressed(page):
+    from anchor.ui.execute import deliver
+    from anchor.ui.runs import Job
+    page.set_viewport_size({"width": 1000, "height": 600})
+    page.set_content('<input id="u" style="position:absolute;left:100px;top:100px;width:200px;height:30px">')
+    job = Job(1, "request", "x", {})
+    job.frame_meta = {"deviceWidth": 1000, "deviceHeight": 600}
+    job.inputs.extend([{"type": "click", "x": 0.2, "y": 115 / 600}, {"type": "text", "text": "Ana"},
+                       {"type": "key", "key": "Backspace"}, {"type": "key", "key": "F12"}])
+    deliver(job, page)
+    assert page.input_value("#u") == "An" and not job.inputs
+
+
+def test_the_live_view_takes_clicks_and_keys_only_while_a_login_waits_and_never_records_them(store):
+    from anchor.ui.runs import WebLoginWaiter
+    seen = {}
+
+    def runner(job):
+        time.sleep(0.5)
+        WebLoginWaiter(job).wait("https://example.com")
+        return {"state": "checked", "message": "logged in"}
+
+    client = client_for(store, runner)
+    run = client.post("/api/runs", json={"kind": "automation", "name": "greet", "values": {"name": "Ana"}}, headers=HEADERS).json()
+    assert client.post(f"/api/runs/{run['id']}/input", json={"type": "text", "text": "x"}, headers=HEADERS).status_code == 409
+    question = wait_for(lambda: client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"])
+    assert question["kind"] == "login"
+    assert client.post(f"/api/runs/{run['id']}/input", json={"type": "text", "text": "my-secret"}, headers=HEADERS).status_code == 200
+    client.post(f"/api/runs/{run['id']}/answer", json={"number": question["number"], "answer": {"choice": "done"}}, headers=HEADERS)
+    done = run_until_done(client, run["id"])
+    assert "my-secret" not in str(done) and "my-secret" not in client.get(f"/api/runs/{run['id']}/details", headers=HEADERS).text
+
+
+def test_pointing_at_the_element_on_the_live_view_does_the_step(tmp_path):
+    page = tmp_path / "order.html"
+    page.write_text('<!doctype html><html><body style="margin:0"><h1 style="margin:20px">Order 42</h1>'
+                    '<button id="go" style="position:absolute;left:300px;top:200px;width:80px;height:40px" '
+                    'onclick="document.getElementById(\'s\').textContent=\'Details shown\'">▶</button><p id="s"></p></body></html>',
+                    encoding="utf-8")
+    store = AutomationStore(tmp_path / "automations")
+    store.create(Automation(name="details", request="Open the order's details", url=page.as_uri(), profile="ollama-small"))
+    store.save_plan("details", ApprovedPlan(steps=[Step(action="click", description="Ver detalhes do pedido", goal="g1")],
+                                            goals=[Goal(id="g1", description="the details are shown")]))
+    client = client_for(store, headless=True)
+    run = client.post("/api/runs", json={"kind": "automation", "name": "details"}, headers=HEADERS).json()
+    choose = wait_for(lambda: (q := client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"]) and q, 60)
+    assert choose["kind"] == "choose" and choose["can_point"]
+    client.post(f"/api/runs/{run['id']}/answer", json={"number": choose["number"], "answer": {"choice": "point"}}, headers=HEADERS)
+    point = wait_for(lambda: (q := client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"]) and q["kind"] == "point" and q, 30)
+    # the person clicks the button on the live view (the page is 1280 x 720 in a hidden browser)
+    client.post(f"/api/runs/{run['id']}/input", json={"type": "click", "x": 340 / 1280, "y": 220 / 720}, headers=HEADERS)
+    done = run_until_done(client, run["id"])
+    assert point["number"] > choose["number"]
+    assert any(e["type"] == "used" and "▶" in e["text"] for e in done["events"]), done["events"][-6:]
+
+
+def test_logging_in_to_an_automations_site_asks_and_keeps_the_session(tmp_path):
+    site = tmp_path / "site.html"
+    site.write_text("<h1>Sign in</h1><input type=password>", encoding="utf-8")
+    store = AutomationStore(tmp_path / "automations")
+    store.create(Automation(name="crm", request="Open the CRM", url=site.as_uri(), profile="ollama-small"))
+    client = client_for(store, headless=True)
+    run = client.post("/api/automations/crm/login", headers=HEADERS).json()
+    question = wait_for(lambda: client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"], 60)
+    assert question["kind"] == "login" and question["window"] is False
+    client.post(f"/api/runs/{run['id']}/answer", json={"number": question["number"], "answer": {"choice": "done"}}, headers=HEADERS)
+    assert run_until_done(client, run["id"])["state"] == "checked"
+    assert client.post("/api/automations/none-such/login", headers=HEADERS).status_code == 404

@@ -91,6 +91,7 @@ MESSAGES: dict[str, dict[str, str]] = {
     "dis.opt_skip": {"en": "S to skip this step", "pt": "P para pular este passo"},
     "dis.prompt": {"en": "Type {options}: ", "pt": "Digite {options}: "},
     "dis.invalid": {"en": "Answer not recognized, please try again.", "pt": "Resposta não reconhecida, tente de novo."},
+    "dis.point_now": {"en": "Click the element in the browser.", "pt": "Clique no elemento na janela do navegador."},
     "dis.banner": {"en": "Click the element the assistant should use", "pt": "Clique no elemento que o assistente deve usar"},
     "dis.image_saved": {"en": "(image saved at {path})", "pt": "(imagem salva em {path})"},
     # ------------------------------------------------------------ choice memory (terminal)

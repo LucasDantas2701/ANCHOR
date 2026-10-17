@@ -44,7 +44,7 @@ export function guideOnStart(): boolean {
           <h2 id="guide-title" class="title">You can always <em>see and stop</em></h2>
           <dl class="places">
             <div><dt>Watch it run</dt><dd>The browser, live, beside the steps as they happen.</dd></div>
-            <div><dt>Waiting for you</dt><dd>Before anything sensitive (saving, sending, deleting, paying), ANCHOR asks. It also asks when two things look alike, and when a page needs you to log in.</dd></div>
+            <div><dt>Waiting for you</dt><dd>Before anything sensitive (saving, sending, deleting, paying), ANCHOR asks. It also asks when two things look alike, and when a page needs you to log in: then the live view opens, and you click and type on it yourself.</dd></div>
             <div><dt>Stop</dt><dd>Stops at the next step. Nothing else is done after it.</dd></div>
             <div><dt>Try again</dt><dd>After a run that was not done, opens it again with what you wrote, to change and retry.</dd></div>
           </dl>

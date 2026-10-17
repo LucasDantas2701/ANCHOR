@@ -97,6 +97,7 @@ class LiveView:
         def frame(params):
             self.count += 1
             self.job.frame = (self.count, base64.b64decode(params["data"]))
+            self.job.frame_meta = params.get("metadata")
             try:
                 session.send("Page.screencastFrameAck", {"sessionId": params["sessionId"]})
             except Exception:
@@ -116,12 +117,47 @@ class LiveView:
         self.session = self.page = None
 
 
+# Keys the live view may press besides typing text: moving in a form and editing what was typed.
+KEYS = {"Enter", "Tab", "Shift+Tab", "Backspace", "Delete", "Escape", "ArrowUp", "ArrowDown", "ArrowLeft",
+        "ArrowRight", "Home", "End", "PageUp", "PageDown", "Space", "Control+a", "Meta+a"}
+
+
+def deliver(job: Job, page) -> None:
+    """
+    The person's clicks and keys from the live view, done in the browser (from the run's own
+    thread). Never recorded: what is typed goes to the page and nowhere else.
+    """
+    while job.inputs:
+        event = job.inputs.popleft()
+        kind = event.get("type")
+        if kind in ("click", "scroll"):
+            meta = job.frame_meta or {}
+            width = meta.get("deviceWidth") or (page.viewport_size or {}).get("width") or 1280
+            height = meta.get("deviceHeight") or (page.viewport_size or {}).get("height") or 720
+            x = min(max(float(event.get("x", 0)), 0.0), 1.0) * width
+            y = min(max(float(event.get("y", 0)), 0.0), 1.0) * height
+            if kind == "click":
+                page.mouse.click(x, y)
+            else:
+                page.mouse.move(x, y)
+                page.mouse.wheel(0, max(-2000, min(2000, float(event.get("dy", 0)))))
+        elif kind == "text" and isinstance(event.get("text"), str):
+            page.keyboard.insert_text(event["text"][:2000])
+        elif kind == "key" and event.get("key") in KEYS:
+            page.keyboard.press(event["key"])
+
+
 def _attach(job: Job, executor: ActionExecutor) -> LiveView:
-    """The interface's eyes on a run: the live view, the browser's events while a question waits,
-    and, after each action, what it was done on."""
+    """The interface's eyes and hands on a run: the live view, the person's clicks and keys while a
+    login or a pointing waits, and, after each action, what it was done on."""
     live = LiveView(job, lambda: executor.page)
     job.tick = live.maintain
-    job.pump = lambda: executor.page.wait_for_timeout(100)
+
+    def pump():
+        deliver(job, executor.page)
+        executor.page.wait_for_timeout(50)
+
+    job.pump = pump
 
     def used(result):
         match = getattr(result, "selected_element", None)
@@ -169,6 +205,8 @@ class Executor:
         try:
             if job.kind == "automation":
                 return self.saved(job)
+            if job.kind == "login":
+                return self.login(job)
             return self.request(job)
         except (ConfigError, AutomationError) as exc:
             return {"state": "error", "message": str(exc)}
@@ -195,18 +233,43 @@ class Executor:
                 page = context.new_page()
             try:
                 executor = ActionExecutor(page, resolver=ElementResolver(page), disambiguator=WebDisambiguator(job),
-                                          can_point=not hidden, memory=ChoiceMemory(store.memory_path(name)))
+                                          can_point=True, memory=ChoiceMemory(store.memory_path(name)))
                 live = _attach(job, executor)
                 page.goto(automation.url)
                 result, mode, run_id = run_automation(
                     store, name, page, executor, make_planner, report=job.say,
                     relearn=bool(spec.get("relearn")), heal=True, params=spec.get("values") or {},
-                    confirm=WebConfirmer(job, remembers=True), login=WebLoginWaiter(job, can_log_in=not hidden))
+                    confirm=WebConfirmer(job, remembers=True), login=WebLoginWaiter(job))
             finally:
                 if "live" in locals():
                     _detach(job, live)
                 context.close()
         return _outcome(result, mode=mode, run=run_id)
+
+    def login(self, job: Job) -> dict:
+        """
+        "Log in to this site": the automation's own browser, in a window (unless the tests run it
+        hidden), on its site; the person logs in, and the session stays in the automation's profile.
+        """
+        name = job.spec["name"]
+        automation = self.store.load(name)
+        folder = automation.browser_profile or str(self.store.folder(name) / "browser")
+        with sync_playwright() as p:
+            context = p.chromium.launch_persistent_context(folder, headless=self.headless)
+            page = context.pages[0] if context.pages else context.new_page()
+            executor = ActionExecutor(page)
+            live = _attach(job, executor)
+            try:
+                page.goto(automation.url)
+                job.add("line", text="A browser window opened on the automation's site: log in there, or on the live view."
+                        if not self.headless else "The automation's site is open: log in on the live view.")
+                answer = job.ask("login", url=automation.url, signup=False, window=not self.headless)
+            finally:
+                _detach(job, live)
+                context.close()
+        if (answer or {}).get("choice") == "done":
+            return {"state": "checked", "message": "You logged in. The automation's runs will use this session."}
+        return {"state": "stopped", "message": "Nothing was changed."}
 
     def request(self, job: Job) -> dict:
         spec = job.spec
@@ -219,10 +282,10 @@ class Executor:
             try:
                 page.goto(spec["url"])
                 executor = ActionExecutor(page, resolver=ElementResolver(page), disambiguator=WebDisambiguator(job),
-                                          can_point=not hidden, memory=ChoiceMemory(spec.get("memory", "memory/agent.json")),   # the same file as the command line
+                                          can_point=True, memory=ChoiceMemory(spec.get("memory", "memory/agent.json")),   # the same file as the command line
                                           confirmer=WebConfirmer(job, remembers=False))
                 live = _attach(job, executor)
-                result = Agent(page, planner, executor, report=job.say, login=WebLoginWaiter(job, can_log_in=not hidden),
+                result = Agent(page, planner, executor, report=job.say, login=WebLoginWaiter(job),
                                output_dir=self.output_dir).run(spec["request"])
             finally:
                 if "live" in locals():

@@ -15,7 +15,7 @@ import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from anchor.engine.disambiguation.types import ChoiceRequest, UserChoice
 from anchor.engine.sensitive import ConfirmationRequest, Decision
@@ -43,6 +43,9 @@ class Job:
     frame: Optional[tuple] = None                 # the live view's last image: (number, jpeg bytes)
     watched: float = 0.0                          # when the live view last asked for an image
     tick: Optional[Callable[[], None]] = None     # the run's own thread: keeps the live view going
+    inputs: deque = field(default_factory=deque)   # clicks and keys from the live view, for the browser
+    frame_meta: Optional[dict] = None             # the page's size behind the live view's image
+    found: Any = None                             # what a question waited for besides an answer (a pointed element)
     pump: Optional[Callable[[], None]] = None     # lets the browser's events through while a question waits
     stop: bool = False
     created: float = field(default_factory=time.time)
@@ -75,8 +78,17 @@ class Job:
         if line.strip():
             self.add("line", text=line.strip())
 
-    def ask(self, kind: str, **data) -> Optional[dict]:
-        """Asks the person and waits. None when the run is stopped while waiting."""
+    def takes_input(self) -> bool:
+        """The browser takes the person's clicks and keys only while a login or a pointing waits for them."""
+        question = self.question
+        return question is not None and question.get("kind") in ("login", "point")
+
+    def ask(self, kind: str, until: Optional[Callable[[], Any]] = None, **data) -> Optional[dict]:
+        """
+        Asks the person and waits. None when the run is stopped while waiting. With `until`, the
+        wait also ends when it returns something (kept in `found`): an element pointed at.
+        """
+        self.found = None
         if self.stop:
             return None
         with self.lock:
@@ -96,8 +108,14 @@ class Job:
                     self.answered.wait(QUESTION_POLL)
             else:
                 self.answered.wait(QUESTION_POLL)
+            if until is not None:
+                found = until()
+                if found is not None:
+                    self.found = found
+                    break
         with self.lock:
             answer, self.question = self.answer, None
+            self.inputs.clear()                   # nothing typed for this question reaches a later one
         self.state = previous if not self.stop else self.state
         self.add("answered", number=number, answer=answer)
         return answer
@@ -144,13 +162,37 @@ class WebConfirmer:
 
 
 class WebDisambiguator:
-    """Which element: a candidate by number, pointing at it in the browser, or skipping the step."""
+    """Which element: a candidate by number, pointing at it (on the live view), or skipping the step."""
 
     def __init__(self, job: Job):
         self.job = job
 
+    def capture_click(self, page, timeout_s: float = 120):
+        """The person points at the element on the live view: the page listens, the run delivers the click."""
+        from anchor.engine.disambiguation.page_tools import (
+            cancel_capture,
+            read_capture,
+            start_capture,
+        )
+        start_capture(page, timeout_s)
+
+        def pointed():
+            done, match = read_capture(page)
+            return ("done", match) if done else None
+
+        self.job.ask("point", until=pointed)
+        if self.job.found is None:                # cancelled, or the run was stopped
+            try:
+                cancel_capture(page)
+            except Exception:
+                pass
+            return None
+        return self.job.found[1]
+
     def notify(self, message: str) -> None:
-        self.job.add("line", text=message)
+        from anchor.i18n import t
+        if message != t("dis.point_now"):         # the interface's own panel says where to click
+            self.job.add("line", text=message)
 
     def choose(self, request: ChoiceRequest) -> UserChoice:
         shot = base64.b64encode(request.screenshot).decode() if request.screenshot else None
@@ -170,7 +212,7 @@ class WebDisambiguator:
 class WebLoginWaiter:
     """The task needs a login: the person logs in in the browser window, then says so."""
 
-    def __init__(self, job: Job, can_log_in: bool = True):
+    def __init__(self, job: Job, can_log_in: bool = True):     # with the live view, a login is always possible
         self.job, self.can_log_in = job, can_log_in
 
     def wait(self, url: str, signup: bool = False) -> bool:

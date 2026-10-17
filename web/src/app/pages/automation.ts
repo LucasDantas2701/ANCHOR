@@ -30,6 +30,7 @@ const ACTIONS: Record<string, string> = {
         <div class="go">
           <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Starting…' : (a.learned ? 'Run' : 'Run and learn') }}</button>
           <label class="check window"><input type="checkbox" name="show" [(ngModel)]="show"> Also open the browser in its own window</label>
+          <button class="btn" type="button" (click)="logIn(a)" title="Opens this automation's browser so you can log in once; its runs keep the session">Log in to this site</button>
           <details class="more"><summary class="muted">More options</summary>
             <label class="check"><input type="checkbox" name="relearn" [(ngModel)]="relearn"> Learn the plan again with the AI</label>
             <label class="check"><input type="checkbox" name="fresh" [(ngModel)]="fresh"> Use a clean browser (no saved logins)</label>
@@ -133,6 +134,13 @@ export class AutomationPage {
   relearn = false; fresh = false; show = false;
   busy = signal(false);
   error = signal('');
+
+  logIn(a: AutomationDetail) {
+    this.runs.logIn(a.name).subscribe({
+      next: r => this.router.navigate(['/runs', r.id]),
+      error: e => this.error.set(apiError(e, 'The browser could not open.')),
+    });
+  }
 
   run(a: AutomationDetail) {
     this.error.set(''); this.busy.set(true);

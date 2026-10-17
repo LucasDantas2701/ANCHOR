@@ -50,6 +50,15 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   while the view is open, follows the tab the run is on, and keeps coming while the run waits. Under each
   step, the element it was done on ("on the button “Save customer”"), from a listener the action
   executor now calls after each action.
+- **The interface, step 4: logging in and pointing on the live view.** When a page needs a login,
+  or the person chooses to point at an element, the live view opens by itself and takes the
+  person's clicks, scrolling, keys and Ctrl+V, which the run delivers to the browser; at any other
+  time it only shows. What is typed goes to the page and nowhere else: not to the model, not to
+  what happened, not to the run's details. Pointing works with the browser hidden (the click
+  capture now has a form that does not hold the run: start, read, cancel; the action executor uses a
+  disambiguator's own capture when it has one). And "Log in to this site", on an automation's page,
+  opens its browser in a window, on its site, so the person logs in once and its runs keep the
+  session.
 - **A guide for the first time.** When ANCHOR opens, a short guide (four pages) says what it does,
   where things are, what happens during a run (watching, the questions, Stop, Try again, never a
   password in a request) and which model to use: the small one first, the medium one for big pages
