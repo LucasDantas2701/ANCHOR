@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
-import { Api, takeCodeFromAddress } from './api';
+import { ACTIVE, Api, RunListItem, Runs, takeCodeFromAddress } from './api';
 
 @Component({
   selector: 'app-root',
@@ -24,6 +24,13 @@ import { Api, takeCodeFromAddress } from './api';
         <a routerLink="/run" routerLinkActive="on">Run a request</a>
         <a routerLink="/schedules" routerLinkActive="on">Schedules</a>
         <a routerLink="/settings" routerLinkActive="on">Settings</a>
+        @if (current(); as c) {
+          <a class="now" [routerLink]="['/runs', c.id]">
+            <span class="eyebrow">{{ c.state === 'waiting' ? 'Waiting for you' : 'Running now' }}</span>
+            <span class="what">{{ c.kind === 'automation' ? c.title : 'A request' }}</span>
+            @if (queued() > 0) { <span class="muted">+ {{ queued() }} waiting their turn</span> }
+          </a>
+        }
         <span class="version mono">{{ version() }}</span>
       </nav>
       <main><router-outlet /></main>
@@ -44,6 +51,12 @@ import { Api, takeCodeFromAddress } from './api';
               font: 500 14px/20px var(--font-sans); }
     .side a:hover { color: var(--ink); background: var(--surface-raised); }
     .side a.on { color: var(--ink); background: var(--surface-raised); box-shadow: inset 0 0 0 1px var(--border); }
+    .now { margin-top: auto; display: grid; gap: 2px; padding: var(--space-3) var(--space-4) !important; border-radius: var(--radius-md) !important;
+           border: 1px solid var(--border); background: var(--surface-raised); }
+    .now .eyebrow { margin: 0; color: var(--accent); } .now .eyebrow::before { display: none; }
+    .now .what { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .now .muted { font-size: 12px; }
+    .now + .version { margin-top: var(--space-3); }
     .version { margin-top: auto; padding: 0 var(--space-4); font-size: 12px; color: var(--ink-muted); }
     main { overflow: auto; padding: var(--space-12) var(--space-12) var(--space-8); }
   `],
@@ -53,12 +66,28 @@ export class App implements OnInit {
   theme = signal<'dark' | 'light'>((localStorage.getItem('anchor-theme') as 'dark' | 'light') || 'dark');
   docs = signal('https://github.com/LucasDantas2701/ANCHOR#readme');
   version = signal('');
+  private runs = inject(Runs);
+  current = signal<RunListItem | null>(null);
+  queued = signal(0);
 
   constructor() { takeCodeFromAddress(); }
 
   ngOnInit() {
     document.documentElement.dataset['theme'] = this.theme();
     this.api.info().subscribe({ next: i => { this.docs.set(i.docs); this.version.set(`version ${i.version}`); }, error: () => {} });
+    this.watchRuns();
+  }
+
+  /** What is running now, every few seconds, for the sidebar. */
+  private watchRuns() {
+    this.runs.list().subscribe({
+      next: list => {
+        this.current.set(list.find(j => j.state === 'running' || j.state === 'waiting') ?? null);
+        this.queued.set(list.filter(j => j.state === 'queued').length);
+      },
+      error: () => setTimeout(() => this.watchRuns(), 5000),
+      complete: () => setTimeout(() => this.watchRuns(), 2000),
+    });
   }
 
   toggleTheme() {

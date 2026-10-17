@@ -50,7 +50,7 @@ export function runDate(id: string): string {
 }
 
 export function host(url: string): string {
-  try { return new URL(url).host; } catch { return url; }
+  try { const u = new URL(url); return u.protocol === 'file:' ? 'A file on this computer' : u.host; } catch { return url; }
 }
 
 export const STATE_WORDS: Record<RunState, string> = { checked: 'Checked', stopped: 'Stopped by you', not_done: 'Not done' };
@@ -70,4 +70,63 @@ export function modelName(profile: string): string { return MODELS[profile] ?? p
 export function isoDate(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
   return m ? runDate(`${m[1]}${m[2]}${m[3]}-${m[4]}${m[5]}`) : iso;
+}
+
+// --- Runs ---------------------------------------------------------------------------------------
+
+export type JobState = 'queued' | 'running' | 'waiting' | 'checked' | 'not_done' | 'stopped' | 'error';
+
+export interface Question {
+  number: number; kind: 'confirm' | 'choose' | 'login';
+  // confirm
+  category?: string; element?: string; description?: string; remembers?: boolean;
+  // choose
+  action?: string; reason?: 'ambiguous' | 'not_found'; can_point?: boolean; screenshot?: string | null;
+  candidates?: { number: number; kind: string; name: string; near: string }[];
+  // login
+  url?: string; signup?: boolean;
+}
+
+export interface RunEvent { seq: number; type: 'line' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }
+
+export interface RunResult { state: JobState; message: string; steps?: number; seconds?: number; model_calls?: number; mode?: string; }
+
+export interface RunView {
+  id: number; kind: 'automation' | 'request'; title: string; state: JobState; position: number;
+  question: Question | null; result: RunResult | null; events: RunEvent[]; spec: Record<string, unknown>;
+}
+
+export interface RunListItem { id: number; kind: string; title: string; state: JobState; position: number; }
+
+export interface Profile { name: string; label: string; }
+
+@Injectable({ providedIn: 'root' })
+export class Runs {
+  private http = inject(HttpClient);
+  startAutomation(name: string, values: Record<string, string>, relearn: boolean, freshBrowser: boolean) {
+    return this.http.post<{ id: number }>('/api/runs', { kind: 'automation', name, values, relearn, fresh_browser: freshBrowser });
+  }
+  startRequest(request: string, url: string, profile: string) {
+    return this.http.post<{ id: number }>('/api/runs', { kind: 'request', request, url, profile });
+  }
+  view(id: number, after: number) { return this.http.get<RunView>(`/api/runs/${id}?after=${after}`); }
+  list() { return this.http.get<RunListItem[]>('/api/runs'); }
+  answer(id: number, number: number, answer: Record<string, unknown>) { return this.http.post(`/api/runs/${id}/answer`, { number, answer }); }
+  stop(id: number) { return this.http.post(`/api/runs/${id}/stop`, {}); }
+  profiles() { return this.http.get<Profile[]>('/api/profiles'); }
+}
+
+export const JOB_WORDS: Record<JobState, string> = {
+  queued: 'Waiting its turn', running: 'Running', waiting: 'Waiting for you', checked: 'Checked',
+  not_done: 'Not done', stopped: 'Stopped', error: 'Could not run',
+};
+export const JOB_CLASS: Record<JobState, string> = {
+  queued: '', running: 'accent', waiting: 'waiting', checked: 'checked', not_done: 'refused', stopped: 'waiting', error: 'refused',
+};
+export const ACTIVE: JobState[] = ['queued', 'running', 'waiting'];
+
+/** An error from the API, in the words the server wrote for the person. */
+export function apiError(err: unknown, fallback: string): string {
+  const detail = (err as { error?: { detail?: unknown } })?.error?.detail;
+  return typeof detail === 'string' ? detail : fallback;
 }

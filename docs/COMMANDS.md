@@ -310,8 +310,10 @@ with `--csv`, it asks once, at the end, if some row failed.
 ## Interface (`anchor.ui`, in development)
 
 The local program's interface: a server on this computer only, and the app it serves. For now it
-lists the saved automations and shows each one; running, the live view, scheduling and the
-installer come in the next steps of 0.5. While it is in development, build the app once and start
+lists the saved automations, shows each one and runs it (with the values it needs), and runs a
+one-off request; runs go one at a time, in a queue, and their questions (a sensitive action, which
+element, a login) are answered in the interface. The browser still opens in its own window; the
+live view, the rest of the commands, scheduling and the installer come in the next steps of 0.5. While it is in development, build the app once and start
 the server by hand:
 
 ```

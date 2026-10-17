@@ -27,6 +27,16 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   each start (handed to the app in the address's fragment and taken off the address bar), and come
   from the app's own address and origin: no other program or website can drive ANCHOR. The server
   reads through the same automation store as the command line and adds no rules of its own.
+- **The local interface, step 2: running.** An automation runs from its page (with a field for
+  each value it needs, and the options to learn the plan again or use a clean browser), and a
+  one-off request from "Run a request" (the request, the page and the model). Runs wait their turn
+  in a queue and go one at a time (one GPU); the run's screen shows what happens as it happens, and
+  a Stop that takes effect at the next step. The questions a run asks come to the interface: a
+  sensitive action (Allow, Don't allow, Not now), which element (one of the numbered candidates, the
+  person clicking it in the browser, or skipping the step), and a login (done in the browser window,
+  which still opens on its own; the live view inside the interface is step 3). Stopping with a
+  question open answers no, and keeps no decision. A run does exactly what the command line does
+  (run_automation, the Agent), and a request with a password is refused before it is queued.
 
 ## [0.4.0] - 2026-10-17
 
