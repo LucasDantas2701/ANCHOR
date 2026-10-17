@@ -43,8 +43,22 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   are told apart; and the outcome is said in plain words, with what to do next, above the engine's
   own message. Each run can show the browser window or not (with it hidden, a page that needs a
   login says so instead of waiting).
+- **The live view.** "Watch it run" fills the window with the run: the browser, live, on the left,
+  and the open question, the outcome and what happened on the right, so a question is answered
+  while watching (Esc or "Close the live view" goes back). The browser now runs hidden by default
+  ("Also open the browser in its own window" brings its window back). The picture is made only
+  while the view is open, follows the tab the run is on, and keeps coming while the run waits. Under each
+  step, the element it was done on ("on the button “Save customer”"), from a listener the action
+  executor now calls after each action.
+- **Try again and the run's details.** After a run that was not done, "Try again" opens the
+  request's form filled in with the last try (request, page, model, window), or the automation's
+  page with the same values. "Save the details of this run" saves a file on this computer with what
+  the model read (the page summary) and answered at each planning, for working out what went wrong.
 
 ### Fixed
+- **A plan's refusals in the reader's language.** The planner kept why each plan was refused in the
+  model's language only; it now keeps it in the interface's too, so the interface (in English)
+  no longer shows "a ação fill precisa de um valor".
 - **A request that asks to log in, on a page whose login is behind a link, waits for the login.**
   LinkedIn's home has no password field until "Sign in" is clicked, so ANCHOR planned instead of
   waiting; the model then planned to type an e-mail it does not have, and the run ended, after two

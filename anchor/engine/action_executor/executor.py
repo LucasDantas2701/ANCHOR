@@ -118,6 +118,7 @@ class ActionExecutor:
         # a reason it returns stops the action ("changed"). Unattended runs use it to act only on
         # the elements of the run that proved the automation.
         self.guard: Optional[Callable] = None
+        self.on_result: Optional[Callable[[ActionResult], None]] = None   # told after each action
         # When True, filling a password field is refused (status "credential") instead of typed:
         # the agent turns it on, so credentials never go through the model and the user logs in
         # by hand. Off by default, for the resolver's evaluation on test pages.
@@ -181,7 +182,17 @@ class ActionExecutor:
             matches,
         )
 
-    def _run(
+    def _run(self, description: str, action_name: str, fn: Callable[[Match], Any]) -> ActionResult:
+        """Resolves and acts; then tells whoever listens (on_result: the interface) what was done, and on what."""
+        result = self._resolve_and_act(description, action_name, fn)
+        if self.on_result is not None:
+            try:
+                self.on_result(result)
+            except Exception:
+                pass                            # a listener never changes the run
+        return result
+
+    def _resolve_and_act(
         self,
         description: str,
         action_name: str,

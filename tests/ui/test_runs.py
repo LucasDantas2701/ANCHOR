@@ -199,3 +199,54 @@ def test_with_the_window_hidden_a_login_is_not_waited_for_and_the_person_is_told
     job = Job(1, "request", "x", {})
     assert WebLoginWaiter(job, can_log_in=False).wait("https://example.com") is False
     assert job.question is None and "browser window is hidden" in job.events[-1]["text"]
+
+
+def test_each_action_tells_the_interface_what_it_was_done_on(page):
+    from anchor.engine.action_executor import ActionExecutor
+    page.set_content('<nav><a href="#jobs">Jobs</a></nav><main><button>Jobs</button><button>People</button></main>')
+    seen = []
+    executor = ActionExecutor(page)
+    executor.on_result = seen.append
+    executor.click("Jobs")
+    assert seen and seen[0].status == "success" and seen[0].selected_element is not None
+
+
+def test_the_live_view_shows_the_browser_while_it_is_watched(tmp_path):
+    page = tmp_path / "form.html"
+    page.write_text('<!doctype html><html><body style="background:#fff"><h1>New customer</h1><label for="n">Name</label>'
+                    '<input id="n"><button onclick="this.textContent=&#39;Saved&#39;">Save</button></body></html>', encoding="utf-8")
+    store = AutomationStore(tmp_path / "automations")
+    store.create(Automation(name="nc", request="Register {name} and save", url=page.as_uri(), profile="ollama-small", parameters=["name"]))
+    store.save_plan("nc", ApprovedPlan(steps=[Step(action="fill", description="Name", value="{name}", goal="g1"),
+                                              Step(action="click", description="Save", goal="g1")],
+                                       goals=[Goal(id="g1", description="saved", conclusive=True)]))
+    client = client_for(store, headless=True)
+    run = client.post("/api/runs", json={"kind": "automation", "name": "nc", "values": {"name": "Ana"}}, headers=HEADERS).json()
+    assert client.get(f"/api/runs/{run['id']}/frame").status_code == 401                 # the live view needs the code too
+    question = wait_for(lambda: client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"], 60)
+
+    def an_image():
+        r = client.get(f"/api/runs/{run['id']}/frame", headers=HEADERS)
+        return r if r.status_code == 200 else None
+
+    image = wait_for(an_image, 20)                       # while the run waits for the person, the picture still comes
+    assert image.headers["content-type"] == "image/jpeg" and image.content[:2] == b"\xff\xd8" and int(image.headers["x-frame"]) >= 1
+    assert client.get(f"/api/runs/{run['id']}/frame?after={image.headers['x-frame']}", headers=HEADERS).status_code in (200, 204)
+    client.post(f"/api/runs/{run['id']}/answer", json={"number": question["number"], "answer": {"choice": "allow"}}, headers=HEADERS)
+    done = run_until_done(client, run["id"])
+    assert done["state"] == "checked"
+    used = [e["text"] for e in done["events"] if e["type"] == "used"]
+    assert any("Name" in u for u in used) and any("Save" in u for u in used)            # what each step was done on
+
+
+def test_the_details_of_a_run_are_a_file_with_what_the_model_read_and_answered(store):
+    def runner(job):
+        job.details.append({"request": "search", "page": ['Button "Jobs"'], "refused": [], "answer": "{}", "error": None})
+        return {"state": "checked", "message": "goal reached"}
+
+    client = client_for(store, runner)
+    run = client.post("/api/runs", json={"kind": "automation", "name": "greet", "values": {"name": "Ana"}}, headers=HEADERS).json()
+    run_until_done(client, run["id"])
+    r = client.get(f"/api/runs/{run['id']}/details", headers=HEADERS)
+    assert r.status_code == 200 and "attachment" in r.headers["content-disposition"]
+    assert r.json()["plannings"][0]["page"] == ['Button "Jobs"'] and r.json()["state"] == "checked"

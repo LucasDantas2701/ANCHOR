@@ -29,7 +29,7 @@ const ACTIONS: Record<string, string> = {
         }
         <div class="go">
           <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Starting…' : (a.learned ? 'Run' : 'Run and learn') }}</button>
-          <label class="check window"><input type="checkbox" name="show" [(ngModel)]="show"> Show the browser window</label>
+          <label class="check window"><input type="checkbox" name="show" [(ngModel)]="show"> Also open the browser in its own window</label>
           <details class="more"><summary class="muted">More options</summary>
             <label class="check"><input type="checkbox" name="relearn" [(ngModel)]="relearn"> Learn the plan again with the AI</label>
             <label class="check"><input type="checkbox" name="fresh" [(ngModel)]="fresh"> Use a clean browser (no saved logins)</label>
@@ -130,7 +130,7 @@ export class AutomationPage {
   private runs = inject(Runs);
   private router = inject(Router);
   values: Record<string, string> = {};
-  relearn = false; fresh = false; show = true;
+  relearn = false; fresh = false; show = false;
   busy = signal(false);
   error = signal('');
 
@@ -148,6 +148,10 @@ export class AutomationPage {
   action = (a: string) => ACTIONS[a] ?? a;
 
   constructor() {
+    const again = history.state as { values?: Record<string, string>; relearn?: boolean; fresh?: boolean; window?: boolean } | null;
+    if (again?.values) {                                   // "Try again": the same values as the last run
+      this.values = { ...again.values }; this.relearn = !!again.relearn; this.fresh = !!again.fresh; this.show = !!again.window;
+    }
     effect(() => {
       const name = this.name();
       this.a.set(null); this.notFound.set(false);

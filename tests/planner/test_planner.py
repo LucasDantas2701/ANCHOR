@@ -234,3 +234,18 @@ def test_a_goal_the_model_cannot_plan_yet_is_left_for_later():
     plan = LLMPlanner(FakeClient(answer), "m").plan("entre com ana@x.com e salve as vagas", "http://x",
                                                     history=["feito: abrir a página"])
     assert [g.id for g in plan.goals] == ["g1"] and len(plan.steps) == 1 and "g2" in plan.incomplete
+
+
+def test_refused_answers_are_also_kept_in_the_interfaces_language():
+    from anchor.i18n import get_language, set_language
+    bad = json.dumps({"steps": [{"action": "voar", "description": "x", "value": None}]})
+    before = get_language()
+    set_language("en")
+    try:
+        planner = LLMPlanner(FakeClient(bad, bad), "m")          # the model speaks Portuguese (the default prompt)
+        with pytest.raises(PlanError):
+            planner.plan("cadastre a Maria Silva e salve", "http://x")
+    finally:
+        set_language(before)
+    assert len(planner.last_refusals) == 2 and "voar" in planner.last_refusals[0]
+    assert planner.last_refusals[0] != planner.last_attempts[0][1]   # the person reads English, the model read Portuguese

@@ -4,8 +4,10 @@ same run_automation and Agent, the same rules. Only the questions go to the inte
 """
 from __future__ import annotations
 
+import base64
 import time
 from pathlib import Path
+from typing import Callable
 
 from playwright.sync_api import sync_playwright
 
@@ -13,6 +15,7 @@ from anchor.agent.agent import Agent
 from anchor.automations.model import AutomationError, AutomationStore
 from anchor.automations.runner import run_automation
 from anchor.engine.action_executor import ActionExecutor
+from anchor.engine.disambiguation.describe import describe
 from anchor.engine.element_resolver import ElementResolver
 from anchor.engine.memory import ChoiceMemory
 from anchor.planner import ConfigError, get_profile
@@ -46,13 +49,95 @@ class StepwisePlanner:
 
     def plan(self, *args, **kwargs):
         self.job.activity = {"phase": "waiting", "tokens": 0, "attempt": 1, "since": time.time()}
+        named = dict(zip(("request", "url", "page", "history"), args), **kwargs)
+        record = {"at": time.strftime("%H:%M:%S"), "request": named.get("request"), "url": named.get("url"),
+                  "page": named.get("page") if named.get("page") is not None else named.get("page_elements"),
+                  "history": named.get("history"), "refused": [], "answer": None, "error": None}
         try:
-            return self.planner.plan(*args, **kwargs)
+            plan = self.planner.plan(*args, **kwargs)
+            record["answer"] = getattr(plan, "raw", None) or repr(plan)
+            return plan
+        except Exception as exc:
+            record["error"] = str(exc)
+            raise
         finally:
             self.job.activity = None
             attempts = getattr(self.planner, "last_attempts", [])
-            for number, (_, why) in enumerate(attempts, 1):
+            reasons = getattr(self.planner, "last_refusals", None) or [why for _, why in attempts]
+            record["refused"] = [{"answer": raw, "why": why} for raw, why in attempts]
+            self.job.details.append(record)
+            for number, why in enumerate(reasons, 1):
                 self.job.add("line", text=f"The AI's plan (attempt {number}) was not usable: {why}")
+
+
+class LiveView:
+    """
+    The browser's picture for the interface's live view, only while someone watches it: started,
+    moved to the current tab and stopped from the run's own thread (Playwright's rule), at each
+    report and while a question waits.
+    """
+
+    def __init__(self, job: Job, current: Callable):
+        self.job, self.current = job, current
+        self.session = self.page = None
+        self.count = 0
+
+    def maintain(self) -> None:
+        page = self.current()
+        if self.job.watching():
+            if self.session is None or self.page is not page:
+                self._start(page)
+        elif self.session is not None:
+            self.stop()
+
+    def _start(self, page) -> None:
+        self.stop()
+        session = page.context.new_cdp_session(page)
+
+        def frame(params):
+            self.count += 1
+            self.job.frame = (self.count, base64.b64decode(params["data"]))
+            try:
+                session.send("Page.screencastFrameAck", {"sessionId": params["sessionId"]})
+            except Exception:
+                pass
+
+        session.on("Page.screencastFrame", frame)
+        session.send("Page.startScreencast", {"format": "jpeg", "quality": 70, "maxWidth": 1280, "maxHeight": 800})
+        self.session, self.page = session, page
+
+    def stop(self) -> None:
+        if self.session is not None:
+            try:
+                self.session.send("Page.stopScreencast")
+                self.session.detach()
+            except Exception:
+                pass
+        self.session = self.page = None
+
+
+def _attach(job: Job, executor: ActionExecutor) -> LiveView:
+    """The interface's eyes on a run: the live view, the browser's events while a question waits,
+    and, after each action, what it was done on."""
+    live = LiveView(job, lambda: executor.page)
+    job.tick = live.maintain
+    job.pump = lambda: executor.page.wait_for_timeout(100)
+
+    def used(result):
+        match = getattr(result, "selected_element", None)
+        if result.status == "success" and match is not None:
+            seen = describe(match, 0, "en")
+            near = " ".join(seen.near.split()[:4])
+            near = f" near “{near}…”" if near and len(seen.near.split()) > 4 else (f" near “{near}”" if near else "")
+            job.add("used", text=f"{seen.kind} “{seen.name}”{near}")
+
+    executor.on_result = used
+    return live
+
+
+def _detach(job: Job, live: LiveView) -> None:
+    live.stop()
+    job.tick = job.pump = None
 
 
 def _outcome(result, **more) -> dict:
@@ -77,7 +162,8 @@ class Executor:
         self.store, self.headless, self.output_dir = store, headless, Path(output_dir)
 
     def _hidden(self, job: Job) -> bool:
-        return self.headless or not job.spec.get("show_browser", True)
+        """The browser runs hidden, watched through the live view, unless the person asked for its window too."""
+        return self.headless or not job.spec.get("show_browser", False)
 
     def __call__(self, job: Job) -> dict:
         try:
@@ -110,12 +196,15 @@ class Executor:
             try:
                 executor = ActionExecutor(page, resolver=ElementResolver(page), disambiguator=WebDisambiguator(job),
                                           can_point=not hidden, memory=ChoiceMemory(store.memory_path(name)))
+                live = _attach(job, executor)
                 page.goto(automation.url)
                 result, mode, run_id = run_automation(
                     store, name, page, executor, make_planner, report=job.say,
                     relearn=bool(spec.get("relearn")), heal=True, params=spec.get("values") or {},
                     confirm=WebConfirmer(job, remembers=True), login=WebLoginWaiter(job, can_log_in=not hidden))
             finally:
+                if "live" in locals():
+                    _detach(job, live)
                 context.close()
         return _outcome(result, mode=mode, run=run_id)
 
@@ -130,10 +219,13 @@ class Executor:
             try:
                 page.goto(spec["url"])
                 executor = ActionExecutor(page, resolver=ElementResolver(page), disambiguator=WebDisambiguator(job),
-                                          can_point=not hidden, memory=ChoiceMemory(spec.get("memory", "memory.json")),
+                                          can_point=not hidden, memory=ChoiceMemory(spec.get("memory", "memory/agent.json")),   # the same file as the command line
                                           confirmer=WebConfirmer(job, remembers=False))
+                live = _attach(job, executor)
                 result = Agent(page, planner, executor, report=job.say, login=WebLoginWaiter(job, can_log_in=not hidden),
                                output_dir=self.output_dir).run(spec["request"])
             finally:
+                if "live" in locals():
+                    _detach(job, live)
                 context.close()
         return _outcome(result, mode="request")

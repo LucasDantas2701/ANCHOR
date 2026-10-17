@@ -70,6 +70,7 @@ class LLMPlanner:
                              f"use one of {', '.join(PROMPT_LANGUAGES + (AUTO,))}")
         self.language = language
         self.last_attempts: list[tuple[str, str]] = []   # (the model's answer, why it was refused)
+        self.last_refusals: list[str] = []               # the same reasons, in the interface's language
         self.client = client
         self.model = model
         self.temperature = temperature
@@ -111,7 +112,7 @@ class LLMPlanner:
         known_goals: ids of the goals already defined in the run (a replan may refer to them).
         notes: the user's notes about this task, from earlier runs of a saved automation.
         """
-        self.last_attempts = []
+        self.last_attempts, self.last_refusals = [], []
         language = self.language_for(request)
         messages = [
             {"role": "system", "content": system_prompt(language, reading=wants_data(request), files=wants_file(request),
@@ -154,6 +155,7 @@ class LLMPlanner:
                             incomplete=mt("plan.goals_later", language, goals=", ".join(later)) if later else "")
             except PlanError as exc:
                 self.last_attempts.append((raw, str(exc)))
+                self.last_refusals.append(exc.user_text())
                 last_error = exc
                 messages += [
                     {"role": "assistant", "content": raw},

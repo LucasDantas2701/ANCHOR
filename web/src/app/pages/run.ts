@@ -1,5 +1,7 @@
 import { Component, ElementRef, OnDestroy, effect, inject, input, signal, viewChild } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+
+import { LiveView } from './live';
 
 import { ACTIVE, JOB_CLASS, JOB_WORDS, JobState, Question, RunEvent, RunView, Runs } from '../api';
 
@@ -10,21 +12,29 @@ const WHAT: Record<string, string> = {
 
 @Component({
   selector: 'app-run',
-  imports: [RouterLink],
+  imports: [RouterLink, LiveView],
   template: `
     @if (run(); as r) {
+      <div class="layout" [class.theater]="watching()">
+      <div class="top">
       @if (r.kind === 'automation') { <a [routerLink]="['/automations', r.title]" class="back muted">← {{ r.title }}</a> }
       @else { <a routerLink="/run" class="back muted">← Run a request</a> }
       <p class="eyebrow">{{ r.kind === 'automation' ? 'Running an automation' : 'Running a request' }}</p>
       <div class="head">
         <h1 class="title">{{ r.kind === 'automation' ? r.title : 'Your request' }}</h1>
         <span [class]="'badge ' + jobClass[r.state]">{{ jobWords[r.state] }}@if (r.state === 'queued' && r.position > 1) { · {{ r.position - 1 }} ahead }</span>
-        @if (active(r)) { <button class="btn stop" type="button" (click)="stop()" [disabled]="stopping()">{{ stopping() ? 'Stopping…' : 'Stop' }}</button> }
+        <div class="head-actions">
+          @if (watching()) { <button class="btn" type="button" (click)="watching.set(false)">Close the live view</button> }
+          @else if (r.state !== 'queued') { <button class="btn" type="button" (click)="watching.set(true)">{{ active(r) ? 'Watch it run' : 'See the last view' }}</button> }
+          @if (active(r)) { <button class="btn" type="button" (click)="stop()" [disabled]="stopping()">{{ stopping() ? 'Stopping…' : 'Stop' }}</button> }
+        </div>
       </div>
       @if (r.kind === 'request') { <blockquote class="request">{{ r.title }}</blockquote> }
-      @if ((r.state === 'running' || r.state === 'waiting') && r.spec['show_browser'] !== false) {
-        <p class="muted note">The browser is open in its own window, so you can watch every step.</p>
+      </div>
+      @if ((r.state === 'running' || r.state === 'waiting') && r.spec['show_browser']) {
+        <p class="muted note">The browser is also open in its own window.</p>
       }
+      @if (watching()) { <app-live class="live" [run]="r.id" [state]="r.state" [ended]="!active(r)" (close)="watching.set(false)" /> }
 
       @if (r.question; as q) {
         <section class="ask card" role="alertdialog" aria-labelledby="ask-title">
@@ -79,14 +89,19 @@ const WHAT: Record<string, string> = {
           @if (res.steps !== undefined) {
             <p class="muted small mono">{{ res.steps }} steps done · {{ res.seconds }} s · {{ res.model_calls ? res.model_calls + ' AI calls' : 'no AI calls' }}</p>
           }
+          <div class="actions">
+            @if (res.state !== 'checked') { <button class="btn primary" type="button" (click)="retry(r)">Try again</button> }
+            <button class="btn" type="button" (click)="saveDetails(r)">Save the details of this run</button>
+          </div>
         </section>
       }
 
-      <section>
+      <section class="logsec">
         <p class="eyebrow">What happened</p>
         <ol class="log card" #log>
           @for (e of events(); track e.seq) {
             @if (e.type === 'line') { <li [class]="'row ' + kindOf(e.text)"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ shown(e.text) }}</span></li> }
+            @if (e.type === 'used') { <li class="row used"><time></time><span></span><span class="text">↳ on the {{ lower(e.text) }}</span></li> }
             @if (e.type === 'question') { <li class="row ask-row"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">ANCHOR asked you a question</span></li> }
             @if (e.type === 'answered') { <li class="row you"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">You answered: {{ said(e) }}</span></li> }
             @if (e.type === 'result') { <li [class]="'row end ' + jobClass[stateOf(e)]"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ jobWords[stateOf(e)] }}</span></li> }
@@ -97,6 +112,7 @@ const WHAT: Record<string, string> = {
           }
         </ol>
       </section>
+      </div>
     } @else if (missing()) {
       <h1 class="title">This run <em>is not here</em></h1>
       <p class="muted">Runs are kept only while ANCHOR is open.</p>
@@ -104,8 +120,21 @@ const WHAT: Record<string, string> = {
   `,
   styles: [`
     .back { display: inline-block; margin-bottom: var(--space-6); text-decoration: none; font-size: 13px; }
+    /* Watching: the same content, filling the window: the browser left, the rest in a column on the right. */
+    .theater { position: fixed; inset: 0; z-index: 40; background: var(--surface-page); padding: var(--space-4) var(--space-6) var(--space-6);
+               display: grid; gap: var(--space-4) var(--space-6); grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+               grid-template-rows: auto auto auto minmax(0, 1fr); grid-template-areas: "top top" "live ask" "live outcome" "live log"; }
+    .theater .top { grid-area: top; } .theater .live { grid-area: live; }
+    .theater .ask { grid-area: ask; margin: 0; } .theater .outcome { grid-area: outcome; margin: 0; }
+    .theater .logsec { grid-area: log; margin: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+    .theater .logsec .log { max-height: none; height: 100%; }
+    .theater .back, .theater .top > .eyebrow, .theater .request, .theater .note { display: none; }
+    .theater .head .title { font-size: 22px; line-height: 28px; }
+    .theater .ask, .theater .outcome { padding: var(--space-4); }
+    .theater .ask .heading { font-size: 17px; line-height: 23px; }
+    .theater .row { grid-template-columns: 64px 16px 1fr; padding: 5px var(--space-4); }
     .head { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
-    .stop { margin-left: auto; }
+    .head-actions { margin-left: auto; display: flex; gap: var(--space-3); }
     .request { margin: var(--space-4) 0 0; font: italic 400 22px/28px var(--font-serif); max-width: 760px; }
     .note { font-size: 13px; margin: var(--space-3) 0 0; }
     section { margin-top: var(--space-8); max-width: 1080px; }
@@ -139,6 +168,7 @@ const WHAT: Record<string, string> = {
     .row.good .mark, .row.end.checked .mark { background: var(--checked); } .row.good .text, .row.end.checked .text { color: var(--checked); }
     .row.bad .mark, .row.end.refused .mark { background: var(--refused); } .row.bad .text, .row.end.refused .text { color: var(--refused); }
     .row.end .text { font-weight: 600; }
+    .row.used { padding-top: 0; } .row.used .text { color: var(--ink-muted); font-size: 13px; }
     .row.you .mark, .row.ask-row .mark { background: var(--accent); } .row.you .text { color: var(--accent); }
     .row.ask-row .text { color: var(--waiting); } .row.ask-row .mark { background: var(--waiting); }
     .row.live .text { color: var(--ink-muted); } .pulse { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
@@ -148,6 +178,8 @@ const WHAT: Record<string, string> = {
 })
 export class RunPage implements OnDestroy {
   private runs = inject(Runs);
+  private router = inject(Router);
+  watching = signal(false);
   id = input.required<string>();
   run = signal<RunView | null>(null);
   events = signal<RunEvent[]>([]);
@@ -197,6 +229,27 @@ export class RunPage implements OnDestroy {
   }
 
   stateOf(e: RunEvent): JobState { return e['state'] as JobState; }
+  lower(text?: string): string { const t = text ?? ''; return t.charAt(0).toLowerCase() + t.slice(1); }
+
+  /** The same run again: the request's form filled in, or the automation's page with the same values. */
+  retry(r: RunView) {
+    const s = r.spec as Record<string, unknown>;
+    if (r.kind === 'request') {
+      this.router.navigate(['/run'], { queryParams: { request: s['request'], url: s['url'], profile: s['profile'], window: s['show_browser'] ? 1 : null } });
+    } else {
+      this.router.navigate(['/automations', r.title], { state: { values: s['values'], relearn: s['relearn'], fresh: s['fresh_browser'], window: s['show_browser'] } });
+    }
+  }
+
+  /** A file on this computer with what the model read and answered: for working out what went wrong. */
+  saveDetails(r: RunView) {
+    this.runs.details(r.id).subscribe(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'), { href: url, download: `anchor-run-${r.id}.json` });
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  }
 
   /** What a line is, to show it as a step, a success or a refusal. */
   kindOf(text?: string): string {

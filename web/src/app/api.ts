@@ -87,7 +87,7 @@ export interface Question {
   url?: string; signup?: boolean;
 }
 
-export interface RunEvent { seq: number; at: string; type: 'line' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }
+export interface RunEvent { seq: number; at: string; type: 'line' | 'used' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }
 
 export interface RunResult { state: JobState; message: string; summary?: string; hint?: string; steps?: number; seconds?: number; model_calls?: number; mode?: string; }
 
@@ -114,6 +114,10 @@ export class Runs {
   list() { return this.http.get<RunListItem[]>('/api/runs'); }
   answer(id: number, number: number, answer: Record<string, unknown>) { return this.http.post(`/api/runs/${id}/answer`, { number, answer }); }
   stop(id: number) { return this.http.post(`/api/runs/${id}/stop`, {}); }
+  frame(id: number, after: number) {
+    return this.http.get(`/api/runs/${id}/frame?after=${after}`, { observe: 'response', responseType: 'blob' });
+  }
+  details(id: number) { return this.http.get(`/api/runs/${id}/details`, { responseType: 'blob' }); }
   profiles() { return this.http.get<Profile[]>('/api/profiles'); }
 }
 

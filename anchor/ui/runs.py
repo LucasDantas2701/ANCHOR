@@ -39,6 +39,11 @@ class Job:
     answer: Optional[dict] = None
     result: Optional[dict] = None
     activity: Optional[dict] = None               # what the AI is doing right now (phase, since, tokens)
+    details: list = field(default_factory=list)   # each planning: what the model read and answered (local only)
+    frame: Optional[tuple] = None                 # the live view's last image: (number, jpeg bytes)
+    watched: float = 0.0                          # when the live view last asked for an image
+    tick: Optional[Callable[[], None]] = None     # the run's own thread: keeps the live view going
+    pump: Optional[Callable[[], None]] = None     # lets the browser's events through while a question waits
     stop: bool = False
     created: float = field(default_factory=time.time)
     lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
@@ -50,8 +55,20 @@ class Job:
             self.events.append(event)
             return event
 
+    def watching(self) -> bool:
+        """Someone has the live view open (it asks for an image several times a second)."""
+        return time.time() - self.watched < 3.0
+
+    def _tick(self) -> None:
+        if self.tick is not None:
+            try:
+                self.tick()
+            except Exception:
+                pass                              # the live view never stops a run
+
     def say(self, line: str) -> None:
         """The run's report: each line goes to the interface. A stop takes effect here."""
+        self._tick()
         if self.stop:
             raise RunStopped()
         line = line.strip("\n")
@@ -68,9 +85,17 @@ class Job:
             self.answered.clear()
         previous, self.state = self.state, "waiting"
         self.add("question", **self.question)
-        while not self.answered.wait(QUESTION_POLL):
+        while not self.answered.is_set():
             if self.stop:
                 break
+            self._tick()
+            if self.pump is not None:             # the browser keeps running (the live view, a login)
+                try:
+                    self.pump()
+                except Exception:
+                    self.answered.wait(QUESTION_POLL)
+            else:
+                self.answered.wait(QUESTION_POLL)
         with self.lock:
             answer, self.question = self.answer, None
         self.state = previous if not self.stop else self.state

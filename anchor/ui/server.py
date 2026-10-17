@@ -1,12 +1,14 @@
 """The API of the local interface, and the app's files."""
 from __future__ import annotations
 
+import json
 import secrets
+import time
 from pathlib import Path
 from typing import Optional
 
 from fastapi import Body, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 
 from anchor import __version__
 from anchor.agent.__main__ import to_url
@@ -142,7 +144,7 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
                 raise HTTPException(400, "Fill in: " + ", ".join(missing) + ".")
             job = runs.submit("automation", name, {"name": name, "values": values, "relearn": bool(body.get("relearn")),
                                                    "fresh_browser": bool(body.get("fresh_browser")),
-                                                   "show_browser": bool(body.get("show_browser", True))})
+                                                   "show_browser": bool(body.get("show_browser", False))})
         elif kind == "request":
             request, url, profile = (str(body.get(k, "")).strip() for k in ("request", "url", "profile"))
             if not request or not url:
@@ -155,7 +157,7 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
             if "://" not in url:                 # "crm.example.com" is a website, as a person writes it
                 url = "https://" + url
             job = runs.submit("request", request, {"request": request, "url": url, "profile": profile,
-                                                   "show_browser": bool(body.get("show_browser", True))})
+                                                   "show_browser": bool(body.get("show_browser", False))})
         else:
             raise HTTPException(400, "unknown kind of run")
         return {"id": job.id, "position": runs.position(job)}
@@ -175,6 +177,26 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
         if not job.give(int(body.get("number", 0)), dict(body.get("answer") or {})):
             raise HTTPException(409, "that question is no longer open")
         return {"ok": True}
+
+    @app.get("/api/runs/{run_id}/frame")
+    def frame(run_id: int, after: int = 0):
+        """The live view's latest image (asking for it is what keeps the live view on)."""
+        job = job_or_404(run_id)
+        job.watched = time.time()
+        latest = job.frame
+        if latest is None or latest[0] <= after:
+            return Response(status_code=204, headers={"Cache-Control": "no-store"})
+        return Response(latest[1], media_type="image/jpeg",
+                        headers={"X-Frame": str(latest[0]), "Cache-Control": "no-store"})
+
+    @app.get("/api/runs/{run_id}/details")
+    def details(run_id: int):
+        """What the model read and answered at each planning, for diagnosis; a file saved on this computer."""
+        job = job_or_404(run_id)
+        body = {"anchor": __version__, "run": job.id, "kind": job.kind, "title": job.title, "state": job.state,
+                "result": job.result, "events": job.events, "plannings": job.details}
+        return Response(json.dumps(body, ensure_ascii=False, indent=1, default=str), media_type="application/json",
+                        headers={"Content-Disposition": f'attachment; filename="anchor-run-{job.id}.json"'})
 
     @app.post("/api/runs/{run_id}/stop")
     def stop(run_id: int):

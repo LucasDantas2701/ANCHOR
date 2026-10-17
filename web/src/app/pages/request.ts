@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 import { Profile, Runs, apiError } from '../api';
 
@@ -29,7 +29,7 @@ import { Profile, Runs, apiError } from '../api';
           </select>
         </div>
       </div>
-      <label class="check"><input type="checkbox" name="show" [(ngModel)]="show"> Show the browser window (needed when the page asks you to log in)</label>
+      <label class="check"><input type="checkbox" name="show" [(ngModel)]="show"> Also open the browser in its own window</label>
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
       <div class="actions">
         <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Starting…' : 'Run' }}</button>
@@ -57,11 +57,14 @@ export class RequestPage {
   private runs = inject(Runs);
   private router = inject(Router);
   profiles = signal<Profile[]>([]);
-  request = ''; url = ''; profile = 'ollama-small'; show = true;
+  request = ''; url = ''; profile = 'ollama-small'; show = false;
   busy = signal(false);
   error = signal('');
 
   constructor() {
+    const q = inject(ActivatedRoute).snapshot.queryParamMap;          // "Try again": the last try, filled in
+    this.request = q.get('request') ?? ''; this.url = q.get('url') ?? '';
+    this.profile = q.get('profile') ?? this.profile; this.show = q.get('window') === '1';
     this.runs.profiles().subscribe(p => { this.profiles.set(p); if (p.length && !p.some(x => x.name === this.profile)) this.profile = p[0].name; });
   }
 
