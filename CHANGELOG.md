@@ -17,6 +17,8 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-17
+
 ### Security
 - **A recovery that acts where the saved step only went somewhere is not accepted.** In the 0.4 run of the
   full resilience benchmark, level 5 (a page with planted lures) led the 4B model's repair of "open the
@@ -794,7 +796,8 @@ loop come in 0.2.0.
 - The context of elements in lists of short cards covered the whole list.
 - The query's object was counted twice, in the element's label and in its context.
 
-[Unreleased]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.3.1...develop
+[Unreleased]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.4.0...develop
+[0.4.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.2.0...v0.2.1
