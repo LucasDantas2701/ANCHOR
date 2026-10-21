@@ -5,12 +5,17 @@ def start_browser(profile_path: str) -> tuple[Playwright, BrowserContext]:
     playwright = sync_playwright().start()
 
     context = playwright.chromium.launch_persistent_context(
-    user_data_dir=profile_path,
-    headless=False,
-    args=[
-        "--disable-notifications"
-    ]
-)
+        user_data_dir=profile_path,
+        headless=False,
+
+        viewport={"width": 1366, "height": 768},
+        locale="pt-BR",
+        timezone_id="America/Manaus",
+        color_scheme="light",
+        args=[
+            "--disable-notifications",
+        ],
+    )
 
     return playwright, context
 
