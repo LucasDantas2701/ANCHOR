@@ -1,0 +1,27 @@
+﻿pagina;pedido
+holdout_booking.html;Quero reservar a sala Amazonas amanhã das 10h às 11h para uma reunião com o João e a Maria.
+holdout_booking.html;Cancele minha reserva da sala Negro do dia 01/10 às 14:00.
+holdout_helpdesk.html;Assuma o chamado #482 e mande um comentário dizendo que vou testar a VPN novamente hoje.
+holdout_helpdesk.html;Abra um chamado de prioridade alta dizendo que a impressora do 3º andar está sem toner.
+holdout_blog.html;"Publique o post ""Welcome our new interns""."
+holdout_blog.html;"Salve o post ""Welcome our new interns"" como rascunho e adicione a tag ""interns""."
+holdout_hr.html;Clock in for me and request a personal day for November 3.
+holdout_hr.html;Cancel my vacation request for October 12 through October 16.
+registration.html;Cadastre a Ana Beatriz Souza, CPF 123.456.789-00, no departamento de TI com contrato CLT e envie para aprovação.
+registration.html;Salve um cadastro de colaborador para Carlos Mendes, com e-mail carlos@empresa.com e telefone (92) 99999-1234.
+registration_en.html;Register John Carter in the IT department as an employee and send the registration for approval.
+registration_en.html;Save a new employee registration for Emily Brown with the work email emily@company.com.
+users.html;Filtre os usuários inativos e selecione o Bruno Lima.
+users.html;Crie um novo usuário chamado Diego Santos com o e-mail diego@empresa.com.
+users_en.html;Show me only inactive users and select Brian Lee.
+users_en.html;Create a new user named David Wilson with the email david@company.com.
+orders.html;Cancele o pedido #1024.
+orders.html;Abra os detalhes do pedido #1023.
+orders_en.html;Cancel order #1024.
+orders_en.html;Show me the details of order #1023.
+jobs.html;Salve a vaga de Desenvolvedor RPA da TechNorte.
+jobs.html;Faça a candidatura simplificada para a vaga de Consultor RPA da NUMEN.
+jobs_en.html;Save the RPA Developer job at TechNorth.
+jobs_en.html;Apply through Easy Apply for the Automation Analyst position at IndusAM.
+store.html;Procure por uma garrafa térmica de 1 litro e adicione-a ao carrinho.
+store.html;Add the UltraBook 14 to my cart and sort the products from lowest to highest price.

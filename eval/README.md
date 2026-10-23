@@ -222,7 +222,17 @@ by three AIs (A, B and C in the file), each in a new conversation with no histor
 one ChatGPT (GPT-5.6 Luna) and two Claude (Sonnet 5.5, medium effort, in different accounts). Each got
 the zip `pedidos_assistente.zip` attached (a LEIA-ME with the instructions, the 13 pages and
 `feedback.js`), the help-request message and the instruction of 2 requests per page, and generated
-once, with no correction and no new try: 28, 26 and 26 requests. All of them were kept, none selected. Half are on the four `holdout_*.html` pages, never used in
+once, with no correction and no new try: 28, 26 and 26 requests. The letters are: **A = a Claude**
+(28 requests), **B = the ChatGPT** (26, as its conversation says) and **C = the other Claude** (26);
+in the results, the generators are `claude_a`, `chatgpt` and `claude_c` (named by letter: whether
+these are the accounts of the `synthetic_controlled` set's `claude_1` and `claude_2` is not recorded).
+The three sheets, as returned, and the ChatGPT conversation are in `synthetic_2026-10-08/` (with
+their hashes in its `SHA256SUMS`). The mapping was made on 23/10/2026 by code that compared the
+sheets with the tasks file without printing any request: each of the 80 is in exactly one sheet.
+What that comparison found, as counts: A has 2 requests on every page except `store.html`, where it
+has 4; A and C each have one request identical, word for word, to an example in the LEIA-ME (on
+`orders.html`), so copied from the instructions and not written by the generator; and A and C share
+one more identical request (on `holdout_blog.html`) that is not in the LEIA-ME. All of them were kept, none selected. Half are on the four `holdout_*.html` pages, never used in
 development (two in Portuguese, two in English; they are also the resolver's closed set), and half
 are new requests on nine known pages, so the article can separate new requests from new pages.
 There are 42 requests in Portuguese and 38 in English. (An earlier version of this README said the

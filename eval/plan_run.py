@@ -55,6 +55,10 @@ TASKS_TABS = ROOT / "plans" / "tasks_tabs.json"
 TASKS_FRAMES = ROOT / "plans" / "tasks_frames.json"
 SUITES = ("main", "injection", "extraction", "downloads", "uploads", "tabs", "frames")
 HOLDOUT_TASKS = ROOT / "plans" / "holdout_tasks.json"
+# Who wrote each request of the synthetic set (its "author" letter), mapped on 23/10/2026 by comparing,
+# in code that prints no request, the three sheets of 08/10 (eval/synthetic_2026-10-08/planilhas/)
+# with the tasks file: every one of the 80 was found in exactly one sheet.
+SYNTHETIC_GENERATORS = {"A": "claude_a", "B": "chatgpt", "C": "claude_c"}
 # The other closed sets, once annotated (eval/closed_sets.py makes them to annotate).
 CLOSED_TASKS = (ROOT / "plans" / "holdout_controlled_tasks.json", ROOT / "plans" / "holdout_human_tasks.json")
 
@@ -394,6 +398,7 @@ def load_tasks() -> list[dict]:
         holdout = json.loads(HOLDOUT_TASKS.read_text(encoding="utf-8"))["tasks"]
         for t in holdout:
             t.setdefault("origin", "synthetic")      # the 80 written by three AIs on 08/10
+            t.setdefault("generator", SYNTHETIC_GENERATORS.get(t.get("author", ""), ""))
         tasks += holdout
     for closed in CLOSED_TASKS:
         if closed.exists():

@@ -43,3 +43,8 @@ def test_results_come_out_by_origin_by_generator_and_without_chatgpt():
     assert len(g["small [synthetic_controlled]"]) == 3 and len(g["small [synthetic_controlled/chatgpt]"]) == 1
     assert [r.generator for r in g["small [synthetic_controlled without chatgpt]"]] == ["claude_1", "claude_2"]
     assert len(g["small [human]"]) == 1 and not any("[]" in k for k in g)        # the dev tasks have no origin
+
+
+def test_the_synthetic_tasks_get_their_generator_from_their_author_letter():
+    from eval.plan_run import SYNTHETIC_GENERATORS
+    assert SYNTHETIC_GENERATORS == {"A": "claude_a", "B": "chatgpt", "C": "claude_c"}
