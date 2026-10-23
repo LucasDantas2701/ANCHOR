@@ -62,6 +62,13 @@ longer measures generalization.
 Result files from before 2026-09-30 use the Portuguese names (`acerto`, `erro_silencioso`,
 `recusa_evitavel`, `recusa_correta`, `falha_percepcao`).
 
+### The human collection's pages
+
+`fixtures/collection/` holds the pages people saw when they wrote the human closed set's requests:
+nine pages in Portuguese, made from the synthetic set's package before the collection (three
+translated, six as they were, all with a plain stylesheet). See its README for what changed in each.
+The human set runs on them; the synthetic set runs on the original pages.
+
 ### Holdout (the closed test set)
 
 The `cases/holdout_*.json` files (split `test`) form the closed set, created on 2026-09-25,

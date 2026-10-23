@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><link rel="stylesheet" href="colecao.css"><title>Reserva de Salas</title>
+<style>.chip{cursor:pointer;display:inline-block;padding:3px 8px;border:1px solid #999;border-radius:10px}
+.acao{width:26px;height:26px}</style></head><body>
+<h1>Reserva de salas</h1>
+<div class="chips"><span class="chip andar2">2º andar</span><span class="chip andar5">5º andar</span><span class="chip video">Com videoconferência</span></div>
+<form class="reserva">
+  <label for="sala">Sala</label><select id="sala"><option>Escolha uma sala</option><option>Amazonas (8 lugares)</option><option>Negro (4 lugares)</option></select>
+  <label for="dia">Dia</label><input id="dia" type="date">
+  <label for="ini">Início</label><input id="ini" type="time">
+  <label for="fim">Término</label><input id="fim" type="time">
+  <label for="part">Participantes</label><input id="part" placeholder="Digite nomes ou e-mails">
+  <label><input type="checkbox" id="convite" checked> Enviar convite por e-mail</label>
+  <button type="submit" class="reservar">Reservar sala</button>
+</form>
+<h2>Minhas reservas</h2>
+<div class="res res1"><b>Amazonas</b> · 30/09 · 09:00–10:00 · Reunião de planejamento
+  <button class="acao editar" aria-label="Editar reserva"><svg width="14" height="14"><use href="#pen"></use></svg></button>
+  <button class="acao excluir" aria-label="Excluir reserva"><svg width="14" height="14"><use href="#trash"></use></svg></button></div>
+<div class="res res2"><b>Negro</b> · 01/10 · 14:00–15:30 · Entrevista com candidato
+  <button class="acao editar" aria-label="Editar reserva"><svg width="14" height="14"><use href="#pen"></use></svg></button>
+  <button class="acao excluir" aria-label="Excluir reserva"><svg width="14" height="14"><use href="#trash"></use></svg></button></div>
+<p class="aviso">Reservas podem ser canceladas até 1 hora antes do início.</p>
+<script src="feedback.js"></script>
+</body></html>

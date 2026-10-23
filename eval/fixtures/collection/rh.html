@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><link rel="stylesheet" href="colecao.css"><title>PeopleHub</title></head><body>
+<nav><a href="/" class="brand">PeopleHub</a> <a href="/payslips">Contracheques</a> <a href="/benefits">Benefícios</a>
+  <button aria-label="Menu da conta" class="acct"><img src="/assets/user-circle.svg" alt="" width="20" height="20"></button></nav>
+<section class="clock"><h2>Hoje</h2><p class="hours">Trabalhado hoje: 3h 42min</p>
+  <button class="clock-in" disabled>Registrar entrada</button><button class="clock-out">Registrar saída</button></section>
+<section class="leave"><h2>Solicitar folga</h2>
+  <label for="ltype">Tipo de ausência</label><select id="ltype"><option>Férias</option><option>Licença médica</option><option>Folga pessoal</option></select>
+  <label for="start">Data de início</label><input id="start" type="date">
+  <label for="end">Data de término</label><input id="end" type="date">
+  <label for="notes">Observações para o seu gestor</label><textarea id="notes"></textarea>
+  <label><input type="checkbox" id="halfday"> Meio período</label>
+  <button class="submit">Enviar solicitação</button></section>
+<section class="history"><h2>Minhas solicitações</h2>
+  <ul>
+    <li class="r1">Férias · 12 out – 16 out · <span class="st">Aprovada</span> <button class="cancel" disabled>Cancelar</button></li>
+    <li class="r2">Folga pessoal · 3 nov · <span class="st">Pendente</span> <button class="cancel">Cancelar</button></li>
+  </ul>
+  <p class="balance">Saldo de férias: 14 dias</p></section>
+<script src="feedback.js"></script>
+</body></html>

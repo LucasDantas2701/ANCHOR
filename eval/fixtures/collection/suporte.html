@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><link rel="stylesheet" href="colecao.css"><title>Central de Chamados</title>
+<style>.ico{width:28px;height:28px} .tabs [role=tab]{padding:4px 10px;cursor:pointer}</style></head><body>
+<header><strong>Central de Chamados</strong>
+  <button class="ico" title="Notificações"><svg width="16" height="16"><use href="#bell"></use></svg></button>
+  <button class="ico" aria-label="Menu do usuário"><img src="/img/avatar-default.png" alt="" width="20" height="20"></button>
+</header>
+<div class="tabs" role="tablist">
+  <div role="tab" aria-selected="true" class="tab-abertos">Abertos (3)</div>
+  <div role="tab" aria-selected="false" class="tab-fechados">Fechados</div>
+</div>
+<div class="filtros">
+  <input type="search" placeholder="Buscar chamado por número ou assunto" class="busca">
+  <select class="prioridade" aria-label="Prioridade"><option>Todas</option><option>Alta</option><option>Média</option><option>Baixa</option></select>
+  <button class="novo">Abrir chamado</button>
+</div>
+<table>
+  <thead><tr><th>Nº</th><th>Assunto</th><th>Solicitante</th><th>Prioridade</th><th></th></tr></thead>
+  <tbody>
+    <tr class="c481"><td>#481</td><td>Impressora do 3º andar sem toner</td><td>Marcos</td><td class="prio">Média</td>
+      <td><button class="assumir">Assumir</button> <button class="ico fechar" title="Encerrar chamado"><svg width="16" height="16"><use href="#check"></use></svg></button></td></tr>
+    <tr class="c482"><td>#482</td><td>VPN não conecta em casa</td><td>Juliana</td><td class="prio">Alta</td>
+      <td><button class="assumir">Assumir</button> <button class="ico fechar" title="Encerrar chamado"><svg width="16" height="16"><use href="#check"></use></svg></button></td></tr>
+    <tr class="c483"><td>#483</td><td>Solicitação de novo monitor</td><td>Pedro</td><td class="prio">Baixa</td>
+      <td><button class="assumir" disabled>Assumido</button> <button class="ico fechar" title="Encerrar chamado"><svg width="16" height="16"><use href="#check"></use></svg></button></td></tr>
+  </tbody>
+</table>
+<section class="detalhe">
+  <h2>#482 — VPN não conecta em casa</h2>
+  <label for="coment">Adicionar comentário</label><textarea id="coment"></textarea>
+  <button class="anexo"><i class="icon-paperclip" style="display:inline-block;width:14px;height:14px"></i> Anexar arquivo</button>
+  <button class="enviar">Enviar comentário</button>
+  <p class="sla">Prazo de atendimento: 26/09/2026 18:00</p>
+</section>
+<script src="feedback.js"></script>
+</body></html>
