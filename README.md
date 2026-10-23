@@ -295,7 +295,10 @@ report.
 When a run needs you, it says **Waiting for you** and asks:
 
 * **Before anything sensitive** (deleting, saving or submitting, sending, paying, downloading or
-  uploading files): **Allow**, **Don't allow**, or **Not now**. A saved automation keeps your answer.
+  uploading files, or acting on your account on a social site, like following someone, liking or
+  commenting): **Allow**, **Don't allow**, or **Not now**. A saved automation keeps your answer.
+  Saving, sending, paying, deleting and acting on your account are not even offered when the request
+  did not ask for them: ANCHOR blocks them.
 * **Which element**, when two look alike or the one the step names is not found: choose one of the
   numbered options; **point at it on the live view**; say **It's none of these**, and why (the AI
   reads it and plans again; an automation can keep it as a note); say **It needs a login first**;
@@ -364,8 +367,13 @@ python -m eval.plan_run --reference                                   # hand-wri
 python -m eval.plan_run --agent --profiles ollama-small ollama-medium -v   # complete tasks, full agent
 ```
 
-Every result is saved with the version and the commit. The closed test sets (holdout) only run
-with `--final`, once, at the end of development. Details in [`eval/README.md`](eval/README.md).
+Every result records where it was measured: the version, the full commit, its tag, and whether the
+working copy had uncommitted changes. The closed sets, never run by the system nor used to tune it
+during development, only run with `--final`, once, on the tagged release: the synthetic requests
+(80, written by three AIs on the test pages), the controlled synthetic requests (42, by the same AIs
+on the pages people saw), the human requests (60, drawn with a fixed seed from a public collection),
+and a closed resilience set with perturbations other than the development ones. Details in
+[`eval/README.md`](eval/README.md).
 
 **Element resolver** — development set, 60 cases per language on 7 pages (6 local pages and
 SauceDemo), version 0.3.0:
@@ -409,7 +417,8 @@ behavioral, adversarial), 150 runs per executor and model, both languages, with 
 | ANCHOR replaying the healed plan, 4B / 9B | 93% / 95% | 0 / 0 | 0 | **0.1–0.2** |
 
 In 0.3.0 the same benchmark gave ANCHOR 82% / 84% (on an earlier Ollama version: the numbers are not
-strictly comparable). Part of 0.4 was tuned looking at these pages (level 4, and the two safety fixes
+strictly comparable). Measured again on 22/10/2026, after the fixes from real runs in 0.5 (below),
+every one of the 600 runs had the same outcome, with 0 false successes and 0 attacks with effect. Part of 0.4 was tuned looking at these pages (level 4, and the two safety fixes
 of the recoveries): the closed sets will say how much carries over to new pages.
 
 **Prompt injection** — 6 tasks on pages that try to hijack the agent: no attack worked, with either
@@ -462,13 +471,21 @@ final numbers will come from the closed sets.
     - [x] The live view: the browser beside the run; logging in and pointing at an element on it
     - [x] Creating automations, saving a request that worked as one, seeing a plan first
     - [x] "It's none of these" (with why, for the planner) and "It needs a login first"
+    - [x] Fixes from real runs (LinkedIn, GitHub, a testing playground): acting on the person's
+      account is sensitive and blocked when not asked; a login met after a step is waited for;
+      goals met by their last step; searches sent after typing; the site's own pop-ups; blocked
+      clicks explained (the benchmark's 600 runs unchanged)
+    - [ ] Fixes in the interface from the same runs (a request pasted as a command, shorter
+      confirmations, every tab on the live view, what the logs missed, a real browser window)
     - [ ] Taking care of the automations: fixes and undo, notes, decisions, the choice memory;
       spreadsheets
     - [ ] Saved logins: in Windows' Credential Manager, filled by ANCHOR only on their own site and
       only in a password field; the model never sees a password
     - [ ] Schedules, kept on this computer, run while ANCHOR is open
     - [ ] A Windows installer, with its own window and no terminal
-- [ ] **1.0** — Evaluated version: final runs on the closed sets
+- [ ] **1.0** — Evaluated version: final runs, once, on the tagged release, on the closed sets
+  (synthetic, controlled synthetic and human requests, and the closed resilience set), with the
+  results by origin and generator; the version the article describes
 - [ ] **Later** — A documentation site (GitHub Pages), with guides, examples and the command reference
 
 See the [changelog](CHANGELOG.md) for what changed in each version, and the
@@ -555,9 +572,10 @@ would be if they performed the same actions by hand. Before automating a site:
   that allow automation.
 * **Respect data-protection laws** (such as the LGPD in Brazil) **and your company's rules**:
   automate only what you are allowed to do by hand.
-* **Review sensitive actions.** The system blocks destructive actions the request did not
-  mention, and asks for confirmation before deleting, saving or submitting, sending, paying,
-  downloading or uploading files; in a saved automation, each decision is asked once and kept.
+* **Review sensitive actions.** The system blocks destructive actions, submissions and actions on
+  your account (following, liking, commenting, sharing) the request did not mention, and asks for
+  confirmation before deleting, saving or submitting, sending, paying, downloading or uploading
+  files, or acting on your account; in a saved automation, each decision is asked once and kept.
 * **Keep the browser profiles on your computer** (`profiles/`, and each automation's `browser/`
   folder). They hold the systems' sessions and work like passwords; they are kept out of Git.
 

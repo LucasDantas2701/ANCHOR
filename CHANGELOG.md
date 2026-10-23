@@ -18,6 +18,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The command reference and the README on 0.5's fixes and the closed sets.** The agent's
+  sensitive actions include acting on the person's account; logging in after a step, the goals, the
+  end check, the site's pop-ups and blocked clicks are described; the README says where every result
+  is measured, which closed sets there are, and that the benchmark was re-measured after the fixes.
 - **The synthetic set's sensitivity analysis and a check of who read the pages.** The synthetic
   set's results also come out without its 2 requests copied from the LEIA-ME (decided on 23/10,
   before the final run), and `eval.closed_sets page-items` counts, per generator, the requests that

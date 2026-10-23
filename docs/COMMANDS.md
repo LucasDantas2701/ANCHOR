@@ -56,7 +56,7 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_e
 | `--browser-profile` | Folder of a persistent browser profile, for systems with login (e.g. `profiles/user_001`). |
 | `--max-attempts` | Failures before the run is cancelled. Default: 3. |
 | `--vision` | When the other checks doubt a step (a field that does not show the value, a click with no visible effect in the page's code, an expected text that did not appear), asks the model about a screenshot, scaled to 640 pixels. It can only confirm a doubted step, never fail one that worked. Slower: about 5 s per question with the 4B model and 9 s with the 9B, on the test machine. The model must have the `vision` capability. |
-| `--allow-sensitive` | Does not ask before sensitive actions. By default, before deleting, saving or submitting, sending, paying, downloading or uploading, the agent shows the element and asks; a denial stops the run. |
+| `--allow-sensitive` | Does not ask before sensitive actions. By default, before deleting, saving or submitting, sending, paying, downloading or uploading, or acting on your account (following someone, connecting, liking, commenting, sharing, subscribing, inviting), the agent shows the element and asks; a denial stops the run. |
 | `--output-dir` | Where tables and lists read by the agent are saved (one CSV file each) and where downloaded files go, never overwriting a file. Default: `output`. |
 | `--lang` | Interface language: `en` (default) or `pt`. Overrides `ANCHOR_LANG`. |
 | `--prompt-language` | Planner prompt language: `pt` (default, the measured one), `en`, or `auto` (follows the request). |
@@ -93,15 +93,31 @@ did not ask for: such a click is blocked, and the planner is told so. It is aske
 request has a verb for it ("salve", "envie", "pague"; for exporting, a verb or a word for a file),
 or when the request and the button are about the same thing ("reserve a sala" and "Reservar sala").
 So "attach the resume" does not end with the application sent; "attach the resume and send the
-application" does. Destructive actions (deleting, cancelling) have their own barrier.
+application" does. Destructive actions (deleting, cancelling) have their own barrier. Acting on your
+account on a social site (following someone, connecting, liking, reacting, commenting, sharing,
+reposting, subscribing, inviting) is blocked too unless the request has a verb for it ("siga",
+"curta", "share"): a request about the same person does not ask to follow them. "Seguir" alone, or
+"Seguir para o pagamento", is going on, not following.
+
+**Goals and the end check.** A goal of the plan is met by its last planned step (a search is not met
+by the click that opens the search box), never by a step that led to a login page. Before saying a
+request is done, the agent checks that what it asks to finish was finished: a search must be sent
+(a click or Enter) after its term was typed; "confirm whether…" is a check, not a click on Confirm.
+
+**The site's own pop-ups.** An alert is accepted and what it says reaches the planner; a question
+("Are you sure?") is always answered no, since the agent never confirms on its own. A click with no
+visible change waits for what the click itself scheduled on the page (up to 8 s) before it counts as
+"no effect". A click on an element that something covers fails after 10 s, and the planner is told
+what covers it.
 
 **Logging in.** The agent never types a password: a fill that would land on a password field is
 not done. A request that seems to contain a password ("senha: ...", "password ...") is refused
 before anything reaches the model. When a task needs a login (the request asks to log in, the
 plan reaches a password field, or nothing can be planned on a page that asks for one), the agent
 asks in the terminal: log in (or fill in the password) yourself in the browser window and press
-Enter, or `q` to cancel. If the page still shows an empty password field, it asks again. With
-`--browser-profile`, the session is kept for the next runs.
+Enter, or `q` to cancel. If the page still shows an empty password field, it asks again. A step that
+leads to a login page (a "Star" that asks to sign in first) does the same, and the plan starts again
+from the page after the login. With `--browser-profile`, the session is kept for the next runs.
 
 **Sending files.** A request to send a file ("Attach the resume C:/Users/ana/cv.pdf") is planned
 as an `upload` step: the agent puts the file in the file field, or clicks the button that opens the
@@ -289,9 +305,9 @@ value in every run; an unknown parameter is refused.
 |---|---|
 | `--forget` | Forgets the decision with this number: the next run asks again. |
 
-Sensitive actions (deleting, saving or submitting, sending, paying, downloading, uploading, and
-cancelling an order, a subscription, a booking or another irreversible thing; a plain "Cancel"
-that closes a form is not asked about) are asked about once, when the element is found and
+Sensitive actions (deleting, saving or submitting, sending, paying, downloading, uploading, acting
+on your account on a social site, and cancelling an order, a subscription, a booking or another
+irreversible thing; a plain "Cancel" that closes a form is not asked about) are asked about once, when the element is found and
 before acting. Answer `s`/`y` to allow it, `n` to deny it, or just press Enter to deny it only this
 time. An action you allowed is not asked again (nor in the next rows of a spreadsheet); an action
 you denied with `n` stops the run, in that run and in the next ones, until you forget the decision.

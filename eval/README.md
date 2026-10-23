@@ -213,14 +213,20 @@ These tasks are not part of the main suite, so the numbers of the ordinary tasks
 (`fixtures/resilience/L0` to `L5`) and the tasks for them (`plans/resilience_tasks.json`); see the
 command reference for the levels. The tasks' checks use `data-eval`, the evaluation's own marker,
 so they work on every level; no executor may use it. Rebuild after changing a task or a page, never
-edit the generated files by hand. These are development perturbations: the closed set, built later
-with other perturbations, runs once, at the end.
+edit the generated files by hand. These are development perturbations, written by hand by whoever
+developed the engine. The closed set will use the same 30 base tasks, the same five levels and the
+same three executors, with perturbations from a catalog derived from a published taxonomy of why
+web UI tests break, drawn by a generator with a fixed seed; the catalog, the generator and the
+generated pages are committed in that order, before any run on them, and it runs once, at the end.
 
 ### Closed set of planner tasks
 
 The tasks in `plans/tasks.json` and `tasks_en.json` were used to tune the system, so their numbers
-are development numbers. The final numbers come from `plans/holdout_tasks.json` (split `test`),
-which only runs with `python -m eval.plan_run --final --agent`, a single time, at the end.
+are development numbers. The final numbers come from the closed sets (split `test`):
+`plans/holdout_tasks.json` (synthetic), `plans/holdout_controlled_tasks.json` (synthetic_controlled)
+and `plans/holdout_human_tasks.json` (human, once drawn), which only run with
+`python -m eval.plan_run --final --agent`, a single time, at the end, on the tagged release with a
+clean working copy (rule 0 above); the results come out by origin and by generator.
 
 **How it was built (October 2026): the synthetic set.** The 80 requests were generated on 08/10/2026
 by three AIs (A, B and C in the file), each in a new conversation with no history of the project:
