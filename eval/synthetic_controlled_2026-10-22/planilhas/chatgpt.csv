@@ -1,0 +1,15 @@
+﻿\xef\xbb\xbfpagina;pedido
+P01 reservas.html;Quero reservar uma sala para amanhã de manhã. Veja quais horários estão livres e escolha um que funcione.
+P01 reservas.html;Cancela a minha reserva mais próxima, por favor, e me confirma quando estiver cancelada.
+P02 suporte.html;Abre um chamado para mim: estou com um problema de acesso e preciso de ajuda para resolver.
+P02 suporte.html;Dá uma olhada no meu chamado mais recente e atualiza com a informação de que o problema continua.
+P03 blog.html;Quero publicar um post curto avisando que teremos novidades em breve. Deixa como rascunho para eu revisar.
+P03 blog.html;Encontra o artigo mais recente sobre novidades e atualiza o texto para ficar mais claro e direto.
+P04 rh.html;Cadastra uma nova pessoa no sistema de RH com dados fictícios e deixa o cadastro salvo.
+P04 rh.html;Procura o registro de uma pessoa que já saiu da empresa e atualiza a situação dela para desligada.
+P05 cadastro.html;Preenche um cadastro de teste com dados fictícios e salva para eu conferir.
+P06 usuarios.html;Procura o usuário de teste e desativa o acesso dele, sem excluir o registro.
+P07 pedidos.html;Consulta o pedido mais recente e me diz em que etapa ele está.
+P08 vagas.html;Procura vagas abertas para uma pessoa com experiência administrativa e me mostra as opções mais adequadas.
+P09 loja.html;Quero comprar um item para presente. Encontra uma opção útil e coloca uma unidade no carrinho.
+P09 loja.html;Confere o carrinho e remove o item que estiver duplicado, se houver.
