@@ -68,7 +68,7 @@ def groups(rows: list) -> dict[str, list]:
     The result groups besides profile and language: each origin, each generator within it, and the
     sensitivity analyses (an origin without some generators), for each profile.
     """
-    from eval.closed_sets import SENSITIVITY
+    from eval.closed_sets import EXCLUDED_TASKS, SENSITIVITY
     out: dict[str, list] = {}
     for profile in sorted({r.profile for r in rows}):
         mine = [r for r in rows if r.profile == profile and r.origin]
@@ -80,6 +80,9 @@ def groups(rows: list) -> dict[str, list]:
             left_out = SENSITIVITY.get(origin, ())
             if left_out and any(r.generator in left_out for r in of):
                 out[f"{profile} [{origin} without {', '.join(left_out)}]"] = [r for r in of if r.generator not in left_out]
+            label, ids = EXCLUDED_TASKS.get(origin, ("", ()))
+            if ids and any(r.task in ids for r in of):
+                out[f"{profile} [{origin} {label}]"] = [r for r in of if r.task not in ids]
     return out
 
 # Records clicks and Enter, and prevents navigation (links and form submissions),

@@ -237,7 +237,23 @@ sheets with the tasks file without printing any request: each of the 80 is in ex
 What that comparison found, as counts: A has 2 requests on every page except `store.html`, where it
 has 4; A and C each have one request identical, word for word, to an example in the LEIA-ME (on
 `orders.html`), so copied from the instructions and not written by the generator; and A and C share
-one more identical request (on `holdout_blog.html`) that is not in the LEIA-ME. All of them were kept, none selected. Half are on the four `holdout_*.html` pages, never used in
+one more identical request (on `holdout_blog.html`) that is not in the LEIA-ME.
+
+**Decided on 23/10/2026, before the final run:** the main analysis has the 80 requests, as the
+protocol foresaw; a sensitivity analysis leaves out the 2 requests identical to the LEIA-ME's examples
+(tasks `t-ord-a1` and `t-ord-c1`, found by comparing with the LEIA-ME of the 08/10 package, kept in
+`synthetic_2026-10-08/pacote/`); the pair identical between A and C stays in both analyses, declared
+as convergence between generators of the same family; A's 4 requests on the store stay, declared as
+a departure from the instruction of 2 per page. The results come out with and without the 2 copies.
+
+**Did the generators see the pages?** Counted on 23/10/2026 by `python -m eval.closed_sets page-items
+<origin>` (counts only): a request "cites an item of its page" when it has a word of the page's
+visible text that is on no other page of its set (a room, a person, a product, a number...). In the
+synthetic set: chatgpt 25 of 26 (96%), claude_a 26 of 28 (93%), claude_c 25 of 26 (96%); a stricter
+version (names and numbers only) gives 88%, 86% and 92%. In the synthetic_controlled set: chatgpt 8
+of 14 (57%), claude_1 14 of 14, claude_2 14 of 14; strict, 36%, 100% and 93%. So the ChatGPT of 08/10
+read the pages (they were HTML files in its package), while the ChatGPT of 22/10 did not, as it said;
+the ChatGPT sensitivity analysis applies to synthetic_controlled only. All of them were kept, none selected. Half are on the four `holdout_*.html` pages, never used in
 development (two in Portuguese, two in English; they are also the resolver's closed set), and half
 are new requests on nine known pages, so the article can separate new requests from new pages.
 There are 42 requests in Portuguese and 38 in English. (An earlier version of this README said the

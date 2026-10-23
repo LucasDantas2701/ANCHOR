@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The synthetic set's sensitivity analysis and a check of who read the pages.** The synthetic
+  set's results also come out without its 2 requests copied from the LEIA-ME (decided on 23/10,
+  before the final run), and `eval.closed_sets page-items` counts, per generator, the requests that
+  cite an item of their page (counts only): the ChatGPT of 08/10 read the pages like the Claudes; the
+  one of 22/10 did not. The 08/10 package is kept with its sheets.
 - **Where each measurement was made.** Every result file of `eval/` records the full commit, its
   tag, and whether the working copy had uncommitted changes (`eval/provenance.py`). A development run
   with changes is named `+dirty` and lists them (the results of 21-22/10 said only the old commit); a

@@ -48,3 +48,20 @@ def test_results_come_out_by_origin_by_generator_and_without_chatgpt():
 def test_the_synthetic_tasks_get_their_generator_from_their_author_letter():
     from eval.plan_run import SYNTHETIC_GENERATORS
     assert SYNTHETIC_GENERATORS == {"A": "claude_a", "B": "chatgpt", "C": "claude_c"}
+
+
+def test_a_request_cites_its_page_when_it_names_something_only_that_page_has():
+    from eval.closed_sets import page_items
+    pages = {"a.html": "Reservas Sala Amazonas Sala Negro Salvar", "b.html": "Chamados Chamado 4521 Salvar"}
+    tasks = [{"generator": "g1", "fixture": "a.html", "request": "reserva a sala amazonas"},
+             {"generator": "g1", "fixture": "a.html", "request": "clica em salvar"},          # on both pages: no
+             {"generator": "g2", "fixture": "b.html", "request": "fecha o chamado 4521"}]
+    assert page_items(tasks, pages) == {"g1": [2, 1], "g2": [1, 1]}
+
+
+def test_the_synthetic_results_also_come_out_without_the_leia_me_copies():
+    rows = [row("small", "synthetic", "claude_a", True), row("small", "synthetic", "claude_c", False)]
+    rows[0].task = "t-ord-a1"
+    rows[1].task = "t-x-c9"
+    g = groups(rows)
+    assert [r.task for r in g["small [synthetic without the LEIA-ME copies]"]] == ["t-x-c9"]

@@ -12,4 +12,6 @@ is in `../README.md` ("How it was built"). This folder keeps what documents thei
 - `planilhas/`: the three sheets the AIs returned, kept byte for byte and named by their letter in
   the tasks file and their generator (A and C: the two Claudes; B: the ChatGPT). The mapping and
   what the comparison found are in `../README.md` ("How it was built").
-- `SHA256SUMS`: the hashes of the sheets and of the capture.
+- `pacote/pedidos_assistente.zip`: the package the three AIs got (the LEIA-ME, the 13 pages and
+  `feedback.js`), kept as it was.
+- `SHA256SUMS`: the hashes of the sheets, the capture and the package.
