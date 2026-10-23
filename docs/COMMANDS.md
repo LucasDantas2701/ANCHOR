@@ -477,6 +477,17 @@ python -m eval.resilience.build --check
 |---|---|
 | `--check` | Also runs the reference plans on the L0 pages, to check the rewritten tasks. |
 
+### The closed resilience set's catalog (`eval.resilience.closed.catalog_md`)
+
+The closed set's perturbations come from `eval/resilience/closed/catalog.json`: each operator with
+its source and category (the taxonomy of Hammoudi et al. for levels 1 to 4; Greshake et al. and
+Gray et al. for level 5), its weight, what is left out and why, the generator's rules and the seed.
+`CATALOG.md` is written from it, so the two never differ:
+
+```sh
+python -m eval.resilience.closed.catalog_md
+```
+
 ### Resilience benchmark runs (`eval.resilience.run`, `eval.resilience.report`)
 
 Runs the three executors on the altered pages: the traditional script (fixed selectors recorded

@@ -18,6 +18,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The closed resilience set's catalog of perturbations** (`eval/resilience/closed/`), approved on
+  23/10/2026 before any run on the set: each operator mapped to a published taxonomy category
+  (Hammoudi et al. for levels 1 to 4; Greshake et al. and Gray et al. for level 5), its weight the
+  category's total, what is left out and why, the seed and the generator's rules; `CATALOG.md` is
+  written from the data so the two never differ. The perturbations are new; the base tasks are the
+  development benchmark's. The generator and the generated pages come next, before any run.
 - **The human collection's publication** (`eval/human_publish.py`): after the draw, the whole
   export without the time each response was sent, numbered before anything is left out, with the
   tasks drawn from each response, and with accidental personal data replaced by "[removido: type]"
