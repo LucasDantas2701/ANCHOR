@@ -506,6 +506,20 @@ python -m eval.vision_probe --profiles ollama-small ollama-medium
 |---|---|
 | `--profiles` | Ollama model profiles to measure (the model must have the `vision` capability: `ollama show <model>`). |
 
+### The human closed set's draw (`eval.human_sample`)
+
+Draws the human closed set's 60 requests from the collection's Google Forms export: 30 from people
+who work in IT and 30 from people who do not, each profile spread over the 9 pages, with a fixed
+seed; whoever did not agree is left out, and a stratum with too few requests is completed (the
+other profile on the same page, then another page), each completion recorded. The rules are in the
+module's docstring. It runs only exactly as committed, once, prints only counts, and writes the
+tasks to annotate (`eval/plans/holdout_human_tasks.json`) and how the draw went
+(`eval/plans/holdout_human_sample.json`: the commit, the seed, the input's hash, counts).
+
+```sh
+python -m eval.human_sample <export.csv>
+```
+
 ## Development
 
 ```sh
