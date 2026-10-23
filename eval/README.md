@@ -238,7 +238,9 @@ out separately for each one (and for each `generator` within it):
   `synthetic_controlled_2026-10-22/` (its `PROCEDENCIA.md` records what happened, and the hashes
   are in `SHA256SUMS`; a `.gitattributes` keeps the files byte for byte). Decided before any
   annotation or run: the results come out with the 42 and, as a sensitivity analysis, with only the
-  28 of the two Claudes, since the ChatGPT reported it could not render the pages.
+  28 of the two Claudes, since the ChatGPT reported it could not render the pages. Its package used
+  the LEIA-ME from before the form's revision (see `fixtures/collection/README.md`), so its
+  instructions differ from the people's.
 - `human`: 60 requests drawn from the human collection, on the same pages.
 
 `python -m eval.closed_sets skeleton synthetic_controlled_2026-10-22 synthetic_controlled` turns the

@@ -25,3 +25,19 @@ roles and types are the original page's (checked element by element). All of the
 `colecao.css`, a plain style (fonts, spacing, colours and borders only; nothing hidden, overlaid or
 moved: every actionable element stays visible and receives its own click, checked with and without
 it). `feedback.js` is the original without its opening comment.
+
+## The form
+
+`criar_formulario.gs` is the Google Apps Script that built the collection's Google Form, kept as it
+was: it holds every text the people saw (the opening, the consent, the instructions, the help of each
+field) and every question's title, which `eval/human_sample.py` reads in the export ("Pxx · Você
+abriu o link desta página?", "Pxx · Pedido", "Pxx · Pedido 1", "Pxx · Pedido 2"). Before the form went
+out, it was tried once (a pilot response, sent at 22/10/2026 13:18:01, which the draw leaves out);
+after the pilot, only instruction texts changed, and this file is the final version.
+
+The people's instructions differ from the ones the AIs of the `synthetic_controlled` set got: that
+set's package used the LEIA-ME from before this revision, with the examples "quero reservar a sala
+Amazonas para amanhã às 10h" and "cancela o pedido que ainda não saiu" and without the pizzeria
+example (an order to the assistant versus the text typed in the site). The presentation differs too:
+the people see a picture of each page and can open it; the AIs got the package's pictures.
+

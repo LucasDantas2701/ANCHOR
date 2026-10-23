@@ -8,14 +8,19 @@ commit fixed before anyone read a response. It writes eval/plans/holdout_human_t
 tasks to annotate, with empty checks) and eval/plans/holdout_human_sample.json (how the draw went:
 the commit, the seed, the input's hash, counts and completions; no request), and prints only counts.
 
-The rules, fixed here before the responses were read:
-- discarded: whoever answered "Não concordo" to the consent; whoever did not say if they work in IT;
-- a request is one non-empty answer to a page's question (the page is the code P01–P09 in the
-  question's title); "abriu o link" is kept with it when the form asks it;
+The rules, fixed here before the responses were read (this version, revised on 23/10/2026 before any
+response was read: the pilot's response excluded, and the two request fields of five pages read):
+- discarded: the pilot (the form's test before it went out, sent at 22/10/2026 13:18:01, if it is
+  still in the export); whoever answered "Não concordo" to the consent; whoever did not say if they
+  work in IT;
+- a request is one non-empty answer to a page's request field ("Pxx · Pedido", or "Pxx · Pedido 1"
+  and "Pxx · Pedido 2"; the page is the code P01–P09); "Pxx · Você abriu o link desta página?" is
+  kept with it;
 - 30 requests from people who work in IT and 30 from people who do not, each profile spread over
   the 9 pages: 3 per page, and the 3 left go to pages drawn with the seed;
 - within a stratum (profile and page), the requests are drawn with the seed, from the responses in
-  the order of the sheet's rows;
+  the order of the sheet's rows, one per person first: a person's second request on that page is
+  taken only when there are not enough different people;
 - when a stratum has too few: first the other profile on the same page, then the same profile on
   another page (the one with most requests left), then the other profile on another page; every
   completion is recorded.
@@ -43,6 +48,8 @@ PAGES = {"P01": "reservas.html", "P02": "suporte.html", "P03": "blog.html", "P04
 TASKS_OUT = ROOT / "plans" / "holdout_human_tasks.json"
 REPORT_OUT = ROOT / "plans" / "holdout_human_sample.json"
 LITERAL_BOM = "\\xef\\xbb\\xbf"
+# The form's test response, sent before the form went out (local time of the form, Manaus).
+PILOT_AT = ("2026-10-22 13:18:01",)
 
 
 def _plain(text: str) -> str:
@@ -68,18 +75,44 @@ def read_export(path: Path) -> list[dict]:
     return list(csv.DictReader(io.StringIO(text), delimiter=delimiter))
 
 
+def when(value: str) -> str:
+    """A response's time as "YYYY-MM-DD HH:MM:SS", from the Sheets ("22/10/2026 13:18:01") or the
+    Forms download ("2026/10/22 1:18:01 PM GMT-4") format; "" when it is neither."""
+    v = (value or "").strip()
+    m = re.match(r"(\d{1,2})/(\d{1,2})/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})", v)
+    if m:
+        d, mo, y, h, mi, s = (int(x) for x in m.groups())
+        return f"{y:04d}-{mo:02d}-{d:02d} {h:02d}:{mi:02d}:{s:02d}"
+    m = re.match(r"(\d{4})[/-](\d{1,2})[/-](\d{1,2})[ T](\d{1,2}):(\d{2}):(\d{2})\s*([AaPp][Mm])?", v)
+    if m:
+        y, mo, d, h, mi, s = (int(x) for x in m.groups()[:6])
+        ampm = (m.group(7) or "").lower()
+        if ampm == "pm" and h < 12:
+            h += 12
+        if ampm == "am" and h == 12:
+            h = 0
+        return f"{y:04d}-{mo:02d}-{d:02d} {h:02d}:{mi:02d}:{s:02d}"
+    return ""
+
+
 def columns(header: list[str]) -> dict:
-    """Which column is the consent, the profile, each page's request and each page's "abriu o link"."""
-    found = {"consent": None, "profile": None, "requests": {}, "opened": {}, "opened_any": None}
+    """Which column is the time, the consent, the profile, each page's request fields and each
+    page's "abriu o link" (the titles of criar_formulario.gs, in eval/fixtures/collection/)."""
+    found = {"time": None, "consent": None, "profile": None, "requests": {}, "opened": {}, "opened_any": None}
     for name in header:
         plain = _plain(name)
         code = re.search(r"\bp0?([1-9])\b", plain)
         opened = "abriu" in plain or "link" in plain
         if code:
             key = f"P0{code.group(1)}"
-            (found["opened"] if opened else found["requests"])[key] = name
+            if opened:
+                found["opened"][key] = name
+            else:
+                found["requests"].setdefault(key, []).append(name)
         elif opened:
             found["opened_any"] = name
+        elif "carimbo" in plain or "timestamp" in plain or "data/hora" in plain:
+            found["time"] = name
         elif "concord" in plain or "consent" in plain:
             found["consent"] = name
         elif re.search(r"\bti\b|tecnologia da informacao", plain):
@@ -89,8 +122,11 @@ def columns(header: list[str]) -> dict:
 
 def candidates(rows: list[dict], cols: dict) -> tuple[list[dict], dict]:
     """Every request that can be drawn, and how many rows were left out and why."""
-    out, left_out = [], {"did_not_agree": 0, "no_profile": 0}
+    out, left_out = [], {"pilot": 0, "did_not_agree": 0, "no_profile": 0}
     for number, row in enumerate(rows, start=2):                # row 1 is the header
+        if cols["time"] and when(row.get(cols["time"], "")) in PILOT_AT:
+            left_out["pilot"] += 1
+            continue
         if cols["consent"] and "nao concordo" in _plain(row.get(cols["consent"], "")):
             left_out["did_not_agree"] += 1
             continue
@@ -99,12 +135,15 @@ def candidates(rows: list[dict], cols: dict) -> tuple[list[dict], dict]:
             left_out["no_profile"] += 1
             continue
         for code in sorted(cols["requests"]):
-            request = (row.get(cols["requests"][code]) or "").strip()
-            if not request:
-                continue
             opened_col = cols["opened"].get(code) or cols["opened_any"]
-            out.append({"row": number, "code": code, "profile": "it" if works_in_it else "non_it",
-                        "request": request, "opened_link": _yes(row.get(opened_col, "")) if opened_col else None})
+            for field in cols["requests"][code]:
+                request = (row.get(field) or "").strip()
+                if not request:
+                    continue
+                position = re.search(r"pedido\s*(\d)", _plain(field))
+                out.append({"row": number, "code": code, "profile": "it" if works_in_it else "non_it",
+                            "position": int(position.group(1)) if position else 1, "request": request,
+                            "opened_link": _yes(row.get(opened_col, "")) if opened_col else None})
     return out, left_out
 
 
@@ -120,9 +159,15 @@ def draw(pool: list[dict], seed: int = SEED) -> tuple[list[dict], dict]:
     left = {}
     for profile in PROFILES:
         for code in codes:
-            mine = sorted((c for c in pool if c["profile"] == profile and c["code"] == code), key=lambda c: c["row"])
+            mine = sorted((c for c in pool if c["profile"] == profile and c["code"] == code),
+                          key=lambda c: (c["row"], c.get("position", 1)))
             rng.shuffle(mine)
-            left[(profile, code)] = mine
+            # One request per person first; a person's other request on the page only afterwards.
+            seen, first, second = set(), [], []
+            for c in mine:
+                (second if c["row"] in seen else first).append(c)
+                seen.add(c["row"])
+            left[(profile, code)] = first + second
     chosen, completions = [], []
 
     def take(key, n, stratum, how):
@@ -161,6 +206,7 @@ def tasks_of(chosen: list[dict]) -> list[dict]:
         seen[base] = seen.get(base, 0) + 1
         tasks.append({"id": f"{base}-{seen[base]}", "split": "test", "origin": "human", "generator": c["profile"],
                       "language": "pt", "fixture": f"collection/{PAGES[c['code']]}", "request": c["request"],
+                      "field": c.get("position", 1),
                       "opened_link": c["opened_link"], "response_row": c["row"], "stratum": c["stratum"],
                       "filled": c["filled"] or None, "checks": [], "allowed": [], "reference": [], "note": "to annotate"})
     return tasks
