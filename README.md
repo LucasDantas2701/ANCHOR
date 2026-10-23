@@ -491,8 +491,9 @@ these) with:
    pages' text, so remove any personal data first;
 4. your setup: operating system, model and, if you know it, your graphics card.
 
-Suggestions and ideas are welcome as issues too. The [license](#license) does not allow
-modifying or redistributing the code, so pull requests cannot be accepted for now.
+Suggestions and ideas are welcome as issues too. Pull requests are not accepted for now: until
+the 1.0.0 evaluation, the code changes only through the author, so that the version measured is
+the one the article describes.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -607,12 +608,12 @@ requests and page contents do not leave the computer or the company network.
 <!-- LICENSE -->
 ## License
 
-Copyright (c) 2026 Lucas dos Santos Dantas. All copyrights belong to the author.
+Copyright 2026 Lucas dos Santos Dantas.
 
-Distributed under the [PolyForm Strict License 1.0.0](LICENSE): you may download and use ANCHOR
-for noncommercial purposes, such as study, testing and evaluation. Modifying, redistributing or
-using the software commercially is not allowed without the author's permission. The software is
-provided without warranty of any kind. This is not an open-source license.
+ANCHOR is open source, distributed under the [Apache License 2.0](LICENSE) (see also
+[NOTICE](NOTICE)): you may use, study, modify and redistribute it, commercially or not, as long as
+you keep the license and the notices and say what you changed. The software is provided without
+warranty of any kind.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -653,7 +654,7 @@ Research project at Faculdade Matias Machline (Manaus, Brazil).
 [stars-url]: https://github.com/LucasDantas2701/ANCHOR/stargazers
 [issues-shield]: https://img.shields.io/github/issues/LucasDantas2701/ANCHOR.svg?style=for-the-badge
 [issues-url]: https://github.com/LucasDantas2701/ANCHOR/issues
-[license-shield]: https://img.shields.io/badge/license-PolyForm%20Strict%201.0.0-blue.svg?style=for-the-badge
+[license-shield]: https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=for-the-badge
 [license-url]: LICENSE
 [python-shield]: https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white
 [python-url]: https://www.python.org

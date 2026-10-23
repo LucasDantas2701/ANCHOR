@@ -90,6 +90,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   page with the same values. "Save the details of this run" saves a file on this computer with what
   the model read (the page summary) and answered at each planning, for working out what went wrong.
 
+### Changed
+- **License: Apache 2.0** (was PolyForm Strict 1.0.0): ANCHOR is now open source; it may be used,
+  modified and redistributed, commercially or not, keeping the license and the notices (`NOTICE`,
+  new). Pull requests are still not accepted until the 1.0.0 evaluation, now for that reason.
+
 ### Fixed
 Found in real runs on LinkedIn, GitHub and the UI Testing Playground (17/10); each fix has a test
 that fails without it, and the reference plans of every suite and the benchmark's levels with no
