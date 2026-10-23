@@ -144,7 +144,8 @@ def test_modal_covering_the_button_is_closed_when_replanning(page):
     result = run(page, planner, request="faça a tarefa da página e salve")
 
     assert result.ok and page.evaluate("window.salvo") is True
-    assert "coberto por outro" in planner.calls[1]["history"][0]
+    told = planner.calls[1]["history"][0]
+    assert "está por cima do elemento" in told and "Aceite os cookies" in told      # what covers it, by name
 
 
 

@@ -338,3 +338,17 @@ def test_none_of_these_with_why_goes_to_the_engine_and_can_be_kept_as_the_automa
     worker.join(5)
     assert got["choice"].kind == "none" and got["choice"].note == "The reports are inside the portal: log in first"
     assert kept == ["The reports are inside the portal: log in first"]
+
+
+def test_the_outcomes_seen_in_the_17_10_runs_are_said_right():
+    from anchor.ui.explain import explain
+    timeout = explain({"state": "not_done", "message": "3 failed attempts; last problem: click Vagas — the action could not be "
+                                                       "performed (Locator.click: Timeout 30000ms exceeded.)"})
+    assert "AI could not be reached" not in timeout["summary"] and "tried 3 times" in timeout["summary"]
+    covered = explain({"state": "not_done", "message": "3 failed attempts; last problem: click Vagas — the click was blocked: "
+                                                       "\"Mensagens\" is on top of the element; close it, or scroll, first"})
+    assert "on top of the element" in covered["summary"]
+    loop = explain({"state": "not_done", "message": "the end check kept finding steps; please check the result"})
+    assert loop["summary"] == "ANCHOR kept finding more to do, so it stopped."
+    ollama = explain({"state": "error", "message": "The run could not go on: could not reach the model at localhost:11434"})
+    assert ollama["summary"] == "The AI could not be reached."

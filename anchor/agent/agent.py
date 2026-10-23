@@ -191,6 +191,22 @@ def user_text(exc: Exception) -> str:
     return exc.user_text() if isinstance(exc, PlanError) else str(exc)
 
 
+_INTERCEPTS = re.compile(r"<(\w+)([^>]*)>(.*?)</\1>[^\n]*?intercepts pointer events", re.DOTALL)
+
+
+def _covering(error: str) -> str:
+    """What covers the element, from Playwright's call log ("<div …>Mensagens</div> intercepts pointer events")."""
+    found = _INTERCEPTS.findall(error or "")
+    if not found:
+        return ""
+    tag, attrs, inner = found[-1]
+    text = " ".join(re.sub(r"<[^>]+>|…", " ", inner).split())[:60]
+    if text:
+        return f'"{text}"'
+    named = re.search(r'aria-label="([^"]+)"|id="([^"]+)"|class="([^" ]+)', attrs)
+    return f"<{tag} {next(g for g in named.groups() if g)}>" if named else f"<{tag}>"
+
+
 def failure_reason(result: ActionResult) -> Reason:
     """The failure reason, in words that help the planner try another way."""
     element = result.selected_element
@@ -209,6 +225,8 @@ def failure_reason(result: ActionResult) -> Reason:
     if result.action == "extract_table" and result.status == "ambiguous":
         names = [without_instructions(n)[:60] for n in (result.value or []) if n and not looks_like_instruction(n)]
         return Reason("why.which_table", names=", ".join(f'"{n}"' for n in names))
+    if result.status == "error" and _covering(result.error or ""):
+        return Reason("why.covered_by", what=_covering(result.error or ""))     # what is on top, by name
     if element is not None and getattr(element, "obscured", False):
         return Reason("why.obscured")
     if result.resolved_by == "user_none":
@@ -218,7 +236,13 @@ def failure_reason(result: ActionResult) -> Reason:
     if result.status == "ambiguous":
         return Reason("why.ambiguous")
     if result.status == "error":
-        first_line = (result.error or "").strip().splitlines()[0][:120] if result.error else ""
+        error = result.error or ""
+        covering = _covering(error)
+        if covering:                                # the element is under something: say what
+            return Reason("why.covered_by", what=covering)
+        if "Timeout" in error and "exceeded" in error:
+            return Reason("why.not_ready")
+        first_line = error.strip().splitlines()[0][:120] if error else ""
         return Reason("why.error", detail=first_line) if first_line else Reason("why.error_plain")
     return Reason("why.status", status=result.status)
 
@@ -583,16 +607,21 @@ class Agent:
         path = self._best_path(request, self._object(f"{step.description} {found.text or ''} {found.label or ''}"))
         return Step("upload", step.description, path, step.goal, step.expect) if path else None
 
-    def _unrequested_submit(self, request: str, step: Step) -> bool:
-        """A click that sends, saves, confirms, pays, exports or prints what the request did not ask for."""
+    def _unrequested_submit(self, request: str, step: Step):
+        """
+        A click that sends, saves, confirms, pays, exports, prints, or acts on the person's account
+        (follows, likes, comments, shares) when the request did not ask for it: its category, or "".
+        """
         if step.action != "click":
-            return False
+            return ""
         from anchor.engine.sensitive import classify, unrequested, unrequested_print
         description = clean_description(step.description)
         status, found, _ = self.executor._resolve(description, "click")
         name = getattr(found, "text", "") or getattr(found, "label", "") or ""
-        return (unrequested(classify("click", description, name), request, description, name)
-                or unrequested_print(request, description, name))
+        category = classify("click", description, name)
+        if unrequested(category, request, description, name):
+            return category
+        return "print" if unrequested_print(request, description, name) else ""
 
     def _wrong_field(self, request: str, step: Step) -> bool:
         """
@@ -782,6 +811,23 @@ class Agent:
             return ActionResult(status="error", action="fill", description=step.description, error=str(exc))
         return ActionResult(status="success", action="fill", description=step.description,
                             selected_element=target, resolved_by="revealed_field")
+
+    def _fulfills(self, step: Step, queue: list, password_before: bool) -> bool:
+        """
+        Whether a step that worked fulfills its goal: only when it is the goal's last planned step
+        (a search goal is not met by the click that opens the search box), and not when it led to
+        a login page (a "Star" that asks to sign in first starred nothing). A step done ON a login
+        page (the user name, "remember me") still fulfills its goal: the password field was there
+        before it.
+        """
+        if step.goal not in self._goal_status:
+            return False
+        # A later step of the goal that repeats this one (the same action with the same value: the
+        # 4B model attached resume.pdf again, under a label in Portuguese) adds nothing to the goal.
+        same = (step.action, (step.value or "").strip()) if step.value else None
+        if any(s.goal == step.goal and (s.action, (s.value or "").strip()) != same for s in queue):
+            return False
+        return password_before or password_field(self.page) is None
 
     def _wait_login(self, result: AgentResult, history: list[str]) -> Optional[bool]:
         """
@@ -1137,6 +1183,13 @@ class Agent:
 
             # ---------------------------------------------------- loop
             repeated_now = after_replan and key == last_done
+            if repeated_now and queue:
+                # The new plan starts with the step just done (it opened a menu; the plan goes on
+                # with the item in it): skip it and go on, instead of failing three times on it.
+                self.report(f"  ↷ {describe_step(step)} ({t('agent.repeat_skipped')})")
+                history.append(mt("hist.repeat_skipped", self.language, step=describe_step(step)))
+                after_replan = False
+                continue
             if repeated_now or done_count.get(key, 0) >= self.max_repeats:
                 reason = (Reason("why.repeated_now") if repeated_now
                           else Reason("why.repeated", count=done_count[key]))
@@ -1158,6 +1211,7 @@ class Agent:
             unasked = not (wrong_file or wrong_field) and self._unrequested_submit(request, step)
             if wrong_file or wrong_field or unasked or self._unrequested_destructive(request, step):
                 reason = Reason("why.wrong_file" if wrong_file else "why.wrong_field" if wrong_field
+                                else "why.unrequested_account" if unasked == "account"
                                 else "why.unrequested_submit" if unasked else "why.destructive")
                 self.report(t("agent.blocked", step=describe_step(step)))
                 if key in blocked:
@@ -1184,6 +1238,8 @@ class Agent:
                            if self.vision is not None and step.action in ("click", "press") else None)
             _pump(self.page)                       # tabs opened before this step (an ad) are seen now,
             self._new_tabs.clear()                 # and dropped: only a tab this step opens is followed
+            password_before = password_field(self.page) is not None
+            login_before = self.login is not None and password_before
             self._asked_before = _windows_asked(self.page)
             try:
                 outcome = self._execute(step, last_fill)
@@ -1224,7 +1280,7 @@ class Agent:
                         continue
                     result.records.append(StepRecord(step, "success", outcome.resolved_by))
                     history.append(mt("hist.done", self.language, step=describe_step(step)))
-                    if step.goal in self._goal_status:
+                    if self._fulfills(step, queue, password_before):
                         self._goal_status[step.goal] = "done"
                     done_count[key] = done_count.get(key, 0) + 1
                     last_done = key
@@ -1289,7 +1345,7 @@ class Agent:
                 self._keep_pending_downloads(result, step)
                 history.append(mt("hist.done", self.language, step=describe_step(step)))
                 history.extend(mt("hist.message", self.language, message=m) for m in self._safe_messages(messages))
-                if step.goal in self._goal_status and not (self.watcher is not None and focus_only):
+                if self._fulfills(step, queue, password_before) and not (self.watcher is not None and focus_only):
                     # A click that only gives the focus does not fulfill the goal.
                     self._goal_status[step.goal] = "done"
                 if (self.watcher is not None and self._expected_missing(step, words_before)
@@ -1301,6 +1357,26 @@ class Agent:
                 last_done = key
                 if step.action == "fill" and outcome.selected_element is not None:
                     last_fill = outcome.selected_element
+
+                # A step that led to a login page ("Star" on GitHub asks to sign in first): the person
+                # logs in, and the plan starts again from the page after the login.
+                if (self.login is not None and not login_before and step.action in ("click", "press")
+                        and _alive(self.page) and password_field(self.page) is not None):
+                    history.append(mt("hist.login_wall", self.language, step=describe_step(step)))
+                    # It did not do what it was for (it only asked to sign in): not done, so it may be
+                    # planned again after the login, and an automation does not learn it as a step.
+                    result.records[-1].status = "login"
+                    done_count[key] -= 1
+                    if not done_count[key]:
+                        del done_count[key]
+                    last_done = None
+                    if self._wait_login(result, history) is not True:
+                        return self._finish(result, "cancelled", t("end.login_needed"), start)
+                    queue = self._replan(request, history, result, start, t("agent.after_login"))
+                    if isinstance(queue, AgentResult):
+                        return queue
+                    after_replan = True
+                    continue
 
                 tab = self._follow_tabs(history, acted=step.action in ("click", "press"))
                 if tab and queue:

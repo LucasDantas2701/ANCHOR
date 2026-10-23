@@ -85,6 +85,48 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   the model read (the page summary) and answered at each planning, for working out what went wrong.
 
 ### Fixed
+Found in real runs on LinkedIn, GitHub and the UI Testing Playground (17/10); each fix has a test
+that fails without it, and the reference plans of every suite and the benchmark's levels with no
+model are the same before and after (0 false successes).
+- **A goal is met by its last planned step, not its first.** A step that worked marked its goal as
+  met even when the goal had more steps ("search for ollama" was met by the click that opened the
+  search box), so the planner was told something was done that was not, and skipped the rest. It is
+  met now only when no other step of the goal is still to do (a later step that only repeats this one,
+  the same action with the same value, does not count), and never by a step that led to a login
+  page (a step done on a login page, like the user name, still meets its goal).
+- **A step that leads to a login page waits for the login.** "Star" on GitHub asks to sign in first:
+  ANCHOR now waits for the person to log in (as when a login comes first) and plans again from the
+  page after it; that step does not count as done, so it can be done again once logged in. Without
+  anyone there (unattended), nothing changes.
+- **Acting on the person's account is sensitive, and blocked when not asked.** A new family,
+  "account": connect, like, react, comment, share, repost, subscribe, invite, and following someone
+  ("Seguir JAINE…"; "Seguir" alone, or "Seguir para o pagamento", is still going on). The models had
+  planned to follow three people nobody asked for. Only a verb of the family in the request asks for
+  it (a request about the same person does not).
+- **A step described as "(no text)" is refused.** The page summary's name for an element without one
+  points at nothing; the model is told to describe the element by what is near it.
+- **A search is sent after the term is typed.** The end check took the click that opened a search box
+  ("Search /", before typing "Pi Network") for the search, and a run ended as done with the term
+  typed and never sent (en-pop-01, the 4B model, 21/10: the dev suite's only premature end). When a
+  request asks to search and the plan types something, the click or the Enter that searches must come
+  after what was typed; all 250 reference plans of the dev suites and the benchmark still pass it.
+- **"Confirm whether / that…" is a check.** "Confirme se o texto mudou" no longer asks for a click on a
+  Confirm button ("confirme o pedido" still does).
+- **A new plan that starts with the step just done goes on.** After opening a post's "…" menu, the plan
+  repeated that click before "Salvar", and the repeat was failed three times; it is skipped now, and
+  the plan goes on with the next step (a plan with only that step still fails, as before).
+- **A blocked click fails sooner, and says what blocks it.** A click waits 10 s for its element (not
+  Playwright's 30 s, which cost a minute on LinkedIn), and when something is on top of the element the
+  planner hears what ("the click was blocked: "Mensagens" is on top of the element").
+- **The site's own pop-ups.** An alert is accepted and its text reaches the planner; a question ("Are
+  you sure?") is always answered no, since ANCHOR never confirms on its own. Either is the click's
+  effect.
+- **Pages that answer late.** After a click with no change, ANCHOR waits for the timers the click
+  itself scheduled (up to 8 s) before calling it "no effect" and clicking again ("Wait for alert!");
+  a click that scheduled none waits nothing more.
+- **Outcomes said right.** A click that timed out was shown as "The AI could not be reached";
+  "N failed attempts" showed words written for the model. Both are said in plain words now, with the
+  last problem as the hint.
 - **A plan's refusals in the reader's language.** The planner kept why each plan was refused in the
   model's language only; it now keeps it in the interface's too, so the interface (in English)
   no longer shows "a ação fill precisa de um valor".

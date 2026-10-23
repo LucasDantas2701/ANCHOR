@@ -30,6 +30,10 @@ CATEGORIES: dict[str, list[str]] = {
     "pay": ["pagar", "pague", "comprar", "compre", "checkout", "pay", "buy", "purchase"],
     "download": ["baixar", "baixe", "exportar", "download", "export"],
     "upload": ["anexar", "importar", "upload", "attach", "import"],
+    # Acting on the person's account on a social site: what others see as theirs.
+    "account": ["conectar", "conecte", "curtir", "curta", "reagir", "comentar", "comente", "compartilhar",
+                "compartilhe", "republicar", "repostar", "inscrever", "inscreva", "convidar", "convide",
+                "connect", "like", "react", "comment", "share", "repost", "subscribe", "invite"],
 }
 _STEMS = {cat: set().union(*(tokenize(w) for w in words)) for cat, words in CATEGORIES.items()}
 
@@ -46,7 +50,12 @@ _CANCEL_VERBS = set().union(*(tokenize(w) for w in CANCEL_VERBS))
 _CANCEL_WITH_OBJECT = set().union(*(tokenize(w) for w in CANCEL_WITH_OBJECT))
 _CANCEL_OBJECTS = set().union(*(tokenize(w) for w in CANCEL_OBJECTS))
 
-_ORDER = ("pay", "delete", "cancel", "send", "upload", "download", "submit")   # the most serious first
+_ORDER = ("pay", "delete", "cancel", "send", "account", "upload", "download", "submit")   # the most serious first
+
+# "Seguir" is also "go on" in Portuguese ("Seguir", "Seguir para o pagamento"): it follows someone
+# only with an object that is not "para"/"to" ("Seguir JAINE DA COSTA NERI", "Follow Ollama").
+_FOLLOW = re.compile(r"\b(seguir|siga|follow)\s+(?!para\b|to\b|em\s+frente\b|adiante\b|next\b)[^\s()]", re.IGNORECASE)
+_FOLLOW_ASKED = set().union(*(tokenize(w) for w in ("seguir", "siga", "follow")))
 SENSITIVE_ACTIONS = ("click", "download", "upload")
 
 
@@ -65,6 +74,8 @@ def classify(action: str, description: str, element_name: str = "") -> Optional[
         if category == "cancel":
             if (words & _CANCEL_VERBS and everything & _CANCEL_OBJECTS) or words & _CANCEL_WITH_OBJECT:
                 return "cancel"
+        elif category == "account" and (_FOLLOW.search(outside) or _FOLLOW.search(element_name or "")):
+            return "account"
         elif words & _STEMS[category]:
             return category
     return None
@@ -91,6 +102,10 @@ def unrequested(category: Optional[str], request: str, description: str, element
     and the button are about the same thing, verbs aside ("reserve a sala" and "Reservar sala",
     "cadastre a Maria" and "Salvar cadastro").
     """
+    if category == "account":
+        # Only a verb of the family asks for it: a request about the same person does not
+        # ask to follow them ("abra o perfil da Jaine" is not "Seguir Jaine").
+        return not tokenize(request or "") & (_STEMS["account"] | _FOLLOW_ASKED)
     if category not in _CONCLUDING + ("download",):
         return False
     asked = tokenize(request or "")
@@ -110,7 +125,7 @@ class ConfirmationRequest:
     action: str
     description: str          # the step's description
     element: str              # the name of the element that would be acted on
-    category: str             # delete, submit, send, pay, download, upload
+    category: str             # delete, submit, send, pay, download, upload, account
     url: str = ""
 
 

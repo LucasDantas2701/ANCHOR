@@ -27,10 +27,23 @@ _RULES = [
     (r"pending goals|not fulfilled|was not done",
      "Part of the request was not done.",
      "See what happened below: the last steps show where it stopped."),
-    (r"connection|refused|ollama|timed out|timeout",
+    (r"click was blocked|is on top of the element|intercepts pointer events",
+     "A click could not happen: something on the page was on top of the element.",
+     "Watch it run to see what is in the way (a panel, a menu, a pop-up); then Try again."),
+    (r"never became ready|Timeout \d+ms exceeded",
+     "A click could not happen: the element was not ready.",
+     "The page may still have been loading, or the element was hidden. Watch it run, then Try again."),
+    (r"end check kept finding steps",
+     "ANCHOR kept finding more to do, so it stopped.",
+     "See what was done below. A request with \"all\" or \"every\" may need a clearer end, like \"the first five\"."),
+    (r"ollama|could not reach the model|connection refused|failed to establish|max retries",
      "The AI could not be reached.",
      "Check that Ollama is open on this computer, then run it again."),
 ]
+
+# "3 failed attempts; last problem: click Vagas — <why>": the summary says what happened; the
+# last problem, in its own words, becomes the hint.
+_ATTEMPTS = re.compile(r"(\d+) failed attempts; last problem: (.+?) — (.+)$")
 
 
 def explain(result: dict) -> dict:
@@ -42,6 +55,14 @@ def explain(result: dict) -> dict:
         return {**result, "summary": "This is what the AI would do. Nothing was done on the page.", "hint": ""}
     if state == "stopped":
         return {**result, "summary": "Stopped.", "hint": "Nothing else was done after that point."}
+    attempts = _ATTEMPTS.search(message)
+    if attempts:
+        count, step, why = attempts.groups()
+        for pattern, summary, hint in _RULES:
+            if re.search(pattern, why, re.IGNORECASE):
+                return {**result, "summary": f"ANCHOR tried {count} times and stopped. {summary}", "hint": hint}
+        return {**result, "summary": f"ANCHOR tried {count} times and stopped.",
+                "hint": f"The last step it tried was \"{step}\": {why[:1].lower() + why[1:]}."}
     for pattern, summary, hint in _RULES:
         if re.search(pattern, message, re.IGNORECASE):
             return {**result, "summary": summary, "hint": hint}

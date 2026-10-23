@@ -121,6 +121,7 @@ class ActionExecutor:
         self.guard: Optional[Callable] = None
         self.on_result: Optional[Callable[[ActionResult], None]] = None   # told after each action
         self._last_choice = None          # the person's last answer to "which element" (none, login, skip...)
+        self.click_timeout_ms = 10_000    # how long a click may wait for its element to be clickable
         # When True, filling a password field is refused (status "credential") instead of typed:
         # the agent turns it on, so credentials never go through the model and the user logs in
         # by hand. Off by default, for the resolver's evaluation on test pages.
@@ -585,6 +586,9 @@ class ActionExecutor:
         **kwargs,
     ) -> ActionResult:
 
+        # A click that cannot happen in a few seconds will not happen: something covers the
+        # element, or it is not ready. Playwright's 30 s made each such step cost half a minute.
+        kwargs.setdefault("timeout", self.click_timeout_ms)
         return self._run(
             description,
             "click",

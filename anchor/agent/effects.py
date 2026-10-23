@@ -69,6 +69,36 @@ ERROR_RE = re.compile(
     r"erro|inválid|invalid|obrigat|required|falh|failed|incorret|incorrect|não foi possível", re.I)
 
 
+TIMERS_JS = """
+() => {
+  if (window.__er_timers) return;
+  window.__er_timers = [];                       // [scheduled at, due at, fired]
+  const original = window.setTimeout;
+  window.setTimeout = function (fn, delay, ...rest) {
+    const ms = Number(delay) || 0;
+    if (ms > 0 && ms <= 8000) {
+      const entry = [performance.now(), performance.now() + ms, false];
+      window.__er_timers.push(entry);
+      if (window.__er_timers.length > 200) window.__er_timers.splice(0, 100);
+      const wrapped = typeof fn === "function" ? function () { entry[2] = true; return fn.apply(this, arguments); } : fn;
+      return original.call(window, wrapped, delay, ...rest);
+    }
+    return original.call(window, fn, delay, ...rest);
+  };
+}
+"""
+
+# How long, in ms, until the timers the click scheduled (those started after `since`) have fired;
+# 0 when it scheduled none.
+PENDING_JS = """
+(since) => {
+  const now = performance.now();
+  const mine = (window.__er_timers || []).filter(t => t[0] >= since && !t[2]);
+  return mine.length ? Math.max(0, Math.max(...mine.map(t => t[1])) - now) : 0;
+}
+"""
+
+
 @dataclass
 class Snapshot:
     url: str
@@ -77,6 +107,8 @@ class Snapshot:
     requests: int
     pages: int
     downloads: int
+    dialogs: int = 0
+    clock: float = 0.0              # the page's time when it was taken (for the timers a click schedules)
 
 
 @dataclass
@@ -94,13 +126,36 @@ class EffectWatcher:
 
     IGNORED_RESOURCES = {"image", "stylesheet", "font", "media"}
 
-    def __init__(self, page: Page, settle_ms: int = 400):
+    def __init__(self, page: Page, settle_ms: int = 400, patience_ms: int = 8000):
         self.page = page
         self.settle_ms = settle_ms
-        self.requests = self.pages = self.downloads = 0
+        # A page that answers late ("Wait for alert!" on a timer) still answers: with no change
+        # after settle_ms, wait for the timers the click itself scheduled (up to patience_ms).
+        # A click that scheduled none (most clicks with no effect) waits nothing more.
+        self.patience_ms = patience_ms
+        self.requests = self.pages = self.downloads = self.dialogs = 0
+        self.dialog_messages: list[str] = []
         page.on("request", self._on_request)
+        page.on("dialog", self._on_dialog)
         page.on("download", lambda _: self._bump("downloads"))
         page.context.on("page", lambda _: self._bump("pages"))
+
+    def _on_dialog(self, dialog) -> None:
+        """
+        The site's own pop-ups (alert, confirm, prompt): an alert has only OK, so it is accepted; a
+        question ("Are you sure?") is answered no, since ANCHOR never confirms on its own. Either way
+        it is an effect, and what it said reaches the planner.
+        """
+        kind, text = dialog.type, " ".join((dialog.message or "").split())[:200]
+        try:
+            if kind in ("confirm", "prompt"):
+                dialog.dismiss()
+            else:
+                dialog.accept()
+        except Exception:
+            pass
+        self.dialogs += 1
+        self.dialog_messages.append(f"[{kind}] {text}" + (" (answered: cancel)" if kind in ("confirm", "prompt") else ""))
 
     def _bump(self, name: str) -> None:
         setattr(self, name, getattr(self, name) + 1)
@@ -125,19 +180,42 @@ class EffectWatcher:
 
     def snapshot(self) -> Snapshot:
         mutations, messages = self._page_counters()
-        return Snapshot(self.page.url, mutations, messages, self.requests, self.pages, self.downloads)
+        try:
+            self.page.evaluate(TIMERS_JS)
+            clock = self.page.evaluate("() => performance.now()")
+        except Exception:
+            clock = 0.0
+        return Snapshot(self.page.url, mutations, messages, self.requests, self.pages, self.downloads, self.dialogs,
+                        clock)
+
+    def _pending_ms(self, since: float) -> float:
+        try:
+            return float(self.page.evaluate(PENDING_JS, since) or 0)
+        except Exception:
+            return 0.0
 
     def effect_since(self, before: Snapshot) -> Effect:
         try:
             self.page.wait_for_timeout(self.settle_ms)
         except Exception:
             pass
-        if self.page.url != before.url:
-            return Effect(changed=True)
-        mutations, messages = self._page_counters()
-        new = self._messages()[before.messages:]
-        changed = (mutations > before.mutations or self.requests > before.requests
-                   or self.pages > before.pages or self.downloads > before.downloads)
+        waited = self.settle_ms
+        while True:
+            if self.page.url != before.url:
+                return Effect(changed=True)
+            mutations, messages = self._page_counters()
+            changed = (mutations > before.mutations or self.requests > before.requests or self.pages > before.pages
+                       or self.downloads > before.downloads or self.dialogs > before.dialogs)
+            pending = 0.0 if changed or waited >= self.patience_ms else self._pending_ms(before.clock)
+            if not pending:
+                break
+            step = min(pending + 150, 500)
+            try:
+                self.page.wait_for_timeout(step)
+            except Exception:
+                break
+            waited += step
+        new = self._messages()[before.messages:] + self.dialog_messages[before.dialogs:]
         return Effect(changed=changed, new_messages=list(dict.fromkeys(new))[:5])
 
 

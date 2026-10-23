@@ -249,3 +249,39 @@ def test_refused_answers_are_also_kept_in_the_interfaces_language():
         set_language(before)
     assert len(planner.last_refusals) == 2 and "voar" in planner.last_refusals[0]
     assert planner.last_refusals[0] != planner.last_attempts[0][1]   # the person reads English, the model read Portuguese
+
+
+@pytest.mark.parametrize("description", ["(sem texto)", "(no text)", " (Sem texto) "])
+def test_a_step_on_an_element_named_no_text_is_refused(description):
+    """GitHub, 17/10: the 4B model clicked "(sem texto)" three times, the page summary's name for a nameless element."""
+    from anchor.planner.plan import parse_plan
+    with pytest.raises(PlanError) as err:
+        parse_plan({"steps": [{"action": "click", "description": description, "value": None}]})
+    assert "(sem texto)" in str(err.value) or "(no text)" in str(err.value)
+
+
+@pytest.mark.parametrize("request_", [
+    "Abra Text Input, digite ANCHOR e clique no botão. Depois confirme se o texto do botão mudou",
+    "Click the button and confirm that the success message appeared",
+    "Open the page and check whether the table has 3 rows",
+])
+def test_confirming_whether_something_happened_is_a_check_not_a_button(request_):
+    from anchor.planner.plan import check_request
+    check_request([Step("fill", "Text", "ANCHOR"), Step("click", "Button")], [], request_)   # no "Confirm" click is asked for
+
+
+def test_confirming_an_order_still_needs_the_click():
+    from anchor.planner.plan import check_request
+    with pytest.raises(PlanError):
+        check_request([Step("click", "Ver resumo")], [], "abra o carrinho e confirme o pedido")
+
+
+def test_a_search_is_sent_after_the_term_is_typed():
+    """CoinMarketCap pop-up (21/10): the click that opened the search box was taken for the search."""
+    from anchor.planner.plan import check_request
+    with pytest.raises(PlanError):
+        check_request([Step("click", "Search /"), Step("fill", "Search coins", "Pi Network")], [], "Search for the Pi Network coin")
+    check_request([Step("click", "Search /"), Step("fill", "Search coins", "Pi Network"), Step("press", "Search coins", "Enter")],
+                  [], "Search for the Pi Network coin")
+    check_request([Step("fill", "Busca", "tênis"), Step("click", "Buscar")], [], "pesquise tênis")
+    check_request([Step("click", "Search")], [], "search")                 # nothing typed: the click searches

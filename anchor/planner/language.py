@@ -134,6 +134,10 @@ TEXT: dict[str, dict[str, str]] = {
     "plan.bad_action": {"pt": 'passo {i}: ação "{action}" não existe; use uma de {actions}',
                         "en": 'step {i}: action "{action}" does not exist; use one of {actions}'},
     "plan.empty_description": {"pt": "passo {i}: descrição vazia", "en": "step {i}: empty description"},
+    "plan.no_text_description": {"pt": 'passo {i}: "(sem texto)" não identifica um elemento; descreva-o pelo que está '
+                                       'perto dele na página (o rótulo, o título ou o item ao lado)',
+                                 "en": 'step {i}: "(no text)" does not point at an element; describe it by what is near it '
+                                       'on the page (its label, its title or the item beside it)'},
     "plan.needs_value": {"pt": 'passo {i}: a ação "{action}" precisa de um valor',
                          "en": 'step {i}: the "{action}" action needs a value'},
     "plan.no_conclusive": {"pt": "marque como conclusiva (conclusive: true) a meta que conclui o pedido",
@@ -167,6 +171,10 @@ TEXT: dict[str, dict[str, str]] = {
     "plan.missing_value": {"pt": 'o pedido menciona "{value}", mas nenhum passo o usa',
                            "en": 'the request mentions "{value}", but no step uses it'},
     # ------------------------------------------------------------ execution history
+    "hist.repeat_skipped": {"pt": 'não repetido: {step} (acabou de ser feito; o plano seguiu com o próximo passo)',
+                            "en": 'not repeated: {step} (it was just done; the plan went on with the next step)'},
+    "hist.login_wall": {"pt": '"{step}" levou a uma página de login: a pessoa vai entrar, e o passo pode ser preciso de novo',
+                        "en": '"{step}" led to a login page: the person will log in, and the step may be needed again'},
     "hist.done": {"pt": "feito: {step}", "en": "done: {step}"},
     "hist.failed": {"pt": "falhou: {step} — {reason}", "en": "failed: {step} — {reason}"},
     "hist.blocked": {"pt": "barrado: {step} — {reason}", "en": "blocked: {step} — {reason}"},
@@ -204,6 +212,10 @@ TEXT: dict[str, dict[str, str]] = {
                              "en": "the person using ANCHOR said it is none of the elements found, and explained: \"{note}\""},
     "why.not_found": {"pt": "nenhum elemento da página corresponde a essa descrição",
                       "en": "no element on the page matches this description"},
+    "why.unrequested_account": {"pt": "o pedido não pede para seguir, conectar, curtir, comentar ou compartilhar; "
+                                      "não faça isso por conta própria na conta da pessoa",
+                                "en": "the request does not ask to follow, connect, like, comment or share; do not do "
+                                      "it on your own on the person's account"},
     "why.unrequested_submit": {"pt": "o pedido não pede para enviar, salvar, confirmar, pagar, exportar ou imprimir; não faça isso por conta própria",
                                "en": "the request does not ask to send, save, confirm, pay, export or print; do not do it on your own"},
     "why.wrong_field": {"pt": "esse arquivo é de outro campo da página; envie cada arquivo pelo campo que corresponde a ele",
@@ -222,6 +234,10 @@ TEXT: dict[str, dict[str, str]] = {
                         "en": "more than one table or list could be it: {names}; use the name of one of them"},
     "why.ambiguous": {"pt": "mais de um elemento corresponde a essa descrição; seja mais específico",
                       "en": "more than one element matches this description; be more specific"},
+    "why.covered_by": {"pt": "o clique foi bloqueado: {what} está por cima do elemento; feche-o, ou role a página, antes",
+                       "en": "the click was blocked: {what} is on top of the element; close it, or scroll, first"},
+    "why.not_ready": {"pt": "o elemento não ficou pronto para o clique (escondido, desabilitado ou se movendo)",
+                      "en": "the element never became ready for the click (hidden, disabled or moving)"},
     "why.error": {"pt": "a ação não pôde ser executada ({detail})", "en": "the action could not be performed ({detail})"},
     "why.error_plain": {"pt": "a ação não pôde ser executada", "en": "the action could not be performed"},
     "why.status": {"pt": "{status}", "en": "{status}"},

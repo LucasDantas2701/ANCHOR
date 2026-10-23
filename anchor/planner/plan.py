@@ -162,6 +162,9 @@ def parse_plan(data: object, language: str = DEFAULT_PROMPT_LANGUAGE) -> list[St
             raise PlanError.of("plan.bad_action", language, i=i, action=action, actions=", ".join(ACTIONS))
         if not description:
             raise PlanError.of("plan.empty_description", language, i=i)
+        if description.strip("() ").lower() in ("sem texto", "no text"):
+            # The page summary's name for an element without one: it points at nothing.
+            raise PlanError.of("plan.no_text_description", language, i=i)
         if ACTIONS[action] and (value is None or str(value).strip() == ""):
             raise PlanError.of("plan.needs_value", language, i=i, action=action)
         goal = str(item["goal"]).strip() if item.get("goal") else None
@@ -207,6 +210,10 @@ def check_goals(steps: list[Step], goals: list[Goal], known: set[str] | None = N
 import re as _re
 
 # Verbs that complete a request: if the request uses them, some step must do them.
+# "Confirme se o resultado apareceu" asks to check, not to click a Confirm button (UI Testing
+# Playground, 17/10): a verb followed by se/que/if/whether/that is a check, left out of the verbs.
+_TO_CHECK = _re.compile(r"\b(confirm\w*|verifi\w*|check\w*)\s+(se|que|if|whether|that)\b", _re.IGNORECASE)
+
 CONCLUSIVE_VERBS = ["salvar", "save", "enviar", "send", "submit", "excluir", "delete", "remover",
                     "pesquisar", "buscar", "procurar", "search", "cancelar", "cancel",
                     "confirmar", "confirm", "baixar", "download"]
@@ -281,13 +288,25 @@ def check_request(steps: list[Step], goals: list[Goal], request: str,
         if s.action == "press" and (s.value or "").strip().lower() == "enter":
             concluding_words |= {v for w in SEARCH_VERBS for v in words(w)}
 
-    request_words = words(request)
+    # A search is sent after the term is typed: the click that only opened the search box
+    # ("Search /", before typing "Pi Network") does not search (CoinMarketCap pop-up, 21/10).
+    last_fill = max((i for i, s in enumerate(steps) if s.action == "fill"), default=-1)
+    sent_after_typing = set()
+    for s in steps[last_fill + 1:]:
+        if s.action in ("click", "press"):
+            sent_after_typing |= words(s.description)
+        if s.action == "press" and (s.value or "").strip().lower() == "enter":
+            sent_after_typing |= {v for w in SEARCH_VERBS for v in words(w)}
+    search_forms = {v for w in SEARCH_VERBS for v in words(w)}
+
+    request_words = words(_TO_CHECK.sub(" ", request))
     for verb in CONCLUSIVE_VERBS:
         forms = words(verb)                       # e.g. "pesquisar" → {"pesquis", "search"}
         if not forms & request_words:
             continue
         equivalents = forms | expand_actions(forms)
-        if not equivalents & concluding_words:
+        done_by = sent_after_typing if (forms & search_forms and last_fill >= 0) else concluding_words
+        if not equivalents & done_by:
             # "envie o comprovante" (send a file) is done by the upload, as long as every "send"
             # in the request is about a file: "anexe o currículo e envie a candidatura" still
             # needs the click on the send button.
