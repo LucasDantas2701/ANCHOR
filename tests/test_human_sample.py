@@ -1,6 +1,7 @@
 """The human draw, on made-up exports with the form's exact titles (criar_formulario.gs), never the real one."""
 import csv
 import json
+import re
 
 import eval.human_sample as hs
 
@@ -91,3 +92,20 @@ def test_the_command_refuses_to_run_unless_it_is_exactly_the_committed_file(tmp_
     monkeypatch.setattr(hs, "_committed", lambda: "")
     monkeypatch.setattr(hs, "TASKS_OUT", tmp_path / "tasks.json")
     assert hs.main([str(tmp_path / "f.csv")]) == 1 and not (tmp_path / "tasks.json").exists()
+
+
+def test_the_report_counts_who_answered_who_was_drawn_and_who_opened_each_link(tmp_path, monkeypatch, capsys):
+    rows = [person(n, it=n % 2 == 0, opened="Sim" if n % 4 else "Não") for n in range(40)]
+    rows.append(person(99, it=True, consent="Não concordo"))
+    export(tmp_path / "f.csv", rows)
+    monkeypatch.setattr(hs, "TASKS_OUT", tmp_path / "tasks.json")
+    monkeypatch.setattr(hs, "REPORT_OUT", tmp_path / "sample.json")
+    monkeypatch.setattr(hs, "_committed", lambda: "abc123")
+    assert hs.main([str(tmp_path / "f.csv")]) == 0
+    assert "pedido" not in capsys.readouterr().out
+    report = json.loads((tmp_path / "sample.json").read_text(encoding="utf-8"))
+    assert report["respondents"] == {"total": 40, "it": 20, "non_it": 20} and report["left_out"]["did_not_agree"] == 1
+    drawn = report["drawn_from"]
+    assert drawn["it"]["people"] + drawn["non_it"]["people"] == drawn["total"]["people"] and 1 <= drawn["total"]["min"] <= drawn["total"]["median"] <= drawn["total"]["max"]
+    assert report["opened_link"]["P01"] == {"page": "reservas.html", "answered": 40, "yes": 30, "share_yes": 0.75}
+    assert not re.search(r"pedido \d+ P0", json.dumps(report))          # counts only: no request in the report

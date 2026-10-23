@@ -6,7 +6,9 @@ The draw of the human closed set: 60 requests from the collection's Google Forms
 It must run from this file exactly as committed (it refuses otherwise), so the draw is the one the
 commit fixed before anyone read a response. It writes eval/plans/holdout_human_tasks.json (the
 tasks to annotate, with empty checks) and eval/plans/holdout_human_sample.json (how the draw went:
-the commit, the seed, the input's hash, counts and completions; no request), and prints only counts.
+the commit, the seed, the input's hash, counts and completions; who answered, how many different
+people the 60 requests come from and how many each gave, and how many opened each page's link; no
+request), and prints only counts.
 
 The rules, fixed here before the responses were read (this version, revised on 23/10/2026 before any
 response was read: the pilot's response excluded, and the two request fields of five pages read):
@@ -33,6 +35,7 @@ import io
 import json
 import random
 import re
+import statistics
 import subprocess
 import sys
 import unicodedata
@@ -120,8 +123,9 @@ def columns(header: list[str]) -> dict:
     return found
 
 
-def candidates(rows: list[dict], cols: dict) -> tuple[list[dict], dict]:
-    """Every request that can be drawn, and how many rows were left out and why."""
+def candidates(rows: list[dict], cols: dict, people: list | None = None) -> tuple[list[dict], dict]:
+    """Every request that can be drawn, and how many rows were left out and why. When `people` is a
+    list, each kept response is added to it (its row, profile and, per page, whether the link was opened)."""
     out, left_out = [], {"pilot": 0, "did_not_agree": 0, "no_profile": 0}
     for number, row in enumerate(rows, start=2):                # row 1 is the header
         if cols["time"] and when(row.get(cols["time"], "")) in PILOT_AT:
@@ -134,6 +138,10 @@ def candidates(rows: list[dict], cols: dict) -> tuple[list[dict], dict]:
         if works_in_it is None:
             left_out["no_profile"] += 1
             continue
+        if people is not None:
+            people.append({"row": number, "profile": "it" if works_in_it else "non_it",
+                           "opened": {code: _yes(row.get(cols["opened"].get(code) or cols["opened_any"] or "", ""))
+                                      for code in sorted(cols["requests"])}})
         for code in sorted(cols["requests"]):
             opened_col = cols["opened"].get(code) or cols["opened_any"]
             for field in cols["requests"][code]:
@@ -199,6 +207,29 @@ def draw(pool: list[dict], seed: int = SEED) -> tuple[list[dict], dict]:
     return chosen, record
 
 
+def describe(people: list[dict], chosen: list[dict]) -> dict:
+    """Who answered and who the draw drew from, as counts only (no request, no row)."""
+    def spread(rows):
+        counts = {}
+        for r in rows:
+            counts[r] = counts.get(r, 0) + 1
+        values = sorted(counts.values())
+        return {"people": len(values), "min": values[0] if values else 0,
+                "median": statistics.median(values) if values else 0, "max": values[-1] if values else 0}
+
+    opened = {}
+    for code in sorted(PAGES):
+        answers = [p["opened"].get(code) for p in people if p["opened"].get(code) is not None]
+        opened[code] = {"page": PAGES[code], "answered": len(answers), "yes": sum(answers),
+                        "share_yes": round(sum(answers) / len(answers), 3) if answers else None}
+    return {
+        "respondents": {"total": len(people), **{p: sum(1 for x in people if x["profile"] == p) for p in PROFILES}},
+        "drawn_from": {"total": spread([c["row"] for c in chosen]),
+                       **{p: spread([c["row"] for c in chosen if c["profile"] == p]) for p in PROFILES}},
+        "opened_link": opened,
+    }
+
+
 def tasks_of(chosen: list[dict]) -> list[dict]:
     tasks, seen = [], {}
     for c in chosen:
@@ -245,16 +276,20 @@ def main(argv: list[str]) -> int:
     if missing or not cols["profile"]:
         print(f"The export's questions were not recognised (pages without a column: {missing}; profile: {bool(cols['profile'])}).")
         return 1
-    pool, left_out = candidates(rows, cols)
+    people: list[dict] = []
+    pool, left_out = candidates(rows, cols, people)
     chosen, record = draw(pool)
     TASKS_OUT.write_text(json.dumps({"tasks": tasks_of(chosen)}, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     REPORT_OUT.write_text(json.dumps({
         "script_commit": commit, "input_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-        "rows": len(rows), "left_out": left_out, "requests_available": len(pool), **record,
+        "rows": len(rows), "left_out": left_out, "requests_available": len(pool), **describe(people, chosen), **record,
     }, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     by = {p: sum(1 for c in chosen if c["profile"] == p) for p in PROFILES}
-    print(f"{len(rows)} responses; left out: {left_out}; {len(pool)} requests available; "
-          f"drawn {len(chosen)} ({by['it']} IT, {by['non_it']} not IT); completions: {len(record['completions'])}.")
+    seen = describe(people, chosen)
+    print(f"{len(rows)} responses; left out: {left_out}; {len(people)} people kept "
+          f"({seen['respondents']['it']} IT, {seen['respondents']['non_it']} not IT); {len(pool)} requests available; "
+          f"drawn {len(chosen)} ({by['it']} IT, {by['non_it']} not IT) from {seen['drawn_from']['total']['people']} people; "
+          f"completions: {len(record['completions'])}.")
     print(f"Written: {TASKS_OUT.name} (to annotate) and {REPORT_OUT.name} (how the draw went).")
     return 0
 

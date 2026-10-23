@@ -530,7 +530,9 @@ stratum with too few requests is completed (the other profile on the same page, 
 each completion recorded. The rules are in the
 module's docstring. It runs only exactly as committed, once, prints only counts, and writes the
 tasks to annotate (`eval/plans/holdout_human_tasks.json`) and how the draw went
-(`eval/plans/holdout_human_sample.json`: the commit, the seed, the input's hash, counts).
+(`eval/plans/holdout_human_sample.json`: the commit, the seed, the input's hash, counts, who answered
+by profile, how many different people the 60 requests come from and how many each gave, and the share
+who opened each page's link).
 
 ```sh
 python -m eval.human_sample <export.csv>
