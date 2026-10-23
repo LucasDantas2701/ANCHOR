@@ -120,12 +120,13 @@ def run_anchor(browser, task: dict, make_planner, profile: str, folder: Path) ->
     return rows
 
 
+from eval.provenance import provenance, warn_if_dirty  # noqa: E402
+
+
 def git_commit() -> str:
-    try:
-        return subprocess.run(["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True,
-                              check=True).stdout.strip()
-    except Exception:
-        return "no-git"
+    """The commit as it goes in result file names (see eval.provenance)."""
+    from eval.provenance import in_name, provenance
+    return in_name(provenance())
 
 
 def main() -> int:
@@ -138,6 +139,7 @@ def main() -> int:
     ap.add_argument("-v", "--verbose", action="store_true",
                     help="shows the error and the steps (with the element acted on) of the runs that need a look")
     args = ap.parse_args()
+    warn_if_dirty(provenance())
 
     tasks = [t for t in json.loads(TASKS.read_text(encoding="utf-8"))["tasks"] if t["level"] in args.levels]
     if args.language:
@@ -207,8 +209,8 @@ def main() -> int:
         writer.writeheader()
         writer.writerows(asdict(r) for r in rows)
     (out / f"{stem}.json").write_text(json.dumps({
-        "version": __version__, "commit": git_commit(), "date": datetime.now().isoformat(timespec="seconds"),
-        "executors": args.executors, "profiles": args.profiles, "language": args.language, "levels": args.levels,
+        "version": __version__, "commit": git_commit(), "provenance": provenance(),
+        "date": datetime.now().isoformat(timespec="seconds"), "executors": args.executors, "profiles": args.profiles, "language": args.language, "levels": args.levels,
         "rows": [asdict(r) for r in rows]}, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\nResults saved to {(out / stem).relative_to(ROOT.parent)}.csv (+ .json)")
     from eval.resilience.report import print_tables

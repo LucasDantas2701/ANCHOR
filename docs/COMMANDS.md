@@ -373,6 +373,10 @@ are kept in `memory/saucedemo.json`.
 
 Details and the evaluation rules (development sets, closed sets) are in [`eval/README.md`](../eval/README.md).
 
+Every result file records where it was measured: the full commit, its tag, and whether the working
+copy had uncommitted changes (then its name says `+dirty`). `--final` refuses to run unless the
+working copy is clean and the commit has a tag (tag the release first: `git tag v1.0.0`).
+
 ### Element resolver (`eval.run`)
 
 ```sh

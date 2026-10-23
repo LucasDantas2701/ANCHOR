@@ -77,6 +77,11 @@ The `cases/holdout_*.json` files (split `test`) form the closed set, created on 
 
 Rules:
 
+0. Every result file records where it was measured (`eval/provenance.py`): the full commit, its
+   tag, and whether the working copy had uncommitted changes (then the file's name says `+dirty`
+   and the file lists them). A final run (`--final`) refuses to run unless the working copy is clean
+   and the commit has the release's tag: so the release is tagged (`git tag v1.0.0`) BEFORE the
+   final run, and its results already carry the tag.
 1. `python -m eval.run` never runs the holdout. Only `--final` does, and the result file gets the
    `_FINAL` suffix.
 2. Run `--final` **once**, when the resolver's development is over. The article's numbers come

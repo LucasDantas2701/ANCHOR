@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Where each measurement was made.** Every result file of `eval/` records the full commit, its
+  tag, and whether the working copy had uncommitted changes (`eval/provenance.py`). A development run
+  with changes is named `+dirty` and lists them (the results of 21-22/10 said only the old commit); a
+  final run refuses to run on a changed working copy or on a commit without a tag, so the release is
+  tagged before its final run and its results carry the tag.
 - **A third origin for the closed set, and results by origin.** The closed tasks have an `origin`
   (synthetic, synthetic_controlled, human) and a `generator`; `eval.plan_run` reports each origin,
   each generator, and the sensitivity analysis decided for `synthetic_controlled` (without the

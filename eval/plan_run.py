@@ -522,12 +522,13 @@ def summarize(rows: list[TaskResult]) -> dict:
     }
 
 
+from eval.provenance import final_problem, provenance, warn_if_dirty  # noqa: E402
+
+
 def git_commit() -> str:
-    try:
-        return subprocess.run(["git", "rev-parse", "--short", "HEAD"],
-                              capture_output=True, text=True, check=True).stdout.strip()
-    except Exception:
-        return "no-git"
+    """The commit as it goes in result file names (kept for callers; see eval.provenance)."""
+    from eval.provenance import in_name, provenance
+    return in_name(provenance())
 
 
 def main() -> int:
@@ -559,11 +560,18 @@ def main() -> int:
     if args.language:
         tasks = [t for t in tasks if t.get("language", "pt") == args.language]
     tasks = [t for t in tasks if t.get("suite", "main") == args.suite]
+    where = provenance()
     if args.final:
-        print("*** CLOSED SET: final run. Record the date and the commit of this run. ***")
+        problem = final_problem(where)
+        if problem:
+            print(f"Not run: {problem}")
+            return 1
+        print(f"*** CLOSED SET: final run, on {where['commit_full']} ({where['tag']}). ***")
         if not tasks:
             print("No tasks in the closed set (eval/plans/holdout_tasks.json).")
             return 1
+    if not args.final:
+        warn_if_dirty(where)
     if args.task:
         tasks = [t for t in tasks if t["id"] == args.task]
 
@@ -695,8 +703,8 @@ def main() -> int:
         w.writeheader()
         w.writerows(asdict(r) for r in rows)
     (out / f"{stem}.json").write_text(json.dumps({
-        "version": __version__, "commit": git_commit(), "date": datetime.now().isoformat(timespec="seconds"),
-        "page_context": not args.no_page, "mode": "agent" if args.agent else "plan",
+        "version": __version__, "commit": git_commit(), "provenance": provenance(),
+        "date": datetime.now().isoformat(timespec="seconds"), "page_context": not args.no_page, "mode": "agent" if args.agent else "plan",
         "prompt_language": args.prompt_language or "profile", "languages": languages, "suite": args.suite,
         "vision": args.vision,
         # What the run ran on: the Ollama version and each model's digest (an Ollama update, with the
