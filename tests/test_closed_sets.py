@@ -1,0 +1,45 @@
+"""The closed sets' sheets and result groups, on made-up sheets in the same format (never the real ones)."""
+import json
+
+from eval.closed_sets import read_sheet, skeleton
+from eval.plan_run import TaskResult, groups
+
+
+def sheet(path, header, *rows, literal=False):
+    text = ("\\xef\\xbb\\xbf" if literal else "") + header + "\n" + "\n".join(rows) + "\n"
+    path.write_bytes(b"\xef\xbb\xbf" + text.encode("utf-8"))
+
+
+def test_a_sheet_is_read_with_its_bom_the_literal_bom_text_and_semicolons(tmp_path):
+    sheet(tmp_path / "a.csv", "pagina;pedido", "P01 reservas.html;faça algo, com vírgula", 'P03 blog.html;"cria ""X"" e salva"', literal=True)
+    rows = read_sheet(tmp_path / "a.csv")
+    assert rows == [{"line": "P01", "page": "reservas.html", "request": "faça algo, com vírgula"},
+                    {"line": "P03", "page": "blog.html", "request": 'cria "X" e salva'}]
+
+
+def test_the_skeleton_has_one_task_per_request_with_its_origin_and_generator(tmp_path):
+    (tmp_path / "planilhas").mkdir()
+    sheet(tmp_path / "planilhas" / "chatgpt.csv", "pagina;pedido", "P01 reservas.html;um", "P01 reservas.html;dois", literal=True)
+    sheet(tmp_path / "planilhas" / "claude_1.csv", "pagina;pedido", "P09 loja.html;três")
+    tasks = skeleton(tmp_path, "synthetic_controlled")
+    assert [(t["generator"], t["fixture"], t["split"], t["origin"]) for t in tasks] == [
+        ("chatgpt", "collection/reservas.html", "test", "synthetic_controlled"),
+        ("chatgpt", "collection/reservas.html", "test", "synthetic_controlled"),
+        ("claude_1", "collection/loja.html", "test", "synthetic_controlled")]
+    assert len({t["id"] for t in tasks}) == 3 and all(t["checks"] == [] for t in tasks)
+
+
+def row(profile, origin, generator, ok):
+    return TaskResult(profile=profile, language="pt", model="m", task=f"{generator}-{ok}", split="test", plan_valid=True,
+                      plan_steps=1, steps_ok=1, stopped_at="", checks_ok=1, checks=1, success=ok, unrequested=0,
+                      unrequested_list="", clean=ok, seconds=1.0, tokens_in=0, tokens_out=0, attempts=0, error="", plan="[]",
+                      origin=origin, generator=generator)
+
+
+def test_results_come_out_by_origin_by_generator_and_without_chatgpt():
+    rows = [row("small", "synthetic_controlled", "chatgpt", False), row("small", "synthetic_controlled", "claude_1", True),
+            row("small", "synthetic_controlled", "claude_2", True), row("small", "human", "", True), row("small", "", "", True)]
+    g = groups(rows)
+    assert len(g["small [synthetic_controlled]"]) == 3 and len(g["small [synthetic_controlled/chatgpt]"]) == 1
+    assert [r.generator for r in g["small [synthetic_controlled without chatgpt]"]] == ["claude_1", "claude_2"]
+    assert len(g["small [human]"]) == 1 and not any("[]" in k for k in g)        # the dev tasks have no origin

@@ -85,10 +85,10 @@ Rules:
 4. `--check` can be used at any time: it only checks that the expected selectors exist, without
    computing scores.
 
-#### Queries from colleagues (recommended)
+#### Queries from other people (recommended)
 
-The holdout queries were written by the same author as the heuristics (authorship bias). To
-reduce it, ask 2 or 3 people to:
+The holdout queries were written by the same author as the heuristics (authorship bias). The
+human closed set (below) addresses it for the tasks; for the resolver's queries, ask 2 or 3 people to:
 
 1. open each page of `fixtures/holdout_*.html` in the browser;
 2. write, for 8 to 10 elements, how they would ask an assistant for that action
@@ -217,14 +217,35 @@ The tasks in `plans/tasks.json` and `tasks_en.json` were used to tune the system
 are development numbers. The final numbers come from `plans/holdout_tasks.json` (split `test`),
 which only runs with `python -m eval.plan_run --final --agent`, a single time, at the end.
 
-**How it was built (October 2026).** Three colleagues (A, B and C in the file), who had not seen the
-project, got the pages in a zip with instructions (open each page, write requests as they would ask
-an assistant, in the page's language, without opening the code), and wrote 80 requests: 28, 26 and
-26. All of them were kept, none selected. Half are on the four `holdout_*.html` pages, never used in
+**How it was built (October 2026): the synthetic set.** The 80 requests were generated on 08/10/2026
+by three AIs (A, B and C in the file), each in a new conversation with no history of the project:
+one ChatGPT (GPT-5.6 Luna) and two Claude (Sonnet 5.5, medium effort, in different accounts). Each got
+the zip `pedidos_assistente.zip` attached (a LEIA-ME with the instructions, the 13 pages and
+`feedback.js`), the help-request message and the instruction of 2 requests per page, and generated
+once, with no correction and no new try: 28, 26 and 26 requests. All of them were kept, none selected. Half are on the four `holdout_*.html` pages, never used in
 development (two in Portuguese, two in English; they are also the resolver's closed set), and half
 are new requests on nine known pages, so the article can separate new requests from new pages.
-There are 42 requests in Portuguese and 38 in English, the English ones written by non-native
-speakers.
+There are 42 requests in Portuguese and 38 in English. (An earlier version of this README said the
+requests were written by colleagues: that was wrong, corrected on 22/10/2026.)
+
+**The other closed sets: three origins.** Each closed task has an `origin`, and the results come
+out separately for each one (and for each `generator` within it):
+
+- `synthetic`: the 80 above, on the original pages.
+- `synthetic_controlled`: 42 requests generated on 22/10/2026 by the same three AIs, on the human
+  collection's pages (`fixtures/collection/`), with the collection's instructions. The package, the
+  sheets as they were returned, screenshots of the conversations and the provenance are in
+  `synthetic_controlled_2026-10-22/` (its `PROCEDENCIA.md` records what happened, and the hashes
+  are in `SHA256SUMS`; a `.gitattributes` keeps the files byte for byte). Decided before any
+  annotation or run: the results come out with the 42 and, as a sensitivity analysis, with only the
+  28 of the two Claudes, since the ChatGPT reported it could not render the pages.
+- `human`: 60 requests drawn from the human collection, on the same pages.
+
+`python -m eval.closed_sets skeleton synthetic_controlled_2026-10-22 synthetic_controlled` turns the
+sheets into `plans/holdout_controlled_tasks.json`, one task per request with its origin and generator
+and empty `checks`, `allowed` and `reference` to annotate (the sheets' header is read as it is,
+including the literal `\xef\xbb\xbf` text in `chatgpt.csv`). Like every closed set, these are not run
+by the system, nor is its behaviour on them looked at, before the final run.
 
 **Each request became a task**: `checks` (the final state; dates like "amanhã" are computed when
 the check runs), `allowed`, a hand-written `reference` plan (a value `{tomorrow}` becomes tomorrow's

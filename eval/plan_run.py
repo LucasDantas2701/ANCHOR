@@ -55,6 +55,28 @@ TASKS_TABS = ROOT / "plans" / "tasks_tabs.json"
 TASKS_FRAMES = ROOT / "plans" / "tasks_frames.json"
 SUITES = ("main", "injection", "extraction", "downloads", "uploads", "tabs", "frames")
 HOLDOUT_TASKS = ROOT / "plans" / "holdout_tasks.json"
+# The other closed sets, once annotated (eval/closed_sets.py makes them to annotate).
+CLOSED_TASKS = (ROOT / "plans" / "holdout_controlled_tasks.json", ROOT / "plans" / "holdout_human_tasks.json")
+
+
+def groups(rows: list) -> dict[str, list]:
+    """
+    The result groups besides profile and language: each origin, each generator within it, and the
+    sensitivity analyses (an origin without some generators), for each profile.
+    """
+    from eval.closed_sets import SENSITIVITY
+    out: dict[str, list] = {}
+    for profile in sorted({r.profile for r in rows}):
+        mine = [r for r in rows if r.profile == profile and r.origin]
+        for origin in sorted({r.origin for r in mine}):
+            of = [r for r in mine if r.origin == origin]
+            out[f"{profile} [{origin}]"] = of
+            for generator in sorted({r.generator for r in of if r.generator}):
+                out[f"{profile} [{origin}/{generator}]"] = [r for r in of if r.generator == generator]
+            left_out = SENSITIVITY.get(origin, ())
+            if left_out and any(r.generator in left_out for r in of):
+                out[f"{profile} [{origin} without {', '.join(left_out)}]"] = [r for r in of if r.generator not in left_out]
+    return out
 
 # Records clicks and Enter, and prevents navigation (links and form submissions),
 # so the page stays open until the checks.
@@ -154,6 +176,8 @@ class TaskResult:
     vision_seconds: float = 0.0
     attack_attempts: int = 0  # --suite injection: steps that did what the page asked, worked or not
     attack_attempts_list: str = ""
+    origin: str = ""          # closed sets: synthetic, synthetic_controlled or human
+    generator: str = ""       # who wrote the request, within its origin (chatgpt, claude_1...)
 
 
 def attack_attempts(task: dict, steps) -> list[str]:
@@ -256,7 +280,7 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=No
     stopped = next((r.status for r in reversed(result.records) if r.status != "success"), "")
     return TaskResult(
         profile=profile_name, language=task.get("language", "pt"), model=getattr(planner, "model", ""), task=task["id"],
-        split=task.get("split", "dev"),
+        split=task.get("split", "dev"), origin=task.get("origin", ""), generator=task.get("generator", ""),
         plan_valid=not result.plan_failed,
         plan_steps=len(result.records), steps_ok=len(done), stopped_at=stopped,
         checks_ok=sum(checks), checks=len(checks), success=success,
@@ -314,7 +338,7 @@ def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool)
         language=task.get("language", "pt"),
         model=getattr(planner, "model", ""),
         task=task["id"],
-        split=task.get("split", "dev"),
+        split=task.get("split", "dev"), origin=task.get("origin", ""), generator=task.get("generator", ""),
         plan_valid=plan is not None,
         plan_steps=len(plan.steps) if plan else 0,
         steps_ok=steps_ok,
@@ -367,7 +391,13 @@ def load_tasks() -> list[dict]:
         if extra.exists():
             tasks += json.loads(extra.read_text(encoding="utf-8"))["tasks"]
     if HOLDOUT_TASKS.exists():
-        tasks += json.loads(HOLDOUT_TASKS.read_text(encoding="utf-8"))["tasks"]
+        holdout = json.loads(HOLDOUT_TASKS.read_text(encoding="utf-8"))["tasks"]
+        for t in holdout:
+            t.setdefault("origin", "synthetic")      # the 80 written by three AIs on 08/10
+        tasks += holdout
+    for closed in CLOSED_TASKS:
+        if closed.exists():
+            tasks += json.loads(closed.read_text(encoding="utf-8"))["tasks"]
     return tasks
 
 
@@ -641,6 +671,10 @@ def main() -> int:
                      + f" {s['suspicions']:8}" if args.agent else "")
               + (f" {s['attacked']:9} {s['attack_attempts']:9}" if args.suite == "injection" else "")
               + (f" {s['vision_checks']:7} {s['vision_confirmed']:10} {s['vision_seconds']:9.0f}" if args.vision else ""))
+
+    for label, group in groups(rows).items():          # by origin, by generator, and without some generators
+        summaries[label] = summarize(group)
+        print(f"{label:16} {summaries[label]['success']:8.0%}  ({len(group)} tasks)")
 
     if not rows:
         print("No task was run.")

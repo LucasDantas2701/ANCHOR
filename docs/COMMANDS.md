@@ -417,6 +417,20 @@ python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama
 | `--final` | Runs the closed set (split `test`). Once, at the end. |
 | `-v`, `--verbose` | Shows each task's plan and, when the plan failed, the model's refused answers and why each was refused. |
 
+### Closed sets' sources (`eval.closed_sets`)
+
+Turns a closed set's sheets (one per generator, `pagina;pedido`) into the tasks file to annotate, one
+task per request with its `origin` and `generator`, `split: "test"`, and empty `checks`, `allowed`
+and `reference`. It prints only how many tasks it wrote, never a request, and does not write over a
+tasks file that exists (it may be annotated already).
+
+```sh
+python -m eval.closed_sets skeleton eval/synthetic_controlled_2026-10-22 synthetic_controlled
+```
+
+The results of `eval.plan_run --final` come out by origin, by generator, and without the generators
+a sensitivity analysis leaves out (for `synthetic_controlled`: the ChatGPT's requests).
+
 ### Resilience benchmark pages (`eval.resilience.build`)
 
 Builds the altered versions of the task pages, in 5 levels of perturbation, the tasks
