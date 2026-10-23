@@ -559,6 +559,20 @@ who opened each page's link).
 python -m eval.human_sample <export.csv>
 ```
 
+### The human collection's publication (`eval.human_publish`)
+
+After the draw, and after the person checks the responses for accidental personal data, writes
+`eval/human_collection/responses.csv`: every response the consent allows to publish, numbered by its
+place in the export before anything is left out (the numbers of "Não concordo" are simply missing),
+without the time it was sent, with the profile, every "abriu o link" and every request, and the tasks
+drawn from it. Removals come from a file kept outside the repository (`response;field;text;type`):
+each text becomes `[removido: type]`, in the publication and in a drawn task, and
+`eval/human_collection/removals.csv` records the response, field, type and task, never the text.
+
+```sh
+python -m eval.human_publish <export.csv> --removals <removals.csv>
+```
+
 ## Development
 
 ```sh

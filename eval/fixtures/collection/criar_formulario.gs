@@ -43,7 +43,8 @@ const TEXTO_ABERTURA =
   'pedido que você faria nessa situação.\n\n' +
   'Antes de começar:\n' +
   '• A participação é voluntária. Você pode parar a qualquer momento antes de enviar.\n' +
-  '• Os pedidos que você escrever poderão ser publicados em um artigo científico e em um ' +
+  '• Os pedidos e as demais respostas deste formulário poderão ser publicados em um artigo ' +
+  'científico e em um ' +
   'repositório público na internet, sob licença aberta.\n' +
   '• Este formulário não coleta nome, e-mail nem qualquer dado que identifique você. Por isso, ' +
   'depois de enviada, não há como localizar ou retirar a sua resposta.\n' +

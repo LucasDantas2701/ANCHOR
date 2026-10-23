@@ -33,7 +33,28 @@ was: it holds every text the people saw (the opening, the consent, the instructi
 field) and every question's title, which `eval/human_sample.py` reads in the export ("Pxx · Você
 abriu o link desta página?", "Pxx · Pedido", "Pxx · Pedido 1", "Pxx · Pedido 2"). Before the form went
 out, it was tried once (a pilot response, sent at 22/10/2026 13:18:01, which the draw leaves out);
-after the pilot, only instruction texts changed, and this file is the final version.
+after the pilot, only instruction texts changed. The pilot's form was then deleted, and the form in
+use was created from scratch with this script, so no response comes from an earlier version.
+
+On 23/10/2026 at 01:22, before the form's first response, the consent was widened to cover every
+answer, not only the requests: "Os pedidos e as demais respostas deste formulário poderão ser
+publicados em um artigo científico e em um repositório público na internet, sob licença aberta."
+This file is that version (the earlier one, whose consent named only the requests, is in this
+file's history).
+
+## The publication
+
+`eval/human_publish.py` publishes the whole export after the draw, in `eval/human_collection/`:
+- each response is numbered by its place in the export, BEFORE anything is left out; the numbers of
+  whoever answered "Não concordo" are simply missing (so the numbering depends on no later decision
+  and matches the draw's count of what was left out);
+- the time each response was sent is not published; the profile and every "abriu o link" are (the
+  consent covers them, and the draw, stratified by profile, can only be checked with them);
+- accidental personal data is removed by Lucas after the draw and before the annotation of the 60:
+  each removal becomes "[removido: type]", in the publication and, when the request was drawn, in its
+  task (the same text with the mark; nothing is rewritten with an invented value), and
+  `human_collection/removals.csv` records the response, the field, the type and the task affected,
+  never the removed text.
 
 The people's instructions differ from the ones the AIs of the `synthetic_controlled` set got: that
 set's package used the LEIA-ME from before this revision, with the examples "quero reservar a sala

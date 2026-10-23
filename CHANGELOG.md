@@ -18,6 +18,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The human collection's publication** (`eval/human_publish.py`): after the draw, the whole
+  export without the time each response was sent, numbered before anything is left out, with the
+  tasks drawn from each response, and with accidental personal data replaced by "[removido: type]"
+  and logged without the text. The form's consent was widened before its first response.
 - **The command reference and the README on 0.5's fixes and the closed sets.** The agent's
   sensitive actions include acting on the person's account; logging in after a step, the goals, the
   end check, the site's pop-ups and blocked clicks are described; the README says where every result
