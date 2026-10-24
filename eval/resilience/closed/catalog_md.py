@@ -15,8 +15,10 @@ def render(c: dict) -> str:
     out = ["# The closed resilience set's catalog of perturbations", "",
            f"Version {c['version']}, {c['date']}, approved by {c['approved_by']}. Seed {c['seed']}; "
            f"{c['operators_per_task_and_level']} operators per base task and level.", "",
-           f"Base: {c['base']}. The perturbations are new; the tasks are the development benchmark's.", "",
-           "## Operators", "",
+           f"Base: {c['base']}. The perturbations are new; the tasks are the development benchmark's.", ""]
+    for change in c.get("changes", []):
+        out += [f"*{change}*", ""]
+    out += ["## Operators", "",
            "| Level | Operator | Source and category | Weight | What it does | Applies to |", "|---|---|---|---|---|---|"]
     for o in c["operators"]:
         cat = f"{o['category']} {o.get('category_name', '')}".strip()

@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The closed resilience catalog, version 2** (24/10/2026, before the generator and before any page
+  was generated): level 2's synonyms are drawn among the lemmas of all the senses of the word with the
+  same part of speech (the first sense is often not the interface one), with at most 3 redraws per
+  element after vetoes; the Portuguese data is cited by its distribution's work (GWC 2012) and the
+  Open Multilingual Wordnet (ACL 2013).
 - **The closed resilience set's catalog of perturbations** (`eval/resilience/closed/`), approved on
   23/10/2026 before any run on the set: each operator mapped to a published taxonomy category
   (Hammoudi et al. for levels 1 to 4; Greshake et al. and Gray et al. for level 5), its weight the

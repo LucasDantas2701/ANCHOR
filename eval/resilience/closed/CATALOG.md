@@ -1,8 +1,10 @@
 # The closed resilience set's catalog of perturbations
 
-Version 1, 2026-10-23, approved by Lucas dos Santos Dantas, 23/10/2026. Seed 20261024; 2 operators per base task and level.
+Version 2, 2026-10-24, approved by Lucas dos Santos Dantas, 23/10/2026 (version 2: 24/10/2026). Seed 20261024; 2 operators per base task and level.
 
 Base: the 30 base tasks of the development benchmark (eval/plans/resilience_tasks.json, level 0). The perturbations are new; the tasks are the development benchmark's.
+
+*Version 2 (24/10/2026, before the generator was committed and before any page was generated): level 2's synonym rule changed from the first synset only to a draw among the lemmas of all the word's senses with the same part of speech, because the first sense is often not the interface sense (the first sense of the Portuguese 'salvar' is 'to protect'); the Portuguese data is cited by the work its distribution names (de Paiva and Rademaker, GWC 2012), with the distribution used (Bond and Foster, ACL 2013), instead of the COLING 2012 paper. Decided by Lucas.*
 
 ## Operators
 
@@ -17,7 +19,7 @@ Base: the 30 base tasks of the development benchmark (eval/plans/resilience_task
 | 1 (superficial) | `L1.value` | hammoudi2016: 1.1.1.7 Value Attribute not Found | 52 | the value of buttons and options changed, the visible text kept (the task's checks rewritten to the new value) | buttons and options with a value |
 | 1 (superficial) | `L1.class` | hammoudi2016: 1.1.1.8 Class Attribute not Found | 48 | classes renamed or removed | elements with a class |
 | 1 (superficial) | `L1.onclick` | hammoudi2016: 1.1.1.9 OnClick Attribute not Found | 47 | an inline onclick moved to an event listener with the same effect | elements with an onclick |
-| 2 (semantic) | `L2.synonym` | hammoudi2016: 1.1.2 Element Text not Found | 21 | a word of a label or button replaced by a synonym from the first synset of the word in WordNet (en) or OpenWordNet-PT (pt), drawn; the replacements listed for veto before freezing | labels and buttons with a word that has a synonym |
+| 2 (semantic) | `L2.synonym` | hammoudi2016: 1.1.2 Element Text not Found | 21 | a word of a label or button replaced by a lemma drawn among all the senses of the word with the same part of speech (a verb for a verb on buttons, a noun for a noun on labels), in WordNet (en) or the OpenWN-PT through the Open Multilingual Wordnet (pt); the replacements listed for veto before freezing | labels and buttons with a word that has a synonym |
 | 2 (semantic) | `L2.icon` | hammoudi2016: 1.1.2 Element Text not Found | 21 | a button's text replaced by an icon with the same accessible name | buttons with text |
 | 2 (semantic) | `L2.rephrase` | hammoudi2016: 1.1.2 Element Text not Found | 21 | the same expression in another order or form, by fixed rules ("Salvar cadastro" → "Cadastro: salvar") | labels and buttons of two or more words |
 | 3 (structural) | `L3.ancestor` | hammoudi2016: 1.2.1 Hierarchy-Based Locator Target not Found | 131 | an ancestor of the element added, removed or changed (a new wrapper, a wrapper taken out, the element moved to another visible container) | any element |
@@ -113,7 +115,7 @@ Left out on purpose:
 2. At least one of the 2 touches an element that the task's reference plan uses.
 3. Coverage: before the weighted draw, each operator is given one applicable task-and-level, drawn, so that it appears at least once in the set.
 4. Only operators applicable to the page are drawn.
-5. Level 2's synonyms: only the first synset of the word; before freezing, the list of every text replacement (original word → replacement, no result of any system) goes to Lucas, who may veto any; each veto is recorded, and the vetoed replacement is drawn again with the next seed.
+5. Level 2's synonyms: a lemma drawn among all the senses of the word with the same part of speech as the original (a verb for a verb on buttons, a noun for a noun on labels). Before freezing, the list of every text replacement (original word → replacement, no result of any system) goes to Lucas, who may veto any; a vetoed replacement is drawn again with the next seed, at most 3 times per element; if all 3 are vetoed, that element does not get the synonym operator, and another operator of level 2 is drawn for it. The generator's report records, per element, how many draws, how many vetoes and whether it hit the limit; the total of vetoes goes to the article.
 6. Feasibility: each perturbed task is run by the reference executor only (Playwright with the evaluation's markers, which no measured executor uses); a combination that makes the task impossible is drawn again for that task and level with the next seed, and every redraw is recorded. No result of any measured system is looked at.
 7. Commits, in this order and before any run on the set: this catalog; the generator, with tests on made-up pages; the generated pages and tasks, with the feasibility report and the list of vetoes.
 
@@ -122,5 +124,6 @@ Left out on purpose:
 - `hammoudi2016`: Hammoudi (2016), master's thesis, University of Nebraska–Lincoln, Table 5.2; Hammoudi, Rothermel & Tonella, ICST 2016, doi:10.1109/ICST.2016.16 (the list of categories comes from the thesis, which is open access; the article is the reviewed publication).
 - `greshake2023`: Greshake, Abdelnabi, Mishra, Endres, Holz, Fritz. Not What You've Signed Up For: Compromising Real-World LLM-Integrated Applications with Indirect Prompt Injection. AISec '23, pp. 79–90, 2023. doi:10.1145/3605764.3623985; arXiv:2302.12173; version used: arXiv:2302.12173v2. The arXiv licence is the default one (not CC BY): the phrases are short excerpts, copied from the PDF by Lucas, with their source.
 - `gray2018`: Gray, Kou, Battles, Hoggatt, Toombs. The Dark (Patterns) Side of UX Design. CHI 2018, paper 534. doi:10.1145/3173574.3174108.
-- `openwordnet_pt`: de Paiva, Rademaker, de Melo. OpenWordNet-PT: An Open Brazilian Wordnet for Reasoning. COLING 2012 (Demos), pp. 353–360.
-- `wordnet`: Miller. WordNet: A Lexical Database for English. Communications of the ACM 38(11): 39–41, 1995. doi:10.1145/219717.219748.
+- `wordnet`: Miller. WordNet: A Lexical Database for English. Communications of the ACM 38(11): 39–41, 1995. doi:10.1145/219717.219748 (the English data: the nltk package wordnet, Princeton WordNet 3.0).
+- `paiva2012`: de Paiva, Valeria; Rademaker, Alexandre. Revisiting a Brazilian WordNet. Proceedings of the 6th Global WordNet Conference (GWC 2012). Tribun EU, 2012 (the OpenWN-PT, the Portuguese data; licence CC BY-SA 3.0; the set uses isolated words and does not redistribute the dictionary).
+- `bond2013`: Bond, Francis; Foster, Ryan. Linking and Extending an Open Multilingual Wordnet. Proceedings of the 51st Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers), Sofia: ACL, 2013, pp. 1352-1362 (the Open Multilingual Wordnet, the distribution used: the nltk package omw-2.0).

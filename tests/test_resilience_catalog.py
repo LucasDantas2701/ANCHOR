@@ -52,3 +52,10 @@ def test_the_catalog_is_ready_with_every_phrase_in_both_languages():
     missing = {**CATALOG, "injected_phrases": {**CATALOG["injected_phrases"],
                "phrases": [{**p, "adapted_en": "PENDING: x"} for p in CATALOG["injected_phrases"]["phrases"]]}}
     assert not ready(missing)
+
+
+def test_level_2_draws_among_all_senses_of_the_same_part_of_speech_with_at_most_3_redraws():
+    rule = next(r for r in CATALOG["rules"] if r.startswith("Level 2's synonyms"))
+    assert "all the senses" in rule and "same part of speech" in rule and "at most 3 times" in rule
+    assert CATALOG["version"] == 2 and CATALOG["changes"] and "openwordnet_pt" not in CATALOG["sources"]
+    assert {"paiva2012", "bond2013", "wordnet"} <= set(CATALOG["sources"])
