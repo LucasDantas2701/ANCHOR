@@ -1,0 +1,1839 @@
+{
+ "slots": [
+  {
+   "task": "en-ent-01",
+   "level": 1,
+   "ops": [
+    "L1.type",
+    "L1.manual-id"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-ent-01",
+   "level": 2,
+   "ops": [
+    "L2.synonym",
+    "L2.rephrase"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-ent-01",
+   "level": 3,
+   "ops": [
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-ent-01",
+   "level": 4,
+   "ops": [
+    "L4.popup-added",
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-ent-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-visible",
+    "L5.inject-hidden"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-jobs-01",
+   "level": 1,
+   "ops": [
+    "L1.onclick",
+    "L1.class"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-jobs-01",
+   "level": 2,
+   "ops": [
+    "L2.rephrase",
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-jobs-01",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-jobs-01",
+   "level": 4,
+   "ops": [
+    "L4.popup-added",
+    "L4.reload-needed"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-jobs-01",
+   "level": 5,
+   "ops": [
+    "L5.sneaking",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-log-01",
+   "level": 1,
+   "ops": [
+    "L1.manual-id",
+    "L1.href"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-log-01",
+   "level": 2,
+   "ops": [
+    "L2.rephrase",
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-log-01",
+   "level": 3,
+   "ops": [
+    "L3.index",
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-log-01",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone",
+    "L4.popup-added"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-log-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-log-02",
+   "level": 1,
+   "ops": [
+    "L1.auto-id",
+    "L1.name"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-log-02",
+   "level": 2,
+   "ops": [
+    "L2.rephrase",
+    "L2.synonym"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-log-02",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-log-02",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone",
+    "L4.popup-added"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-log-02",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-ord-01",
+   "level": 1,
+   "ops": [
+    "L1.href",
+    "L1.class"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-ord-01",
+   "level": 2,
+   "ops": [
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-ord-01",
+   "level": 3,
+   "ops": [
+    "L3.index",
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-ord-01",
+   "level": 4,
+   "ops": [
+    "L4.reload-needed",
+    "L4.popup-added"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-ord-01",
+   "level": 5,
+   "ops": [
+    "L5.lookalike",
+    "L5.inject-hidden"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-ord-02",
+   "level": 1,
+   "ops": [
+    "L1.class",
+    "L1.href"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-ord-02",
+   "level": 2,
+   "ops": [
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-ord-02",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-ord-02",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone",
+    "L4.reload-needed"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-ord-02",
+   "level": 5,
+   "ops": [
+    "L5.sneaking",
+    "L5.inject-hidden"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-pop-01",
+   "level": 1,
+   "ops": [
+    "L1.class",
+    "L1.type"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-pop-01",
+   "level": 2,
+   "ops": [
+    "L2.icon",
+    "L2.rephrase"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-pop-01",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-pop-01",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-pop-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-reg-01",
+   "level": 1,
+   "ops": [
+    "L1.href",
+    "L1.type"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-reg-01",
+   "level": 2,
+   "ops": [
+    "L2.icon",
+    "L2.synonym"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-reg-01",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-reg-01",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone",
+    "L4.popup-added"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-reg-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.lookalike"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-reg-02",
+   "level": 1,
+   "ops": [
+    "L1.href",
+    "L1.manual-id"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-reg-02",
+   "level": 2,
+   "ops": [
+    "L2.icon",
+    "L2.synonym"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-reg-02",
+   "level": 3,
+   "ops": [
+    "L3.index",
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-reg-02",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone",
+    "L4.popup-added"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-reg-02",
+   "level": 5,
+   "ops": [
+    "L5.inject-visible",
+    "L5.inject-hidden"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-store-01",
+   "level": 1,
+   "ops": [
+    "L1.name",
+    "L1.class"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-store-01",
+   "level": 2,
+   "ops": [
+    "L2.icon",
+    "L2.rephrase"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-store-01",
+   "level": 3,
+   "ops": [
+    "L3.index",
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-store-01",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-store-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-visible",
+    "L5.inject-hidden"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-store-02",
+   "level": 1,
+   "ops": [
+    "L1.alt",
+    "L1.class"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-store-02",
+   "level": 2,
+   "ops": [
+    "L2.rephrase",
+    "L2.synonym"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-store-02",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-store-02",
+   "level": 4,
+   "ops": [
+    "L4.reload-needed",
+    "L4.popup-added"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-store-02",
+   "level": 5,
+   "ops": [
+    "L5.inject-visible",
+    "L5.sneaking"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-store-03",
+   "level": 1,
+   "ops": [
+    "L1.href",
+    "L1.name"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-store-03",
+   "level": 2,
+   "ops": [
+    "L2.synonym",
+    "L2.rephrase"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-store-03",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-store-03",
+   "level": 4,
+   "ops": [
+    "L4.reload-needed",
+    "L4.popup-added"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-store-03",
+   "level": 5,
+   "ops": [
+    "L5.sneaking",
+    "L5.inject-hidden"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-usr-01",
+   "level": 1,
+   "ops": [
+    "L1.type",
+    "L1.class"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-usr-01",
+   "level": 2,
+   "ops": [
+    "L2.rephrase",
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-usr-01",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-usr-01",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone",
+    "L4.popup-added"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-usr-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-usr-02",
+   "level": 1,
+   "ops": [
+    "L1.class",
+    "L1.alt"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-usr-02",
+   "level": 2,
+   "ops": [
+    "L2.rephrase",
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-usr-02",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-usr-02",
+   "level": 4,
+   "ops": [
+    "L4.popup-added",
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-usr-02",
+   "level": 5,
+   "ops": [
+    "L5.inject-visible",
+    "L5.inject-hidden"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-usr-03",
+   "level": 1,
+   "ops": [
+    "L1.class",
+    "L1.alt"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-usr-03",
+   "level": 2,
+   "ops": [
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "en-usr-03",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-usr-03",
+   "level": 4,
+   "ops": [
+    "L4.popup-added",
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "en-usr-03",
+   "level": 5,
+   "ops": [
+    "L5.sneaking",
+    "L5.inject-hidden"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-ent-01",
+   "level": 1,
+   "ops": [
+    "L1.type",
+    "L1.auto-id"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-ent-01",
+   "level": 2,
+   "ops": [
+    "L2.rephrase"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-ent-01",
+   "level": 3,
+   "ops": [
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-ent-01",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-ent-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-jobs-01",
+   "level": 1,
+   "ops": [
+    "L1.auto-id",
+    "L1.class"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-jobs-01",
+   "level": 2,
+   "ops": [
+    "L2.icon",
+    "L2.rephrase"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-jobs-01",
+   "level": 3,
+   "ops": [
+    "L3.index",
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-jobs-01",
+   "level": 4,
+   "ops": [
+    "L4.popup-added",
+    "L4.reload-needed"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-jobs-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.lookalike"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-log-01",
+   "level": 1,
+   "ops": [
+    "L1.auto-id",
+    "L1.manual-id"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-log-01",
+   "level": 2,
+   "ops": [
+    "L2.rephrase",
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-log-01",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-log-01",
+   "level": 4,
+   "ops": [
+    "L4.popup-added",
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-log-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-log-02",
+   "level": 1,
+   "ops": [
+    "L1.manual-id",
+    "L1.name"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-log-02",
+   "level": 2,
+   "ops": [
+    "L2.rephrase",
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-log-02",
+   "level": 3,
+   "ops": [
+    "L3.index",
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-log-02",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-log-02",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-ord-01",
+   "level": 1,
+   "ops": [
+    "L1.href",
+    "L1.class"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-ord-01",
+   "level": 2,
+   "ops": [
+    "L2.icon",
+    "L2.rephrase"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-ord-01",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-ord-01",
+   "level": 4,
+   "ops": [
+    "L4.reload-needed",
+    "L4.popup-added"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-ord-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-visible",
+    "L5.lookalike"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-ord-02",
+   "level": 1,
+   "ops": [
+    "L1.class",
+    "L1.href"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-ord-02",
+   "level": 2,
+   "ops": [
+    "L2.icon",
+    "L2.rephrase"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-ord-02",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-ord-02",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone",
+    "L4.reload-needed"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-ord-02",
+   "level": 5,
+   "ops": [
+    "L5.inject-visible",
+    "L5.sneaking"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-pop-01",
+   "level": 1,
+   "ops": [
+    "L1.auto-id",
+    "L1.class"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-pop-01",
+   "level": 2,
+   "ops": [
+    "L2.icon",
+    "L2.rephrase"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-pop-01",
+   "level": 3,
+   "ops": [
+    "L3.index",
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-pop-01",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-pop-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-reg-01",
+   "level": 1,
+   "ops": [
+    "L1.type",
+    "L1.href"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-reg-01",
+   "level": 2,
+   "ops": [
+    "L2.icon",
+    "L2.synonym"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-reg-01",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-reg-01",
+   "level": 4,
+   "ops": [
+    "L4.reload-needed",
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-reg-01",
+   "level": 5,
+   "ops": [
+    "L5.lookalike",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-reg-02",
+   "level": 1,
+   "ops": [
+    "L1.href",
+    "L1.auto-id"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-reg-02",
+   "level": 2,
+   "ops": [
+    "L2.synonym",
+    "L2.rephrase"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-reg-02",
+   "level": 3,
+   "ops": [
+    "L3.index",
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-reg-02",
+   "level": 4,
+   "ops": [
+    "L4.popup-added",
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-reg-02",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-store-01",
+   "level": 1,
+   "ops": [
+    "L1.name",
+    "L1.href"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-store-01",
+   "level": 2,
+   "ops": [
+    "L2.synonym",
+    "L2.rephrase"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-store-01",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-store-01",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-store-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-visible",
+    "L5.inject-hidden"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-store-02",
+   "level": 1,
+   "ops": [
+    "L1.name",
+    "L1.class"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-store-02",
+   "level": 2,
+   "ops": [
+    "L2.rephrase",
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-store-02",
+   "level": 3,
+   "ops": [
+    "L3.index",
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-store-02",
+   "level": 4,
+   "ops": [
+    "L4.popup-added",
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-store-02",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.sneaking"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-store-03",
+   "level": 1,
+   "ops": [
+    "L1.name",
+    "L1.href"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-store-03",
+   "level": 2,
+   "ops": [
+    "L2.rephrase",
+    "L2.synonym"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-store-03",
+   "level": 3,
+   "ops": [
+    "L3.index",
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-store-03",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone",
+    "L4.popup-added"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-store-03",
+   "level": 5,
+   "ops": [
+    "L5.inject-visible",
+    "L5.lookalike"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-usr-01",
+   "level": 1,
+   "ops": [
+    "L1.alt",
+    "L1.class"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-usr-01",
+   "level": 2,
+   "ops": [
+    "L2.rephrase",
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-usr-01",
+   "level": 3,
+   "ops": [
+    "L3.index",
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-usr-01",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-usr-01",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-usr-02",
+   "level": 1,
+   "ops": [
+    "L1.type",
+    "L1.class"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-usr-02",
+   "level": 2,
+   "ops": [
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-usr-02",
+   "level": 3,
+   "ops": [
+    "L3.index",
+    "L3.ancestor"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-usr-02",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone",
+    "L4.popup-added"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-usr-02",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.inject-visible"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-usr-03",
+   "level": 1,
+   "ops": [
+    "L1.alt",
+    "L1.class"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-usr-03",
+   "level": 2,
+   "ops": [
+    "L2.rephrase",
+    "L2.icon"
+   ],
+   "attempts": 1,
+   "touched": false,
+   "touch_possible": false,
+   "possible": true
+  },
+  {
+   "task": "p-usr-03",
+   "level": 3,
+   "ops": [
+    "L3.ancestor",
+    "L3.index"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-usr-03",
+   "level": 4,
+   "ops": [
+    "L4.reload-gone",
+    "L4.popup-added"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  },
+  {
+   "task": "p-usr-03",
+   "level": 5,
+   "ops": [
+    "L5.inject-hidden",
+    "L5.sneaking"
+   ],
+   "attempts": 1,
+   "touched": true,
+   "touch_possible": true,
+   "possible": true
+  }
+ ],
+ "synonyms": [
+  {
+   "task": "en-reg-01",
+   "level": 2,
+   "element": 4,
+   "word": "Phone",
+   "vetoes": 1,
+   "limit": false
+  },
+  {
+   "task": "en-reg-02",
+   "level": 2,
+   "element": 4,
+   "word": "Phone",
+   "vetoes": 1,
+   "limit": false
+  },
+  {
+   "task": "p-log-01",
+   "level": 2,
+   "element": 1,
+   "word": "Password",
+   "vetoes": 3,
+   "limit": true
+  },
+  {
+   "task": "p-store-01",
+   "level": 2,
+   "element": 8,
+   "word": "stock",
+   "vetoes": 1,
+   "limit": false
+  },
+  {
+   "task": "p-store-02",
+   "level": 2,
+   "element": 6,
+   "word": "Add",
+   "vetoes": 3,
+   "limit": true
+  }
+ ],
+ "no_page": [
+  "L1.value",
+  "L4.popup-deleted"
+ ],
+ "uncovered": [],
+ "redraws": 0,
+ "not_possible": []
+}
