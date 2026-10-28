@@ -529,9 +529,6 @@ The interface (Angular, in `web/`) is built into `anchor/ui/static/`, which the 
 (`anchor/ui/`, FastAPI) serves; neither the build nor `web/node_modules/` go into Git. Its colours,
 type and logo come from the ANCHOR design system (`web/src/styles.css` holds its tokens).
 
-The tests in `tests/real_sites/` (LinkedIn) are disabled by default, because the site's terms of
-use forbid automation; set `ANCHOR_LINKEDIN=1` to run them.
-
 ```text
 ANCHOR/
 ├── anchor/

@@ -18,6 +18,17 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The closed resilience set's generator** (`eval/resilience/closed/`): the 22 operators of the
+  catalog, the draw (weights, coverage, an operator on the plan's elements), a reference executor with no
+  part of ANCHOR (plain Playwright on the evaluation's markers, recorded once on the L0 development
+  pages), the redraws when a task becomes impossible, the level-2 vetoes, the report and the manifest.
+  It is run once by the author, who reads only its counts and the list of replacements. Tests check that
+  every operator keeps every marker on its element and that no measured executor uses the markers.
+  `nltk` joins the requirements (the dictionaries of level 2).
+
+### Removed
+
+- The LinkedIn tests (`tests/real_sites/`), which were always skipped (the site forbids automation).
 - **The closed resilience catalog, version 2** (24/10/2026, before the generator and before any page
   was generated): level 2's synonyms are drawn among the lemmas of all the senses of the word with the
   same part of speech (the first sense is often not the interface one), with at most 3 redraws per

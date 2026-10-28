@@ -488,6 +488,21 @@ Gray et al. for level 5), its weight, what is left out and why, the generator's 
 python -m eval.resilience.closed.catalog_md
 ```
 
+### The closed resilience set's generation (`eval.resilience.closed.targets`, `eval.resilience.closed.generate`)
+
+`targets` records, once, on the original (L0) development pages, the evaluation's marker of the element
+each step of a base task's reference plan acts on (`reference_targets.json`, committed); the closed
+set's check then uses only these markers, with plain Playwright and no part of ANCHOR. `generate`
+makes the closed set from the catalog, once, by the author, who reads only its counts and the list of
+level-2 replacements for the veto (see `eval/resilience/closed/README.md`):
+
+```sh
+python -m eval.resilience.closed.targets                  # already run: its result is committed
+python -m nltk.downloader wordnet omw-2.0                 # the dictionaries, once
+python -m eval.resilience.closed.generate                 # prints counts; writes the list for the veto
+python -m eval.resilience.closed.generate --vetoes vetoes.csv   # again, until no new veto
+```
+
 ### Resilience benchmark runs (`eval.resilience.run`, `eval.resilience.report`)
 
 Runs the three executors on the altered pages: the traditional script (fixed selectors recorded
@@ -614,5 +629,4 @@ Each profile tells ANCHOR where the model is and how to call it. The file never 
 | Variable | Meaning |
 |---|---|
 | `ANCHOR_LANG` | Interface language: `en` (default) or `pt`. `--lang` overrides it. |
-| `ANCHOR_LINKEDIN` | Set to `1` to run the LinkedIn tests (disabled by default: the site forbids automation). The old name `SMART_RPA_LINKEDIN` still works. |
 | `OPENAI_API_KEY` | The OpenAI key, if you use the `openai` profile (the name is set by `api_key_env` in `llm_profiles.json`). |
