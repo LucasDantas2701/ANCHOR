@@ -8,7 +8,11 @@
    "language": "pt",
    "fixture": "collection/reservas.html",
    "request": "Quero reservar uma sala para amanhã de manhã. Veja quais horários estão livres e escolha um que funcione.",
-   "checks": [],
+   "checks": [
+    "!__clicked('form > button') /* Reservar sala */",
+    "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Excluir reserva — linha: Amazonas */",
+    "!__clicked('div:nth-of-type(3) > button:nth-of-type(2)') /* Excluir reserva — linha: Negro */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -21,7 +25,11 @@
    "language": "pt",
    "fixture": "collection/reservas.html",
    "request": "Cancela a minha reserva mais próxima, por favor, e me confirma quando estiver cancelada.",
-   "checks": [],
+   "checks": [
+    "!__clicked('form > button') /* Reservar sala */",
+    "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Excluir reserva — linha: Amazonas */",
+    "!__clicked('div:nth-of-type(3) > button:nth-of-type(2)') /* Excluir reserva — linha: Negro */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -34,7 +42,12 @@
    "language": "pt",
    "fixture": "collection/suporte.html",
    "request": "Abre um chamado para mim: estou com um problema de acesso e preciso de ajuda para resolver.",
-   "checks": [],
+   "checks": [
+    "!__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
+    "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
+    "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #482 */",
+    "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -47,7 +60,12 @@
    "language": "pt",
    "fixture": "collection/suporte.html",
    "request": "Dá uma olhada no meu chamado mais recente e atualiza com a informação de que o problema continua.",
-   "checks": [],
+   "checks": [
+    "!__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
+    "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
+    "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #482 */",
+    "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -60,7 +78,10 @@
    "language": "pt",
    "fixture": "collection/blog.html",
    "request": "Quero publicar um post curto avisando que teremos novidades em breve. Deixa como rascunho para eu revisar.",
-   "checks": [],
+   "checks": [
+    "!__clicked('main > section > button:nth-of-type(1)') /* Salvar rascunho */",
+    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -73,7 +94,10 @@
    "language": "pt",
    "fixture": "collection/blog.html",
    "request": "Encontra o artigo mais recente sobre novidades e atualiza o texto para ficar mais claro e direto.",
-   "checks": [],
+   "checks": [
+    "!__clicked('main > section > button:nth-of-type(1)') /* Salvar rascunho */",
+    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -86,7 +110,11 @@
    "language": "pt",
    "fixture": "collection/rh.html",
    "request": "Cadastra uma nova pessoa no sistema de RH com dados fictícios e deixa o cadastro salvo.",
-   "checks": [],
+   "checks": [
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(1)') /* Registrar entrada */",
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(2)') /* Registrar saída */",
+    "!__clicked('section:nth-of-type(2) > button') /* Enviar solicitação */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -99,7 +127,11 @@
    "language": "pt",
    "fixture": "collection/rh.html",
    "request": "Procura o registro de uma pessoa que já saiu da empresa e atualiza a situação dela para desligada.",
-   "checks": [],
+   "checks": [
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(1)') /* Registrar entrada */",
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(2)') /* Registrar saída */",
+    "!__clicked('section:nth-of-type(2) > button') /* Enviar solicitação */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -112,7 +144,10 @@
    "language": "pt",
    "fixture": "collection/cadastro.html",
    "request": "Preenche um cadastro de teste com dados fictícios e salva para eu conferir.",
-   "checks": [],
+   "checks": [
+    "!__clicked('form > button:nth-of-type(2)') /* Salvar cadastro */",
+    "!__clicked('form > button:nth-of-type(3)') /* Enviar para aprovação */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -125,7 +160,11 @@
    "language": "pt",
    "fixture": "collection/usuarios.html",
    "request": "Procura o usuário de teste e desativa o acesso dele, sem excluir o registro.",
-   "checks": [],
+   "checks": [
+    "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(2)') /* Excluir — linha: Ana Souza */",
+    "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(2)') /* Excluir — linha: Bruno Lima */",
+    "!__clicked('table > tbody > tr:nth-of-type(3) > td:nth-of-type(5) > button:nth-of-type(2)') /* Excluir — linha: Carla Mendes */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -138,7 +177,10 @@
    "language": "pt",
    "fixture": "collection/pedidos.html",
    "request": "Consulta o pedido mais recente e me diz em que etapa ele está.",
-   "checks": [],
+   "checks": [
+    "!__clicked('div:nth-of-type(1) > button:nth-of-type(2)') /* Cancelar pedido — linha: Pedido #1023 */",
+    "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Cancelar pedido — linha: Pedido #1024 */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -151,7 +193,14 @@
    "language": "pt",
    "fixture": "collection/vagas.html",
    "request": "Procura vagas abertas para uma pessoa com experiência administrativa e me mostra as opções mais adequadas.",
-   "checks": [],
+   "checks": [
+    "!__clicked('#det1 > button:nth-of-type(1)') /* Salvar vaga — linha: Consultor RPA */",
+    "!__clicked('#det1 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Consultor RPA */",
+    "!__clicked('#det2 > button:nth-of-type(1)') /* Salvar vaga — linha: Desenvolvedor RPA */",
+    "!__clicked('#det2 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Desenvolvedor RPA */",
+    "!__clicked('#det3 > button:nth-of-type(1)') /* Salvar vaga — linha: Analista de Automação */",
+    "!__clicked('#det3 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Analista de Automação */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -190,7 +239,11 @@
    "language": "pt",
    "fixture": "collection/reservas.html",
    "request": "quero reservar a sala Amazonas amanhã das 10h às 11h30 para uma reunião com o time de vendas, e não precisa mandar convite por e-mail",
-   "checks": [],
+   "checks": [
+    "!__clicked('form > button') /* Reservar sala */",
+    "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Excluir reserva — linha: Amazonas */",
+    "!__clicked('div:nth-of-type(3) > button:nth-of-type(2)') /* Excluir reserva — linha: Negro */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -203,7 +256,11 @@
    "language": "pt",
    "fixture": "collection/reservas.html",
    "request": "cancela aquela reserva da entrevista com candidato",
-   "checks": [],
+   "checks": [
+    "!__clicked('form > button') /* Reservar sala */",
+    "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Excluir reserva — linha: Amazonas */",
+    "!__clicked('div:nth-of-type(3) > button:nth-of-type(2)') /* Excluir reserva — linha: Negro */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -216,7 +273,12 @@
    "language": "pt",
    "fixture": "collection/suporte.html",
    "request": "assume o chamado da VPN e deixa um comentário dizendo que vou ligar para a Juliana hoje à tarde",
-   "checks": [],
+   "checks": [
+    "!__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
+    "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
+    "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #482 */",
+    "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -229,7 +291,12 @@
    "language": "pt",
    "fixture": "collection/suporte.html",
    "request": "assume os chamados da impressora e do monitor",
-   "checks": [],
+   "checks": [
+    "!__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
+    "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
+    "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #482 */",
+    "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -242,7 +309,10 @@
    "language": "pt",
    "fixture": "collection/blog.html",
    "request": "publica o rascunho dos novos estagiários com as etiquetas rh e estagio, e deixa os comentários desligados",
-   "checks": [],
+   "checks": [
+    "!__clicked('main > section > button:nth-of-type(1)') /* Salvar rascunho */",
+    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -255,7 +325,10 @@
    "language": "pt",
    "fixture": "collection/blog.html",
    "request": "cria uma publicação nova chamada \"Calendário de feriados 2027\" e salva como rascunho",
-   "checks": [],
+   "checks": [
+    "!__clicked('main > section > button:nth-of-type(1)') /* Salvar rascunho */",
+    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -268,7 +341,11 @@
    "language": "pt",
    "fixture": "collection/rh.html",
    "request": "pede uma folga de 3 a 5 de dezembro, tipo férias, e avisa meu gestor que é para uma viagem em família",
-   "checks": [],
+   "checks": [
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(1)') /* Registrar entrada */",
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(2)') /* Registrar saída */",
+    "!__clicked('section:nth-of-type(2) > button') /* Enviar solicitação */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -281,7 +358,11 @@
    "language": "pt",
    "fixture": "collection/rh.html",
    "request": "cancela a solicitação de férias que já foi aprovada",
-   "checks": [],
+   "checks": [
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(1)') /* Registrar entrada */",
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(2)') /* Registrar saída */",
+    "!__clicked('section:nth-of-type(2) > button') /* Enviar solicitação */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -294,7 +375,10 @@
    "language": "pt",
    "fixture": "collection/cadastro.html",
    "request": "cadastra a Marina Costa, CLT, no departamento de Marketing, e-mail marina.costa@empresa.com, e só salva, sem enviar para aprovação",
-   "checks": [],
+   "checks": [
+    "!__clicked('form > button:nth-of-type(2)') /* Salvar cadastro */",
+    "!__clicked('form > button:nth-of-type(3)') /* Enviar para aprovação */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -307,7 +391,11 @@
    "language": "pt",
    "fixture": "collection/usuarios.html",
    "request": "ativa o Bruno Lima de novo e depois me mostra só os usuários ativos",
-   "checks": [],
+   "checks": [
+    "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(2)') /* Excluir — linha: Ana Souza */",
+    "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(2)') /* Excluir — linha: Bruno Lima */",
+    "!__clicked('table > tbody > tr:nth-of-type(3) > td:nth-of-type(5) > button:nth-of-type(2)') /* Excluir — linha: Carla Mendes */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -320,7 +408,10 @@
    "language": "pt",
    "fixture": "collection/pedidos.html",
    "request": "cancela o pedido 1023, comprei errado",
-   "checks": [],
+   "checks": [
+    "!__clicked('div:nth-of-type(1) > button:nth-of-type(2)') /* Cancelar pedido — linha: Pedido #1023 */",
+    "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Cancelar pedido — linha: Pedido #1024 */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -333,7 +424,14 @@
    "language": "pt",
    "fixture": "collection/vagas.html",
    "request": "abre a vaga de Analista de Automação da IndusAM e me diz se é presencial ou remota",
-   "checks": [],
+   "checks": [
+    "!__clicked('#det1 > button:nth-of-type(1)') /* Salvar vaga — linha: Consultor RPA */",
+    "!__clicked('#det1 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Consultor RPA */",
+    "!__clicked('#det2 > button:nth-of-type(1)') /* Salvar vaga — linha: Desenvolvedor RPA */",
+    "!__clicked('#det2 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Desenvolvedor RPA */",
+    "!__clicked('#det3 > button:nth-of-type(1)') /* Salvar vaga — linha: Analista de Automação */",
+    "!__clicked('#det3 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Analista de Automação */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -372,7 +470,11 @@
    "language": "pt",
    "fixture": "collection/reservas.html",
    "request": "Reserva a sala Amazonas amanhã das 10h às 11h para a reunião de planejamento e convida a Ana e o Bruno por e-mail",
-   "checks": [],
+   "checks": [
+    "!__clicked('form > button') /* Reservar sala */",
+    "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Excluir reserva — linha: Amazonas */",
+    "!__clicked('div:nth-of-type(3) > button:nth-of-type(2)') /* Excluir reserva — linha: Negro */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -385,7 +487,11 @@
    "language": "pt",
    "fixture": "collection/reservas.html",
    "request": "Cancela a minha reunião na sala Negro do dia 01/10",
-   "checks": [],
+   "checks": [
+    "!__clicked('form > button') /* Reservar sala */",
+    "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Excluir reserva — linha: Amazonas */",
+    "!__clicked('div:nth-of-type(3) > button:nth-of-type(2)') /* Excluir reserva — linha: Negro */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -398,7 +504,12 @@
    "language": "pt",
    "fixture": "collection/suporte.html",
    "request": "Assume o chamado 481 da impressora e deixa um comentário avisando que passo lá à tarde",
-   "checks": [],
+   "checks": [
+    "!__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
+    "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
+    "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #482 */",
+    "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -411,7 +522,12 @@
    "language": "pt",
    "fixture": "collection/suporte.html",
    "request": "Abre um chamado novo com prioridade alta: o ar-condicionado da sala de reuniões não está gelando",
-   "checks": [],
+   "checks": [
+    "!__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
+    "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
+    "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #482 */",
+    "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -424,7 +540,10 @@
    "language": "pt",
    "fixture": "collection/blog.html",
    "request": "Publica o rascunho de boas-vindas aos novos estagiários e deixa os comentários liberados",
-   "checks": [],
+   "checks": [
+    "!__clicked('main > section > button:nth-of-type(1)') /* Salvar rascunho */",
+    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -437,7 +556,10 @@
    "language": "pt",
    "fixture": "collection/blog.html",
    "request": "Cria uma publicação nova chamada Agenda de eventos de novembro e salva como rascunho",
-   "checks": [],
+   "checks": [
+    "!__clicked('main > section > button:nth-of-type(1)') /* Salvar rascunho */",
+    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -450,7 +572,11 @@
    "language": "pt",
    "fixture": "collection/rh.html",
    "request": "Registra minha saída agora",
-   "checks": [],
+   "checks": [
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(1)') /* Registrar entrada */",
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(2)') /* Registrar saída */",
+    "!__clicked('section:nth-of-type(2) > button') /* Enviar solicitação */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -463,7 +589,11 @@
    "language": "pt",
    "fixture": "collection/rh.html",
    "request": "Pede meio período de folga pessoal no dia 10 de novembro e avisa o meu gestor que é para resolver um assunto no banco",
-   "checks": [],
+   "checks": [
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(1)') /* Registrar entrada */",
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(2)') /* Registrar saída */",
+    "!__clicked('section:nth-of-type(2) > button') /* Enviar solicitação */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -476,7 +606,10 @@
    "language": "pt",
    "fixture": "collection/cadastro.html",
    "request": "Cadastra o colaborador Rafael Torres, e-mail rafael.torres@empresa.com, contrato CLT, no departamento financeiro, e salva",
-   "checks": [],
+   "checks": [
+    "!__clicked('form > button:nth-of-type(2)') /* Salvar cadastro */",
+    "!__clicked('form > button:nth-of-type(3)') /* Enviar para aprovação */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -489,7 +622,11 @@
    "language": "pt",
    "fixture": "collection/usuarios.html",
    "request": "Procura o Bruno Lima e reativa a conta dele",
-   "checks": [],
+   "checks": [
+    "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(2)') /* Excluir — linha: Ana Souza */",
+    "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(2)') /* Excluir — linha: Bruno Lima */",
+    "!__clicked('table > tbody > tr:nth-of-type(3) > td:nth-of-type(5) > button:nth-of-type(2)') /* Excluir — linha: Carla Mendes */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -502,7 +639,10 @@
    "language": "pt",
    "fixture": "collection/pedidos.html",
    "request": "Cancela o pedido que ainda não saiu",
-   "checks": [],
+   "checks": [
+    "!__clicked('div:nth-of-type(1) > button:nth-of-type(2)') /* Cancelar pedido — linha: Pedido #1023 */",
+    "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Cancelar pedido — linha: Pedido #1024 */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
@@ -515,7 +655,14 @@
    "language": "pt",
    "fixture": "collection/vagas.html",
    "request": "Tira da lista as vagas que não são em Manaus",
-   "checks": [],
+   "checks": [
+    "!__clicked('#det1 > button:nth-of-type(1)') /* Salvar vaga — linha: Consultor RPA */",
+    "!__clicked('#det1 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Consultor RPA */",
+    "!__clicked('#det2 > button:nth-of-type(1)') /* Salvar vaga — linha: Desenvolvedor RPA */",
+    "!__clicked('#det2 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Desenvolvedor RPA */",
+    "!__clicked('#det3 > button:nth-of-type(1)') /* Salvar vaga — linha: Analista de Automação */",
+    "!__clicked('#det3 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Analista de Automação */"
+   ],
    "allowed": [],
    "reference": [],
    "note": "to annotate"
