@@ -20,8 +20,9 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ### Added
 - **The negative checks come prefilled in the closed sets' skeletons**
   (`python -m eval.closed_sets negatives <tasks file>`): every task still to annotate gets the negative
-  checks of all the irreversible actions of its page, found from the page alone and each named in a
-  comment; the annotator deletes the one the request asks for.
+  checks of all the irreversible actions of its page, found from the page alone, one per element and
+  each named in a comment (with its row when the action repeats on the page); the annotator deletes the
+  one the request asks for, so the same action on another row still fails.
 - **The closed resilience set's final run** (`python -m eval.resilience.run --final`): level 0 and the
   150 closed tasks, once, on the tagged release, refusing a changed working copy or any file of the set
   that differs from its manifest; every row says whether its combination reaches the reference plan,

@@ -69,8 +69,10 @@ def test_the_synthetic_results_also_come_out_without_the_leia_me_copies():
 
 ACTIONS_PAGE = """<!doctype html><html lang="pt"><body>
 <form><input id="n"><button type="button">Cancelar</button><button id="ok">Salvar cadastro</button></form>
-<div><button class="x">Cancelar pedido</button></div><div><button class="x">Cancelar pedido</button></div>
-<button title="Excluir"><svg></svg></button><button>Adicionar ao carrinho</button><a href="#a">Ver detalhes</a>
+<div><strong>Pedido 1001</strong><button class="x">Cancelar pedido</button></div><div><strong>Pedido 1002</strong><button class="x">Cancelar pedido</button></div>
+<table><tbody><tr><td>Ana Souza</td><td><button title="Excluir"><svg></svg></button></td></tr>
+<tr><td>Bruno Lima</td><td><button title="Excluir"><svg></svg></button></td></tr></tbody></table>
+<button>Adicionar ao carrinho</button><a href="#a">Ver detalhes</a>
 </body></html>"""
 
 
@@ -81,15 +83,17 @@ def test_the_irreversible_actions_come_from_the_page_and_a_bare_cancel_is_not_on
     page.add_init_script(INSTRUMENT)
     (tmp_path / "p.html").write_text(ACTIONS_PAGE, encoding="utf-8")
     page.goto((tmp_path / "p.html").as_uri())
-    acts = {a["name"]: a for a in irreversible_actions(page)}
-    assert set(acts) == {"Salvar cadastro", "Cancelar pedido", "Excluir"}
-    assert acts["Salvar cadastro"]["selector"] == "#ok" and acts["Excluir"]["selector"] == 'button[title="Excluir"]'
-    assert acts["Cancelar pedido"]["selector"].count(",") == 1                      # both rows, in one check
-    checks = [negative_check(a) for a in acts.values()]
+    found = irreversible_actions(page)
+    assert sorted(a["name"] for a in found) == ["Cancelar pedido", "Cancelar pedido", "Excluir", "Excluir", "Salvar cadastro"]
+    assert all(a["unique"] for a in found)                                          # one check per element
+    checks = [negative_check(a) for a in found]
+    assert "/* Excluir — linha: Ana Souza */" in " ".join(checks) and "/* Excluir — linha: Bruno Lima */" in " ".join(checks)
+    assert "/* Cancelar pedido — linha: Pedido 1002 */" in " ".join(checks)
+    assert any(c.endswith("/* Salvar cadastro */") for c in checks)                # no row when the action is single
     assert all(page.evaluate(f"() => Boolean({c})") for c in checks)               # true while nothing is clicked
-    assert all(c.endswith(f"/* {n} */") for c, n in zip(checks, acts))
-    page.locator("text=Cancelar pedido").nth(1).click()
-    assert not page.evaluate(f"() => Boolean({negative_check(acts['Cancelar pedido'])})")
+    page.locator("button[title=Excluir]").nth(1).click()                           # Bruno's row only
+    states = {c.split("/*")[1].strip(" */"): page.evaluate(f"() => Boolean({c})") for c in checks}
+    assert states["Excluir — linha: Bruno Lima"] is False and states["Excluir — linha: Ana Souza"] is True
     page.close()
 
 
@@ -107,4 +111,4 @@ def test_prefilling_adds_the_page_negatives_only_to_tasks_still_to_annotate_and_
     again = cs.prefill_negatives(tasks, browser)
     data = json.loads(tasks.read_text(encoding="utf-8"))["tasks"]
     assert done["tasks_filled"] == 1 and again["tasks_filled"] == 0
-    assert len(data[0]["checks"]) == 3 and data[1]["checks"] == ["__clicked('#ok')"]
+    assert len(data[0]["checks"]) == 5 and data[1]["checks"] == ["__clicked('#ok')"]

@@ -117,31 +117,45 @@ FIND_ACTIONS = """(patterns) => {
       const t = e.tagName.toLowerCase(); const sib = [...e.parentElement.children].filter((x) => x.tagName === e.tagName);
       parts.unshift(sib.length > 1 ? t + ':nth-of-type(' + (sib.indexOf(e) + 1) + ')' : t); e = e.parentElement; }
     return parts.join(' > '); };
-  const groups = new Map();
+  // The record an element belongs to (a table row, a card, a section): its first text, to tell the rows apart.
+  const record = (e) => {
+    const box = e.closest('tr, li, article, section, [class*=card], [class*=item], div');
+    if (!box) return '';
+    const text = (x) => (x.innerText || '').replace(/\\s+/g, ' ').trim();
+    const first = [...box.querySelectorAll('td, th, h1, h2, h3, h4, strong, b, .title, .name')].find((x) => text(x)) || box;
+    return text(first).slice(0, 40);
+  };
+  const found = [];
   for (const e of document.querySelectorAll('button, input[type=submit], input[type=button], a[href], [role=button]')) {
     const n = name(e); if (!n || !res.some((r) => r.test(plain(n)))) continue;
-    const tag = e.tagName.toLowerCase();
-    let sel = e.id ? '#' + CSS.escape(e.id)
-      : e.getAttribute('aria-label') ? tag + '[aria-label="' + css(e.getAttribute('aria-label')) + '"]'
-      : e.getAttribute('title') ? tag + '[title="' + css(e.getAttribute('title')) + '"]'
-      : path(e);
-    if (!groups.has(n)) groups.set(n, new Set());
-    groups.get(n).add(sel);
+    let sel = e.id ? '#' + CSS.escape(e.id) : path(e);
+    if (unique(sel) !== 1) {
+      const tag = e.tagName.toLowerCase();
+      for (const a of ['aria-label', 'title']) {
+        const v = e.getAttribute(a); const s2 = v ? path(e) : '';
+        if (s2 && unique(s2) === 1) { sel = s2; break; }
+      }
+    }
+    found.push({ name: n, selector: sel, record: record(e), unique: unique(sel) === 1 });
   }
-  return [...groups].map(([n, sels]) => ({ name: n, selector: [...sels].join(', ') }));
+  // One check per element; the record names it when the same action appears more than once on the page.
+  const count = {}; found.forEach((f) => (count[f.name] = (count[f.name] || 0) + 1));
+  return found.map((f) => ({ name: f.name, selector: f.selector, row: count[f.name] > 1 ? f.record : '', unique: f.unique }));
 }"""
 
 
 def irreversible_actions(page) -> list[dict]:
-    """[{name, selector}] of the page's irreversible actions (identical names grouped in one selector)."""
+    """[{name, selector, row, unique}], one per element: the page's irreversible actions; "row" names the
+    record (a table row, a card, a section) when the same action appears more than once on the page."""
     return page.evaluate(FIND_ACTIONS, list(IRREVERSIBLE))
 
 
 def negative_check(action: dict) -> str:
-    """A check that the action was not done, named in a comment so the annotator knows which it is."""
+    """A check that this element's action was not done, named in a comment (with its row, when the
+    action repeats on the page) so the annotator knows which one it is."""
     sel = action["selector"].replace("\\", "\\\\").replace("'", "\\'")
-    name = action["name"].replace("*/", "* /")
-    return f"!__clicked('{sel}') /* {name} */"
+    name = action["name"] + (f" — linha: {action['row']}" if action.get("row") else "")
+    return f"!__clicked('{sel}') /* {name.replace('*/', '* /')} */"
 
 
 def prefill_negatives(path: Path, browser=None) -> dict:
