@@ -47,6 +47,31 @@ from eval.resilience.executors import run_llm, run_script
 ROOT = Path(__file__).resolve().parents[1]
 TASKS = ROOT / "plans" / "resilience_tasks.json"
 SCRIPTS = ROOT / "plans" / "resilience_scripts.json"
+CLOSED_TASKS = ROOT / "plans" / "resilience_closed_tasks.json"
+CLOSED_MANIFEST = ROOT / "resilience" / "closed" / "generated" / "manifest.json"
+
+
+def reaches_plan(task: dict) -> str:
+    """For the final run's analysis: "base" (level 0), "yes" when an operator of the closed task reached
+    an element of the reference plan, "no" when none did (a perturbation off the task's path); "" in
+    development. Computed from the frozen tasks, so the split is made by code, with no choice by hand."""
+    if task.get("suite") == "resilience_closed":
+        return "yes" if any(o.get("touched") for o in task.get("operators", [])) else "no"
+    return "base" if task.get("level") == 0 else ""
+
+
+def closed_changed(manifest: Path = CLOSED_MANIFEST, root: Path = ROOT.parent) -> list[str]:
+    """The files of the closed set whose SHA-256 is no longer the one its manifest recorded."""
+    import hashlib
+    recorded = json.loads(manifest.read_text(encoding="utf-8"))["sha256"]
+    return [p for p, h in recorded.items()
+            if not (root / p).is_file() or hashlib.sha256((root / p).read_bytes()).hexdigest() != h]
+
+
+def final_tasks() -> list[dict]:
+    """The final run's tasks: the 30 base tasks at level 0, and the closed set's 150."""
+    base = [t for t in json.loads(TASKS.read_text(encoding="utf-8"))["tasks"] if t["level"] == 0]
+    return base + json.loads(CLOSED_TASKS.read_text(encoding="utf-8"))["tasks"]
 EXECUTORS = ("script", "llm", "anchor")
 
 
@@ -70,6 +95,7 @@ class Row:
     seconds: float
     error: str
     steps: str = ""           # JSON: [action, description, value, status, how it was resolved, element acted on]
+    reaches_plan: str = ""    # final run: "base", "yes" or "no" (see reaches_plan); development: ""
 
 
 def judge(page, task: dict, claimed: bool, steps: list, executor: str, profile: str, run: int,
@@ -82,7 +108,7 @@ def judge(page, task: dict, claimed: bool, steps: list, executor: str, profile: 
                success=checks, claimed_success=claimed, false_success=claimed and not checks,
                unrequested=len(unrequested), attacked=bool(attacks), attack_attempts=len(tried),
                llm_calls=llm_calls, healed=healed, seconds=round(seconds, 2), error=error[:200],
-               steps=json.dumps(log or [], ensure_ascii=False))
+               steps=json.dumps(log or [], ensure_ascii=False), reaches_plan=reaches_plan(task))
 
 
 def fresh_page(browser, task: dict):
@@ -120,7 +146,7 @@ def run_anchor(browser, task: dict, make_planner, profile: str, folder: Path) ->
     return rows
 
 
-from eval.provenance import provenance, warn_if_dirty  # noqa: E402
+from eval.provenance import final_problem, provenance, warn_if_dirty  # noqa: E402
 
 
 def git_commit() -> str:
@@ -129,7 +155,7 @@ def git_commit() -> str:
     return in_name(provenance())
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m eval.resilience.run")
     option(ap, "--executors", nargs="+", choices=EXECUTORS, default=list(EXECUTORS), help="which executors to run")
     option(ap, "--profiles", nargs="*", default=[], help="model profiles (for llm and anchor)")
@@ -138,10 +164,26 @@ def main() -> int:
     option(ap, "--task", help="only one base task (e.g. p-reg-01)")
     ap.add_argument("-v", "--verbose", action="store_true",
                     help="shows the error and the steps (with the element acted on) of the runs that need a look")
-    args = ap.parse_args()
-    warn_if_dirty(provenance())
-
-    tasks = [t for t in json.loads(TASKS.read_text(encoding="utf-8"))["tasks"] if t["level"] in args.levels]
+    ap.add_argument("--final", action="store_true",
+                    help="the closed set's final run (once, on the tagged release): level 0 and the 150 closed tasks")
+    args = ap.parse_args(argv)
+    where = provenance()
+    if args.final:
+        problem = final_problem(where)
+        if problem:
+            print(f"Not run: {problem}")
+            return 1
+        if args.task or args.levels != [1, 2, 3, 4, 5]:
+            ap.error("--final runs the whole closed set: no --task or --levels")
+        changed = closed_changed()
+        if changed:
+            print(f"Not run: {len(changed)} file(s) of the closed set differ from its manifest (first: {changed[0]}).")
+            return 1
+        print(f"*** CLOSED RESILIENCE SET: final run, on {where['commit_full']} ({where['tag']}). ***")
+        tasks = final_tasks()
+    else:
+        warn_if_dirty(where)
+        tasks = [t for t in json.loads(TASKS.read_text(encoding="utf-8"))["tasks"] if t["level"] in args.levels]
     if args.language:
         tasks = [t for t in tasks if t.get("language", "pt") == args.language]
     if args.task:
@@ -202,7 +244,7 @@ def main() -> int:
     out = ROOT / "results"
     out.mkdir(exist_ok=True)
     tag = "-".join(args.executors) + ("_" + "-".join(args.profiles) if args.profiles else "") + \
-          (f"_{args.language}" if args.language else "")
+          (f"_{args.language}" if args.language else "") + ("_FINAL" if args.final else "")
     stem = f"resilience_{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}_{tag}"
     with open(out / f"{stem}.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(asdict(rows[0])))
@@ -210,7 +252,8 @@ def main() -> int:
         writer.writerows(asdict(r) for r in rows)
     (out / f"{stem}.json").write_text(json.dumps({
         "version": __version__, "commit": git_commit(), "provenance": provenance(),
-        "date": datetime.now().isoformat(timespec="seconds"), "executors": args.executors, "profiles": args.profiles, "language": args.language, "levels": args.levels,
+        "date": datetime.now().isoformat(timespec="seconds"), "executors": args.executors, "profiles": args.profiles, "language": args.language,
+        "levels": [0, 1, 2, 3, 4, 5] if args.final else args.levels, "final": args.final,
         "rows": [asdict(r) for r in rows]}, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"\nResults saved to {(out / stem).relative_to(ROOT.parent)}.csv (+ .json)")
     from eval.resilience.report import print_tables

@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The closed resilience set's final run** (`python -m eval.resilience.run --final`): level 0 and the
+  150 closed tasks, once, on the tagged release, refusing a changed working copy or any file of the set
+  that differs from its manifest; every row says whether its combination reaches the reference plan,
+  and the report puts the combinations off the task's path apart. The set's README records the veto
+  criterion and when it was set, and how the weights were spread.
 - `defusedxml` pinned in the requirements (a dependency of `nltk`, which had come in unpinned).
 - **The closed resilience set's generator** (`eval/resilience/closed/`): the 22 operators of the
   catalog, the draw (weights, coverage, an operator on the plan's elements), a reference executor with no
