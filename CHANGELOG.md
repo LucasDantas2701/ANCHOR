@@ -18,6 +18,7 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- `defusedxml` pinned in the requirements (a dependency of `nltk`, which had come in unpinned).
 - **The closed resilience set's generator** (`eval/resilience/closed/`): the 22 operators of the
   catalog, the draw (weights, coverage, an operator on the plan's elements), a reference executor with no
   part of ANCHOR (plain Playwright on the evaluation's markers, recorded once on the L0 development
