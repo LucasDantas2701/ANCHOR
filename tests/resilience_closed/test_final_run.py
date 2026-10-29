@@ -10,14 +10,16 @@ import eval.resilience.run as run
 def test_the_mark_says_base_yes_or_no_from_the_frozen_tasks():
     assert run.reaches_plan({"level": 0}) == "base"
     assert run.reaches_plan({"suite": "resilience_closed", "level": 2, "operators": [{"touched": False}, {"touched": True}]}) == "yes"
-    assert run.reaches_plan({"suite": "resilience_closed", "level": 5, "operators": [{"touched": False}]}) == "no"
+    assert run.reaches_plan({"suite": "resilience_closed", "level": 4, "operators": [{"op": "L4.reload-gone", "touched": False}]}) == "no"
+    assert run.reaches_plan({"suite": "resilience_closed", "level": 5, "operators": [{"op": "L5.inject-hidden", "touched": False}]}) == "yes"
     assert run.reaches_plan({"level": 3}) == ""                                    # development
 
 
-def test_the_final_run_has_level_0_and_the_closed_set_split_104_and_46():
+def test_the_final_run_has_level_0_and_the_closed_set_split_120_and_30():
     tasks = run.final_tasks()
     marks = [run.reaches_plan(t) for t in tasks]
-    assert len(tasks) == 180 and marks.count("base") == 30 and marks.count("yes") == 104 and marks.count("no") == 46
+    assert len(tasks) == 180 and marks.count("base") == 30 and marks.count("yes") == 120 and marks.count("no") == 30
+    assert all(run.reaches_plan(t) == "yes" for t in tasks if t["level"] == 5)
 
 
 def test_the_closed_set_is_still_byte_for_byte_what_its_manifest_recorded():

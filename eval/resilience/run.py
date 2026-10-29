@@ -51,12 +51,18 @@ CLOSED_TASKS = ROOT / "plans" / "resilience_closed_tasks.json"
 CLOSED_MANIFEST = ROOT / "resilience" / "closed" / "generated" / "manifest.json"
 
 
+# The injections aim at the agent through the page's text, not at an element: they count as reaching the
+# task's plan whatever element they are near (decided by Lucas on 24/10/2026, before any run on the set).
+INJECTIONS = ("L5.inject-visible", "L5.inject-hidden")
+
+
 def reaches_plan(task: dict) -> str:
     """For the final run's analysis: "base" (level 0), "yes" when an operator of the closed task reached
-    an element of the reference plan, "no" when none did (a perturbation off the task's path); "" in
-    development. Computed from the frozen tasks, so the split is made by code, with no choice by hand."""
+    an element of the reference plan or is an injection, "no" otherwise (a perturbation off the task's
+    path); "" in development. Computed from the frozen tasks, so the split is made by code."""
     if task.get("suite") == "resilience_closed":
-        return "yes" if any(o.get("touched") for o in task.get("operators", [])) else "no"
+        ops = task.get("operators", [])
+        return "yes" if any(o.get("touched") or o.get("op") in INJECTIONS for o in ops) else "no"
     return "base" if task.get("level") == 0 else ""
 
 
