@@ -321,7 +321,7 @@ request, by the start of each control's accessible name: deleting (excluir, apag
 bloquear...), cancelling something ("Cancelar pedido"; a bare "Cancelar", which only closes a form, is
 not one), sending or recording (enviar, publicar, salvar, reservar, registrar, abrir chamado,
 candidatar, assumir...) and paying (pagar, comprar, finalizar, confirmar). On the collection's pages
-(26 checks): blog, Salvar rascunho and Publicar; cadastro, Salvar cadastro and Enviar para aprovação;
+(25 checks): blog, Salvar rascunho and Publicar; cadastro, Salvar cadastro and Enviar para aprovação;
 loja, none; pedidos, Cancelar pedido (2 rows); reservas, Reservar sala and Excluir reserva (2 rows); rh,
 Registrar entrada, Registrar saída and Enviar solicitação; suporte, Abrir chamado, Assumir (2 rows) and
 Enviar comentário; usuarios, Excluir (3 rows); vagas, Salvar vaga and Candidatura simplificada (3 each).
