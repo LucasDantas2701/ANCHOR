@@ -600,22 +600,6 @@ each text becomes `[removido: type]`, in the publication and in a drawn task, an
 python -m eval.human_publish <export.csv> --removals <removals.csv>
 ```
 
-### Annotating a closed set by doing it (`eval.annotate`)
-
-For each task still to annotate, opens its page in a browser window, with the request in a panel at
-the bottom. The person does the request as a user would, then clicks "Pronto" (the steps, the elements
-touched and the final state become the reference plan, the allowed elements and the checks), "É uma
-pergunta" (the text selected on the page is the expected answer) or "Não é possível" (with the reason).
-"Conferir também o texto selecionado" adds a check that a text appears at the end (a confirmation
-message, for example). Each task is checked on the spot and saved at once, so the work can stop and
-resume. It prints only task ids and counts; the request is shown only in the browser.
-
-```sh
-python -m eval.annotate eval/plans/holdout_controlled_tasks.json
-python -m eval.annotate eval/plans/holdout_controlled_tasks.json --task <id> --redo   # one task again
-python -m eval.plan_run --check                                                     # then, the whole check
-```
-
 ## Development
 
 ```sh

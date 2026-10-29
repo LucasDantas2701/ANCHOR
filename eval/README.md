@@ -306,10 +306,3 @@ and the article reports this exposure.
 **Rules until the final run:** do not run the models on these tasks, do not look at the system's
 behavior on them, and do not change the system, the prompts or the tasks because of them.
 
-### Annotating the closed sets
-
-The person who annotates a closed set (Lucas, not the engine's developer) does each request on its page
-with `python -m eval.annotate <tasks file>`: what they do becomes the task's reference plan, allowed
-elements and checks; a question is annotated by selecting its answer on the page; an impossible request,
-by its reason. Each annotation is checked on the spot, and `python -m eval.plan_run --check` checks them
-all at the end. The tool never prints a request.
