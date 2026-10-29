@@ -39,6 +39,18 @@ def _free_path(folder: Path, name: str) -> Path:
         path, n = folder / f"{stem} ({n}){suffix}", n + 1
     return path
 
+
+def _shown(match: Match) -> str:
+    """The element in a few words, for a confirmation: its kind and name ("button “Save the form”")."""
+    try:
+        from anchor.engine.disambiguation.describe import describe
+        seen = describe(match, 0, "en")
+        name = " ".join(seen.name.split())
+        kind = seen.kind[:1].lower() + seen.kind[1:]
+        return f"{kind} “{name[:60] + ('…' if len(name) > 60 else '')}”"
+    except Exception:
+        return ""
+
 class ActionExecutor:
     """
     Orchestrates the ElementResolver + running actions in Playwright.
@@ -369,7 +381,8 @@ class ActionExecutor:
         category = classify(action_name, description, element)
         if category is None:
             return None
-        request = ConfirmationRequest(action_name, description, element or description, category, self.page.url)
+        request = ConfirmationRequest(action_name, description, element or description, category, self.page.url,
+                                      shown=_shown(match))
         waited = time.perf_counter()
         allowed = self.confirmer.confirm(request)
         self.user_wait_s += time.perf_counter() - waited

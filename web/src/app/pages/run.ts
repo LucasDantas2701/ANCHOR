@@ -41,8 +41,9 @@ const WHAT: Record<string, string> = {
           <p class="eyebrow">Waiting for you</p>
           @switch (q.kind) {
             @case ('confirm') {
-              <h2 id="ask-title" class="heading">ANCHOR wants to {{ what(q.category) }}: <em>“{{ q.element }}”</em></h2>
+              <h2 id="ask-title" class="heading">ANCHOR wants to {{ what(q.category) }}: <em>{{ q.shown || q.element }}</em></h2>
               <p class="muted">Step: {{ q.description }}</p>
+              @if (q.near && q.near !== q.shown) { <p class="muted small near">On the page: “{{ q.near }}”</p> }
               <p class="muted small">{{ q.remembers ? 'Your answer is kept: this automation will not ask again for this step.' : 'Your answer is only for this run.' }}</p>
               <div class="actions">
                 <button class="btn primary" type="button" (click)="answer(q, { choice: 'allow' })">Allow</button>
@@ -147,6 +148,9 @@ const WHAT: Record<string, string> = {
           @for (e of events(); track e.seq) {
             @if (e.type === 'line') { <li [class]="'row ' + kindOf(e.text)"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ shown(e.text) }}</span></li> }
             @if (e.type === 'used') { <li class="row used"><time></time><span></span><span class="text">↳ on the {{ lower(e.text) }}</span></li> }
+            @if (e.type === 'tried') { <li class="row used tried"><time></time><span></span><span class="text">↳ @if (e.text) { tried the {{ lower(e.text) }}: } {{ e['error'] }}</span></li> }
+            @if (e.type === 'page') { <li class="row used"><time></time><span></span><span class="text">↳ now on {{ e.text }}</span></li> }
+            @if (e.type === 'ended_on') { <li class="row used tried"><time></time><span></span><span class="text">↳ the page showed: {{ e.text || e['url'] }}@for (m of asList(e['messages']); track $index) { · “{{ m }}” }</span></li> }
             @if (e.type === 'question') { <li class="row ask-row"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">ANCHOR asked you a question</span></li> }
             @if (e.type === 'answered') { <li class="row you"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">You answered: {{ said(e) }}</span></li> }
             @if (e.type === 'result') { <li [class]="'row end ' + jobClass[stateOf(e)]"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ jobWords[stateOf(e)] }}</span></li> }
@@ -168,7 +172,7 @@ const WHAT: Record<string, string> = {
     /* Watching: the same content, filling the window: the browser left, the rest in a column on the right. */
     .theater { position: fixed; inset: 0; z-index: 40; background: var(--surface-page); padding: var(--space-4) var(--space-6) var(--space-6);
                display: grid; gap: var(--space-4) var(--space-6); grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
-               grid-template-rows: auto auto auto minmax(0, 1fr); grid-template-areas: "top top" "live ask" "live outcome" "live log"; }
+               grid-template-rows: auto auto auto minmax(160px, 1fr); grid-template-areas: "top top" "live ask" "live outcome" "live log"; }
     .theater .top { grid-area: top; } .theater .live { grid-area: live; }
     .theater .ask { grid-area: ask; margin: 0; } .theater .outcome { grid-area: outcome; margin: 0; }
     .theater .logsec { grid-area: log; margin: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
@@ -176,6 +180,11 @@ const WHAT: Record<string, string> = {
     .theater .back, .theater .top > .eyebrow, .theater .request, .theater .note { display: none; }
     .theater .head .title { font-size: 22px; line-height: 28px; }
     .theater .ask, .theater .outcome { padding: var(--space-4); }
+    /* A long question scrolls inside its panel, so the progress below never disappears. */
+    .theater .ask { max-height: 58vh; overflow: auto; }
+    .theater .ask .shot { max-height: 34vh; width: 100%; object-fit: contain; }
+    .near { overflow-wrap: anywhere; }
+    .row.tried .text { color: var(--waiting); overflow-wrap: anywhere; }
     .theater .ask .heading { font-size: 17px; line-height: 23px; }
     .theater .row { grid-template-columns: 64px 16px 1fr; padding: 5px var(--space-4); }
     .head { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
@@ -280,6 +289,7 @@ export class RunPage implements OnDestroy {
   }
 
   active(r: RunView) { return ACTIVE.includes(r.state); }
+  asList(v: unknown): string[] { return Array.isArray(v) ? v as string[] : []; }
   takesInput(r: RunView) { return !!r.question && (r.question.kind === 'login' || r.question.kind === 'point'); }
   what(category?: string) { return WHAT[category ?? ''] ?? 'do something sensitive'; }
 

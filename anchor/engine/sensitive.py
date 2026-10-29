@@ -127,6 +127,7 @@ class ConfirmationRequest:
     element: str              # the name of the element that would be acted on
     category: str             # delete, submit, send, pay, download, upload, account
     url: str = ""
+    shown: str = ""           # the element in a few words, for a person: its kind and name ("button “Save”")
 
 
 class Confirmer(Protocol):

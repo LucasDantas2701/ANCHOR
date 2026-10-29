@@ -98,7 +98,7 @@ export type JobState = 'queued' | 'running' | 'waiting' | 'checked' | 'planned' 
 export interface Question {
   number: number; kind: 'confirm' | 'choose' | 'login' | 'point';
   // confirm
-  category?: string; element?: string; description?: string; remembers?: boolean;
+  category?: string; element?: string; shown?: string; near?: string; description?: string; remembers?: boolean;
   // choose
   action?: string; reason?: 'ambiguous' | 'not_found'; can_point?: boolean; screenshot?: string | null;
   candidates?: { number: number; kind: string; name: string; near: string }[];
@@ -106,7 +106,7 @@ export interface Question {
   url?: string; signup?: boolean; window?: boolean; keeps_notes?: boolean;
 }
 
-export interface RunEvent { seq: number; at: string; type: 'line' | 'used' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }
+export interface RunEvent { seq: number; at: string; type: 'line' | 'used' | 'tried' | 'page' | 'ended_on' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }
 
 export interface RunResult { state: JobState; message: string; summary?: string; hint?: string;
   plan?: { steps: Step[]; goals: { id: string; description: string; conclusive: boolean }[] }; steps?: number; seconds?: number; model_calls?: number; mode?: string; }

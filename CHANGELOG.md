@@ -18,6 +18,14 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Interface fixes from real runs, first part.** A request pasted as a terminal command
+  (`python -m anchor... "..." --url ...`) is flagged, with a button that keeps only the request and the
+  page; a confirmation shows the element in a few words ("button “Save”"), with the text around it only
+  as context; in the watch mode, a long question scrolls inside its panel and the progress never
+  disappears; the progress and the details file say which element a failed step tried, with the whole
+  message (a blocked click says what covers it), when the page changes, and what the page showed when a
+  run did not end well (its title, address and visible messages); the details file gets a header with
+  ANCHOR's version, the model, Ollama's version and the browser's mode.
 - **The negative checks come prefilled in the closed sets' skeletons**
   (`python -m eval.closed_sets negatives <tasks file>`): every task still to annotate gets the negative
   checks of all the irreversible actions of its page, found from the page alone, one per element and

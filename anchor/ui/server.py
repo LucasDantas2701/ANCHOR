@@ -195,7 +195,7 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
         """What the model read and answered at each planning, for diagnosis; a file saved on this computer."""
         job = job_or_404(run_id)
         body = {"anchor": __version__, "run": job.id, "kind": job.kind, "title": job.title, "state": job.state,
-                "result": job.result, "events": job.events, "plannings": job.details}
+                "about": job.about, "result": job.result, "events": job.events, "plannings": job.details}
         return Response(json.dumps(body, ensure_ascii=False, indent=1, default=str), media_type="application/json",
                         headers={"Content-Disposition": f'attachment; filename="anchor-run-{job.id}.json"'})
 

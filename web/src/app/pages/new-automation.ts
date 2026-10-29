@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
 import { Api, Profile, Runs, apiError, nameFor, valuesIn } from '../api';
+import { fromCommand } from '../command';
 
 @Component({
   selector: 'app-new-automation',
@@ -18,6 +19,12 @@ import { Api, Profile, Runs, apiError, nameFor, valuesIn } from '../api';
       <label for="request">What should it do?</label>
       <textarea id="request" name="request" rows="3" [(ngModel)]="request" (ngModelChange)="suggest()"
         placeholder="Register {name}, phone {phone}, and save the record"></textarea>
+      @if (pasted(); as c) {
+        <div class="warn" role="status">This looks like a terminal command, not a request: ANCHOR would read the command itself.
+          @if (c.request) { <button class="btn quiet" type="button" (click)="useCommand()">Use “{{ c.request }}”@if (c.url) { on {{ c.url }} }</button> }
+          @else { Write only what ANCHOR should do, and put the page in “On which page?”. }
+        </div>
+      }
       <p class="hint muted">Put a word in braces for each value that changes from run to run, like <span class="param">name</span>
         in <span class="mono">{{ '{' }}name{{ '}' }}</span>: each run asks for it (or reads it from a spreadsheet).</p>
       @if (values().length) {
@@ -60,9 +67,19 @@ import { Api, Profile, Runs, apiError, nameFor, valuesIn } from '../api';
     .row { display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-4); }
     .actions { display: flex; align-items: center; gap: var(--space-4); }
     .small { font-size: 13px; } .error { color: var(--refused); margin: 0; } .btn:disabled { opacity: .6; }
+    .warn { border: 1px solid var(--waiting); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 14px; color: var(--ink);
+            display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
   `],
 })
 export class NewAutomationPage {
+  pasted() { return fromCommand(this.request); }
+  useCommand() {
+    const c = fromCommand(this.request);
+    if (!c) return;
+    this.request = c.request;
+    if (c.url) this.url = c.url;
+    this.suggest();
+  }
   private api = inject(Api);
   private runs = inject(Runs);
   private router = inject(Router);

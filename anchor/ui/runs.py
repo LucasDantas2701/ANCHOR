@@ -40,6 +40,7 @@ class Job:
     result: Optional[dict] = None
     activity: Optional[dict] = None               # what the AI is doing right now (phase, since, tokens)
     details: list = field(default_factory=list)   # each planning: what the model read and answered (local only)
+    about: dict = field(default_factory=dict)      # the details file's header: version, model, Ollama, browser
     frame: Optional[tuple] = None                 # the live view's last image: (number, jpeg bytes)
     watched: float = 0.0                          # when the live view last asked for an image
     tick: Optional[Callable[[], None]] = None     # the run's own thread: keeps the live view going
@@ -154,7 +155,10 @@ class WebConfirmer:
         self.job, self.remembers = job, remembers
 
     def confirm(self, request: ConfirmationRequest) -> bool:
+        near = " ".join(request.element.split())
         answer = self.job.ask("confirm", category=request.category, element=request.element,
+                              shown=request.shown or (near[:70] + ("…" if len(near) > 70 else "")),
+                              near=near[:160] + ("…" if len(near) > 160 else ""),
                               description=request.description, remembers=self.remembers)
         choice = (answer or {}).get("choice")
         if choice == "allow":

@@ -160,16 +160,78 @@ def _attach(job: Job, executor: ActionExecutor) -> LiveView:
 
     job.pump = pump
 
+    last_url = [""]
+
+    def element(match) -> str:
+        seen = describe(match, 0, "en")
+        near = " ".join(seen.near.split()[:4])
+        near = f" near “{near}…”" if near and len(seen.near.split()) > 4 else (f" near “{near}”" if near else "")
+        return f"{seen.kind} “{seen.name}”{near}"
+
     def used(result):
         match = getattr(result, "selected_element", None)
         if result.status == "success" and match is not None:
-            seen = describe(match, 0, "en")
-            near = " ".join(seen.near.split()[:4])
-            near = f" near “{near}…”" if near and len(seen.near.split()) > 4 else (f" near “{near}”" if near else "")
-            job.add("used", text=f"{seen.kind} “{seen.name}”{near}")
+            job.add("used", text=element(match))
+        elif result.status != "success" and (match is not None or result.error):
+            # A step that failed: the element it tried (if any) and the whole message (a blocked click says what covers it).
+            job.add("tried", text=element(match) if match is not None else "", error=(result.error or result.status)[:600])
+        try:
+            url = executor.page.url
+        except Exception:
+            url = ""
+        if url and url != last_url[0]:
+            if last_url[0]:
+                job.add("page", text=url)
+            last_url[0] = url
 
     executor.on_result = used
     return live
+
+
+SHOWN_AT_END = """() => {
+  const seen = (e) => { const r = e.getBoundingClientRect(); const s = getComputedStyle(e);
+                        return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none'; };
+  const texts = [...document.querySelectorAll('[role=alert], [role=status], [aria-live], .error, .alert, .toast, .message, .notice')]
+    .filter(seen).map((e) => (e.innerText || '').replace(/\\s+/g, ' ').trim()).filter(Boolean);
+  return { title: document.title, messages: [...new Set(texts)].slice(0, 5).map((t) => t.slice(0, 160)) };
+}"""
+
+
+def page_at_end(page) -> dict:
+    """What the page showed when a run stopped: its address, title and visible messages (alerts, errors, notices)."""
+    try:
+        seen = page.evaluate(SHOWN_AT_END)
+        return {"url": page.url, "title": seen.get("title", ""), "messages": seen.get("messages", [])}
+    except Exception:
+        return {}
+
+
+def about(spec: dict, hidden: bool) -> dict:
+    """The details file's header: ANCHOR's version, the model, Ollama's version and the browser's mode."""
+    from anchor import __version__
+    out = {"anchor": __version__, "browser": "hidden (live view)" if hidden else "window"}
+    try:
+        profile = get_profile(spec.get("profile", "ollama-small"))
+        out.update(profile=profile.name, model=profile.model)
+        if profile.base_url and ("11434" in profile.base_url or profile.api == "ollama"):
+            import json
+            import urllib.request
+            root = profile.base_url.split("/v1")[0].rstrip("/")
+            with urllib.request.urlopen(root + "/api/version", timeout=2) as answer:
+                out["ollama"] = json.loads(answer.read().decode()).get("version", "")
+    except Exception:
+        pass
+    return out
+
+
+def _ended(job: Job, result, executor: ActionExecutor) -> dict:
+    """When a run did not end well: what the page showed (logged, and kept in the result)."""
+    if result.ok:
+        return {}
+    shown = page_at_end(executor.page)
+    if shown:
+        job.add("ended_on", text=shown.get("title", ""), url=shown.get("url", ""), messages=shown.get("messages", []))
+    return {"ended_on": shown} if shown else {}
 
 
 def _detach(job: Job, live: LiveView) -> None:
@@ -224,6 +286,7 @@ class Executor:
             return StepwisePlanner(job, lambda progress: profile.planner(on_progress=progress, prompt_language=auto.prompt_language))
 
         hidden = self._hidden(job)
+        job.about = about({"profile": automation.profile}, hidden)
 
         with sync_playwright() as p:
             # Each automation keeps its own browser profile, so a login done once is kept.
@@ -244,11 +307,12 @@ class Executor:
                     store, name, page, executor, make_planner, report=job.say,
                     relearn=bool(spec.get("relearn")), heal=True, params=spec.get("values") or {},
                     confirm=WebConfirmer(job, remembers=True), login=WebLoginWaiter(job))
+                ended = _ended(job, result, executor)
             finally:
                 if "live" in locals():
                     _detach(job, live)
                 context.close()
-        return _outcome(result, mode=mode, run=run_id)
+        return _outcome(result, mode=mode, run=run_id, **ended)
 
     def login(self, job: Job) -> dict:
         """
@@ -305,6 +369,7 @@ class Executor:
         profile = get_profile(spec["profile"])
         planner = StepwisePlanner(job, lambda progress: profile.planner(on_progress=progress))
         hidden = self._hidden(job)
+        job.about = about(spec, hidden)
         with sync_playwright() as p:
             context = p.chromium.launch(headless=hidden).new_context()
             page = context.new_page()
@@ -324,8 +389,9 @@ class Executor:
                     job.learned = {"steps": [dataclasses.asdict(s) for s in done],
                                    "goals": [dataclasses.asdict(g) for g in agent._goals.values() if g.id in used],
                                    "language": agent.language}
+                ended = _ended(job, result, executor)
             finally:
                 if "live" in locals():
                     _detach(job, live)
                 context.close()
-        return _outcome(result, mode="request")
+        return _outcome(result, mode="request", **ended)
