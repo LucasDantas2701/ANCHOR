@@ -447,6 +447,7 @@ tasks file that exists (it may be annotated already).
 ```sh
 python -m eval.closed_sets skeleton eval/synthetic_controlled_2026-10-22 synthetic_controlled
 python -m eval.closed_sets page-items synthetic     # per generator: how many requests cite an item of their page
+python -m eval.closed_sets negatives eval/plans/holdout_controlled_tasks.json   # prefill the negative checks
 ```
 
 The results of `eval.plan_run --final` come out by origin, by generator, and without the generators

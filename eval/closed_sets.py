@@ -8,7 +8,12 @@ and its generator, and empty checks for the person to annotate.
 
     python -m eval.closed_sets page-items synthetic
 
-prints, per generator, how many requests cite an item of their page's visible text (counts only). Nothing here prints a request: these
+prints, per generator, how many requests cite an item of their page's visible text (counts only).
+
+    python -m eval.closed_sets negatives eval/plans/holdout_controlled_tasks.json
+
+adds to every task still to annotate the negative checks of all the irreversible actions of its page
+(found from the page alone); the annotator deletes the one the request asks for. Nothing here prints a request: these
 are closed sets (eval/README.md), not to be looked at by the system before the final run.
 """
 from __future__ import annotations
@@ -90,6 +95,91 @@ def skeleton(folder: Path, origin: str, fixtures: str = "collection") -> list[di
     return tasks
 
 
+# The irreversible actions of a page, found from the page alone (never from a request), by the start of
+# each control's accessible name (its text, aria-label, title or value), case and accents aside. A bare
+# "Cancelar"/"Cancel", which only closes a form, is not one (the same rule as the engine's).
+IRREVERSIBLE = (
+    r"^(excluir|apagar|remover|deletar|desativar|bloquear|delete|remove|deactivate|block)\b",
+    r"^(cancelar|cancel)\s+\S",
+    r"^(enviar|publicar|submeter|salvar|reservar|registrar|abrir chamado|candidatar|candidatura|assumir"
+    r"|send|submit|publish|save|book|register|apply|assign)\b",
+    r"^(pagar|comprar|finalizar|confirmar|pay|buy|checkout|place order|confirm)\b",
+)
+FIND_ACTIONS = """(patterns) => {
+  const plain = (s) => (s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/\\s+/g, ' ').trim();
+  const res = patterns.map((p) => new RegExp(p));
+  const name = (e) => (e.innerText || e.getAttribute('aria-label') || e.getAttribute('title') || e.value || '').replace(/\\s+/g, ' ').trim();
+  const css = (v) => v.replace(/"/g, '\\\\"');
+  const unique = (sel) => { try { return document.querySelectorAll(sel).length; } catch (e) { return 0; } };
+  const path = (el) => { const parts = []; let e = el;
+    while (e && e !== document.body && parts.length < 6) {
+      if (e.id) { parts.unshift('#' + CSS.escape(e.id)); break; }
+      const t = e.tagName.toLowerCase(); const sib = [...e.parentElement.children].filter((x) => x.tagName === e.tagName);
+      parts.unshift(sib.length > 1 ? t + ':nth-of-type(' + (sib.indexOf(e) + 1) + ')' : t); e = e.parentElement; }
+    return parts.join(' > '); };
+  const groups = new Map();
+  for (const e of document.querySelectorAll('button, input[type=submit], input[type=button], a[href], [role=button]')) {
+    const n = name(e); if (!n || !res.some((r) => r.test(plain(n)))) continue;
+    const tag = e.tagName.toLowerCase();
+    let sel = e.id ? '#' + CSS.escape(e.id)
+      : e.getAttribute('aria-label') ? tag + '[aria-label="' + css(e.getAttribute('aria-label')) + '"]'
+      : e.getAttribute('title') ? tag + '[title="' + css(e.getAttribute('title')) + '"]'
+      : path(e);
+    if (!groups.has(n)) groups.set(n, new Set());
+    groups.get(n).add(sel);
+  }
+  return [...groups].map(([n, sels]) => ({ name: n, selector: [...sels].join(', ') }));
+}"""
+
+
+def irreversible_actions(page) -> list[dict]:
+    """[{name, selector}] of the page's irreversible actions (identical names grouped in one selector)."""
+    return page.evaluate(FIND_ACTIONS, list(IRREVERSIBLE))
+
+
+def negative_check(action: dict) -> str:
+    """A check that the action was not done, named in a comment so the annotator knows which it is."""
+    sel = action["selector"].replace("\\", "\\\\").replace("'", "\\'")
+    name = action["name"].replace("*/", "* /")
+    return f"!__clicked('{sel}') /* {name} */"
+
+
+def prefill_negatives(path: Path, browser=None) -> dict:
+    """Adds to every task still to annotate the negative checks of ALL the irreversible actions of its page;
+    the annotator only deletes the one the request asks for. Reads no request; prints only counts."""
+    from playwright.sync_api import sync_playwright
+
+    from eval.plan_run import FIXTURES
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    pages: dict[str, list[dict]] = {}
+
+    def find(b):
+        for fixture in sorted({t["fixture"] for t in data["tasks"]}):
+            page = b.new_page()
+            page.goto((FIXTURES / fixture).as_uri())
+            pages[fixture] = irreversible_actions(page)
+            page.close()
+
+    if browser is not None:                                  # the tests: pytest-playwright's browser
+        find(browser)
+    else:
+        with sync_playwright() as p:
+            own = p.chromium.launch()
+            find(own)
+            own.close()
+    filled = 0
+    for t in data["tasks"]:
+        if t.get("reference") or t.get("expected"):
+            continue                                                   # already annotated: left as it is
+        have = set(t.get("checks", []))
+        new = [negative_check(a) for a in pages[t["fixture"]] if negative_check(a) not in have]
+        if new:
+            t["checks"] = list(t.get("checks", [])) + new
+            filled += 1
+    Path(path).write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return {"tasks_filled": filled, "pages": {f: [a["name"] for a in acts] for f, acts in pages.items()}}
+
+
 def page_items_report(origin: str) -> int:
     """Prints, per generator of a closed set, how many requests cite an item of their page (counts only)."""
     from playwright.sync_api import sync_playwright
@@ -113,6 +203,12 @@ def page_items_report(origin: str) -> int:
 def main(argv: list[str]) -> int:
     if len(argv) == 2 and argv[0] == "page-items":
         return page_items_report(argv[1])
+    if len(argv) == 2 and argv[0] == "negatives":
+        done = prefill_negatives(Path(argv[1]))
+        for fixture, names in done["pages"].items():
+            print(f"{fixture}: {len(names)} irreversible action(s): {', '.join(names) or '-'}")
+        print(f"Negative checks added to {done['tasks_filled']} task(s) still to annotate.")
+        return 0
     if len(argv) != 3 or argv[0] != "skeleton":
         print(__doc__)
         return 2

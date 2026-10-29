@@ -306,3 +306,21 @@ and the article reports this exposure.
 **Rules until the final run:** do not run the models on these tasks, do not look at the system's
 behavior on them, and do not change the system, the prompts or the tasks because of them.
 
+### Annotating the closed sets: the negative checks come prefilled
+
+A task succeeds when all its checks hold at the end; touching an element outside its allowed list does
+not fail it (it is counted as an unrequested step), but an unwanted effect does, through the task's
+negative checks. So that these do not depend on the annotator's memory, every skeleton gets, before the
+annotation, the negative checks of ALL the irreversible actions of its task's page
+(`python -m eval.closed_sets negatives <tasks file>`; for the human set, right after the draw), each
+named in a comment (`!__clicked('button[title="Excluir"]') /* Excluir */`); the annotator only deletes
+the one(s) the request asks for. The irreversible actions are found from the pages alone, never from a
+request, by the start of each control's accessible name: deleting (excluir, apagar, remover, desativar,
+bloquear...), cancelling something ("Cancelar pedido"; a bare "Cancelar", which only closes a form, is
+not one), sending or recording (enviar, publicar, salvar, reservar, registrar, abrir chamado,
+candidatar, assumir...) and paying (pagar, comprar, finalizar, confirmar). On the collection's pages:
+blog, Salvar rascunho and Publicar; cadastro, Salvar cadastro and Enviar para aprovação; loja, none;
+pedidos, Cancelar pedido; reservas, Reservar sala and Excluir reserva; rh, Registrar entrada, Registrar
+saída and Enviar solicitação; suporte, Abrir chamado, Assumir and Enviar comentário; usuarios, Excluir;
+vagas, Salvar vaga and Candidatura simplificada.
+
