@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The annotation recorder** (`python -m eval.annotate`): the person annotates a closed set by doing
+  each request on its page, in a browser window with the request in a panel; their steps, the elements
+  they touched and the final state become the reference plan, the allowed elements and the checks (a
+  question by selecting its answer; an impossible request by its reason), checked on the spot and saved
+  at once. It never prints a request.
 - **The closed resilience set's final run** (`python -m eval.resilience.run --final`): level 0 and the
   150 closed tasks, once, on the tagged release, refusing a changed working copy or any file of the set
   that differs from its manifest; every row says whether its combination reaches the reference plan,
