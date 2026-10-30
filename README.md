@@ -119,7 +119,7 @@ Once a task has been learned, it can be saved and replayed without the LLM, here
 spreadsheet, in about 3 seconds each:
 
 <p align="center">
-  <img src="docs/images/saved_automation_spreadsheet.gif" alt="A saved automation replaying a registration once per spreadsheet row, with no model calls" width="900">
+  <img src="docs/images/saved_automation_spreadsheet.gif" alt="A saved automation replaying a registration once per spreadsheet row, with no model calls (redrawn from a recorded run of version 0.4; the terminal text is the run's own)" width="900">
 </p>
 
 What sets it apart is **who controls what**:
@@ -137,7 +137,7 @@ is not sure, so it numbers the candidates and asks; the next run remembers the a
 nothing:
 
 <p align="center">
-  <img src="docs/images/user_choice_remembered.gif" alt="ANCHOR asks which button to use after the site changed, remembers the answer, and the next run asks nothing" width="900">
+  <img src="docs/images/user_choice_remembered.gif" alt="ANCHOR asks which button to use after the site changed, remembers the answer, and the next run asks nothing (redrawn from a recorded run of version 0.4; the terminal text is the run's own)" width="900">
 </p>
 
 * **Every action is verified**: the agent checks that the field got the value, that the page
