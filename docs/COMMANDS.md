@@ -34,8 +34,8 @@ The planner runs on local models served by [Ollama](https://ollama.com):
 | `ollama list` | Shows the downloaded models and their exact names (they go in `llm_profiles.json`). |
 | `ollama ps` | Shows the loaded model and whether it runs on the GPU or the CPU (column `PROCESSOR`). |
 
-For the paid OpenAI profile, set the key in an environment variable, never in a file. On
-Windows: `setx OPENAI_API_KEY "your-key"`, then open a new terminal.
+ANCHOR plans only with local models, through Ollama: no page, request or password leaves the
+computer, and no key is needed.
 
 ---
 
@@ -610,20 +610,20 @@ isort --check-only anchor eval tests examples     # import order (PEP 8 groups)
 
 ## Model profiles (`llm_profiles.json`)
 
-Each profile tells ANCHOR where the model is and how to call it. The file never stores keys.
+Each profile tells ANCHOR which local model to use and where Ollama runs.
 
 | Field | Meaning |
 |---|---|
 | `name` | The profile's name, used with `--profile` (e.g. `ollama-small`). The old names `ollama-pequeno` and `ollama-medio` still work. |
 | `model` | The model's exact name (in Ollama, as shown by `ollama list`, e.g. `qwen3.5:4b`). |
-| `api` | `ollama` (Ollama's native API, recommended for local models) or `openai` (the OpenAI format; default). |
-| `base_url` | The server's address (e.g. `http://localhost:11434` for Ollama); empty for the OpenAI API. |
-| `api_key_env` | The **name** of the environment variable holding the key (e.g. `OPENAI_API_KEY`); `null` for local models. |
+| `api` | `ollama`: Ollama's native API (the only one; the default). |
+| `base_url` | Ollama's address. Default: `http://localhost:11434`. |
+| `api_key_env` | Ignored. Accepted only so that older profile files (from when ANCHOR could call a remote API) still load. |
 | `temperature` | Sampling temperature. Default: 0 (the most repeatable answers). |
 | `timeout_s` | Seconds to wait for the model's answer. Default: 180. |
-| `think` | `ollama` API only: turns the reasoning of "thinking" models on or off. Default: `false`. |
-| `options` | `ollama` API only: model options, e.g. `{"num_ctx": 4096}` to fit a small GPU. |
-| `extra_body` | Extra parameters passed to the server on every call. |
+| `think` | Turns the reasoning of "thinking" models on or off. Default: `false`. |
+| `options` | Model options, e.g. `{"num_ctx": 4096}` to fit a small GPU. |
+| `extra_body` | Extra parameters passed to Ollama on every call. |
 | `prompt_language` | Planner prompt language: `pt` (default, the measured one), `en` or `auto`. |
 
 ## Environment variables
@@ -631,4 +631,3 @@ Each profile tells ANCHOR where the model is and how to call it. The file never 
 | Variable | Meaning |
 |---|---|
 | `ANCHOR_LANG` | Interface language: `en` (default) or `pt`. `--lang` overrides it. |
-| `OPENAI_API_KEY` | The OpenAI key, if you use the `openai` profile (the name is set by `api_key_env` in `llm_profiles.json`). |

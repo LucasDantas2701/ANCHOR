@@ -1,10 +1,9 @@
 """
-Client for Ollama's native API (/api/chat) with the same interface as the
-OpenAI SDK (client.chat.completions.create), so the planner does not change.
+Client for Ollama's native API (/api/chat), with a chat-completions interface
+(client.chat.completions.create) the planner calls.
 
 Why the native API: it can turn off the reasoning of "thinking" models
-("think": false) and set options such as the context size ("num_ctx"),
-which the OpenAI format does not guarantee.
+("think": false) and set options such as the context size ("num_ctx").
 """
 
 from __future__ import annotations
@@ -36,7 +35,7 @@ class OllamaClient:
         phase "thinking" or "writing". With it, the answer is streamed.
         """
         base = (base_url or "http://localhost:11434").rstrip("/")
-        if base.endswith("/v1"):  # accepts the OpenAI-format address by mistake
+        if base.endswith("/v1"):  # accepts an address ending in /v1 by mistake
             base = base[:-3]
         self.base = base
         self.url = base + "/api/chat"

@@ -131,14 +131,10 @@ MESSAGES: dict[str, dict[str, str]] = {
     # ------------------------------------------------------------ planner, profiles and Ollama
     "planner.gave_up": {"en": "invalid plan after {attempts} attempts: {error}",
                         "pt": "plano inválido depois de {attempts} tentativas: {error}"},
-    "config.needs_key": {"en": 'Profile "{profile}" needs the environment variable {env}.\n'
-                               'On Windows: setx {env} "your-key" (and open a new terminal).',
-                         "pt": 'O perfil "{profile}" precisa da variável de ambiente {env}.\n'
-                               'No Windows: setx {env} "sua-chave" (e abra um terminal novo).'},
     "config.no_model": {"en": 'Set the "model" field of profile "{profile}" in llm_profiles.json.',
                         "pt": 'Defina o campo "model" do perfil "{profile}" em llm_profiles.json.'},
-    "config.bad_api": {"en": 'Profile "{profile}": "api" must be "openai" or "ollama", not "{api}".',
-                       "pt": 'Perfil "{profile}": "api" deve ser "openai" ou "ollama", não "{api}".'},
+    "config.bad_api": {"en": 'Profile "{profile}": "api" must be "ollama" (the only one supported), not "{api}".',
+                       "pt": 'Perfil "{profile}": "api" deve ser "ollama" (a única aceita), não "{api}".'},
     "config.no_file": {"en": "Profiles file not found: {path}", "pt": "Arquivo de perfis não encontrado: {path}"},
     "config.unknown_profile": {"en": 'Profile "{profile}" does not exist. Available: {available}',
                                "pt": 'Perfil "{profile}" não existe. Disponíveis: {available}'},

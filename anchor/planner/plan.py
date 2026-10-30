@@ -31,7 +31,7 @@ ACTIONS = {
     "upload": True,         # sends a file; value = its path, which must come from the request
 }
 
-# JSON schema required from the model (OpenAI "structured outputs" format).
+# JSON schema required from the model (structured output).
 PLAN_SCHEMA = {
     "type": "object",
     "properties": {

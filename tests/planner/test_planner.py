@@ -6,8 +6,6 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-import httpx2
-import openai
 import pytest
 
 from anchor.engine.action_executor import ActionExecutor
@@ -21,6 +19,7 @@ from anchor.planner import (
     run_plan,
 )
 from anchor.planner.plan import Plan
+from anchor.planner.planner import SchemaNotSupported
 from anchor.planner.prompt import user_message
 
 CADASTRO = (Path(__file__).resolve().parents[2] / "eval" / "fixtures" / "registration.html").as_uri()
@@ -102,10 +101,7 @@ def test_without_extra_parameters_nothing_is_sent():
 
 
 def test_server_without_json_schema_uses_plain_json():
-    request = httpx2.Request("POST", "http://localhost/v1/chat/completions")
-    no_schema = openai.BadRequestError("json_schema não suportado",
-                                       response=httpx2.Response(400, request=request), body=None)
-    client = FakeClient(no_schema, GOOD)
+    client = FakeClient(SchemaNotSupported("json_schema não suportado"), GOOD)
     plan = LLMPlanner(client, "m").plan("cadastre a Maria Silva e salve", "http://x")
     assert len(plan.steps) == 2
     assert client.calls[1]["response_format"] == {"type": "json_object"}
@@ -131,11 +127,10 @@ def test_message_without_list_of_elements():
     assert "Pedido do usuário: abrir o carrinho" in msg and "Elementos" not in msg
 
 
-def test_profile_without_key_explains_how_to_configure(monkeypatch):
-    monkeypatch.delenv("CHAVE_DE_TESTE", raising=False)
-    profile = LLMProfile(name="p", model="m", api_key_env="CHAVE_DE_TESTE")
-    with pytest.raises(ConfigError, match="setx CHAVE_DE_TESTE"):
-        profile.client()
+def test_a_profile_for_another_api_is_refused_and_an_old_key_field_is_ignored():
+    with pytest.raises(ConfigError, match='"ollama"'):
+        LLMProfile(name="p", model="m", api="remote").client()
+    assert LLMProfile(name="p", model="m", api_key_env="OLD_KEY").client() is not None    # older files still load
 
 
 def test_profile_with_model_not_filled_in():
@@ -145,7 +140,7 @@ def test_profile_with_model_not_filled_in():
 
 def test_local_profile_does_not_require_a_key():
     client = LLMProfile(name="p", model="m", base_url="http://localhost:11434/v1").client()
-    assert str(client.base_url).startswith("http://localhost:11434")
+    assert client.url == "http://localhost:11434/api/chat"                     # Ollama's native API, even from a /v1 address
 
 
 def test_plan_run_on_the_form(page):

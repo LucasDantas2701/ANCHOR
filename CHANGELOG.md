@@ -57,6 +57,9 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   `nltk` joins the requirements (the dictionaries of level 2).
 
 ### Removed
+- **The OpenAI profile and API.** ANCHOR plans only with local models through Ollama (the only ones
+  ever measured): the `openai` profile, the OpenAI client, the `openai` package and the key variable
+  are gone. A profile file with the old `api_key_env` field still loads (the field is ignored).
 
 - The LinkedIn tests (`tests/real_sites/`), which were always skipped (the site forbids automation).
 - **The closed resilience catalog, version 2** (24/10/2026, before the generator and before any page

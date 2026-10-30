@@ -15,7 +15,6 @@ iniconfig==2.3.0
 isort==9.0.1
 joblib==1.5.3
 nltk==3.10.4
-openai==3.19.2
 packaging==26.3
 playwright==1.63.0
 pluggy==1.6.0

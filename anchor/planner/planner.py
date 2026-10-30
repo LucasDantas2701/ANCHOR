@@ -7,8 +7,6 @@ import re
 import time
 from typing import Optional, Protocol
 
-from openai import BadRequestError
-
 from anchor.i18n import t
 
 from .language import AUTO, DEFAULT_PROMPT_LANGUAGE, PROMPT_LANGUAGES, detect_language, mt
@@ -25,6 +23,9 @@ from .plan import (
 from .prompt import system_prompt, user_message
 from .reading import wants_data, wants_file, wants_upload
 
+
+class SchemaNotSupported(Exception):
+    """A client raises this when its server cannot follow a JSON schema; the planner then asks for plain JSON."""
 
 class Planner(Protocol):
     def plan(
@@ -54,7 +55,7 @@ def _extract_json(text: str, language: str = DEFAULT_PROMPT_LANGUAGE) -> object:
 
 class LLMPlanner:
     """
-    client: a client with the OpenAI SDK interface (client.chat.completions.create).
+    client: a client with a chat-completions interface (client.chat.completions.create), such as OllamaClient.
     max_attempts: if the model returns an invalid plan, it gets the error and tries again.
     extra_body: extra parameters passed to the server on every call
                 (e.g. to turn off the reasoning of a "thinking" model).
@@ -90,7 +91,7 @@ class LLMPlanner:
                     response_format={"type": "json_schema",
                                      "json_schema": {"name": "plano", "schema": PLAN_SCHEMA, "strict": True}},
                 )
-            except BadRequestError:
+            except SchemaNotSupported:
                 self._schema_supported = False  # server without schema support: ask for plain JSON
         return self.client.chat.completions.create(**kwargs, response_format={"type": "json_object"})
 
