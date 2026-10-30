@@ -44,7 +44,7 @@ GUIDES = [
     ("docs/guides/disambiguation.md", "Disambiguation and memory", "**See the disambiguation and the memory at work**"),
     ("docs/guides/model-profiles.md", "Model profiles", "**Model profiles**"),
 ]
-FILES = {"README.pt-BR.md": "pt-BR.md", "CHANGELOG.md": "changelog.md"}
+FILES = {"CHANGELOG.md": "changelog.md"}
 
 
 def slug(heading: str) -> str:
@@ -141,6 +141,7 @@ class Site:
         for src, dst in FILES.items():
             self.pages[dst] = (ROOT / src).read_text(encoding="utf-8")
         self.home()
+        self.home_pt()
 
     def home(self) -> None:
         tagline = re.search(r"(The ANCHOR web automation agent:[\s\S]*?you stay in control\.)", self.readme)
@@ -152,6 +153,30 @@ class Site:
             meta += [f"  - title: {quote(c['title'])}", f"    text: {quote(c['text'])}"]
         meta.append("---")
         self.pages["index.md"] = "\n".join(meta) + "\n"
+
+    def home_pt(self) -> None:
+        """The Portuguese page: the same landing page, from README.pt-BR.md, with the rest of it below."""
+        text = (ROOT / "README.pt-BR.md").read_text(encoding="utf-8")
+        parts = sections(text)
+        why = parts.get("Por que o ANCHOR")
+        if why is None:
+            raise SystemExit("README.pt-BR.md section not found: 'Por que o ANCHOR'")
+        cards = []
+        for item in re.findall(r"(?m)^\* (.*(?:\n  .*)*)", why):
+            m = re.match(r"\*\*(.+?)\*\*\s*(.*)", " ".join(item.split()))
+            if m:
+                rest = m.group(2).strip(" ,")
+                cards.append({"title": m.group(1).rstrip(":."), "text": rest[:1].upper() + rest[1:]})
+        intro = text.split("## ", 1)[0]
+        lead = [p for p in re.split(r"\n\s*\n", intro) if p.strip().startswith("O agente")]
+        lead = re.sub(r"\*\*([^*]+)\*\*", r"\1", " ".join(lead[0].split())) if lead else ""
+        meta = ["---", "template: home.html", "lang: pt", "title: ANCHOR, agente de automação web com RPA com IA e LLM local",
+                "hide: [navigation, toc]", f"tagline: {quote(lead)}", "cards:"]
+        for c in cards:
+            meta += [f"  - title: {quote(c['title'])}", f"    text: {quote(c['text'])}"]
+        meta.append("---")
+        rest = "\n\n".join(f"## {name}\n\n{body.strip()}" for name, body in parts.items() if name != "Por que o ANCHOR")
+        self.pages["pt-BR.md"] = "\n".join(meta) + "\n\n" + rest + "\n"
 
     # ------------------------------------------------------------------ links
     def link_map(self) -> None:

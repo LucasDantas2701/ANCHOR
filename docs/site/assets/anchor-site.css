@@ -82,3 +82,7 @@
 .md-typeset .ax-steps ol li { margin-left: 0; }
 .md-typeset a.ax-btn--primary, .md-typeset a.ax-btn--primary:hover, a.ax-btn--primary, a.ax-btn--primary:hover { color: #0C0A12; }
 .ax-hero .ax-link { font-size: .95rem; }
+
+/* The rest of a landing page's own text (the Portuguese page). */
+.ax-doc { margin-top: 2.6rem; }
+.md-typeset .ax-doc h2 { font-weight: 800; margin-top: 2rem; }

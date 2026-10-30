@@ -18,6 +18,7 @@ def test_every_page_of_the_site_finds_what_it_is_made_of():
     site = builder().Site()
     site.build()                                  # raises if a section, subsection or guide paragraph is missing
     assert "docs/guides/logins.md" in site.pages and "commands/agent.md" in site.pages
+    assert "template: home.html" in site.pages["pt-BR.md"] and "lang: pt" in site.pages["pt-BR.md"]   # the Portuguese landing page
     assert len(site.why()) >= 4                   # the landing page's cards
 
 

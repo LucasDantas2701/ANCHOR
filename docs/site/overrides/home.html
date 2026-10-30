@@ -1,26 +1,49 @@
 {% extends "main.html" %}
-{#- The landing page: the README's tagline and "Why ANCHOR" list (front matter written by build_site.py). -#}
-{% set icons = {"It runs entirely on your computer": "laptop", "You stay in control": "account-check",
-                "It heals itself": "bandage", "It is measured": "chart-bar", "It is open source": "source-branch"} %}
-{% set colours = {"It runs entirely on your computer": "local", "You stay in control": "control",
-                  "It heals itself": "heal", "It is measured": "measured", "It is open source": "open"} %}
+{#- The landing page, in English (index) or Portuguese (pt-BR): the tagline and the cards come from the
+    README (front matter written by build_site.py); the cards keep their order, and so their colours. -#}
+{% set pt = page.meta.lang == "pt" %}
+{% set icons = ["laptop", "account-check", "bandage", "chart-bar", "source-branch"] %}
+{% set kinds = ["local", "control", "heal", "measured", "open"] %}
+{% if pt %}
+  {% set s = {"title_rest": "transforma pedidos em linguagem natural em automação web que se recupera sozinha, roda no seu computador e mantém você no controle.",
+              "start": "Começar", "start_href": "#como-comecar", "star": "Estrela no GitHub", "other": "Read in English", "other_href": "./" | url,
+              "chips": ["100% local · Ollama", "você no controle", "se recupera sozinho", "Apache 2.0"],
+              "how": "Como funciona",
+              "steps": [["Você descreve a tarefa", "Em linguagem natural, em português ou inglês, com o link da página."],
+                        ["Um LLM local planeja", "Um modelo pequeno no seu computador escreve os passos. Ele nunca age."],
+                        ["O código age e confere", "Cada passo é feito, conferido e, se a página mudou, recuperado. Passos sensíveis esperam por você."]],
+              "cta": "Experimente nas páginas de teste", "cta_text": "O repositório vem com páginas de teste, então o seu primeiro pedido não toca em nenhum site real.",
+              "cta_btn": "Ver como começar", "cta_href": "#como-comecar",
+              "alt": "O ANCHOR em 25 segundos: o modelo só planeja, o código age e confere cada passo"} %}
+{% else %}
+  {% set s = {"title_rest": "turns plain-language requests into web automation that heals itself, runs on your computer, and keeps you in control.",
+              "start": "Get started", "start_href": "docs/installation/" | url, "star": "Star on GitHub", "other": "Leia em português", "other_href": "pt-BR/" | url,
+              "chips": ["100% local · Ollama", "human in the loop", "self-healing", "Apache 2.0"],
+              "how": "How it works",
+              "steps": [["You describe the task", "In plain language, in English or Portuguese, with the page's link."],
+                        ["A local LLM plans it", "A small model on your computer writes the steps. It never acts."],
+                        ["The code acts and checks", "Each step is done, checked and, if the page changed, recovered. Sensitive steps wait for you."]],
+              "cta": "Try it on the test pages", "cta_text": "The repository comes with test pages, so your first request touches no real site.",
+              "cta_btn": "See the quick example", "cta_href": "docs/quick-example/" | url,
+              "alt": "ANCHOR in 25 seconds: the model only plans, the code acts and checks every step"} %}
+{% endif %}
 {% block tabs %}
   {{ super() }}
   <section class="ax-hero">
     <div class="ax-wrap">
       <p class="ax-eyebrow"><b>A</b>daptive <b>N</b>atural-language <b>C</b>ontrol with <b>H</b>uman <b>O</b>versight and <b>R</b>ecovery</p>
-      <h1 class="ax-title"><span class="ax-brand">ANCHOR</span> turns plain-language requests into web automation that heals itself, runs on your computer, and keeps you in control.</h1>
+      <h1 class="ax-title"><span class="ax-brand">ANCHOR</span> {{ s.title_rest }}</h1>
       <p class="ax-lead">{{ page.meta.tagline }}</p>
       <div class="ax-actions">
-        <a class="ax-btn ax-btn--primary" href="{{ 'docs/installation/' | url }}">Get started</a>
-        <a class="ax-btn ax-btn--ghost" href="{{ config.repo_url }}">{% include ".icons/fontawesome/brands/github.svg" %} Star on GitHub</a>
-        <a class="ax-link" href="{{ 'pt-BR/' | url }}">Leia em português</a>
+        <a class="ax-btn ax-btn--primary" href="{{ s.start_href }}">{{ s.start }}</a>
+        <a class="ax-btn ax-btn--ghost" href="{{ config.repo_url }}">{% include ".icons/fontawesome/brands/github.svg" %} {{ s.star }}</a>
+        <a class="ax-link" href="{{ s.other_href }}">{{ s.other }}</a>
       </div>
       <div class="ax-chips">
-        <span class="ax-chip ax-chip--local">100% local · Ollama</span>
-        <span class="ax-chip ax-chip--control">human in the loop</span>
-        <span class="ax-chip ax-chip--heal">self-healing</span>
-        <span class="ax-chip ax-chip--open">Apache 2.0</span>
+        <span class="ax-chip ax-chip--local">{{ s.chips[0] }}</span>
+        <span class="ax-chip ax-chip--control">{{ s.chips[1] }}</span>
+        <span class="ax-chip ax-chip--heal">{{ s.chips[2] }}</span>
+        <span class="ax-chip ax-chip--open">{{ s.chips[3] }}</span>
       </div>
     </div>
   </section>
@@ -28,9 +51,9 @@
 {% block content %}
   <section class="ax-cards">
     {% for card in page.meta.cards %}
-      {% set kind = colours.get(card.title, "local") %}
-      <article class="ax-card ax-card--{{ kind }}">
-        <span class="ax-icon">{% include ".icons/material/" ~ icons.get(card.title, "shield-check") ~ ".svg" %}</span>
+      {% set k = (loop.index0 if loop.index0 < 5 else 4) %}
+      <article class="ax-card ax-card--{{ kinds[k] }}">
+        <span class="ax-icon">{% include ".icons/material/" ~ icons[k] ~ ".svg" %}</span>
         <h2>{{ card.title }}</h2>
         <p>{{ card.text }}</p>
       </article>
@@ -38,23 +61,27 @@
   </section>
 
   <section class="ax-steps">
-    <h2 class="ax-section">How it works</h2>
+    <h2 class="ax-section">{{ s.how }}</h2>
     <ol>
-      <li><span class="ax-num ax-num--1">1</span><div><b>You describe the task</b><p>In plain language, in English or Portuguese, with the page's link.</p></div></li>
-      <li><span class="ax-num ax-num--2">2</span><div><b>A local LLM plans it</b><p>A small model on your computer writes the steps. It never acts.</p></div></li>
-      <li><span class="ax-num ax-num--3">3</span><div><b>The code acts and checks</b><p>Each step is done, checked and, if the page changed, recovered. Sensitive steps wait for you.</p></div></li>
+      {% for step in s.steps %}
+        <li><span class="ax-num ax-num--{{ loop.index }}">{{ loop.index }}</span><div><b>{{ step[0] }}</b><p>{{ step[1] }}</p></div></li>
+      {% endfor %}
     </ol>
   </section>
 
   <section class="ax-demo">
-    <img src="{{ 'images/anchor_overview.gif' | url }}" alt="ANCHOR in 25 seconds: the model only plans, the code acts and checks every step">
+    <img src="{{ 'images/anchor_overview.gif' | url }}" alt="{{ s.alt }}">
   </section>
+
+  {% if page.content and page.content | trim %}
+    <section class="ax-doc">{{ page.content }}</section>
+  {% endif %}
 
   <section class="ax-cta">
     <div>
-      <h2>Try it on the test pages</h2>
-      <p>The repository comes with test pages, so your first request touches no real site.</p>
+      <h2>{{ s.cta }}</h2>
+      <p>{{ s.cta_text }}</p>
     </div>
-    <a class="ax-btn ax-btn--primary" href="{{ 'docs/quick-example/' | url }}">See the quick example {% include ".icons/material/arrow-right.svg" %}</a>
+    <a class="ax-btn ax-btn--primary" href="{{ s.cta_href }}">{{ s.cta_btn }} {% include ".icons/material/arrow-right.svg" %}</a>
   </section>
 {% endblock %}
