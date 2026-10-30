@@ -17,10 +17,14 @@
   <p align="center">
     <b>A</b>daptive <b>N</b>atural-language <b>C</b>ontrol with <b>H</b>uman <b>O</b>versight and <b>R</b>ecovery
     <br />
-    Web automation from plain-language requests, with a human in the loop.
+    <br />
+    The ANCHOR web automation agent: self-healing web automation that runs locally with Ollama and
+    Playwright. Describe the task in plain language, a small local LLM plans it, and you stay in control.
     <br />
     <br />
     <a href="#getting-started"><strong>Get started »</strong></a>
+    &middot;
+    <a href="README.pt-BR.md">Leia em português</a>
     <br />
     <br />
     <a href="https://github.com/LucasDantas2701/ANCHOR/issues/new?template=problem.yml">Report a bug</a>
@@ -69,6 +73,19 @@
 <p align="center">
   <img src="docs/images/anchor_overview.gif" alt="ANCHOR in 25 seconds: the model only plans, the code acts and checks every step; a request done start to finish, and the resilience numbers" width="900">
 </p>
+
+**Why ANCHOR:**
+
+* **It runs entirely on your computer.** The plans come from a small LLM run locally by
+  [Ollama](https://ollama.com) (Qwen 3.5, 4B or 9B); no page, request or password leaves your machine.
+* **You stay in control.** It asks before anything sensitive (saving, sending, paying, deleting,
+  downloading or uploading files), blocks what the request did not ask for, leaves logins to you, and
+  stops instead of guessing.
+* **It heals itself.** When a page changes, it finds the element again, checks every step, and keeps
+  the fix for next time, instead of breaking like a fixed selector.
+* **It is measured.** Development suites, prompt-injection pages and a resilience benchmark against
+  a traditional script and an LLM in control.
+* **It is open source**, under the Apache 2.0 license.
 
 Traditional RPA depends on fixed selectors, written by a developer:
 

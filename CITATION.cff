@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use ANCHOR, please cite it as below."
+title: "ANCHOR: Adaptive Natural-language Control with Human Oversight and Recovery"
+abstract: >-
+  A self-healing web automation agent that runs locally with Ollama and Playwright: a person
+  describes the task in plain language, a small local LLM plans it, and the code acts, checks every
+  step and asks before anything sensitive.
+type: software
+authors:
+  - given-names: Lucas
+    family-names: dos Santos Dantas
+version: 0.4.0
+date-released: 2026-10-17
+license: Apache-2.0
+repository-code: "https://github.com/LucasDantas2701/ANCHOR"
+url: "https://github.com/LucasDantas2701/ANCHOR"
+keywords:
+  - web automation
+  - robotic process automation
+  - LLM agents
+  - human-in-the-loop
+  - self-healing
+  - Ollama
+  - Playwright
+  - local LLM
