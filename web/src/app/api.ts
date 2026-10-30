@@ -41,6 +41,7 @@ export interface Fix {
 }
 export interface Note { number: number; date: string; text: string; run: string; sent: boolean; edited?: string; }
 export interface Decision { number: number; date: string; action: string; element: string; category: string; decision: 'allowed' | 'denied'; }
+export interface SavedLogin { site: string; username: string; created: string; last_used: string; scheduled: boolean; }
 export interface RowOutcome { number: number; state: JobState; message: string; values: Record<string, string>; }
 export interface SheetCheck {
   rows: number; columns: string[]; missing: string[]; extra: string[]; blank_rows: number[]; too_many: boolean;
@@ -72,6 +73,13 @@ export class Api {
     return this.http.put<{ relearn: boolean; parameters: string[] }>(this.at(name), { request, url, profile });
   }
   remove(name: string, confirm: string) { return this.http.delete(this.at(name), { params: { confirm } }); }
+  logins() { return this.http.get<SavedLogin[]>('/api/logins'); }
+  addLogin(site: string, username: string, password: string, scheduled: boolean) {
+    return this.http.post<SavedLogin>('/api/logins', { site, username, password, scheduled });
+  }
+  replacePassword(site: string, username: string, password: string) { return this.http.put('/api/logins/password', { site, username, password }); }
+  setScheduled(site: string, username: string, scheduled: boolean) { return this.http.put('/api/logins/scheduled', { site, username, scheduled }); }
+  deleteLogin(site: string, username: string) { return this.http.delete('/api/logins', { params: { site, username } }); }
   requestChoices() { return this.http.get<{ site: string; choices: Choice[] }[]>('/api/choices'); }
   forgetRequestChoice(key: string) { return this.http.delete('/api/choices', { params: { key } }); }
   forgetRequestSite(site: string) { return this.http.delete('/api/choices', { params: { site } }); }

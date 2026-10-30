@@ -19,6 +19,7 @@ from anchor.i18n import set_language, t
 from anchor.planner import Goal, Step
 from anchor.planner.config import ConfigError, load_profiles
 
+from .logins import add_routes as add_login_routes
 from .manage import add_routes as add_manage_routes
 from .runs import RunManager, Runner
 
@@ -63,7 +64,8 @@ def _profiles() -> list[dict]:
 
 def create_app(store_root: str | Path = "automations", token: Optional[str] = None,
                static_dir: Path = STATIC, port: Optional[int] = None, runner: Optional[Runner] = None,
-               headless: bool = False, request_memory: str | Path = "memory/agent.json") -> FastAPI:
+               headless: bool = False, request_memory: str | Path = "memory/agent.json",
+               vault=None) -> FastAPI:
     """
     The app. `token` is the code every API request must carry; `port`, the one it serves on;
     `runner` does the runs (default: the real browser and model, with a window unless `headless`).
@@ -291,6 +293,12 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
 
     # Looking after a saved automation: fixes, notes, decisions, choices, edit, delete (anchor/ui/manage.py).
     add_manage_routes(app, store, runs, request_memory)
+    # Saved logins (Settings): passwords go to the system's credential store and are never answered.
+    if vault is None:
+        from anchor.vault import LoginVault
+        vault = LoginVault("memory/logins.json")
+    app.state.vault = vault
+    add_login_routes(app, vault)
 
     @app.get("/{path:path}")
     def files(path: str):

@@ -18,6 +18,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Saved logins, first part: keeping them (0.5).** In Settings, a login is saved for an exact site
+  (scheme, host and port; https only, or this computer): the password goes to the system's credential
+  store (Windows' Credential Manager, through `keyring`, a new dependency), and a local file keeps only
+  the site, the user name, dates and whether scheduled runs may use it (off until turned on). No
+  interface, answer or error ever returns a password: it can be replaced or deleted, never read back.
+  Using a saved login in runs comes in the second part.
 - **Settings, with the choices remembered from requests (0.5, part 5b-5).** The choices made when
   ANCHOR was not sure, in requests (the file the command line shares, `memory/agent.json`), listed by
   site, with **Forget** and **Forget all for this site**; each automation's are in its Choices tab.
