@@ -21,14 +21,14 @@ theme:
     code: Geist Mono
   favicon: assets/anchor-icon.svg
   palette:
-    - scheme: slate
-      primary: custom
-      accent: custom
-      toggle: { icon: material/weather-sunny, name: Light mode }
     - scheme: default
       primary: custom
       accent: custom
       toggle: { icon: material/weather-night, name: Dark mode }
+    - scheme: slate
+      primary: custom
+      accent: custom
+      toggle: { icon: material/weather-sunny, name: Light mode }
   features:
     - navigation.tabs
     - navigation.tabs.sticky
@@ -43,7 +43,7 @@ theme:
     repo: fontawesome/brands/github
 
 extra_css:
-  - assets/anchor.css
+  - assets/anchor-site.css
 
 extra:
   social:

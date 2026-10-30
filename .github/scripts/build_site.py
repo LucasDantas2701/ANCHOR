@@ -95,6 +95,7 @@ class Site:
             m = re.match(r"\*\*(.+?)\*\*\s*(.*)", text)
             title, rest = (m.group(1), m.group(2)) if m else (text, "")
             rest = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", rest).strip(" ,")
+            rest = rest[:1].upper() + rest[1:]
             cards.append({"title": title.rstrip("."), "text": rest})
         return cards
 

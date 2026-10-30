@@ -1,29 +1,60 @@
 {% extends "main.html" %}
-{#- The landing page: the README's tagline and its "Why ANCHOR" list (front matter written by build_site.py). -#}
+{#- The landing page: the README's tagline and "Why ANCHOR" list (front matter written by build_site.py). -#}
+{% set icons = {"It runs entirely on your computer": "laptop", "You stay in control": "account-check",
+                "It heals itself": "bandage", "It is measured": "chart-bar", "It is open source": "source-branch"} %}
+{% set colours = {"It runs entirely on your computer": "local", "You stay in control": "control",
+                  "It heals itself": "heal", "It is measured": "measured", "It is open source": "open"} %}
 {% block tabs %}
   {{ super() }}
-  <section class="anchor-hero">
-    <div class="anchor-hero__inner">
-      <img class="anchor-hero__word" src="{{ 'assets/anchor-wordmark.svg' | url }}" alt="ANCHOR">
-      <p class="anchor-hero__name"><b>A</b>daptive <b>N</b>atural-language <b>C</b>ontrol with <b>H</b>uman <b>O</b>versight and <b>R</b>ecovery</p>
-      <h1 class="anchor-hero__title">Web automation that heals itself, runs on your computer, and keeps you in control.</h1>
-      <p class="anchor-hero__lead">{{ page.meta.tagline }}</p>
-      <div class="anchor-hero__actions">
-        <a class="md-button md-button--primary" href="{{ 'docs/installation/' | url }}">Get started</a>
-        <a class="md-button" href="{{ config.repo_url }}">Star on GitHub</a>
-        <a class="anchor-hero__pt" href="{{ 'pt-BR/' | url }}">Leia em português</a>
+  <section class="ax-hero">
+    <div class="ax-wrap">
+      <p class="ax-eyebrow"><b>A</b>daptive <b>N</b>atural-language <b>C</b>ontrol with <b>H</b>uman <b>O</b>versight and <b>R</b>ecovery</p>
+      <h1 class="ax-title"><span class="ax-brand">ANCHOR</span> turns plain-language requests into web automation that heals itself, runs on your computer, and keeps you in control.</h1>
+      <p class="ax-lead">{{ page.meta.tagline }}</p>
+      <div class="ax-actions">
+        <a class="ax-btn ax-btn--primary" href="{{ 'docs/installation/' | url }}">Get started</a>
+        <a class="ax-btn ax-btn--ghost" href="{{ config.repo_url }}">{% include ".icons/fontawesome/brands/github.svg" %} Star on GitHub</a>
+        <a class="ax-link" href="{{ 'pt-BR/' | url }}">Leia em português</a>
+      </div>
+      <div class="ax-chips">
+        <span class="ax-chip ax-chip--local">100% local · Ollama</span>
+        <span class="ax-chip ax-chip--control">human in the loop</span>
+        <span class="ax-chip ax-chip--heal">self-healing</span>
+        <span class="ax-chip ax-chip--open">Apache 2.0</span>
       </div>
     </div>
   </section>
 {% endblock %}
 {% block content %}
-  <section class="anchor-cards">
+  <section class="ax-cards">
     {% for card in page.meta.cards %}
-      <div class="anchor-card"><h2>{{ card.title }}</h2><p>{{ card.text }}</p></div>
+      {% set kind = colours.get(card.title, "local") %}
+      <article class="ax-card ax-card--{{ kind }}">
+        <span class="ax-icon">{% include ".icons/material/" ~ icons.get(card.title, "shield-check") ~ ".svg" %}</span>
+        <h2>{{ card.title }}</h2>
+        <p>{{ card.text }}</p>
+      </article>
     {% endfor %}
   </section>
-  <section class="anchor-demo">
+
+  <section class="ax-steps">
+    <h2 class="ax-section">How it works</h2>
+    <ol>
+      <li><span class="ax-num ax-num--1">1</span><div><b>You describe the task</b><p>In plain language, in English or Portuguese, with the page's link.</p></div></li>
+      <li><span class="ax-num ax-num--2">2</span><div><b>A local LLM plans it</b><p>A small model on your computer writes the steps. It never acts.</p></div></li>
+      <li><span class="ax-num ax-num--3">3</span><div><b>The code acts and checks</b><p>Each step is done, checked and, if the page changed, recovered. Sensitive steps wait for you.</p></div></li>
+    </ol>
+  </section>
+
+  <section class="ax-demo">
     <img src="{{ 'images/anchor_overview.gif' | url }}" alt="ANCHOR in 25 seconds: the model only plans, the code acts and checks every step">
-    <p><a href="{{ 'docs/introduction/' | url }}">How ANCHOR works →</a></p>
+  </section>
+
+  <section class="ax-cta">
+    <div>
+      <h2>Try it on the test pages</h2>
+      <p>The repository comes with test pages, so your first request touches no real site.</p>
+    </div>
+    <a class="ax-btn ax-btn--primary" href="{{ 'docs/quick-example/' | url }}">See the quick example {% include ".icons/material/arrow-right.svg" %}</a>
   </section>
 {% endblock %}

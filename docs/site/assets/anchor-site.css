@@ -1,0 +1,84 @@
+/* ANCHOR's site. Light by default, dark on the toggle; the interface's design system: near-black violet,
+   lime, lilac. Lime is for fills (buttons, marks); on white, text accents use a deeper green of the
+   same family so they stay readable. */
+:root, [data-md-color-scheme="default"] {
+  --ax-bg: #FFFFFF; --ax-ink: #14121A; --ax-muted: #5D576B; --ax-line: #E6E2EE;
+  --ax-brand-ink: #4F7A0A; --ax-lime: #C8F25A; --ax-lilac: #6A4BC0;
+  --ax-hero: radial-gradient(1100px 520px at 85% -10%, rgba(106,75,192,.16), transparent 60%),
+             radial-gradient(800px 420px at -5% 110%, rgba(200,242,90,.30), transparent 60%), #F6F4FA;
+  --ax-card: #FFFFFF; --ax-shadow: 0 1px 2px rgba(20,18,26,.06), 0 8px 24px rgba(20,18,26,.06);
+  --md-primary-fg-color: #14121A; --md-primary-bg-color: #FFFFFF;
+  --md-accent-fg-color: #6A4BC0; --md-typeset-a-color: #6A4BC0;
+}
+[data-md-color-scheme="slate"] {
+  --ax-bg: #0C0A12; --ax-ink: #F3F1F7; --ax-muted: #A39DB3; --ax-line: #2A2635;
+  --ax-brand-ink: #D2F57A; --ax-lime: #D2F57A; --ax-lilac: #B9A3F5;
+  --ax-hero: radial-gradient(1100px 520px at 85% -10%, rgba(185,163,245,.22), transparent 60%),
+             radial-gradient(800px 420px at -5% 110%, rgba(210,245,122,.12), transparent 60%), #0C0A12;
+  --ax-card: #14111C; --ax-shadow: none;
+  --md-default-bg-color: #0C0A12; --md-primary-fg-color: #0C0A12; --md-primary-bg-color: #F3F1F7;
+  --md-accent-fg-color: #D2F57A; --md-typeset-a-color: #B9A3F5; --md-default-fg-color: #F3F1F7; --md-code-bg-color: #17141F;
+}
+/* The meaning of each colour: local (lime), the person (lilac), healing (teal), measuring (amber), open (pink). */
+:root { --ax-local: #7DB31A; --ax-control: #7C5CD6; --ax-heal: #0E9F8E; --ax-measured: #D98A04; --ax-open: #D9468E; }
+[data-md-color-scheme="slate"] { --ax-local: #D2F57A; --ax-control: #B9A3F5; --ax-heal: #5EEAD4; --ax-measured: #FBBF24; --ax-open: #F472B6; }
+
+.md-header { border-bottom: 2px solid var(--ax-lime); }
+.md-typeset h1 { font-weight: 800; letter-spacing: -0.01em; color: var(--md-default-fg-color); }
+.md-typeset table:not([class]) td:first-child code { white-space: nowrap; }
+
+/* Hero */
+.ax-hero { background: var(--ax-hero); color: var(--ax-ink); padding: 4.5rem 1.2rem 4rem; border-bottom: 1px solid var(--ax-line); }
+.ax-wrap { max-width: 61rem; margin: 0 auto; }
+.ax-eyebrow { font: 600 .78rem/1.4 var(--md-code-font-family, monospace); letter-spacing: .02em; color: var(--ax-muted); margin: 0 0 1.2rem; }
+.ax-eyebrow b { color: var(--ax-brand-ink); }
+.ax-title { font-size: clamp(1.9rem, 4.2vw, 3.1rem); line-height: 1.12; font-weight: 800; letter-spacing: -0.025em; margin: 0 0 1.2rem; color: var(--ax-ink); }
+.ax-brand { color: var(--ax-brand-ink); }
+.ax-lead { font-size: 1.12rem; line-height: 1.55; color: var(--ax-muted); max-width: 44rem; margin: 0 0 2rem; }
+.ax-actions { display: flex; gap: .9rem; align-items: center; flex-wrap: wrap; }
+.ax-btn { display: inline-flex; align-items: center; gap: .5rem; font-size: .95rem; font-weight: 700; padding: .8rem 1.5rem;
+          border-radius: .55rem; text-decoration: none; transition: transform .12s ease, box-shadow .12s ease; }
+.ax-btn svg { width: 1.1em; height: 1.1em; fill: currentColor; }
+.ax-btn:hover { transform: translateY(-1px); }
+.ax-btn--primary, .ax-btn--primary:hover { background: var(--ax-lime); color: #0C0A12; box-shadow: 0 6px 18px rgba(125,179,26,.28); }
+.ax-btn--ghost, .ax-btn--ghost:hover { border: 1.5px solid var(--ax-line); color: var(--ax-ink); background: var(--ax-card); }
+.ax-link { color: var(--ax-lilac); font-weight: 600; margin-left: .3rem; }
+.ax-chips { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 2rem; }
+.ax-chip { font: 600 .74rem/1 var(--md-code-font-family, monospace); padding: .45rem .8rem; border-radius: 999px; border: 1.5px solid currentColor; }
+.ax-chip--local { color: var(--ax-local); } .ax-chip--control { color: var(--ax-control); }
+.ax-chip--heal { color: var(--ax-heal); } .ax-chip--open { color: var(--ax-open); }
+
+/* Cards */
+.ax-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1.1rem; margin: 2.2rem 0 3rem; }
+.ax-card { --c: var(--ax-local); position: relative; background: var(--ax-card); border: 1px solid var(--ax-line); border-radius: .8rem;
+           padding: 1.3rem 1.3rem 1.2rem; box-shadow: var(--ax-shadow); overflow: hidden; }
+.ax-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 4px; background: var(--c); }
+.ax-card--control { --c: var(--ax-control); } .ax-card--heal { --c: var(--ax-heal); }
+.ax-card--measured { --c: var(--ax-measured); } .ax-card--open { --c: var(--ax-open); }
+.ax-icon { display: inline-grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: .6rem; margin-bottom: .8rem;
+           background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
+.ax-icon svg { width: 1.35rem; height: 1.35rem; fill: currentColor; }
+.md-typeset .ax-card h2 { margin: 0 0 .45rem; font-size: 1.02rem; font-weight: 750; color: var(--ax-ink); }
+.md-typeset .ax-card p { margin: 0; font-size: .82rem; line-height: 1.55; color: var(--ax-muted); }
+
+/* How it works */
+.md-typeset .ax-section { font-size: 1.5rem; font-weight: 800; margin: 0 0 1.2rem; color: var(--ax-ink); }
+.ax-steps ol { list-style: none; margin: 0 0 2.8rem !important; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1.1rem; }
+.md-typeset .ax-steps li { margin: 0; display: flex; gap: .9rem; align-items: flex-start; padding: 1.1rem; border-radius: .8rem; border: 1px dashed var(--ax-line); }
+.ax-num { flex: none; display: grid; place-items: center; width: 2.1rem; height: 2.1rem; border-radius: 50%; font-weight: 800; color: #0C0A12; }
+.ax-num--1 { background: var(--ax-control); color: #fff; } .ax-num--2 { background: var(--ax-lime); } .ax-num--3 { background: var(--ax-heal); color: #fff; }
+.md-typeset .ax-steps p { margin: .25rem 0 0; font-size: .82rem; color: var(--ax-muted); }
+
+.ax-demo img { width: 100%; border-radius: .8rem; border: 1px solid var(--ax-line); box-shadow: var(--ax-shadow); }
+
+/* Call to action */
+.ax-cta { margin: 3rem 0 1rem; padding: 1.6rem 1.8rem; border-radius: .9rem; display: flex; gap: 1.2rem; align-items: center; justify-content: space-between;
+          flex-wrap: wrap; background: linear-gradient(120deg, color-mix(in srgb, var(--ax-lilac) 14%, transparent), color-mix(in srgb, var(--ax-lime) 22%, transparent)); }
+.md-typeset .ax-cta h2 { margin: 0 0 .3rem; font-size: 1.2rem; font-weight: 800; }
+.md-typeset .ax-cta p { margin: 0; color: var(--ax-muted); font-size: .85rem; }
+
+/* Fixes over the theme's own typesetting rules. */
+.md-typeset .ax-steps ol { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1.1rem; margin: 0 0 2.8rem; padding: 0; }
+.md-typeset .ax-steps ol li { margin-left: 0; }
+.md-typeset a.ax-btn--primary, .md-typeset a.ax-btn--primary:hover, a.ax-btn--primary, a.ax-btn--primary:hover { color: #0C0A12; }
+.ax-hero .ax-link { font-size: .95rem; }
