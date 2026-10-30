@@ -9,6 +9,8 @@ repo_name: LucasDantas2701/ANCHOR
 edit_uri: ""
 copyright: ANCHOR is open source, under the Apache 2.0 license.
 docs_dir: site_src
+# The menu (nav:) is written by .github/scripts/build_site.py, from the pages it makes.
+INHERIT: site_nav.yml
 
 theme:
   name: material
@@ -28,10 +30,15 @@ theme:
       accent: custom
       toggle: { icon: material/weather-night, name: Dark mode }
   features:
+    - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
+    - navigation.footer
     - navigation.top
+    - toc.follow
     - content.code.copy
     - search.highlight
+    - search.suggest
   icon:
     repo: fontawesome/brands/github
 
@@ -43,7 +50,7 @@ extra:
     - icon: fontawesome/brands/github
       link: https://github.com/LucasDantas2701/ANCHOR
   # Google Search Console: paste the code of its "HTML tag" method here to verify the site.
-  google_site_verification: ""
+  google_site_verification: "U0F9cBZuoO__46hb5AAFhggcmECcGGra2WtUPkiOjyc"
 
 markdown_extensions:
   - admonition
@@ -53,17 +60,6 @@ markdown_extensions:
   - pymdownx.highlight
   - pymdownx.superfences
 
-nav:
-  - Home: index.md
-  - Getting started: getting-started.md
-  - Using ANCHOR: usage.md
-  - Command reference: commands.md
-  - Evaluation: evaluation.md
-  - Responsible use and limitations: responsible-use.md
-  - Roadmap: roadmap.md
-  - Changelog: changelog.md
-  - Contributing, license and contact: contributing.md
-  - Em português: pt-BR.md
 
 validation:
   omitted_files: warn

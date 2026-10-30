@@ -1,0 +1,29 @@
+{% extends "main.html" %}
+{#- The landing page: the README's tagline and its "Why ANCHOR" list (front matter written by build_site.py). -#}
+{% block tabs %}
+  {{ super() }}
+  <section class="anchor-hero">
+    <div class="anchor-hero__inner">
+      <img class="anchor-hero__word" src="{{ 'assets/anchor-wordmark.svg' | url }}" alt="ANCHOR">
+      <p class="anchor-hero__name"><b>A</b>daptive <b>N</b>atural-language <b>C</b>ontrol with <b>H</b>uman <b>O</b>versight and <b>R</b>ecovery</p>
+      <h1 class="anchor-hero__title">Web automation that heals itself, runs on your computer, and keeps you in control.</h1>
+      <p class="anchor-hero__lead">{{ page.meta.tagline }}</p>
+      <div class="anchor-hero__actions">
+        <a class="md-button md-button--primary" href="{{ 'docs/installation/' | url }}">Get started</a>
+        <a class="md-button" href="{{ config.repo_url }}">Star on GitHub</a>
+        <a class="anchor-hero__pt" href="{{ 'pt-BR/' | url }}">Leia em português</a>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+{% block content %}
+  <section class="anchor-cards">
+    {% for card in page.meta.cards %}
+      <div class="anchor-card"><h2>{{ card.title }}</h2><p>{{ card.text }}</p></div>
+    {% endfor %}
+  </section>
+  <section class="anchor-demo">
+    <img src="{{ 'images/anchor_overview.gif' | url }}" alt="ANCHOR in 25 seconds: the model only plans, the code acts and checks every step">
+    <p><a href="{{ 'docs/introduction/' | url }}">How ANCHOR works →</a></p>
+  </section>
+{% endblock %}

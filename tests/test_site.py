@@ -1,5 +1,6 @@
-"""The documentation site is cut from the README's sections: every section a page needs must exist,
-and every link between pages must work (the site is published from main by .github/workflows/pages.yml)."""
+"""The documentation site is cut from the README and the command reference: every section, subsection,
+guide paragraph and the "Why ANCHOR" list the site needs must exist (the site is published from main by
+.github/workflows/pages.yml), and links between pages are rewritten."""
 import importlib.util
 from pathlib import Path
 
@@ -13,17 +14,19 @@ def builder():
     return module
 
 
-def test_every_page_of_the_site_has_its_readme_sections():
-    site = builder()
-    parts = site.sections((ROOT / "README.md").read_text(encoding="utf-8"))
-    missing = [s for names in site.PAGES.values() for s in names if s not in parts]
-    assert not missing, f"README sections the site needs were renamed or removed: {missing}"
-    assert all((ROOT / src).is_file() for src in site.FILES)
+def test_every_page_of_the_site_finds_what_it_is_made_of():
+    site = builder().Site()
+    site.build()                                  # raises if a section, subsection or guide paragraph is missing
+    assert "docs/guides/logins.md" in site.pages and "commands/agent.md" in site.pages
+    assert len(site.why()) >= 4                   # the landing page's cards
 
 
 def test_links_to_other_pages_and_to_the_repository_are_rewritten():
-    site = builder()
-    text = "See [usage](#usage), [the commands](docs/COMMANDS.md#agent), [eval](eval/README.md) and ![x](docs/images/a.gif)."
-    out = site.rewrite(text, {"usage": "usage.md"}, "index.md")
-    assert "](usage.md#usage)" in out and "](commands.md#agent)" in out
-    assert "](https://github.com/LucasDantas2701/ANCHOR/blob/main/eval/README.md)" in out and "](images/a.gif)" in out
+    module = builder()
+    site = module.Site()
+    site.build()
+    site.link_map()
+    out = site.rewrite("See [the commands](docs/COMMANDS.md), [eval](eval/README.md) and ![x](docs/images/a.gif).",
+                       "docs/guides/logins.md")
+    assert "](../../commands/index.md)" in out and "](../../images/a.gif)" in out
+    assert "](https://github.com/LucasDantas2701/ANCHOR/blob/main/eval/README.md)" in out

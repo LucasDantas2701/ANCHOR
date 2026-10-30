@@ -292,3 +292,4 @@ __marimo__/
 # The documentation site's build (see .github/workflows/pages.yml)
 /site_src/
 /site/
+/site_nav.yml
