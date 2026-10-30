@@ -39,6 +39,7 @@ from anchor.engine.sensitive import TerminalConfirmer
 from anchor.i18n import t
 from anchor.planner import ConfigError, get_profile
 from anchor.planner.progress import Progress
+from anchor.vault.fill import with_vault
 
 from .model import Automation, AutomationError, AutomationStore
 from .params import ParameterError, parse_assignments, read_rows
@@ -143,7 +144,7 @@ def cmd_run(store: AutomationStore, args) -> int:
                                                       relearn=args.relearn and number == 1,
                                                       heal=not args.no_heal, params=values,
                                                       confirm=None if args.allow_sensitive else TerminalConfirmer(remembers=True),
-                                                      vision=vision, login=TerminalLoginWaiter(),
+                                                      vision=vision, login=with_vault(TerminalLoginWaiter(), lambda: executor.page),
                                                       unattended=args.unattended)
             except (ConfigError, AutomationError) as exc:
                 print(t("auto.error", error=exc))

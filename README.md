@@ -106,6 +106,7 @@ The step-by-step version, a first request on a test page and the requirements ar
         <li><a href="#run-a-request">Run a request</a></li>
         <li><a href="#watch-it-run">Watch it run</a></li>
         <li><a href="#when-anchor-asks">When ANCHOR asks</a></li>
+        <li><a href="#saved-logins">Saved Logins</a></li>
         <li><a href="#automations">Automations</a></li>
         <li><a href="#which-model">Which model</a></li>
       </ul>
@@ -138,7 +139,7 @@ The step-by-step version, a first request on a test page and the requirements ar
 * **It runs entirely on your computer.** The plans come from a small LLM run locally by
   [Ollama](https://ollama.com) (Qwen 3.5, 4B or 9B); no page, request or password leaves your machine.
 * **You stay in control.** It asks before anything sensitive (saving, sending, paying, deleting,
-  acting on your account), blocks what the request did not ask for, leaves logins to you, and stops
+  acting on your account), blocks what the request did not ask for, never shows the AI a password, and stops
   instead of guessing.
 * **It heals itself.** When a page changes, it finds the element again, checks every step, and keeps
   the fix for next time, instead of breaking like a fixed selector.
@@ -153,7 +154,7 @@ The step-by-step version, a first request on a test page and the requirements ar
 | Fill in a form and send it | Plans the steps, finds each field and button even after the page changed, and checks that each step had its effect; asks before saving or sending | [Run a request](#run-a-request) |
 | Read data from a page | Reads a whole table or list and saves it (CSV or JSON), or answers a question about the page | [Guide](https://lucasdantas2701.github.io/ANCHOR/docs/guides/reading-data/) |
 | Send or download files | Sends the files the request names to upload fields, and keeps every download; both are asked first | [Guide](https://lucasdantas2701.github.io/ANCHOR/docs/guides/files/) |
-| Work on sites that log in | Waits while you log in yourself, on the live view; the AI never sees or types a password | [When ANCHOR asks](#when-anchor-asks) |
+| Work on sites that log in | Logs in with a login you saved for that exact site, or waits while you log in on the live view; the AI never sees a password | [Saved logins](#saved-logins) |
 | Get through real pages | Follows new tabs and iframes, opens "Show more" and menus that hide a step, and declines cookie banners | [How It Works](#how-it-works) |
 | Do the same task again | Saves a checked request as an automation that runs without the AI, once or once per spreadsheet row, and repairs itself when the page changes | [Automations](#automations) |
 | See what it is doing | Shows the browser live, step by step, with every tab and window it opened | [Watch it run](#watch-it-run) |
@@ -374,8 +375,8 @@ Your automations, choices and logins are kept: they live in folders the update d
 give the page where it starts and choose the model. **See the plan first** shows the steps the AI
 would take, without doing any of them; **Run** does them.
 
-Never write a password in a request: ANCHOR refuses it. When a page needs a login, ANCHOR waits
-for you to do it (below).
+Never write a password in a request: ANCHOR refuses it. When a page needs a login, ANCHOR uses a
+login you saved for that site, or waits for you to do it (below).
 
 ### Watch it run
 
@@ -408,9 +409,24 @@ When a run needs you, it says **Waiting for you** and asks:
   numbered options; **point at it on the live view**; say **It's none of these**, and why (the AI
   reads it and plans again; an automation can keep it as a note); say **It needs a login first**;
   or skip the step.
-* **To log in.** The live view opens, and you click and type on it yourself (paste with Ctrl+V).
-  ANCHOR never types, keeps or shows the AI your password: what you type goes to the page and
-  nowhere else.
+* **To log in**, when there is no saved login for the site, or the saved one did not get in (a
+  wrong password, or a code sent to your phone). The live view opens, and you click and type on it
+  yourself (paste with Ctrl+V): what you type goes to the page and nowhere else.
+
+### Saved logins
+
+In **Settings**, **Saved logins** keeps a login for a site: when a run reaches that site's login
+page, ANCHOR logs in by itself, and waits for you if it does not get in.
+
+* **Only on its exact address.** A login saved for `https://accounts.example.com` is used only on
+  pages whose address starts exactly with it: not on `https://mail.example.com`, another port, or a
+  page without https (except this computer). A login form inside a frame of another site is not
+  filled, and with two logins saved for the same site ANCHOR lets you choose by logging in yourself.
+* **The password goes to Windows' Credential Manager** (or the system's own store on Linux and
+  macOS), never to a file. It is never shown again: you can replace it or delete it.
+* **The AI never sees it.** ANCHOR's own code types it, only into a password field, and the page as
+  the AI reads it shows a password only as `********`. A request with a password is still refused.
+* **Runs with no one present use a login only if you allow it**, with **Use in scheduled runs**.
 
 ### Automations
 
@@ -606,7 +622,7 @@ final numbers will come from the closed sets.
       confirmations, every tab on the live view, what the logs missed, a real browser window)
     - [x] Taking care of the automations: fixes and undo, notes, decisions, the choice memory,
       editing and deleting; the queue; a spreadsheet per run; a note offered after a failed run
-    - [ ] Saved logins: in Windows' Credential Manager, filled by ANCHOR only on their own site and
+    - [x] Saved logins: in Windows' Credential Manager, filled by ANCHOR only on their own site and
       only in a password field; the model never sees a password
     - [ ] Schedules, kept on this computer, run while ANCHOR is open
     - [ ] A Windows installer, with its own window and no terminal
@@ -654,8 +670,11 @@ can be added in `llm_profiles.json`, but they were not measured. See [Which mode
 <details>
 <summary><strong>Does ANCHOR type my passwords?</strong></summary>
 
-No. The AI never sees or types a password, and a request with a password is refused before anything
-reaches the AI. When a site needs a login, ANCHOR waits while you log in yourself, on the live view.
+The AI never does: it never sees a password, and a request with a password is refused before
+anything reaches it. If you save a login in **Settings**, ANCHOR's own code types its password, only
+into a password field and only on that exact site; the password stays in Windows' Credential
+Manager. Without a saved login, ANCHOR waits while you log in yourself, on the live view. See
+[Saved logins](#saved-logins).
 
 </details>
 

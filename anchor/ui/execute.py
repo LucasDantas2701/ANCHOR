@@ -285,8 +285,16 @@ class Executor:
     each run says whether to show it ("show_browser", on by default).
     """
 
-    def __init__(self, store: AutomationStore, headless: bool = False, output_dir: str | Path = "output"):
+    def __init__(self, store: AutomationStore, headless: bool = False, output_dir: str | Path = "output", vault=None):
         self.store, self.headless, self.output_dir = store, headless, Path(output_dir)
+        self.vault = vault                       # saved logins: tried first when a run reaches a login page
+
+    def _login(self, job: Job, executor) -> object:
+        """The run's login waiter: the login saved for the page's exact site first, then the person."""
+        if self.vault is None:
+            return WebLoginWaiter(job)
+        from anchor.vault.fill import VaultLoginWaiter
+        return VaultLoginWaiter(self.vault, lambda: executor.page, fallback=WebLoginWaiter(job), report=job.say)
 
     def _hidden(self, job: Job) -> bool:
         """The browser runs hidden, watched through the live view, unless the person asked for its window too."""
@@ -339,7 +347,7 @@ class Executor:
                 result, mode, run_id = run_automation(
                     store, name, page, executor, make_planner, report=job.say,
                     relearn=bool(spec.get("relearn")), heal=True, params=spec.get("values") or {},
-                    confirm=WebConfirmer(job, remembers=True), login=WebLoginWaiter(job))
+                    confirm=WebConfirmer(job, remembers=True), login=self._login(job, executor))
                 ended = _ended(job, result, executor)
             finally:
                 if "live" in locals():
@@ -360,7 +368,7 @@ class Executor:
                 result, row_mode, _ = run_automation(
                     store, name, page, executor, make_planner, report=job.say,
                     relearn=bool(job.spec.get("relearn")) and number == 1, heal=True, params=values,
-                    confirm=WebConfirmer(job, remembers=True), login=WebLoginWaiter(job))
+                    confirm=WebConfirmer(job, remembers=True), login=self._login(job, executor))
             except RunStopped:
                 outcomes.append({"number": number, "state": "stopped", "message": "Stopped by you.", "values": values})
                 stopped = True
@@ -447,7 +455,7 @@ class Executor:
                                           can_point=True, memory=ChoiceMemory(spec.get("memory", "memory/agent.json")),   # the same file as the command line
                                           confirmer=WebConfirmer(job, remembers=False))
                 live = _attach(job, executor)
-                agent = Agent(page, planner, executor, report=job.say, login=WebLoginWaiter(job), output_dir=self.output_dir)
+                agent = Agent(page, planner, executor, report=job.say, login=self._login(job, executor), output_dir=self.output_dir)
                 result = agent.run(spec["request"])
                 if result.ok:
                     # What an automation would keep from this run, as its first run would: the steps that

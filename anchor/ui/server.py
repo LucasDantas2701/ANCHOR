@@ -72,10 +72,13 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
     """
     token = token or secrets.token_urlsafe(24)
     store = AutomationStore(store_root)
+    if vault is None:                         # saved logins: passwords in the system's credential store
+        from anchor.vault import LoginVault
+        vault = LoginVault("memory/logins.json")
     set_language("en")                       # the interface is in English, and so is what runs say
     if runner is None:
         from .execute import Executor
-        runner = Executor(store, headless=headless)
+        runner = Executor(store, headless=headless, vault=vault)
     runs = RunManager(runner)
     app = FastAPI(title="ANCHOR", version=__version__, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.runs = runs
@@ -294,9 +297,6 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
     # Looking after a saved automation: fixes, notes, decisions, choices, edit, delete (anchor/ui/manage.py).
     add_manage_routes(app, store, runs, request_memory)
     # Saved logins (Settings): passwords go to the system's credential store and are never answered.
-    if vault is None:
-        from anchor.vault import LoginVault
-        vault = LoginVault("memory/logins.json")
     app.state.vault = vault
     add_login_routes(app, vault)
 

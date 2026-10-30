@@ -18,6 +18,16 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Saved logins, second part: using them (0.5).** When a run reaches a login page (in the interface
+  or on the command line), ANCHOR first logs in with the login saved for exactly that page's site,
+  one step or two (the user name, then the password), and hands over to the person when there is
+  none, when two are saved for the site, when it does not get in, or when the form is inside a frame
+  of another site. The password is typed by ANCHOR's own code (`anchor/vault/fill.py`), checked to be
+  a password field on that exact site right before typing, and never said in a message; the page
+  reader still shows the AI a password only as `********`, and the planner's prompt is unchanged.
+  Runs with no one present use only the logins allowed for scheduled runs. The rule of 0.3.1 ("ANCHOR
+  never types a password") becomes: the AI never sees or types one; only a saved login is typed, by
+  ANCHOR's code, only on its site and only in a password field.
 - **Saved logins, first part: keeping them (0.5).** In Settings, a login is saved for an exact site
   (scheme, host and port; https only, or this computer): the password goes to the system's credential
   store (Windows' Credential Manager, through `keyring`, a new dependency), and a local file keeps only
