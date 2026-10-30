@@ -31,7 +31,7 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     port = args.port or free_port()
     token = secrets.token_urlsafe(24)
-    app = create_app(args.automations, token=token, port=port)
+    app = create_app(args.automations, token=token, port=port, run_schedules=True)
     address = f"http://127.0.0.1:{port}/#token={token}"
     print(f"ANCHOR is open at {address}")
     if not args.no_browser:

@@ -22,6 +22,7 @@ from anchor.planner.config import ConfigError, load_profiles
 from .logins import add_routes as add_login_routes
 from .manage import add_routes as add_manage_routes
 from .runs import RunManager, Runner
+from .schedules import add_routes as add_schedule_routes
 
 DOCS_URL = "https://github.com/LucasDantas2701/ANCHOR#readme"
 STATIC = Path(__file__).parent / "static"
@@ -65,7 +66,7 @@ def _profiles() -> list[dict]:
 def create_app(store_root: str | Path = "automations", token: Optional[str] = None,
                static_dir: Path = STATIC, port: Optional[int] = None, runner: Optional[Runner] = None,
                headless: bool = False, request_memory: str | Path = "memory/agent.json",
-               vault=None) -> FastAPI:
+               vault=None, schedules_path: Optional[str | Path] = None, run_schedules: bool = False) -> FastAPI:
     """
     The app. `token` is the code every API request must carry; `port`, the one it serves on;
     `runner` does the runs (default: the real browser and model, with a window unless `headless`).
@@ -299,6 +300,18 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
     # Saved logins (Settings): passwords go to the system's credential store and are never answered.
     app.state.vault = vault
     add_login_routes(app, vault)
+    # Schedules: kept in a local SQLite file; they run only while ANCHOR is open (run_schedules: the real app).
+    from anchor.schedules import ScheduleStore
+    from anchor.schedules.scheduler import Scheduler
+    if schedules_path is None:                 # the real app keeps them in memory/; a test app, in a temporary folder
+        import tempfile
+        schedules_path = "memory/schedules.db" if run_schedules else Path(tempfile.mkdtemp(prefix="anchor-")) / "schedules.db"
+    schedules = ScheduleStore(schedules_path)
+    scheduler = Scheduler(schedules, store, runs)
+    app.state.schedules, app.state.scheduler = schedules, scheduler
+    if run_schedules:
+        scheduler.start_thread()
+    add_schedule_routes(app, schedules, store, scheduler)
 
     @app.get("/{path:path}")
     def files(path: str):

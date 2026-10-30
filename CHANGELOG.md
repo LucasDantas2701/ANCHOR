@@ -18,6 +18,17 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Schedules, first part: the engine (0.5).** A schedule runs a proven automation by itself, with
+  no one present, at set times: once, every day, on chosen weekdays, on a day of the month (its last
+  day when the month is shorter), or every N minutes, hours or days (at least 5 minutes), from a time,
+  optionally within a window and on chosen weekdays; this computer's time. They are kept in a local
+  SQLite file (`memory/schedules.db`) with the last 20 times of each. They run only while ANCHOR is
+  open: the times missed while it was closed are recorded as missed and shown when it opens, never run
+  late. An automation with values reads its spreadsheet at run time and checks it first: a missing
+  column or an unreadable file runs nothing, more new rows than the schedule's limit runs nothing,
+  rows with an empty value are skipped, and the rows the schedule already did (by their content) are
+  not done again. A schedule whose automation is still in the queue skips that time. The screens come
+  in the second part.
 - **Saved logins, second part: using them (0.5).** When a run reaches a login page (in the interface
   or on the command line), ANCHOR first logs in with the login saved for exactly that page's site,
   one step or two (the user name, then the password), and hands over to the person when there is

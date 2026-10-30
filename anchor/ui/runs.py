@@ -55,6 +55,7 @@ class Job:
     learned: Optional[dict] = None                # a checked request's steps and goals, to save as an automation
     keep_note: Optional[Callable[[str], None]] = None   # an automation's: keeps what the person said for next runs
     unsaved_notes: list = field(default_factory=list)   # what the person explained ("none of these") and did not keep
+    on_end: Optional[Callable] = None                   # called with the job when it ends (a schedule records it)
     pump: Optional[Callable[[], None]] = None     # lets the browser's events through while a question waits
     stop: bool = False
     created: float = field(default_factory=time.time)
@@ -299,6 +300,11 @@ class RunManager:
                 job.state = "stopped"
                 job.result = {"state": "stopped", "message": "Taken out of the queue before it started."}
                 job.finished = time.strftime("%Y-%m-%dT%H:%M:%S")
+                if job.on_end is not None:
+                    try:
+                        job.on_end(job)
+                    except Exception:
+                        pass
         job.answered.set()
 
     def list(self) -> list[dict]:
@@ -306,7 +312,7 @@ class RunManager:
             jobs = sorted(self.jobs.values(), key=lambda j: j.id, reverse=True)
         return [{"id": j.id, "kind": j.kind, "title": j.title, "state": j.state, "position": self.position(j),
                  "name": j.spec.get("name"), "created": j.queued_at, "started": j.started, "finished": j.finished,
-                 "message": (j.result or {}).get("message", "")} for j in jobs]
+                 "message": (j.result or {}).get("message", ""), "scheduled": bool(j.spec.get("schedule"))} for j in jobs]
 
     def _forget_old(self) -> None:
         done = [j for j in sorted(self.jobs.values(), key=lambda j: j.id) if j.state not in ("queued", "running", "waiting")]
@@ -333,7 +339,13 @@ class RunManager:
             from .explain import explain
             result = explain(result)
             job.activity = None
-            job.result, job.state = result, result.get("state", "not_done")
+            job.result = result
+            if job.on_end is not None:            # recorded before the run shows as ended (a schedule's history)
+                try:
+                    job.on_end(job)
+                except Exception:                 # a schedule's record must not stop the queue
+                    pass
+            job.state = result.get("state", "not_done")
             job.finished = time.strftime("%Y-%m-%dT%H:%M:%S")
             job.add("result", **result)
             with self.cond:

@@ -347,7 +347,8 @@ class Executor:
                 result, mode, run_id = run_automation(
                     store, name, page, executor, make_planner, report=job.say,
                     relearn=bool(spec.get("relearn")), heal=True, params=spec.get("values") or {},
-                    confirm=WebConfirmer(job, remembers=True), login=self._login(job, executor))
+                    confirm=WebConfirmer(job, remembers=True), login=self._login(job, executor),
+                    unattended=bool(spec.get("unattended")))
                 ended = _ended(job, result, executor)
             finally:
                 if "live" in locals():
@@ -368,7 +369,8 @@ class Executor:
                 result, row_mode, _ = run_automation(
                     store, name, page, executor, make_planner, report=job.say,
                     relearn=bool(job.spec.get("relearn")) and number == 1, heal=True, params=values,
-                    confirm=WebConfirmer(job, remembers=True), login=self._login(job, executor))
+                    confirm=WebConfirmer(job, remembers=True), login=self._login(job, executor),
+                    unattended=bool(job.spec.get("unattended")))
             except RunStopped:
                 outcomes.append({"number": number, "state": "stopped", "message": "Stopped by you.", "values": values})
                 stopped = True
