@@ -232,6 +232,14 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
         name = create(*(str(body.get(k, "")) for k in ("name", "request", "url", "profile")))
         return _summary(store, name)
 
+    @app.post("/api/runs/{run_id}/tab")
+    def tab(run_id: int, body: dict):
+        """The tab the person wants to see on the live view (and to click on during a login); null: ANCHOR's."""
+        job = job_or_404(run_id)
+        index = body.get("index")
+        job.viewing = int(index) if isinstance(index, int) and index >= 0 else None
+        return {"viewing": job.viewing}
+
     @app.post("/api/runs/{run_id}/save")
     def save_as_automation(run_id: int, body: dict = Body(...)):
         """A checked request becomes an automation with the plan of that very run (no run again)."""

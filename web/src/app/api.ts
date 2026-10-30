@@ -115,7 +115,10 @@ export interface RunView {
   id: number; kind: 'automation' | 'request' | 'login' | 'plan'; title: string; can_save: boolean; state: JobState; position: number;
   question: Question | null; result: RunResult | null; events: RunEvent[]; spec: Record<string, unknown>;
   activity: { phase: string; seconds: number; tokens: number; attempt: number } | null;
+  tabs?: Tab[]; viewing?: number | null;
 }
+
+export interface Tab { index: number; title: string; url: string; anchor: boolean; }
 
 export interface RunListItem { id: number; kind: string; title: string; state: JobState; position: number; }
 
@@ -143,6 +146,7 @@ export class Runs {
   }
   save(id: number, name: string) { return this.http.post<AutomationSummary>(`/api/runs/${id}/save`, { name }); }
   input(id: number, event: Record<string, unknown>) { return this.http.post(`/api/runs/${id}/input`, event); }
+  tab(id: number, index: number | null) { return this.http.post<{ viewing: number | null }>(`/api/runs/${id}/tab`, { index }); }
   logIn(name: string) { return this.http.post<{ id: number }>(`/api/automations/${encodeURIComponent(name)}/login`, {}); }
   profiles() { return this.http.get<Profile[]>('/api/profiles'); }
 }

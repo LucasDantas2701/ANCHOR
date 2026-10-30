@@ -1,11 +1,20 @@
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, effect, inject, input, output, signal, viewChild } from '@angular/core';
 
-import { JOB_CLASS, JOB_WORDS, JobState, Runs } from '../api';
+import { JOB_CLASS, JOB_WORDS, JobState, Runs, Tab } from '../api';
 
 /** The browser, live, in a window over the run: shown only while it is open. */
 @Component({
   selector: 'app-live',
   template: `
+    @if (tabs().length > 1) {
+      <nav class="tabs" aria-label="The run's tabs and windows">
+        @for (t of tabs(); track t.index) {
+          <button type="button" class="tab" [class.on]="shownIndex() === t.index" (click)="see(t)" [title]="t.url">
+            @if (t.anchor) { <span class="dot" aria-label="ANCHOR is working here"></span> }{{ t.title || t.url }}
+          </button>
+        }
+      </nav>
+    }
     <div #screen class="screen" [class.control]="interactive()" [attr.tabindex]="interactive() ? 0 : null"
          [attr.aria-label]="interactive() ? 'The browser: click and type here' : 'The browser, live: ' + jobWords[state()]"
          (keydown)="key($event)" (paste)="paste($event)" (wheel)="wheel($event)">
@@ -19,7 +28,13 @@ import { JOB_CLASS, JOB_WORDS, JobState, Runs } from '../api';
     }
   `,
   styles: [`
-    :host { display: grid; grid-template-rows: 1fr auto; min-height: 0; min-width: 0; }
+    :host { display: grid; grid-template-rows: auto 1fr auto; min-height: 0; min-width: 0; }
+    .tabs { display: flex; gap: 4px; overflow-x: auto; padding-bottom: var(--space-2); }
+    .tab { flex: 0 1 220px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font: 500 12px/16px var(--font-sans);
+           color: var(--ink-muted); background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius-sm);
+           padding: 5px 9px; cursor: pointer; text-align: left; }
+    .tab.on { color: var(--ink); border-color: var(--lime); }
+    .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--lime); margin-right: 6px; vertical-align: 1px; }
     .screen { display: grid; place-items: center; background: var(--surface-sunken); border: 1px solid var(--border);
               border-radius: var(--radius-md); overflow: hidden; min-height: 0; }
     .screen img { display: block; width: 100%; height: 100%; object-fit: contain; user-select: none; }
@@ -35,6 +50,11 @@ export class LiveView implements OnInit, OnDestroy {
   state = input.required<JobState>();
   ended = input(false);
   interactive = input(false);
+  tabs = input<Tab[]>([]);
+  viewing = input<number | null>(null);
+  /** The tab on the picture: the person's choice, or else the one ANCHOR uses. */
+  shownIndex() { return this.viewing() ?? this.tabs().find(t => t.anchor)?.index ?? 0; }
+  see(t: Tab) { this.runs.tab(this.run(), t.anchor ? null : t.index).subscribe({ error: () => {} }); }
   close = output<void>();
   screen = viewChild<ElementRef<HTMLElement>>('screen');
   img = viewChild<ElementRef<HTMLImageElement>>('img');

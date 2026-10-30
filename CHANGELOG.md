@@ -18,6 +18,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Interface fixes from real runs, second part.** The browser runs in a real window kept off the
+  screen instead of headless (sites see an ordinary browser, not "HeadlessChrome"), on the screen when
+  the person asks to see it, at 1366 × 768, with notifications off, in the system's language and time
+  zone (`anchor/browser/launch.py`; the tests alone stay headless). The live view lists the run's tabs
+  and windows, marks the one ANCHOR works on, and lets the person see another one, where their clicks
+  and keys go during a login (a "Sign in with Google" window, for example).
 - **Interface fixes from real runs, first part.** A request pasted as a terminal command
   (`python -m anchor... "..." --url ...`) is flagged, with a button that keeps only the request and the
   page; a confirmation shows the element in a few words ("button “Save”"), with the text around it only

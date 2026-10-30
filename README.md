@@ -282,8 +282,12 @@ for you to do it (below).
 
 Runs wait their turn and go one at a time (the AI has one graphics card). A run's page tells what
 happens as it happens, with the time of each event and, under each step, the element it was done
-on. **Watch it run** puts the browser, live, beside the steps. The browser runs hidden; **Also open
-the browser in its own window** shows it in a window too.
+on. **Watch it run** puts the browser, live, beside the steps; when the run opens more than one tab or
+window (a "Sign in with Google" window, for example), a strip over the picture shows them all, marks the
+one ANCHOR is working on, and lets you see another (and click on it during a login). The browser runs in
+a real window kept off the screen, so sites see an ordinary browser; **Also open the browser in its own
+window** puts that window on the screen. It opens at 1366 × 768, with the site's notifications off, in
+your system's language and time zone.
 
 **Stop** stops at the next step. After a run that was not done, **Try again** opens it again with
 what you wrote, and **Save the details of this run** saves a file, on your computer, with what the
@@ -475,7 +479,7 @@ final numbers will come from the closed sets.
       account is sensitive and blocked when not asked; a login met after a step is waited for;
       goals met by their last step; searches sent after typing; the site's own pop-ups; blocked
       clicks explained (the benchmark's 600 runs unchanged)
-    - [ ] Fixes in the interface from the same runs (a request pasted as a command, shorter
+    - [x] Fixes in the interface from the same runs (a request pasted as a command, shorter
       confirmations, every tab on the live view, what the logs missed, a real browser window)
     - [ ] Taking care of the automations: fixes and undo, notes, decisions, the choice memory;
       spreadsheets
@@ -589,9 +593,9 @@ requests and page contents do not leave the computer or the company network.
 ## Known Limitations
 
 * The interface is in English only (the command line is in English and Portuguese).
-* Some sites block automated browsers, or one that runs hidden (it says "HeadlessChrome"). If a site
-  blocks ANCHOR, try **Also open the browser in its own window**; if it still blocks, the site does
-  not want to be automated, and an official API, when there is one, is the right way.
+* Some sites block automated browsers. ANCHOR's browser is an ordinary one, in a window kept off the
+  screen (it no longer says "HeadlessChrome"), but a site may still recognize automation; if it blocks
+  ANCHOR, the site does not want to be automated, and an official API, when there is one, is the right way.
 * Text matching is word-based, with a synonym dictionary; there is no real semantics. Reading a
   single value described in other words than the page's ("the text with the deadline") often finds
   nothing, and the model has to copy the page's text (it is told so).

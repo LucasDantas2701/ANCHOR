@@ -41,6 +41,8 @@ class Job:
     activity: Optional[dict] = None               # what the AI is doing right now (phase, since, tokens)
     details: list = field(default_factory=list)   # each planning: what the model read and answered (local only)
     about: dict = field(default_factory=dict)      # the details file's header: version, model, Ollama, browser
+    tabs: list = field(default_factory=list)       # the run's tabs and windows: title, address, which one ANCHOR uses
+    viewing: Optional[int] = None                 # the tab the person chose to see (None: the one ANCHOR uses)
     frame: Optional[tuple] = None                 # the live view's last image: (number, jpeg bytes)
     watched: float = 0.0                          # when the live view last asked for an image
     tick: Optional[Callable[[], None]] = None     # the run's own thread: keeps the live view going
@@ -138,6 +140,7 @@ class Job:
             return {"id": self.id, "kind": self.kind, "title": self.title, "state": self.state,
                     "question": self.question, "result": self.result, "spec": _public(self.spec), "activity": activity,
                     "can_save": self.kind == "request" and self.state == "checked" and self.learned is not None,
+                    "tabs": self.tabs, "viewing": self.viewing,
                     "events": [e for e in self.events if e["seq"] > after]}
 
 

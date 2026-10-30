@@ -15,6 +15,7 @@ from playwright.sync_api import sync_playwright
 from anchor.agent.agent import Agent
 from anchor.automations.model import AutomationError, AutomationStore
 from anchor.automations.runner import run_automation
+from anchor.browser.launch import open_context
 from anchor.engine.action_executor import ActionExecutor
 from anchor.engine.disambiguation.describe import describe
 from anchor.engine.element_resolver import ElementResolver
@@ -83,8 +84,35 @@ class LiveView:
         self.session = self.page = None
         self.count = 0
 
+    def viewed(self):
+        """The tab the person chose to see (and to click on during a login), or else the one ANCHOR uses."""
+        current = self.current()
+        chosen = self.job.viewing
+        if chosen is not None:
+            pages = [p for p in current.context.pages if not p.is_closed()]
+            if 0 <= chosen < len(pages):
+                return pages[chosen]
+            self.job.viewing = None                      # the chosen tab was closed: back to ANCHOR's
+        return current
+
+    def list_tabs(self) -> None:
+        """The run's tabs and windows, for the interface's strip: title, address, and which one ANCHOR uses."""
+        current = self.current()
+        tabs = []
+        for i, p in enumerate(q for q in current.context.pages if not q.is_closed()):
+            try:
+                title = p.title()
+            except Exception:
+                title = ""
+            tabs.append({"index": i, "title": (title or p.url)[:50], "url": p.url, "anchor": p is current})
+        self.job.tabs = tabs
+
     def maintain(self) -> None:
-        page = self.current()
+        try:
+            self.list_tabs()
+        except Exception:
+            pass
+        page = self.viewed()
         if self.job.watching():
             if self.session is None or self.page is not page:
                 self._start(page)
@@ -155,7 +183,7 @@ def _attach(job: Job, executor: ActionExecutor) -> LiveView:
     job.tick = live.maintain
 
     def pump():
-        deliver(job, executor.page)
+        deliver(job, live.viewed())                      # clicks and keys go to the tab the person sees
         executor.page.wait_for_timeout(50)
 
     job.pump = pump
@@ -264,6 +292,13 @@ class Executor:
         """The browser runs hidden, watched through the live view, unless the person asked for its window too."""
         return self.headless or not job.spec.get("show_browser", False)
 
+    def _mode(self, job: Job | None = None, show: bool | None = None) -> str:
+        """headless in the tests; otherwise a real window, outside the screen unless the person asked to see it."""
+        if self.headless:
+            return "headless"
+        visible = job.spec.get("show_browser", False) if show is None else show
+        return "window" if visible else "offscreen"
+
     def __call__(self, job: Job) -> dict:
         try:
             if job.kind == "automation":
@@ -291,12 +326,8 @@ class Executor:
         with sync_playwright() as p:
             # Each automation keeps its own browser profile, so a login done once is kept.
             folder = automation.browser_profile or (None if spec.get("fresh_browser") else str(store.folder(name) / "browser"))
-            if folder:
-                context = p.chromium.launch_persistent_context(folder, headless=hidden)
-                page = context.pages[0] if context.pages else context.new_page()
-            else:
-                context = p.chromium.launch(headless=hidden).new_context()
-                page = context.new_page()
+            context = open_context(p, self._mode(job), folder)
+            page = context.pages[0] if context.pages else context.new_page()
             try:
                 executor = ActionExecutor(page, resolver=ElementResolver(page), disambiguator=WebDisambiguator(job),
                                           can_point=True, memory=ChoiceMemory(store.memory_path(name)))
@@ -323,7 +354,7 @@ class Executor:
         automation = self.store.load(name)
         folder = automation.browser_profile or str(self.store.folder(name) / "browser")
         with sync_playwright() as p:
-            context = p.chromium.launch_persistent_context(folder, headless=self.headless)
+            context = open_context(p, self._mode(show=True), folder)
             page = context.pages[0] if context.pages else context.new_page()
             executor = ActionExecutor(page)
             live = _attach(job, executor)
@@ -345,7 +376,7 @@ class Executor:
         profile = get_profile(spec["profile"])
         planner = StepwisePlanner(job, lambda progress: profile.planner(on_progress=progress))
         with sync_playwright() as p:
-            context = p.chromium.launch(headless=True).new_context()
+            context = open_context(p, self._mode(show=False))
             page = context.new_page()
             try:
                 job.say("Opening the page...")
@@ -371,7 +402,7 @@ class Executor:
         hidden = self._hidden(job)
         job.about = about(spec, hidden)
         with sync_playwright() as p:
-            context = p.chromium.launch(headless=hidden).new_context()
+            context = open_context(p, self._mode(job))
             page = context.new_page()
             try:
                 page.goto(spec["url"])

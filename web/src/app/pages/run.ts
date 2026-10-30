@@ -34,7 +34,8 @@ const WHAT: Record<string, string> = {
       @if ((r.state === 'running' || r.state === 'waiting') && r.spec['show_browser']) {
         <p class="muted note">The browser is also open in its own window.</p>
       }
-      @if (watching()) { <app-live class="live" [run]="r.id" [state]="r.state" [ended]="!active(r)" [interactive]="takesInput(r)" (close)="watching.set(false)" /> }
+      @if (watching()) { <app-live class="live" [run]="r.id" [state]="r.state" [ended]="!active(r)" [interactive]="takesInput(r)"
+                                   [tabs]="r.tabs ?? []" [viewing]="r.viewing ?? null" (close)="watching.set(false)" /> }
 
       @if (r.question; as q) {
         <section class="ask card" role="alertdialog" aria-labelledby="ask-title">
