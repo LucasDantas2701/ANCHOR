@@ -20,6 +20,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "site_src"
 REPO = "https://github.com/LucasDantas2701/ANCHOR/blob/main/"
+# The site's root path (site_url in mkdocs.yml). Links inside raw HTML (<img src>, <a href>) are not
+# adjusted by MkDocs, so they are written from the root, which works on every page at any depth.
+BASE = "/ANCHOR/"
 
 # Docs pages: (file, title, README section, subsection or None). A subsection page holds that "###".
 SECTION_PAGES = [
@@ -196,6 +199,18 @@ class Site:
         return "../" * depth + target
 
     def rewrite(self, text: str, here: str, commands_doc: bool = False) -> str:
+        def fix_html(target: str) -> str:
+            """A link inside raw HTML: from the site's root, to the page's address (not its .md file)."""
+            out = fix(target)
+            if re.match(r"^[a-z]+://|^mailto:|^#", out):
+                return out
+            path, _, frag = out.partition("#")
+            path = re.sub(r"^(\.\./)+", "", path)
+            if path.endswith(".md"):
+                path = "" if path == "index.md" else path[:-3] + "/"
+                path = path.replace("index/", "")
+            return BASE + path + (f"#{frag}" if frag else "")
+
         def fix(target: str) -> str:
             if target.startswith("#"):
                 page = self.anchor_page.get(target[1:])
@@ -217,7 +232,7 @@ class Site:
                 return self.rel(here, self.anchor_page.get(frag, "index.md")) + (f"#{frag}" if frag else "")
             return REPO + target.replace("../", "")
         text = re.sub(r"\]\(([^)\s]+)\)", lambda m: f"]({fix(m.group(1))})", text)
-        return re.sub(r'(href|src)="([^"]+)"', lambda m: f'{m.group(1)}="{fix(m.group(2))}"', text)
+        return re.sub(r'(href|src)="([^"]+)"', lambda m: f'{m.group(1)}="{fix_html(m.group(2))}"', text)
 
     # ------------------------------------------------------------------ writing
     def write(self) -> None:

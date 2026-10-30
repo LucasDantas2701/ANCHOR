@@ -31,3 +31,13 @@ def test_links_to_other_pages_and_to_the_repository_are_rewritten():
                        "docs/guides/logins.md")
     assert "](../../commands/index.md)" in out and "](../../images/a.gif)" in out
     assert "](https://github.com/LucasDantas2701/ANCHOR/blob/main/eval/README.md)" in out
+
+
+def test_links_inside_raw_html_are_written_from_the_site_root():
+    """MkDocs does not adjust raw HTML: an <img> on a page two levels down must not break."""
+    module = builder()
+    site = module.Site()
+    site.build()
+    site.link_map()
+    out = site.rewrite('<img src="docs/images/a.gif"> <a href="docs/COMMANDS.md">x</a>', "docs/introduction.md")
+    assert 'src="/ANCHOR/images/a.gif"' in out and 'href="/ANCHOR/commands/"' in out
