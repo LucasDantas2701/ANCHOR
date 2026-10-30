@@ -137,6 +137,7 @@ export interface RunResult { state: JobState; message: string; summary?: string;
   plan?: { steps: Step[]; goals: { id: string; description: string; conclusive: boolean }[] }; steps?: number; seconds?: number; model_calls?: number; mode?: string; }
 
 export interface RunView {
+  suggest_note?: { text: string; reason: string } | null;
   id: number; kind: 'automation' | 'request' | 'login' | 'plan'; title: string; can_save: boolean; state: JobState; position: number;
   question: Question | null; result: RunResult | null; events: RunEvent[]; spec: Record<string, unknown>;
   activity: { phase: string; seconds: number; tokens: number; attempt: number } | null;

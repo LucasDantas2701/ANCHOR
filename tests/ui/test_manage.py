@@ -125,3 +125,32 @@ def test_the_queue_lists_times_and_results_and_a_waiting_run_leaves_it():
         time.sleep(0.1)
     done = {i["id"]: i for i in runs.list()}[first.id]
     assert done["state"] == "checked" and done["finished"] and done["message"]
+
+
+def _asked(job, answer):
+    from anchor.engine.disambiguation.types import ChoiceRequest
+    from anchor.ui.runs import WebDisambiguator
+    job.ask = lambda kind, **data: answer
+    return WebDisambiguator(job).choose(ChoiceRequest("click", "botão Salvar", "not_found", [], None, False))
+
+
+def test_a_note_is_offered_after_an_automation_that_was_not_done_in_the_persons_own_words():
+    from anchor.ui.runs import Job
+    job = Job(id=1, kind="automation", title="cadastro", spec={"name": "cadastro"})
+    kept = []
+    job.keep_note = kept.append
+    _asked(job, {"choice": "none", "note": "o botão  fica em Mais detalhes"})               # explained, not kept
+    _asked(job, {"choice": "none", "note": "guardar esta", "keep": True})                   # kept: not offered again
+    assert kept == ["guardar esta"] and job.unsaved_notes == ["o botão fica em Mais detalhes"]
+    job.result = {"state": "not_done", "message": "The step could not be done."}
+    assert job.view()["suggest_note"] == {"text": "o botão fica em Mais detalhes", "reason": "The step could not be done."}
+    job.result = {"state": "checked", "message": "Done."}
+    assert job.view()["suggest_note"] is None                                             # it worked: nothing to offer
+
+
+def test_no_note_is_offered_for_a_request_and_an_empty_one_when_nothing_was_explained():
+    from anchor.ui.runs import Job
+    request = Job(id=2, kind="request", title="faça algo", spec={}, result={"state": "not_done", "message": "x"})
+    assert request.view()["suggest_note"] is None
+    automation = Job(id=3, kind="automation", title="a", spec={"name": "a"}, result={"state": "error", "message": "It broke."})
+    assert automation.view()["suggest_note"] == {"text": "", "reason": "It broke."}

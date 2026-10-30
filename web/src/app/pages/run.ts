@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 
 import { LiveView } from './live';
 
-import { ACTIVE, JOB_CLASS, JOB_WORDS, JobState, Question, RunEvent, RunView, Runs, apiError, nameFor } from '../api';
+import { ACTIVE, Api, JOB_CLASS, JOB_WORDS, JobState, Question, RunEvent, RunView, Runs, apiError, nameFor } from '../api';
 
 const WHAT: Record<string, string> = {
   delete: 'delete something', submit: 'save or submit a form', send: 'send a message', pay: 'make a payment',
@@ -131,6 +131,19 @@ const WHAT: Record<string, string> = {
             </form>
           }
           @if (res.summary && res.message && res.state !== 'checked' && res.state !== 'planned') { <p class="detail mono muted">{{ res.message }}</p> }
+          @if (r.suggest_note && !noteSaved()) {
+            <form class="save" (submit)="$event.preventDefault(); keepNote(r)">
+              <label for="note-text">Add a note for next time? It tells the AI something about this site when it plans this automation again.</label>
+              <div class="save-row">
+                <input id="note-text" name="note-text" class="note-input" maxlength="500" [value]="noteText() ?? r.suggest_note.text"
+                       placeholder="For example: the Save button is at the bottom, under More details" (input)="noteText.set($any($event.target).value)">
+                <button class="btn primary" type="submit" [disabled]="!(noteText() ?? r.suggest_note.text).trim()">Add note</button>
+              </div>
+              <p class="save-note muted">@if (r.suggest_note.text) { These are your own words, from when you said it was none of these. } Edit them as you like; nothing is added unless you click Add note.</p>
+              @if (noteError()) { <p class="err">{{ noteError() }}</p> }
+            </form>
+          }
+          @if (noteSaved()) { <p class="muted small">Note added to {{ r.title }}. The AI reads it the next time it plans this automation (see its Notes tab).</p> }
           @if (res.steps !== undefined) {
             <p class="muted small mono">{{ res.steps }} steps done · {{ res.seconds }} s · {{ res.model_calls ? res.model_calls + ' AI calls' : 'no AI calls' }}</p>
           }
@@ -169,6 +182,7 @@ const WHAT: Record<string, string> = {
     } @else { <p class="muted">Loading…</p> }
   `,
   styles: [`
+    .save .note-input { flex: 1; min-width: 0; max-width: none; font: 400 15px/20px var(--font-sans) !important; }
     .back { display: inline-block; margin-bottom: var(--space-6); text-decoration: none; font-size: 13px; }
     /* Watching: the same content, filling the window: the browser left, the rest in a column on the right. */
     .theater { position: fixed; inset: 0; z-index: 40; background: var(--surface-page); padding: var(--space-4) var(--space-6) var(--space-6);
@@ -342,6 +356,18 @@ export class RunPage implements OnDestroy {
   }
 
   /** A file on this computer with what the model read and answered: for working out what went wrong. */
+  private api = inject(Api);
+  noteText = signal<string | null>(null);
+  noteSaved = signal(false);
+  noteError = signal('');
+  keepNote(r: RunView) {
+    const text = (this.noteText() ?? r.suggest_note?.text ?? '').trim();
+    if (!text) return;
+    this.api.addNote(r.title, text, String(r.id)).subscribe({
+      next: () => this.noteSaved.set(true),
+      error: e => this.noteError.set(apiError(e, 'The note could not be added.')),
+    });
+  }
   saveDetails(r: RunView) {
     this.runs.details(r.id).subscribe(blob => {
       const url = URL.createObjectURL(blob);

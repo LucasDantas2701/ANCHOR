@@ -432,7 +432,9 @@ An automation's page also looks after everything it keeps, in tabs:
 * **Fixes:** each time the site changed and ANCHOR fixed a step (or asked you which element was
   right), with what changed; **Undo** brings the step back as it was.
 * **Notes:** what you tell the AI about the site when it plans ("the reports are inside the Portal
-  menu"); add, edit or remove them.
+  menu"); add, edit or remove them. When a run of the automation is not done, its result offers
+  **Add a note for next time**, filled with what you explained during the run (if you did): the AI
+  never writes a note, and nothing is added unless you click.
 * **Decisions:** what you allowed or denied at its sensitive actions; **Forget** one to be asked again.
 * **Choices:** the elements you chose when ANCHOR was not sure; **Forget** a wrong one.
 * **Settings:** change the request, the page or the model (a new request or page makes it learn the

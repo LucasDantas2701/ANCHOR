@@ -18,6 +18,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **A note offered after a run that was not done (0.5, part 5b-4).** When an automation's run is not
+  done, its result offers **Add a note for next time**, filled with what the person explained during
+  the run ("none of these", without keeping it) and editable; the AI never writes a note, and nothing
+  is added unless the person clicks.
 - **The queue on a page of its own (0.5, part 5b-2).** **Runs**, in the menu (with how many are
   running or waiting), shows the run going now (Watch, Stop), the ones waiting their turn in order
   (Remove from queue), and the ones that ended in this session, with when and how they ended.

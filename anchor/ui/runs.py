@@ -54,6 +54,7 @@ class Job:
     found: Any = None                             # what a question waited for besides an answer (a pointed element)
     learned: Optional[dict] = None                # a checked request's steps and goals, to save as an automation
     keep_note: Optional[Callable[[str], None]] = None   # an automation's: keeps what the person said for next runs
+    unsaved_notes: list = field(default_factory=list)   # what the person explained ("none of these") and did not keep
     pump: Optional[Callable[[], None]] = None     # lets the browser's events through while a question waits
     stop: bool = False
     created: float = field(default_factory=time.time)
@@ -137,6 +138,14 @@ class Job:
         self.answered.set()
         return True
 
+    def _suggestion(self) -> Optional[dict]:
+        """After an automation's run that was not done: a note to offer for next time, in the person's
+        own words (what they explained and did not keep), with the failure's reason beside it. The AI
+        never writes it."""
+        if self.kind != "automation" or not self.result or self.result.get("state") not in ("not_done", "error"):
+            return None
+        return {"text": self.unsaved_notes[-1] if self.unsaved_notes else "", "reason": self.result.get("message", "")}
+
     def view(self, after: int = 0) -> dict:
         with self.lock:
             activity = dict(self.activity, seconds=round(time.time() - self.activity["since"])) if self.activity else None
@@ -144,6 +153,7 @@ class Job:
                     "question": self.question, "result": self.result, "spec": _public(self.spec), "activity": activity,
                     "can_save": self.kind == "request" and self.state == "checked" and self.learned is not None,
                     "tabs": self.tabs, "viewing": self.viewing,
+                    "suggest_note": self._suggestion(),
                     "events": [e for e in self.events if e["seq"] > after]}
 
 
@@ -221,6 +231,8 @@ class WebDisambiguator:
             note = " ".join(str(answer.get("note") or "").split())[:300]
             if note and answer.get("keep") and self.job.keep_note is not None:
                 self.job.keep_note(note)                   # an automation's note: sent to its planner on every run
+            elif note:
+                self.job.unsaved_notes.append(note)        # offered again as a note if the run is not done
             return UserChoice("none", note=note or None)
         if answer.get("choice") == "login":                # the page needs a login first
             return UserChoice("login")
