@@ -30,8 +30,18 @@ export interface Step { action: string; description: string; value: string | nul
 
 export interface AutomationDetail extends AutomationSummary {
   plan: { approved: string; steps: Step[] } | null;
-  runs: Run[]; recoveries: number; notes: number; confirmations: number;
+  runs: Run[]; recoveries: number; notes: number; confirmations: number; choices: number;
 }
+
+export interface PlanStep { action: string; description: string; value: string | null; }
+export interface Fix {
+  number: number; date: string; undone: boolean; method: 'replan' | 'user';
+  failed?: PlanStep | null; reason?: string; replaced_by?: PlanStep[]; effect_confirmed?: boolean;   // replan
+  step?: PlanStep | null;                                                                         // user
+}
+export interface Note { number: number; date: string; text: string; run: string; sent: boolean; edited?: string; }
+export interface Decision { number: number; date: string; action: string; element: string; category: string; decision: 'allowed' | 'denied'; }
+export interface Choice { key: string; action: string; description: string; url: string; element: string; uses: number; last_used: string; }
 
 @Injectable({ providedIn: 'root' })
 export class Api {
@@ -42,6 +52,21 @@ export class Api {
   create(name: string, request: string, url: string, profile: string) {
     return this.http.post<AutomationSummary>('/api/automations', { name, request, url, profile });
   }
+  private at(name: string, rest = '') { return `/api/automations/${encodeURIComponent(name)}${rest}`; }
+  fixes(name: string) { return this.http.get<Fix[]>(this.at(name, '/fixes')); }
+  undoFix(name: string, n: number) { return this.http.post<Fix>(this.at(name, `/fixes/${n}/undo`), {}); }
+  notes(name: string) { return this.http.get<Note[]>(this.at(name, '/notes')); }
+  addNote(name: string, text: string, run = '') { return this.http.post<Note>(this.at(name, '/notes'), { text, run }); }
+  editNote(name: string, n: number, text: string) { return this.http.put(this.at(name, `/notes/${n}`), { text }); }
+  removeNote(name: string, n: number) { return this.http.delete(this.at(name, `/notes/${n}`)); }
+  decisions(name: string) { return this.http.get<Decision[]>(this.at(name, '/decisions')); }
+  forgetDecision(name: string, n: number) { return this.http.delete(this.at(name, `/decisions/${n}`)); }
+  choices(name: string) { return this.http.get<Choice[]>(this.at(name, '/choices')); }
+  forgetChoice(name: string, key: string) { return this.http.delete(this.at(name, '/choices'), { params: { key } }); }
+  edit(name: string, request: string, url: string, profile: string) {
+    return this.http.put<{ relearn: boolean; parameters: string[] }>(this.at(name), { request, url, profile });
+  }
+  remove(name: string, confirm: string) { return this.http.delete(this.at(name), { params: { confirm } }); }
 }
 
 /** "20261017-101500" → "17 Oct 2026, 10:15" */

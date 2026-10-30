@@ -92,6 +92,33 @@ class AutomationStore:
         data = json.loads(path.read_text(encoding="utf-8"))
         return Automation(**{k: v for k, v in data.items() if k in Automation.__dataclass_fields__})
 
+    def update(self, name: str, request: str, url: str, profile: str) -> tuple[Automation, bool]:
+        """Changes an automation's request, page or model. A new request or page makes the learned plan
+        invalid (it was checked for the old one), so it is forgotten and the next run learns again.
+        Returns the automation and whether the plan was forgotten."""
+        automation = self.load(name)
+        request, url, profile = request.strip(), url.strip(), profile.strip()
+        if not request or not url or not profile:
+            raise AutomationError("the request, the page and the model are all needed")
+        relearn = request != automation.request or url != automation.url
+        from .params import find_parameters
+        automation.request, automation.url, automation.profile = request, url, profile
+        automation.parameters = find_parameters(request)
+        self._write(self.folder(name) / "automation.json", asdict(automation))
+        forgot = self.forget_plan(name) if relearn else False
+        return automation, forgot
+
+    def delete(self, name: str) -> None:
+        """Deletes an automation for good: its plan, history, notes, decisions, choices and browser profile
+        (its saved logins). Only a valid name inside the automations folder is ever deleted."""
+        if not NAME_RE.match(name):
+            raise AutomationError(f"invalid name {name!r}")
+        folder = self.folder(name).resolve()
+        if folder.parent != self.root.resolve() or not (folder / "automation.json").exists():
+            raise AutomationError(f"automation {name!r} does not exist")
+        import shutil
+        shutil.rmtree(folder)
+
     def names(self) -> list[str]:
         if not self.root.exists():
             return []
@@ -162,6 +189,16 @@ class AutomationStore:
         items.append(note)
         self._write_list(self.folder(name) / "notes.json", items)
         return note
+
+    def update_note(self, name: str, number: int, text: str) -> bool:
+        items = self.notes(name)
+        for note in items:
+            if note["number"] == number:
+                note["text"] = text.strip()
+                note["edited"] = datetime.now().isoformat(timespec="seconds")
+                self._write_list(self.folder(name) / "notes.json", items)
+                return True
+        return False
 
     def remove_note(self, name: str, number: int) -> bool:
         items = self.notes(name)

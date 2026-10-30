@@ -425,6 +425,17 @@ Many sites forget a login when the browser closes. **Log in to this site**, on a
 page, opens its browser in a window so you log in once; its next runs keep the session for as long
 as the site allows.
 
+An automation's page also looks after everything it keeps, in tabs:
+
+* **Fixes:** each time the site changed and ANCHOR fixed a step (or asked you which element was
+  right), with what changed; **Undo** brings the step back as it was.
+* **Notes:** what you tell the AI about the site when it plans ("the reports are inside the Portal
+  menu"); add, edit or remove them.
+* **Decisions:** what you allowed or denied at its sensitive actions; **Forget** one to be asked again.
+* **Choices:** the elements you chose when ANCHOR was not sure; **Forget** a wrong one.
+* **Settings:** change the request, the page or the model (a new request or page makes it learn the
+  plan again), or delete the automation for good, with its history and saved logins.
+
 Running automations by themselves, on a schedule, comes in 0.5; for now it is done with the command
 line (`--unattended`, below).
 

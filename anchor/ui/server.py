@@ -14,10 +14,12 @@ from anchor import __version__
 from anchor.agent.__main__ import to_url
 from anchor.agent.login import request_has_password
 from anchor.automations.model import ApprovedPlan, Automation, AutomationError, AutomationStore
+from anchor.engine.memory.choices import ChoiceMemory
 from anchor.i18n import set_language, t
 from anchor.planner import Goal, Step
 from anchor.planner.config import ConfigError, load_profiles
 
+from .manage import add_routes as add_manage_routes
 from .runs import RunManager, Runner
 
 DOCS_URL = "https://github.com/LucasDantas2701/ANCHOR#readme"
@@ -74,6 +76,7 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
         runner = Executor(store, headless=headless)
     runs = RunManager(runner)
     app = FastAPI(title="ANCHOR", version=__version__, docs_url=None, redoc_url=None, openapi_url=None)
+    app.state.runs = runs
     app.state.token = token
     allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}"} if port else None
 
@@ -117,6 +120,7 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
             "runs": [_run(r) for r in reversed(store.runs(name)[-10:])],
             "recoveries": len(store.recoveries(name)), "notes": len(store.notes(name)),
             "confirmations": len(store.confirmations(name)),
+            "choices": len(ChoiceMemory(store.memory_path(name)).entries),
         })
         return summary
 
@@ -269,6 +273,9 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
     def stop(run_id: int):
         runs.stop(job_or_404(run_id))
         return {"ok": True}
+
+    # Looking after a saved automation: fixes, notes, decisions, choices, edit, delete (anchor/ui/manage.py).
+    add_manage_routes(app, store, runs)
 
     @app.get("/{path:path}")
     def files(path: str):

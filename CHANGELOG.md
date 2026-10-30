@@ -18,6 +18,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **An automation's page looks after what it keeps (0.5, part 5b-1).** Tabs for its fixes (with what
+  changed, and **Undo**), its notes for the planner (add, edit, remove), its decisions on sensitive
+  actions and its remembered choices (both with **Forget**), and its settings: change the request, the
+  page or the model (a new request or page forgets the learned plan, which was checked for the old
+  one), or delete it for good after typing its name. Nothing changes while one of its runs is queued
+  or running. The routes use the same code as the command line (`anchor/ui/manage.py`).
 - **A README easier to start from.** Badges (release, license, Python, local LLM, documentation site),
   a navigation line, a highlighted note on what stays on your computer, a quick start, a "What ANCHOR
   does" table linking to the guides, the five-step figure in light and dark versions, a "Keeping
