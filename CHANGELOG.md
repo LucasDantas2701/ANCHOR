@@ -18,6 +18,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **A README easier to start from.** Badges (release, license, Python, local LLM, documentation site),
+  a navigation line, a highlighted note on what stays on your computer, a quick start, a "What ANCHOR
+  does" table linking to the guides, the five-step figure in light and dark versions, a "Keeping
+  ANCHOR up to date" section and a collapsed FAQ.
 - **Easier to find and to cite.** The README opens with what ANCHOR is and why (local, in your
   control, self-healing, measured, open source), with a short Portuguese version (`README.pt-BR.md`)
   and a `CITATION.cff` (GitHub's "Cite this repository").

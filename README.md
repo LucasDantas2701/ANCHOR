@@ -1,10 +1,11 @@
 <a id="readme-top"></a>
 
 <!-- PROJECT SHIELDS -->
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
+[![Release][release-shield]][release-url]
 [![License][license-shield]][license-url]
 [![Python][python-shield]][python-url]
+[![Local LLM][ollama-shield]][ollama-url]
+[![Documentation][docs-shield]][docs-url]
 
 <!-- PROJECT LOGO -->
 <br />
@@ -22,9 +23,19 @@
     Playwright. Describe the task in plain language, a small local LLM plans it, and you stay in control.
     <br />
     <br />
-    <a href="#getting-started"><strong>Get started »</strong></a>
+    <a href="#quick-start"><strong>Get started »</strong></a>
+    &middot;
+    <a href="https://lucasdantas2701.github.io/ANCHOR/"><strong>Documentation</strong></a>
     &middot;
     <a href="README.pt-BR.md">Leia em português</a>
+    <br />
+    <br />
+    <a href="#quick-start">Quick start</a> ·
+    <a href="#how-it-works">How it works</a> ·
+    <a href="#what-anchor-does">What ANCHOR does</a> ·
+    <a href="#evaluation">Evaluation</a> ·
+    <a href="#faq">FAQ</a> ·
+    <a href="https://lucasdantas2701.github.io/ANCHOR/">Documentation</a>
     <br />
     <br />
     <a href="https://github.com/LucasDantas2701/ANCHOR/issues/new?template=problem.yml">Report a bug</a>
@@ -33,13 +44,48 @@
   </p>
 </div>
 
+> [!IMPORTANT]
+> In ANCHOR, the AI only plans: a small model, run on your computer by Ollama, writes the steps, and
+> code does each one and checks it. No page, request or password leaves your computer, and before
+> anything sensitive (saving, sending, paying, deleting, acting on your account) ANCHOR asks you.
+
+## Quick Start
+
+With [Python 3.10+](https://www.python.org/downloads/), [Node.js 22.12+](https://nodejs.org/) and
+[Ollama](https://ollama.com/download) installed:
+
+```sh
+git clone https://github.com/LucasDantas2701/ANCHOR.git
+cd ANCHOR
+python -m venv venv
+venv\Scripts\activate            # Linux/macOS: source venv/bin/activate
+pip install -r requirements.txt
+playwright install chromium
+ollama pull qwen3.5:4b
+cd web
+npm install
+npm run build
+cd ..
+```
+
+Then, every time:
+
+```sh
+python -m anchor.ui
+```
+
+The step-by-step version, a first request on a test page and the requirements are in
+[Getting Started](#getting-started).
+
 <!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
   <ol>
+    <li><a href="#quick-start">Quick Start</a></li>
     <li>
       <a href="#about-the-project">About The Project</a>
       <ul>
+        <li><a href="#what-anchor-does">What ANCHOR Does</a></li>
         <li><a href="#built-with">Built With</a></li>
         <li><a href="#how-it-works">How It Works</a></li>
       </ul>
@@ -51,6 +97,7 @@
         <li><a href="#installation">Installation</a></li>
         <li><a href="#open-anchor">Open ANCHOR</a></li>
         <li><a href="#a-first-try">A First Try</a></li>
+        <li><a href="#keeping-anchor-up-to-date">Keeping ANCHOR Up To Date</a></li>
       </ul>
     </li>
     <li>
@@ -66,6 +113,7 @@
     <li><a href="#the-command-line">The Command Line</a></li>
     <li><a href="#evaluation">Evaluation</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#faq">FAQ</a></li>
     <li><a href="#feedback">Feedback</a></li>
     <li><a href="#development">Development</a></li>
     <li><a href="#responsible-use">Responsible Use</a></li>
@@ -97,6 +145,19 @@
 * **It is measured.** Development suites, prompt-injection pages and a resilience benchmark against
   a traditional script and an LLM in control, with closed sets for the 1.0 evaluation.
 * **It is open source**, under the Apache 2.0 license.
+
+### What ANCHOR Does
+
+| You want to | What ANCHOR does | More |
+|---|---|---|
+| Fill in a form and send it | Plans the steps, finds each field and button even after the page changed, and checks that each step had its effect; asks before saving or sending | [Run a request](#run-a-request) |
+| Read data from a page | Reads a whole table or list and saves it (CSV or JSON), or answers a question about the page | [Guide](https://lucasdantas2701.github.io/ANCHOR/docs/guides/reading-data/) |
+| Send or download files | Sends the files the request names to upload fields, and keeps every download; both are asked first | [Guide](https://lucasdantas2701.github.io/ANCHOR/docs/guides/files/) |
+| Work on sites that log in | Waits while you log in yourself, on the live view; the AI never sees or types a password | [When ANCHOR asks](#when-anchor-asks) |
+| Get through real pages | Follows new tabs and iframes, opens "Show more" and menus that hide a step, and declines cookie banners | [How It Works](#how-it-works) |
+| Do the same task again | Saves a checked request as an automation that runs without the AI, once or once per spreadsheet row, and repairs itself when the page changes | [Automations](#automations) |
+| See what it is doing | Shows the browser live, step by step, with every tab and window it opened | [Watch it run](#watch-it-run) |
+| Stay safe on any page | Blocks actions the request did not ask for, and ignores instructions hidden in pages (tested on prompt-injection pages) | [Responsible Use](#responsible-use) |
 
 Traditional RPA depends on fixed selectors, written by a developer:
 
@@ -167,6 +228,11 @@ nothing:
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### How It Works
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/how_it_works_dark.svg">
+  <img src="docs/images/how_it_works_light.svg" alt="How ANCHOR works: request, planner (a local model writes the steps), resolver (finds the element), executor (acts in the browser), check (did the effect happen?)" width="900">
+</picture>
 
 ```text
 Request in plain language + link
@@ -278,6 +344,22 @@ Register Maria Silva, tax ID 123-45-6789, work e-mail maria.silva@company.com, I
 Give `eval/fixtures/registration_en.html` as the page, choose the **Small** model and press **Run**. Then
 **Watch it run**: the browser fills the form step by step and, before saving, asks you (saving is a
 sensitive action).
+
+### Keeping ANCHOR Up To Date
+
+ANCHOR changes often. To update it, close it and run, in its folder:
+
+```sh
+git pull
+venv\Scripts\activate            # Linux/macOS: source venv/bin/activate
+pip install -r requirements.txt
+cd web
+npm install
+npm run build
+cd ..
+```
+
+Your automations, choices and logins are kept: they live in folders the update does not touch.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -516,6 +598,74 @@ See the [changelog](CHANGELOG.md) for what changed in each version, and the
 
 
 
+<!-- FAQ -->
+## FAQ
+
+<details>
+<summary><strong>Does anything leave my computer?</strong></summary>
+
+No. The AI runs on your computer, through Ollama, and ANCHOR serves only this computer
+(`127.0.0.1`). Your requests, the pages' contents, your logins and your automations stay on it. The
+sites you automate are, of course, opened over the internet, as in any browser.
+
+</details>
+
+<details>
+<summary><strong>Do I need a graphics card?</strong></summary>
+
+A card with 4 GB of memory is enough: everything here was measured on a GTX 1050 Ti. Without one,
+ANCHOR still works, more slowly (not measured).
+
+</details>
+
+<details>
+<summary><strong>Which models can I use?</strong></summary>
+
+Qwen 3.5, 4B (**Small**) and 9B (**Medium**), the two that were measured. Other models Ollama runs
+can be added in `llm_profiles.json`, but they were not measured. See [Which model](#which-model).
+
+</details>
+
+<details>
+<summary><strong>Does ANCHOR type my passwords?</strong></summary>
+
+No. The AI never sees or types a password, and a request with a password is refused before anything
+reaches the AI. When a site needs a login, ANCHOR waits while you log in yourself, on the live view.
+
+</details>
+
+<details>
+<summary><strong>What happens when a site changes?</strong></summary>
+
+ANCHOR finds the element again by what it is (its text, label and place), checks that each step had
+its effect, and, when it is not sure, asks you which one is right. Your answer is remembered, so the
+next run does not ask again.
+
+</details>
+
+<details>
+<summary><strong>Can I use ANCHOR on any site?</strong></summary>
+
+Only where you are allowed to. Many sites forbid automation in their terms of use, and ANCHOR does
+not try to hide that it is automated. See [Responsible Use](#responsible-use).
+
+</details>
+
+<details>
+<summary><strong>Something went wrong. What now?</strong></summary>
+
+[Update ANCHOR](#keeping-anchor-up-to-date) first: it may already be fixed. If not, save the run's
+details (**Save the details of this run**, on the run's page) and
+[report the problem](https://github.com/LucasDantas2701/ANCHOR/issues/new?template=problem.yml),
+attaching that file. It never has passwords, but it has what the AI read from the pages, so read it
+first and remove anything personal.
+
+</details>
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
 <!-- FEEDBACK -->
 ## Feedback
 
@@ -686,10 +836,12 @@ Research project at Faculdade Matias Machline (Manaus, Brazil).
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[stars-shield]: https://img.shields.io/github/stars/LucasDantas2701/ANCHOR.svg?style=for-the-badge
-[stars-url]: https://github.com/LucasDantas2701/ANCHOR/stargazers
-[issues-shield]: https://img.shields.io/github/issues/LucasDantas2701/ANCHOR.svg?style=for-the-badge
-[issues-url]: https://github.com/LucasDantas2701/ANCHOR/issues
+[release-shield]: https://img.shields.io/github/v/release/LucasDantas2701/ANCHOR?style=for-the-badge&color=6A4BC0
+[release-url]: https://github.com/LucasDantas2701/ANCHOR/releases
+[ollama-shield]: https://img.shields.io/badge/LLM-local%20%C2%B7%20Ollama-D2F57A?style=for-the-badge&labelColor=14121A
+[ollama-url]: https://ollama.com
+[docs-shield]: https://img.shields.io/badge/docs-site-0E9F8E?style=for-the-badge
+[docs-url]: https://lucasdantas2701.github.io/ANCHOR/
 [license-shield]: https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=for-the-badge
 [license-url]: LICENSE
 [python-shield]: https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white
