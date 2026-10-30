@@ -288,3 +288,7 @@ __marimo__/
 
 # Tables and lists extracted by anchor.agent (--output-dir)
 /output/
+
+# The documentation site's build (see .github/workflows/pages.yml)
+/site_src/
+/site/

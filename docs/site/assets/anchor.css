@@ -1,0 +1,18 @@
+/* ANCHOR's colours (the interface's design system): near-black violet, lime, lilac. */
+[data-md-color-scheme="slate"] {
+  --md-default-bg-color: #0C0A12;
+  --md-primary-fg-color: #0C0A12;
+  --md-primary-bg-color: #F3F1F7;
+  --md-accent-fg-color: #D2F57A;
+  --md-typeset-a-color: #B9A3F5;
+  --md-default-fg-color: #F3F1F7;
+  --md-code-bg-color: #17141F;
+}
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #14121A;
+  --md-primary-bg-color: #F4F2F7;
+  --md-accent-fg-color: #6A4BC0;
+  --md-typeset-a-color: #6A4BC0;
+}
+.md-header, .md-tabs { border-bottom: 2px solid #D2F57A; }
+.md-typeset h1 { font-weight: 800; letter-spacing: -0.01em; color: var(--md-default-fg-color); }
