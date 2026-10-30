@@ -96,3 +96,32 @@ def test_an_automation_in_the_queue_is_not_changed(client, store):
     assert client.put("/api/automations/cadastro", json={"request": "x {a}", "url": "y", "profile": "z"}, headers=HEADERS).status_code == 409
     assert client.delete("/api/automations/cadastro", params={"confirm": "cadastro"}, headers=HEADERS).status_code == 409
     del runs.jobs[99]
+
+
+def test_the_queue_lists_times_and_results_and_a_waiting_run_leaves_it():
+    import threading
+    import time
+
+    from anchor.ui.runs import RunManager
+    gate = threading.Event()
+
+    def runner(job):
+        gate.wait(5)
+        return {"state": "checked", "message": "Done."}
+
+    runs = RunManager(runner)
+    first, second = runs.submit("automation", "a", {"name": "a"}), runs.submit("request", "r", {})
+    time.sleep(0.3)
+    items = {i["id"]: i for i in runs.list()}
+    assert items[first.id]["position"] == 0 and items[first.id]["started"] and items[second.id]["position"] == 1
+    assert items[first.id]["name"] == "a" and items[second.id]["created"] and not items[second.id]["started"]
+    runs.stop(second)                                           # waiting: it just leaves the queue
+    left = {i["id"]: i for i in runs.list()}[second.id]
+    assert left["state"] == "stopped" and left["finished"] and "out of the queue" in left["message"]
+    gate.set()
+    for _ in range(50):
+        if first.state == "checked":
+            break
+        time.sleep(0.1)
+    done = {i["id"]: i for i in runs.list()}[first.id]
+    assert done["state"] == "checked" and done["finished"] and done["message"]

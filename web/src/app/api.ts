@@ -145,7 +145,10 @@ export interface RunView {
 
 export interface Tab { index: number; title: string; url: string; anchor: boolean; }
 
-export interface RunListItem { id: number; kind: string; title: string; state: JobState; position: number; }
+export interface RunListItem {
+  id: number; kind: string; title: string; state: JobState; position: number;
+  name?: string | null; created?: string; started?: string; finished?: string; message?: string;
+}
 
 export interface Profile { name: string; label: string; }
 

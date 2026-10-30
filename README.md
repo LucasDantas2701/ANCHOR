@@ -379,7 +379,9 @@ for you to do it (below).
 
 ### Watch it run
 
-Runs wait their turn and go one at a time (the AI has one graphics card). A run's page tells what
+Runs wait their turn and go one at a time (the AI has one graphics card). **Runs**, in the menu,
+shows the queue: the run going now (**Watch**, **Stop**), the ones waiting their turn, in order
+(**Remove from queue**), and the ones that ended in this session, with their result. A run's page tells what
 happens as it happens, with the time of each event and, under each step, the element it was done
 on. **Watch it run** puts the browser, live, beside the steps; when the run opens more than one tab or
 window (a "Sign in with Google" window, for example), a strip over the picture shows them all, marks the

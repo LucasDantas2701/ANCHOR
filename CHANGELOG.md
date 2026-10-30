@@ -18,6 +18,9 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The queue on a page of its own (0.5, part 5b-2).** **Runs**, in the menu (with how many are
+  running or waiting), shows the run going now (Watch, Stop), the ones waiting their turn in order
+  (Remove from queue), and the ones that ended in this session, with when and how they ended.
 - **An automation's page looks after what it keeps (0.5, part 5b-1).** Tabs for its fixes (with what
   changed, and **Undo**), its notes for the planner (add, edit, remove), its decisions on sensitive
   actions and its remembered choices (both with **Forget**), and its settings: change the request, the

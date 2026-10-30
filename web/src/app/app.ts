@@ -24,6 +24,7 @@ import { Guide, guideOnStart } from './guide';
       <nav class="side" aria-label="Main">
         <a routerLink="/automations" routerLinkActive="on">Automations</a>
         <a routerLink="/run" routerLinkActive="on">Run a request</a>
+        <a routerLink="/runs" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">Runs@if (queued() + (current() ? 1 : 0) > 0) { <span class="pill">{{ queued() + (current() ? 1 : 0) }}</span> }</a>
         <a routerLink="/schedules" routerLinkActive="on">Schedules</a>
         <a routerLink="/settings" routerLinkActive="on">Settings</a>
         @if (current(); as c) {
@@ -53,6 +54,7 @@ import { Guide, guideOnStart } from './guide';
     .side a { color: var(--ink-muted); text-decoration: none; padding: 10px var(--space-4); border-radius: var(--radius-full);
               font: 500 14px/20px var(--font-sans); }
     .side a:hover { color: var(--ink); background: var(--surface-raised); }
+    .side .pill { margin-left: 8px; display: inline-block; min-width: 18px; padding: 0 6px; border-radius: 9px; background: var(--lime); color: #0C0A12; font: 600 11px/18px var(--font-mono); text-align: center; }
     .side a.on { color: var(--ink); background: var(--surface-raised); box-shadow: inset 0 0 0 1px var(--border); }
     .now { margin-top: auto; display: grid; gap: 2px; padding: var(--space-3) var(--space-4) !important; border-radius: var(--radius-md) !important;
            border: 1px solid var(--border); background: var(--surface-raised); }

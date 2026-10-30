@@ -48,6 +48,9 @@ class Job:
     tick: Optional[Callable[[], None]] = None     # the run's own thread: keeps the live view going
     inputs: deque = field(default_factory=deque)   # clicks and keys from the live view, for the browser
     frame_meta: Optional[dict] = None             # the page's size behind the live view's image
+    queued_at: str = field(default_factory=lambda: time.strftime("%Y-%m-%dT%H:%M:%S"))   # when it joined the queue
+    started: str = ""                              # when it began
+    finished: str = ""                             # when it ended
     found: Any = None                             # what a question waited for besides an answer (a pointed element)
     learned: Optional[dict] = None                # a checked request's steps and goals, to save as an automation
     keep_note: Optional[Callable[[str], None]] = None   # an automation's: keeps what the person said for next runs
@@ -282,14 +285,16 @@ class RunManager:
             if job in self.queue:                 # not started: it just leaves the queue
                 self.queue.remove(job)
                 job.state = "stopped"
-                job.result = {"state": "stopped", "message": "Stopped before it started."}
+                job.result = {"state": "stopped", "message": "Taken out of the queue before it started."}
+                job.finished = time.strftime("%Y-%m-%dT%H:%M:%S")
         job.answered.set()
 
     def list(self) -> list[dict]:
         with self.cond:
             jobs = sorted(self.jobs.values(), key=lambda j: j.id, reverse=True)
-        return [{"id": j.id, "kind": j.kind, "title": j.title, "state": j.state,
-                 "position": self.position(j)} for j in jobs]
+        return [{"id": j.id, "kind": j.kind, "title": j.title, "state": j.state, "position": self.position(j),
+                 "name": j.spec.get("name"), "created": j.queued_at, "started": j.started, "finished": j.finished,
+                 "message": (j.result or {}).get("message", "")} for j in jobs]
 
     def _forget_old(self) -> None:
         done = [j for j in sorted(self.jobs.values(), key=lambda j: j.id) if j.state not in ("queued", "running", "waiting")]
@@ -303,6 +308,7 @@ class RunManager:
                     self.cond.wait()
                 job = self.current = self.queue.popleft()
             job.state = "running"
+            job.started = time.strftime("%Y-%m-%dT%H:%M:%S")
             job.add("state", state="running")
             try:
                 result = self.runner(job)
@@ -316,6 +322,7 @@ class RunManager:
             result = explain(result)
             job.activity = None
             job.result, job.state = result, result.get("state", "not_done")
+            job.finished = time.strftime("%Y-%m-%dT%H:%M:%S")
             job.add("result", **result)
             with self.cond:
                 self.current = None
