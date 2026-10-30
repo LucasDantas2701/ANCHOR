@@ -41,6 +41,11 @@ export interface Fix {
 }
 export interface Note { number: number; date: string; text: string; run: string; sent: boolean; edited?: string; }
 export interface Decision { number: number; date: string; action: string; element: string; category: string; decision: 'allowed' | 'denied'; }
+export interface RowOutcome { number: number; state: JobState; message: string; values: Record<string, string>; }
+export interface SheetCheck {
+  rows: number; columns: string[]; missing: string[]; extra: string[]; blank_rows: number[]; too_many: boolean;
+  preview: Record<string, string>[]; all: Record<string, string>[]; parameters: string[];
+}
 export interface Choice { key: string; action: string; description: string; url: string; element: string; uses: number; last_used: string; }
 
 @Injectable({ providedIn: 'root' })
@@ -67,6 +72,7 @@ export class Api {
     return this.http.put<{ relearn: boolean; parameters: string[] }>(this.at(name), { request, url, profile });
   }
   remove(name: string, confirm: string) { return this.http.delete(this.at(name), { params: { confirm } }); }
+  checkSheet(name: string, filename: string, content: string) { return this.http.post<SheetCheck>(this.at(name, '/sheet'), { filename, content }); }
 }
 
 /** "20261017-101500" → "17 Oct 2026, 10:15" */
@@ -131,9 +137,9 @@ export interface Question {
   url?: string; signup?: boolean; window?: boolean; keeps_notes?: boolean;
 }
 
-export interface RunEvent { seq: number; at: string; type: 'line' | 'used' | 'tried' | 'page' | 'ended_on' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }
+export interface RunEvent { seq: number; at: string; type: 'line' | 'used' | 'tried' | 'page' | 'ended_on' | 'row' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }
 
-export interface RunResult { state: JobState; message: string; summary?: string; hint?: string;
+export interface RunResult { state: JobState; message: string; summary?: string; hint?: string; rows?: RowOutcome[];
   plan?: { steps: Step[]; goals: { id: string; description: string; conclusive: boolean }[] }; steps?: number; seconds?: number; model_calls?: number; mode?: string; }
 
 export interface RunView {
@@ -156,8 +162,9 @@ export interface Profile { name: string; label: string; }
 @Injectable({ providedIn: 'root' })
 export class Runs {
   private http = inject(HttpClient);
-  startAutomation(name: string, values: Record<string, string>, relearn: boolean, freshBrowser: boolean, showBrowser: boolean) {
-    return this.http.post<{ id: number }>('/api/runs', { kind: 'automation', name, values, relearn, fresh_browser: freshBrowser, show_browser: showBrowser });
+  startAutomation(name: string, values: Record<string, string>, relearn: boolean, freshBrowser: boolean, showBrowser: boolean,
+                  rows?: Record<string, string>[]) {
+    return this.http.post<{ id: number }>('/api/runs', { kind: 'automation', name, values, relearn, fresh_browser: freshBrowser, show_browser: showBrowser, rows });
   }
   startRequest(request: string, url: string, profile: string, showBrowser: boolean) {
     return this.http.post<{ id: number }>('/api/runs', { kind: 'request', request, url, profile, show_browser: showBrowser });

@@ -2,7 +2,7 @@ import { Component, inject, input, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 
-import { Api, AutomationDetail, Choice, Decision, Fix, Note, PlanStep, Profile, Runs, STATE_CLASS, STATE_WORDS, apiError, host, isoDate, modelName, parts, runDate } from '../api';
+import { Api, AutomationDetail, Choice, Decision, Fix, Note, PlanStep, Profile, Runs, SheetCheck, STATE_CLASS, STATE_WORDS, apiError, host, isoDate, modelName, parts, runDate } from '../api';
 
 const ACTIONS: Record<string, string> = {
   click: 'Click', fill: 'Type in', select: 'Choose in', check: 'Tick', uncheck: 'Untick', press: 'Press',
@@ -38,6 +38,30 @@ const ACTIONS: Record<string, string> = {
         </div>
         @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
       </form>
+
+      @if (a.parameters.length) {
+        <div class="card sheet">
+          <div class="sheet-head">
+            <div><p class="eyebrow">Run for each row of a spreadsheet</p>
+              <p class="muted small">A CSV or Excel (.xlsx) file whose first row names the columns: {{ a.parameters.join(', ') }}. One run per row, one after the other.</p></div>
+            <label class="btn">Choose a file<input type="file" accept=".csv,.xlsx" hidden (change)="pickSheet(a, $event)"></label>
+          </div>
+          @if (sheetError()) { <p class="error" role="alert">{{ sheetError() }}</p> }
+          @if (sheet(); as s) {
+            <p class="small"><b>{{ sheetName() }}</b> · {{ s.rows }} row{{ s.rows === 1 ? '' : 's' }}
+              @if (s.extra.length) { <span class="muted"> · not used: {{ s.extra.join(', ') }}</span> }</p>
+            @if (s.missing.length) { <p class="warn">The spreadsheet has no column for: {{ s.missing.join(', ') }}. Name a column exactly like that.</p> }
+            @if (s.blank_rows.length) { <p class="warn">These rows have an empty value: {{ s.blank_rows.slice(0, 10).join(', ') }}@if (s.blank_rows.length > 10) {…}. Fill them in, or remove them.</p> }
+            @if (s.too_many) { <p class="warn">A spreadsheet run has at most 500 rows: split it in parts.</p> }
+            <div class="scroll"><table class="preview">
+              <thead><tr><th>#</th>@for (p of s.parameters; track p) { <th>{{ p }}</th> }</tr></thead>
+              <tbody>@for (row of s.preview; track $index) { <tr><td class="muted">{{ $index + 1 }}</td>@for (p of s.parameters; track p) { <td class="mono">{{ row[p] }}</td> }</tr> }</tbody>
+            </table></div>
+            @if (s.rows > s.preview.length) { <p class="muted small">and {{ s.rows - s.preview.length }} more.</p> }
+            <button class="btn primary" type="button" [disabled]="!sheetOk(s) || busy()" (click)="runSheet(a, s)">Run {{ s.rows }} row{{ s.rows === 1 ? '' : 's' }}</button>
+          }
+        </div>
+      }
 
       <dl class="facts">
         <div><dt>Site</dt><dd class="mono">{{ host(a.url) }}</dd></div>
@@ -216,6 +240,15 @@ const ACTIONS: Record<string, string> = {
     .more[open] { display: grid; gap: 6px; }
     .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--ink-muted); }
     .error { flex-basis: 100%; color: var(--refused); margin: 0; }
+    .sheet { padding: var(--space-4) var(--space-6); margin: 0 0 var(--space-8); max-width: 1080px; display: grid; gap: var(--space-3); }
+    .sheet-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); }
+    .sheet-head p { margin: 0; }
+    .sheet .btn { cursor: pointer; }
+    .sheet .scroll { overflow-x: auto; }
+    .preview { border-collapse: collapse; font-size: 13px; }
+    .preview th, .preview td { padding: 6px 12px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+    .sheet button.primary { justify-self: start; }
+    .sheet button:disabled { opacity: .4; cursor: not-allowed; }
     .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin: 0 0 var(--space-8); max-width: 1080px; }
     .facts div { border-top: 1px solid var(--border); padding-top: var(--space-3); }
     dt { font: 500 12px/16px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-muted); }
@@ -289,6 +322,36 @@ export class AutomationPage {
   notFound = signal(false);
   stateWords = STATE_WORDS; stateClass = STATE_CLASS; host = host; runDate = runDate; parts = parts; modelName = modelName; isoDate = isoDate;
   action = (a: string) => ACTIONS[a] ?? a;
+
+  // ------------------------------------------------------------------ a spreadsheet
+  sheet = signal<SheetCheck | null>(null);
+  sheetName = signal('');
+  sheetError = signal('');
+  pickSheet(a: AutomationDetail, event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    this.sheet.set(null); this.sheetError.set('');
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { this.sheetError.set('The spreadsheet is larger than 5 MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const content = String(reader.result).split(',')[1] ?? '';
+      this.api.checkSheet(a.name, file.name, content).subscribe({
+        next: s => { this.sheet.set(s); this.sheetName.set(file.name); },
+        error: e => this.sheetError.set(apiError(e, 'The spreadsheet could not be read.')),
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+  sheetOk(s: SheetCheck) { return !s.missing.length && !s.blank_rows.length && !s.too_many && s.rows > 0; }
+  runSheet(a: AutomationDetail, s: SheetCheck) {
+    this.error.set(''); this.busy.set(true);
+    this.runs.startAutomation(a.name, {}, this.relearn, this.fresh, this.show, s.all).subscribe({
+      next: r => this.router.navigate(['/runs', r.id]),
+      error: e => { this.busy.set(false); this.sheetError.set(apiError(e, 'The run could not start.')); },
+    });
+  }
 
   // ------------------------------------------------------------------ tabs
   tabs = [{ id: 'overview', label: 'Overview' }, { id: 'fixes', label: 'Fixes' }, { id: 'notes', label: 'Notes' },

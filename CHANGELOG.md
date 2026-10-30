@@ -18,6 +18,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **An automation for each row of a spreadsheet, from the interface (0.5, part 5b-3).** A CSV (UTF-8
+  or Excel's Windows encoding, comma or semicolon) or an `.xlsx` (its first sheet; numbers and dates as
+  a person would type them; `openpyxl` is a new dependency) is checked before running (missing and
+  unused columns, rows with an empty value, at most 500 rows) and run once per row in one queued run,
+  in the same browser. A row that fails does not stop the others; stopping ends the rows still to go.
+  The result has a line per row, a CSV download, and a button to run again only the rows not done.
+  The file is never saved.
 - **A note offered after a run that was not done (0.5, part 5b-4).** When an automation's run is not
   done, its result offers **Add a note for next time**, filled with what the person explained during
   the run ("none of these", without keeping it) and editable; the AI never writes a note, and nothing

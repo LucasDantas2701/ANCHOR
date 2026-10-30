@@ -427,6 +427,12 @@ Many sites forget a login when the browser closes. **Log in to this site**, on a
 page, opens its browser in a window so you log in once; its next runs keep the session for as long
 as the site allows.
 
+When the request has values, **Run for each row of a spreadsheet** takes a CSV or Excel (`.xlsx`)
+file whose first row names the columns (`name`, `phone`...), shows which columns are missing or not
+used and which rows have an empty value, and runs the automation once per row, one after the other,
+in the same browser. The result has a line per row, with **Download the results (CSV)** and **Run the
+rows not done again**. The file is read once and never saved.
+
 An automation's page also looks after everything it keeps, in tabs:
 
 * **Fixes:** each time the site changed and ANCHOR fixed a step (or asked you which element was

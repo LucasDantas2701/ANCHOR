@@ -22,7 +22,7 @@ from anchor.engine.element_resolver import ElementResolver
 from anchor.engine.memory import ChoiceMemory
 from anchor.planner import ConfigError, PlanError, get_profile, page_elements
 
-from .runs import Job, WebConfirmer, WebDisambiguator, WebLoginWaiter
+from .runs import Job, RunStopped, WebConfirmer, WebDisambiguator, WebLoginWaiter
 
 
 class StepwisePlanner:
@@ -333,6 +333,8 @@ class Executor:
                                           can_point=True, memory=ChoiceMemory(store.memory_path(name)))
                 live = _attach(job, executor)
                 job.keep_note = lambda text: store.add_note(name, text)
+                if spec.get("rows"):
+                    return self._rows(job, store, name, automation, page, executor, make_planner)
                 page.goto(automation.url)
                 result, mode, run_id = run_automation(
                     store, name, page, executor, make_planner, report=job.say,
@@ -344,6 +346,41 @@ class Executor:
                     _detach(job, live)
                 context.close()
         return _outcome(result, mode=mode, run=run_id, **ended)
+
+    def _rows(self, job: Job, store, name, automation, page, executor, make_planner) -> dict:
+        """A spreadsheet: the automation once per row, in the same browser, with the same questions as a
+        single run. Stopping ends the rows still to go; the result has one line per row."""
+        rows = job.spec["rows"]
+        outcomes, steps, seconds, calls, mode = [], 0, 0.0, 0, "replay"
+        stopped = False
+        for number, values in enumerate(rows, 1):
+            job.add("row", number=number, total=len(rows), text=" · ".join(values.get(p, "") for p in automation.parameters))
+            try:
+                page.goto(automation.url)
+                result, row_mode, _ = run_automation(
+                    store, name, page, executor, make_planner, report=job.say,
+                    relearn=bool(job.spec.get("relearn")) and number == 1, heal=True, params=values,
+                    confirm=WebConfirmer(job, remembers=True), login=WebLoginWaiter(job))
+            except RunStopped:
+                outcomes.append({"number": number, "state": "stopped", "message": "Stopped by you.", "values": values})
+                stopped = True
+                break
+            except Exception as exc:                      # this row could not run: say so, and go on with the next
+                outcomes.append({"number": number, "state": "error", "message": f"It could not run: {exc}", "values": values})
+                continue
+            row = _outcome(result)
+            outcomes.append({"number": number, "state": row["state"], "message": result.message, "values": values})
+            steps += row["steps"]; seconds += row["seconds"]; calls += row["model_calls"]
+            mode = row_mode if number == 1 else mode
+            if job.stop:
+                stopped = True
+                break
+        for number in range(len(outcomes) + 1, len(rows) + 1):
+            outcomes.append({"number": number, "state": "stopped", "message": "Not run: stopped before it.", "values": rows[number - 1]})
+        done = sum(o["state"] == "checked" for o in outcomes)
+        state = "stopped" if stopped else ("checked" if done == len(rows) else "not_done")
+        return {"state": state, "status": "rows", "message": f"{done} of {len(rows)} rows done.", "rows": outcomes,
+                "steps": steps, "seconds": round(seconds, 1), "model_calls": calls, "mode": mode}
 
     def login(self, job: Job) -> dict:
         """

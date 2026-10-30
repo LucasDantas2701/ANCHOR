@@ -129,6 +129,30 @@ def add_routes(app, store: AutomationStore, runs) -> None:
             raise HTTPException(404, "no such choice")
         return {"forgotten": key}
 
+    # ------------------------------------------------------------------ a spreadsheet, checked before running
+    @app.post("/api/automations/{name}/sheet")
+    def sheet(name: str, body: dict = Body(...)):
+        """The rows of the spreadsheet the person chose (sent as base64; never saved), checked against the
+        values the automation needs. The interface sends the rows back to run them."""
+        import base64
+
+        from anchor.automations.params import ParameterError, check_rows, rows_from_file
+        automation = loaded(name)
+        try:
+            data = base64.b64decode(str(body.get("content", "")), validate=True)
+        except Exception:
+            raise HTTPException(400, "the file could not be read")
+        if len(data) > 5 * 1024 * 1024:
+            raise HTTPException(400, "the spreadsheet is larger than 5 MB")
+        try:
+            rows = rows_from_file(data, str(body.get("filename", "")))
+        except ParameterError as exc:
+            raise HTTPException(400, str(exc))
+        if not rows:
+            raise HTTPException(400, "the spreadsheet has no rows under its header")
+        return {**check_rows(automation.parameters, rows), "preview": rows[:5], "all": rows,
+                "parameters": automation.parameters}
+
     # ------------------------------------------------------------------ edit and delete
     @app.put("/api/automations/{name}")
     def edit(name: str, body: dict = Body(...)):

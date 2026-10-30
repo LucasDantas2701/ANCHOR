@@ -144,10 +144,25 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
             except (AutomationError, FileNotFoundError):
                 raise HTTPException(404, "no such automation")
             values = {str(k): str(v) for k, v in (body.get("values") or {}).items()}
-            missing = [p for p in automation.parameters if not values.get(p, "").strip()]
-            if missing:
-                raise HTTPException(400, "Fill in: " + ", ".join(missing) + ".")
-            job = runs.submit("automation", name, {"name": name, "values": values, "relearn": bool(body.get("relearn")),
+            rows = body.get("rows")
+            if rows is not None:                        # a spreadsheet: one run of the automation per row
+                from anchor.automations.params import MAX_ROWS, check_rows
+                if not isinstance(rows, list) or not rows or not all(isinstance(r, dict) for r in rows):
+                    raise HTTPException(400, "The spreadsheet has no rows.")
+                rows = [{str(k): str(v) for k, v in r.items()} for r in rows]
+                checked = check_rows(automation.parameters, rows)
+                if checked["too_many"]:
+                    raise HTTPException(400, f"A spreadsheet run has at most {MAX_ROWS} rows.")
+                if checked["missing"]:
+                    raise HTTPException(400, "The spreadsheet has no column for: " + ", ".join(checked["missing"]) + ".")
+                if checked["blank_rows"]:
+                    raise HTTPException(400, "These rows have an empty value: " + ", ".join(map(str, checked["blank_rows"][:10])) + ".")
+                values = {}
+            else:
+                missing = [p for p in automation.parameters if not values.get(p, "").strip()]
+                if missing:
+                    raise HTTPException(400, "Fill in: " + ", ".join(missing) + ".")
+            job = runs.submit("automation", name, {"name": name, "values": values, "rows": rows, "relearn": bool(body.get("relearn")),
                                                    "fresh_browser": bool(body.get("fresh_browser")),
                                                    "show_browser": bool(body.get("show_browser", False))})
         elif kind in ("request", "plan"):

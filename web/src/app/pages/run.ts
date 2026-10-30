@@ -3,7 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 
 import { LiveView } from './live';
 
-import { ACTIVE, Api, JOB_CLASS, JOB_WORDS, JobState, Question, RunEvent, RunView, Runs, apiError, nameFor } from '../api';
+import { ACTIVE, Api, JOB_CLASS, JOB_WORDS, JobState, Question, RowOutcome, RunEvent, RunView, Runs, apiError, nameFor } from '../api';
 
 const WHAT: Record<string, string> = {
   delete: 'delete something', submit: 'save or submit a form', send: 'send a message', pay: 'make a payment',
@@ -130,7 +130,22 @@ const WHAT: Record<string, string> = {
               @if (saveError()) { <p class="err">{{ saveError() }}</p> }
             </form>
           }
-          @if (res.summary && res.message && res.state !== 'checked' && res.state !== 'planned') { <p class="detail mono muted">{{ res.message }}</p> }
+          @if (res.summary && res.message && res.summary !== res.message && res.state !== 'checked' && res.state !== 'planned') { <p class="detail mono muted">{{ res.message }}</p> }
+          @if (res.rows; as rows) {
+            <div class="rows-wrap"><table class="rows">
+              <thead><tr><th>#</th>@for (k of rowKeys(rows); track k) { <th>{{ k }}</th> }<th>Result</th><th>What happened</th></tr></thead>
+              <tbody>@for (row of rows; track row.number) {
+                <tr><td class="muted">{{ row.number }}</td>@for (k of rowKeys(rows); track k) { <td class="mono">{{ row.values[k] }}</td> }
+                  <td><span [class]="'badge ' + jobClass[row.state]">{{ jobWords[row.state] }}</span></td><td class="muted">{{ row.message }}</td></tr>
+              }</tbody>
+            </table></div>
+            <div class="row-acts">
+              <button class="btn" type="button" (click)="downloadRows(r, rows)">Download the results (CSV)</button>
+              @if (notDone(rows).length && !active(r)) {
+                <button class="btn primary" type="button" (click)="runAgain(r, rows)">Run the {{ notDone(rows).length }} row{{ notDone(rows).length === 1 ? '' : 's' }} not done again</button>
+              }
+            </div>
+          }
           @if (r.suggest_note && !noteSaved()) {
             <form class="save" (submit)="$event.preventDefault(); keepNote(r)">
               <label for="note-text">Add a note for next time? It tells the AI something about this site when it plans this automation again.</label>
@@ -139,7 +154,7 @@ const WHAT: Record<string, string> = {
                        placeholder="For example: the Save button is at the bottom, under More details" (input)="noteText.set($any($event.target).value)">
                 <button class="btn primary" type="submit" [disabled]="!(noteText() ?? r.suggest_note.text).trim()">Add note</button>
               </div>
-              <p class="save-note muted">@if (r.suggest_note.text) { These are your own words, from when you said it was none of these. } Edit them as you like; nothing is added unless you click Add note.</p>
+              <p class="save-note muted">@if (r.suggest_note.text) { These are your own words, from when you said it was none of these. Edit them as you like; } Nothing is added unless you click Add note.</p>
               @if (noteError()) { <p class="err">{{ noteError() }}</p> }
             </form>
           }
@@ -161,6 +176,7 @@ const WHAT: Record<string, string> = {
         <ol class="log card" #log>
           @for (e of events(); track e.seq) {
             @if (e.type === 'line') { <li [class]="'row ' + kindOf(e.text)"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ shown(e.text) }}</span></li> }
+            @if (e.type === 'row') { <li class="row rowsep"><time></time><span></span><span class="text">Row {{ e['number'] }} of {{ e['total'] }}@if (e.text) { · {{ e.text }} }</span></li> }
             @if (e.type === 'used') { <li class="row used"><time></time><span></span><span class="text">↳ on the {{ lower(e.text) }}</span></li> }
             @if (e.type === 'tried') { <li class="row used tried"><time></time><span></span><span class="text">↳ @if (e.text) { tried the {{ lower(e.text) }}: } {{ e['error'] }}</span></li> }
             @if (e.type === 'page') { <li class="row used"><time></time><span></span><span class="text">↳ now on {{ e.text }}</span></li> }
@@ -182,6 +198,12 @@ const WHAT: Record<string, string> = {
     } @else { <p class="muted">Loading…</p> }
   `,
   styles: [`
+    .row-acts { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+    .rowsep .text { color: var(--lime); font-weight: 600; padding-top: 6px; }
+    .rows-wrap { overflow-x: auto; width: 100%; }
+    .rows { border-collapse: collapse; font-size: 13px; width: 100%; }
+    .rows th, .rows td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+    .rows td:last-child { white-space: normal; }
     .save .note-input { flex: 1; min-width: 0; max-width: none; font: 400 15px/20px var(--font-sans) !important; }
     .back { display: inline-block; margin-bottom: var(--space-6); text-decoration: none; font-size: 13px; }
     /* Watching: the same content, filling the window: the browser left, the rest in a column on the right. */
@@ -366,6 +388,25 @@ export class RunPage implements OnDestroy {
     this.api.addNote(r.title, text, String(r.id)).subscribe({
       next: () => this.noteSaved.set(true),
       error: e => this.noteError.set(apiError(e, 'The note could not be added.')),
+    });
+  }
+  rowKeys(rows: RowOutcome[]) { return rows.length ? Object.keys(rows[0].values) : []; }
+  downloadRows(r: RunView, rows: RowOutcome[]) {
+    const keys = this.rowKeys(rows);
+    const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [[...keys, 'result', 'what happened'].map(cell).join(','),
+                   ...rows.map(row => [...keys.map(k => row.values[k]), row.state, row.message].map(cell).join(','))];
+    const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob); link.download = `${r.title}-rows-${r.id}.csv`; link.click();
+    URL.revokeObjectURL(link.href);
+  }
+  notDone(rows: RowOutcome[]) { return rows.filter(row => row.state !== 'checked'); }
+  runAgain(r: RunView, rows: RowOutcome[]) {
+    const again = this.notDone(rows).map(row => row.values);
+    this.runs.startAutomation(r.title, {}, false, false, false, again).subscribe({
+      next: x => this.router.navigate(['/runs', x.id]),
+      error: e => this.noteError.set(apiError(e, 'The rows could not start again.')),
     });
   }
   saveDetails(r: RunView) {
