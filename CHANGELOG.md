@@ -18,6 +18,9 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Easier to find and to cite.** The README opens with what ANCHOR is and why (local, in your
+  control, self-healing, measured, open source), with a short Portuguese version (`README.pt-BR.md`)
+  and a `CITATION.cff` (GitHub's "Cite this repository").
 - **Interface fixes from real runs, second part.** The browser runs in a real window kept off the
   screen instead of headless (sites see an ordinary browser, not "HeadlessChrome"), on the screen when
   the person asks to see it, at 1366 × 768, with notifications off, in the system's language and time
