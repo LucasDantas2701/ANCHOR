@@ -18,6 +18,9 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Settings, with the choices remembered from requests (0.5, part 5b-5).** The choices made when
+  ANCHOR was not sure, in requests (the file the command line shares, `memory/agent.json`), listed by
+  site, with **Forget** and **Forget all for this site**; each automation's are in its Choices tab.
 - **An automation for each row of a spreadsheet, from the interface (0.5, part 5b-3).** A CSV (UTF-8
   or Excel's Windows encoding, comma or semicolon) or an `.xlsx` (its first sheet; numbers and dates as
   a person would type them; `openpyxl` is a new dependency) is checked before running (missing and

@@ -433,6 +433,9 @@ used and which rows have an empty value, and runs the automation once per row, o
 in the same browser. The result has a line per row, with **Download the results (CSV)** and **Run the
 rows not done again**. The file is read once and never saved.
 
+Choices remembered from requests (not from an automation) are in **Settings**, by site, where you
+can forget one, or all of a site's.
+
 An automation's page also looks after everything it keeps, in tabs:
 
 * **Fixes:** each time the site changed and ANCHOR fixed a step (or asked you which element was
@@ -601,8 +604,8 @@ final numbers will come from the closed sets.
       clicks explained (the benchmark's 600 runs unchanged)
     - [x] Fixes in the interface from the same runs (a request pasted as a command, shorter
       confirmations, every tab on the live view, what the logs missed, a real browser window)
-    - [ ] Taking care of the automations: fixes and undo, notes, decisions, the choice memory;
-      spreadsheets
+    - [x] Taking care of the automations: fixes and undo, notes, decisions, the choice memory,
+      editing and deleting; the queue; a spreadsheet per run; a note offered after a failed run
     - [ ] Saved logins: in Windows' Credential Manager, filled by ANCHOR only on their own site and
       only in a password field; the model never sees a password
     - [ ] Schedules, kept on this computer, run while ANCHOR is open
@@ -610,7 +613,8 @@ final numbers will come from the closed sets.
 - [ ] **1.0** — Evaluated version: final runs, once, on the tagged release, on the closed sets
   (synthetic, controlled synthetic and human requests, and the closed resilience set), with the
   results by origin and generator; the version the article describes
-- [ ] **Later** — A documentation site (GitHub Pages), with guides, examples and the command reference
+- [x] **Documentation site** (GitHub Pages), built from this repository: guides, examples and the
+  command reference, at [lucasdantas2701.github.io/ANCHOR](https://lucasdantas2701.github.io/ANCHOR/)
 
 See the [changelog](CHANGELOG.md) for what changed in each version, and the
 [open issues](https://github.com/LucasDantas2701/ANCHOR/issues) for known problems.

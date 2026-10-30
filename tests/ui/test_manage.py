@@ -154,3 +154,23 @@ def test_no_note_is_offered_for_a_request_and_an_empty_one_when_nothing_was_expl
     assert request.view()["suggest_note"] is None
     automation = Job(id=3, kind="automation", title="a", spec={"name": "a"}, result={"state": "error", "message": "It broke."})
     assert automation.view()["suggest_note"] == {"text": "", "reason": "It broke."}
+
+
+def test_the_requests_remembered_choices_are_listed_by_site_and_forgotten(tmp_path):
+    from fastapi.testclient import TestClient
+    memory_file = tmp_path / "agent.json"
+    memory = ChoiceMemory(memory_file)
+    memory.remember("https://loja.example.com/carrinho", "click", "botão Comprar", {"role": "button", "tag": "button", "text": "Finalizar"})
+    memory.remember("https://loja.example.com/busca", "fill", "campo Busca", {"role": "textbox", "tag": "input", "label": "Pesquisar"})
+    memory.remember("https://intranet.example.com/rh", "click", "botão Salvar", {"role": "button", "tag": "button", "text": "Gravar"})
+    app = create_app(tmp_path / "automations", token="the-code", port=PORT, runner=lambda job: {"state": "checked", "message": ""},
+                     headless=True, request_memory=memory_file)
+    c = TestClient(app, base_url=f"http://127.0.0.1:{PORT}")
+    sites = c.get("/api/choices", headers=HEADERS).json()
+    assert [s["site"] for s in sites] == ["intranet.example.com", "loja.example.com"]
+    assert {x["element"] for x in sites[1]["choices"]} == {"Finalizar", "Pesquisar"}
+    one = sites[0]["choices"][0]["key"]
+    assert c.delete("/api/choices", params={"key": one}, headers=HEADERS).json() == {"forgotten": 1}
+    assert c.delete("/api/choices", params={"site": "loja.example.com"}, headers=HEADERS).json() == {"forgotten": 2}
+    assert c.get("/api/choices", headers=HEADERS).json() == []
+    assert c.delete("/api/choices", headers=HEADERS).status_code == 400

@@ -191,7 +191,7 @@ const ACTIONS: Record<string, string> = {
             <article class="card pad item">
               <header><span class="mono">{{ c.description }}</span><span class="grow"></span>
                 <button class="btn small" type="button" (click)="forgetChoice(a, c)">Forget</button></header>
-              <p>→ the element <span class="mono">“{{ c.element || 'without text' }}”</span> <span class="muted">· used {{ c.uses }} time{{ c.uses === 1 ? '' : 's' }}@if (c.last_used) {, last {{ isoDate(c.last_used) }}}</span></p>
+              <p>is the element <span class="mono">“{{ c.element || 'without text' }}”</span> <span class="muted">· used {{ c.uses }} time{{ c.uses === 1 ? '' : 's' }}@if (c.last_used) {, last {{ isoDate(c.last_used) }}}</span></p>
             </article>
           } @empty { <div class="card pad muted">No remembered choices.</div> }
         </section>

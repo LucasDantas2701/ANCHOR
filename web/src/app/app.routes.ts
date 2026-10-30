@@ -1,3 +1,4 @@
+import { SettingsPage } from './pages/settings';
 import { RunsPage } from './pages/runs';
 import { Routes } from '@angular/router';
 
@@ -17,6 +18,6 @@ export const routes: Routes = [
   { path: 'runs', component: RunsPage, title: 'Runs · ANCHOR' },
   { path: 'runs/:id', component: RunPage, title: 'Run · ANCHOR' },
   { path: 'schedules', component: SoonPage, title: 'Schedules · ANCHOR', data: { what: 'Schedules' } },
-  { path: 'settings', component: SoonPage, title: 'Settings · ANCHOR', data: { what: 'Settings' } },
+  { path: 'settings', component: SettingsPage, title: 'Settings · ANCHOR' },
   { path: '**', redirectTo: 'automations' },
 ];

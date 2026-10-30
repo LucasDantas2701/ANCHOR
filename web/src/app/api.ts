@@ -72,6 +72,9 @@ export class Api {
     return this.http.put<{ relearn: boolean; parameters: string[] }>(this.at(name), { request, url, profile });
   }
   remove(name: string, confirm: string) { return this.http.delete(this.at(name), { params: { confirm } }); }
+  requestChoices() { return this.http.get<{ site: string; choices: Choice[] }[]>('/api/choices'); }
+  forgetRequestChoice(key: string) { return this.http.delete('/api/choices', { params: { key } }); }
+  forgetRequestSite(site: string) { return this.http.delete('/api/choices', { params: { site } }); }
   checkSheet(name: string, filename: string, content: string) { return this.http.post<SheetCheck>(this.at(name, '/sheet'), { filename, content }); }
 }
 

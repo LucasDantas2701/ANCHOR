@@ -36,7 +36,19 @@ def fix_view(record: dict) -> dict:
     return view
 
 
-def add_routes(app, store: AutomationStore, runs) -> None:
+def choice_view(key: str, entry) -> dict:
+    signature = entry.signature or {}
+    return {"key": key, "action": entry.action, "description": entry.description, "url": entry.url,
+            "element": signature.get("text") or signature.get("label") or "", "uses": entry.uses, "last_used": entry.last_used}
+
+
+def site_of(url: str) -> str:
+    from urllib.parse import urlsplit
+    parts = urlsplit(url or "")
+    return parts.netloc or (parts.path.rsplit("/", 1)[-1] if parts.scheme == "file" else url) or "?"
+
+
+def add_routes(app, store: AutomationStore, runs, request_memory="memory/agent.json") -> None:
     def loaded(name: str):
         try:
             return store.load(name)
@@ -118,9 +130,7 @@ def add_routes(app, store: AutomationStore, runs) -> None:
     def choices(name: str):
         loaded(name)
         memory = ChoiceMemory(store.memory_path(name))
-        return [{"key": key, "action": e.action, "description": e.description, "url": e.url,
-                 "element": (e.signature or {}).get("text") or (e.signature or {}).get("label") or "",
-                 "uses": e.uses, "last_used": e.last_used} for key, e in memory.ordered()]
+        return [choice_view(key, e) for key, e in memory.ordered()]
 
     @app.delete("/api/automations/{name}/choices")
     def forget_choice(name: str, key: str):
@@ -128,6 +138,31 @@ def add_routes(app, store: AutomationStore, runs) -> None:
         if not ChoiceMemory(store.memory_path(name)).forget_key(key):
             raise HTTPException(404, "no such choice")
         return {"forgotten": key}
+
+    # ------------------------------------------------------------------ the requests' remembered choices
+    # (Settings): the file the requests and the command line share; each automation has its own.
+    @app.get("/api/choices")
+    def request_choices():
+        sites: dict[str, list] = {}
+        for key, entry in ChoiceMemory(request_memory).ordered():
+            sites.setdefault(site_of(entry.url), []).append(choice_view(key, entry))
+        return [{"site": site, "choices": items[::-1]} for site, items in sorted(sites.items())]
+
+    @app.delete("/api/choices")
+    def forget_request_choice(key: str = "", site: str = ""):
+        memory = ChoiceMemory(request_memory)
+        if key:
+            if not memory.forget_key(key):
+                raise HTTPException(404, "no such choice")
+            return {"forgotten": 1}
+        if site:
+            keys = [k for k, e in memory.ordered() if site_of(e.url) == site]
+            for k in keys:
+                memory.forget_key(k)
+            if not keys:
+                raise HTTPException(404, "no choices for that site")
+            return {"forgotten": len(keys)}
+        raise HTTPException(400, "say which choice (key) or which site")
 
     # ------------------------------------------------------------------ a spreadsheet, checked before running
     @app.post("/api/automations/{name}/sheet")

@@ -63,7 +63,7 @@ def _profiles() -> list[dict]:
 
 def create_app(store_root: str | Path = "automations", token: Optional[str] = None,
                static_dir: Path = STATIC, port: Optional[int] = None, runner: Optional[Runner] = None,
-               headless: bool = False) -> FastAPI:
+               headless: bool = False, request_memory: str | Path = "memory/agent.json") -> FastAPI:
     """
     The app. `token` is the code every API request must carry; `port`, the one it serves on;
     `runner` does the runs (default: the real browser and model, with a window unless `headless`).
@@ -290,7 +290,7 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
         return {"ok": True}
 
     # Looking after a saved automation: fixes, notes, decisions, choices, edit, delete (anchor/ui/manage.py).
-    add_manage_routes(app, store, runs)
+    add_manage_routes(app, store, runs, request_memory)
 
     @app.get("/{path:path}")
     def files(path: str):
