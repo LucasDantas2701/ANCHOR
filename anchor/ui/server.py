@@ -54,14 +54,17 @@ def _summary(store: AutomationStore, name: str) -> dict:
             "last_run": _run(runs[-1]) if runs else None}
 
 
-def _profiles() -> list[dict]:
-    """The model profiles that can be used (a profile still waiting for its model name is left out)."""
+def _profiles(setup=None) -> list[dict]:
+    """The model profiles that can be used (a profile still waiting for its model name is left out); in the
+    desktop program, each says whether its model is downloaded."""
     try:
         profiles = load_profiles()
     except ConfigError:
         return []
     names = {"ollama-small": "Small · Qwen 3.5 4B", "ollama-medium": "Medium · Qwen 3.5 9B"}
-    return [{"name": n, "label": names.get(n, n)} for n, p in profiles.items() if not str(p.model).startswith("PUT_")]
+    downloaded = setup.downloaded() if setup is not None else {}
+    return [{"name": n, "label": names.get(n, n), **({"downloaded": downloaded[n]} if n in downloaded else {})}
+            for n, p in profiles.items() if not str(p.model).startswith("PUT_")]
 
 
 def create_app(store_root: str | Path = "automations", token: Optional[str] = None,
@@ -134,7 +137,7 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
 
     @app.get("/api/profiles")
     def profiles():
-        return _profiles()
+        return _profiles(setup)
 
     def job_or_404(run_id: int):
         job = runs.jobs.get(run_id)

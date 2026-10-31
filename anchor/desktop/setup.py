@@ -43,12 +43,20 @@ class Download:
         return True
 
 
+MODELS = [  # the measured ones: at least one is needed; the small one is enough to start
+    {"profile": "ollama-small", "label": "Small · Qwen 3.5 4B", "model": "qwen3.5:4b", "size": "about 3 GB"},
+    {"profile": "ollama-medium", "label": "Medium · Qwen 3.5 9B", "model": "qwen3.5:9b", "size": "about 6 GB"},
+]
+
+
 class Setup:
-    def __init__(self, model: str = "qwen3.5:4b", ollama: str = OLLAMA, browser_path: Optional[Callable[[], str]] = None,
+    def __init__(self, models: Optional[list[dict]] = None, ollama: str = OLLAMA, browser_path: Optional[Callable[[], str]] = None,
                  http=requests):
-        self.model, self.ollama, self.http = model, ollama, http
+        self.models_wanted = models or MODELS
+        self.ollama, self.http = ollama, http
         self.browser_path = browser_path or _chromium_path
-        self.browser, self.model_download = Download(), Download()
+        self.browser = Download()
+        self.downloads = {m["profile"]: Download() for m in self.models_wanted}
 
     # ------------------------------------------------------------------ what is there
     def ollama_running(self) -> bool:
@@ -69,19 +77,28 @@ class Setup:
         except Exception:
             return False
 
+    def downloaded(self) -> dict[str, bool]:
+        """Which of the profiles' models Ollama already has (by profile)."""
+        have = set(self.models()) if self.ollama_running() else set()
+        return {m["profile"]: _has(have, m["model"]) for m in self.models_wanted}
+
     def status(self) -> dict:
         running = self.ollama_running()
-        have = self.models() if running else []
-        model_ok = any(m == self.model or m.split(":")[0] == self.model.split(":")[0] and m.startswith(self.model) for m in have)
+        have = set(self.models()) if running else set()
+        models = [{**m, "ready": _has(have, m["model"]), "download": self.downloads[m["profile"]].view()} for m in self.models_wanted]
         browser_ok = self.browser_ready()
-        return {"ollama": running, "ollama_download": OLLAMA_DOWNLOAD, "model": self.model, "model_ready": model_ok,
-                "browser_ready": browser_ok, "ready": running and model_ok and browser_ok,
-                "browser_download": self.browser.view(), "model_download": self.model_download.view()}
+        any_model = any(m["ready"] for m in models)
+        return {"ollama": running, "ollama_download": OLLAMA_DOWNLOAD, "models": models, "model_ready": any_model,
+                "browser_ready": browser_ok, "ready": running and any_model and browser_ok, "browser_download": self.browser.view()}
 
     # ------------------------------------------------------------------ downloads
-    def download_model(self) -> bool:
+    def download_model(self, profile: str = "ollama-small") -> bool:
+        wanted = next((m for m in self.models_wanted if m["profile"] == profile), None)
+        if wanted is None:
+            raise ValueError(f"unknown model profile {profile!r}")
+
         def work(d: Download):
-            with self.http.post(self.ollama + "/api/pull", json={"model": self.model, "stream": True}, stream=True, timeout=None) as answer:
+            with self.http.post(self.ollama + "/api/pull", json={"model": wanted["model"], "stream": True}, stream=True, timeout=None) as answer:
                 for line in answer.iter_lines():
                     if not line:
                         continue
@@ -91,7 +108,7 @@ class Setup:
                     if part.get("total"):
                         d.percent = 100.0 * part.get("completed", 0) / part["total"]
                     d.message = part.get("status", "")
-        return self.model_download.run(work)
+        return self.downloads[profile].run(work)
 
     def download_browser(self, runner=None) -> bool:
         """Playwright's own installer, which downloads Chromium into the data folder (PLAYWRIGHT_BROWSERS_PATH)."""
@@ -106,6 +123,10 @@ class Setup:
             if process.wait() != 0:
                 raise RuntimeError("the browser download stopped")
         return self.browser.run(work)
+
+
+def _has(have: set, model: str) -> bool:
+    return model in have or (":" not in model and f"{model}:latest" in have)
 
 
 def _chromium_path() -> str:

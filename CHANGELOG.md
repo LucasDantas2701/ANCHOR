@@ -18,6 +18,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The desktop program: both models, and Quit.** The first opening offers both measured models, each
+  with its download (at least one is needed; the small one is enough to start); the forms choose a
+  downloaded model and mark the others. **Quit ANCHOR**, at the top of the desktop program, ends it
+  (the same as Quit in the icon's menu), after saying schedules do not run while it is closed.
 - **The desktop program, first part (0.5).** `anchor/desktop`: ANCHOR in its own window (WebView2,
   through pywebview) with its icon near the clock (pystray); closing the window keeps it running there
   for the schedules, and **Quit**, in the icon's menu, ends it. Opening it again brings the window

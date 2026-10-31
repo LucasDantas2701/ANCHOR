@@ -14,10 +14,13 @@ def add_routes(app, desktop=None, setup=None) -> None:
         return setup.status() if setup is not None else {"ready": True}
 
     @app.post("/api/setup/model")
-    def model():
+    def model(body: dict = Body(default={})):
         if setup is None:
             raise HTTPException(404, "not in the desktop program")
-        return {"started": setup.download_model(), **setup.model_download.view()}
+        profile = str(body.get("profile") or "ollama-small")
+        if profile not in setup.downloads:
+            raise HTTPException(400, "unknown model")
+        return {"started": setup.download_model(profile), **setup.downloads[profile].view()}
 
     @app.post("/api/setup/browser")
     def browser():
@@ -37,6 +40,15 @@ def add_routes(app, desktop=None, setup=None) -> None:
         if start is None or not start.available:
             raise HTTPException(404, "only in the installed program, on Windows")
         return {"on": start.set(bool(body.get("on")))}
+
+    @app.post("/api/desktop/quit")
+    def quit_anchor():
+        """Ends ANCHOR (the window and the icon near the clock): the same as Quit in the icon's menu."""
+        if desktop is None:
+            raise HTTPException(404, "not in the desktop program")
+        import threading
+        threading.Timer(0.3, desktop.quit).start()                 # answer first, then close
+        return {"quitting": True}
 
     @app.post("/api/desktop/show")
     def show():

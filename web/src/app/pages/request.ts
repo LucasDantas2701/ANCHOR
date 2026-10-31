@@ -32,7 +32,7 @@ import { fromCommand } from '../command';
         <div>
           <label for="profile">Model</label>
           <select id="profile" name="profile" [(ngModel)]="profile">
-            @for (p of profiles(); track p.name) { <option [value]="p.name">{{ p.label }}</option> }
+            @for (p of profiles(); track p.name) { <option [value]="p.name" [disabled]="p.downloaded === false">{{ p.label }}{{ p.downloaded === false ? ' (not downloaded)' : '' }}</option> }
           </select>
         </div>
       </div>
@@ -82,7 +82,8 @@ export class RequestPage {
     const q = inject(ActivatedRoute).snapshot.queryParamMap;          // "Try again": the last try, filled in
     this.request = q.get('request') ?? ''; this.url = q.get('url') ?? '';
     this.profile = q.get('profile') ?? this.profile; this.show = q.get('window') === '1';
-    this.runs.profiles().subscribe(p => { this.profiles.set(p); if (p.length && !p.some(x => x.name === this.profile)) this.profile = p[0].name; });
+    this.runs.profiles().subscribe(p => { this.profiles.set(p); const usable = p.filter(x => x.downloaded !== false);
+      if (usable.length && !usable.some(x => x.name === this.profile)) this.profile = usable[0].name; });
   }
 
   seePlan() {

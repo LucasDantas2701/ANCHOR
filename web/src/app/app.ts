@@ -31,6 +31,7 @@ import { Setup } from './setup';
           {{ theme() === 'dark' ? 'Light' : 'Dark' }} theme
         </button>
         <button class="theme" type="button" (click)="guide.set(true)">Guide</button>
+        @if (isDesktop()) { <button class="theme" type="button" (click)="quit()">Quit ANCHOR</button> }
         <a class="btn" [href]="docs()" target="_blank" rel="noopener noreferrer">Docs <svg aria-hidden="true" width="11" height="11" viewBox="0 0 12 12" style="margin-left:4px;vertical-align:-1px"><path d="M3.5 8.5l5-5M4.5 3.5h4v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       </div>
     </header>
@@ -96,6 +97,7 @@ export class App implements OnInit {
   missed = signal<Missed[]>([]);
   failing = signal(0);
   needsSetup = signal(false);
+  isDesktop = signal(false);
   isoDate = isoDate;
 
   constructor() { takeCodeFromAddress(); }
@@ -105,6 +107,7 @@ export class App implements OnInit {
     this.api.info().subscribe({ next: i => { this.docs.set(i.docs); this.version.set(`version ${i.version}`); }, error: () => {} });
     this.watchRuns();
     this.api.setup().subscribe({ next: s => this.needsSetup.set(!s.ready), error: () => {} });
+    this.api.desktop().subscribe({ next: d => this.isDesktop.set(d.desktop), error: () => {} });
     this.api.missedSchedules().subscribe({ next: m => this.missed.set(m), error: () => {} });
     this.watchSchedules();
   }
@@ -116,6 +119,11 @@ export class App implements OnInit {
       error: () => {},
     });
     setTimeout(() => this.watchSchedules(), 30000);
+  }
+
+  quit() {
+    if (!confirm('Quit ANCHOR? Runs in progress stop, and schedules do not run until you open ANCHOR again.')) return;
+    this.api.quit().subscribe({ error: () => {} });
   }
 
   seenMissed() { this.missed.set([]); this.api.seenMissed().subscribe({ error: () => {} }); }

@@ -20,14 +20,19 @@ import { Api, SetupStatus } from './api';
                 open it, and then check again.</span> }</div>
             @if (!st.ollama) { <button class="btn" type="button" (click)="load()">Check again</button> }
           </li>
-          <li [class.ok]="st.model_ready">
-            <div><b>The AI model</b>&nbsp;<span class="mono muted">{{ st.model }}</span>, about 3 GB.
-              @if (st.model_ready) { <span class="done">Downloaded.</span> }
-              @else if (st.model_download?.state === 'running') { <span class="bar"><i [style.width.%]="st.model_download?.percent"></i></span>
-                <span class="muted small">{{ st.model_download?.message }} {{ st.model_download?.percent }}%</span> }
-              @else if (st.model_download?.state === 'failed') { <span class="err">{{ st.model_download?.message }}</span> }</div>
-            @if (!st.model_ready && st.model_download?.state !== 'running') {
-              <button class="btn primary" type="button" [disabled]="!st.ollama" (click)="model()">Download the model</button> }
+          <li class="models" [class.ok]="st.model_ready">
+            <div><b>An AI model</b>: at least one. The small one is enough to start; the medium one is more careful and slower.</div>
+            @for (m of st.models ?? []; track m.profile) {
+              <div class="model">
+                <div><b>{{ m.label }}</b>&nbsp;<span class="muted">{{ m.size }}</span>
+                  @if (m.ready) { <span class="done">Downloaded.</span> }
+                  @else if (m.download.state === 'running') { <span class="bar"><i [style.width.%]="m.download.percent"></i></span>
+                    <span class="muted small">{{ m.download.message }} {{ m.download.percent }}%</span> }
+                  @else if (m.download.state === 'failed') { <span class="err">{{ m.download.message }}</span> }</div>
+                @if (!m.ready && m.download.state !== 'running') {
+                  <button class="btn" [class.primary]="!st.model_ready" type="button" [disabled]="!st.ollama" (click)="model(m.profile)">Download</button> }
+              </div>
+            }
           </li>
           <li [class.ok]="st.browser_ready">
             <div><b>The browser</b> ANCHOR drives (Chromium), about 150 MB.
@@ -55,6 +60,8 @@ import { Api, SetupStatus } from './api';
     .items li { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); padding: var(--space-4);
                 border: 1px solid var(--border); border-radius: var(--radius-md); }
     .items li.ok { border-color: var(--checked); }
+    .items li.models { display: grid; gap: var(--space-3); }
+    .model { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border); }
     .items li > div { display: block; font-size: 14px; line-height: 1.5; }
     .done { display: block; margin-top: 4px; color: var(--checked); font-weight: 600; }
     .err { display: block; margin-top: 4px; color: var(--refused); font-size: 13px; }
@@ -74,6 +81,6 @@ export class Setup implements OnDestroy {
   constructor() { this.load(); }
   ngOnDestroy() { clearInterval(this.timer); }
   load() { this.api.setup().subscribe({ next: s => this.s.set(s), error: () => {} }); }
-  model() { this.api.downloadModel().subscribe({ next: () => this.load(), error: () => this.load() }); }
+  model(profile: string) { this.api.downloadModel(profile).subscribe({ next: () => this.load(), error: () => this.load() }); }
   browser() { this.api.downloadBrowser().subscribe({ next: () => this.load(), error: () => this.load() }); }
 }

@@ -53,9 +53,10 @@ export interface Schedule {
 }
 export interface Missed { schedule: number; automation: string; due: string; times: number; }
 export interface DownloadState { state: 'idle' | 'running' | 'done' | 'failed'; percent: number; message: string; }
+export interface SetupModel { profile: string; label: string; model: string; size: string; ready: boolean; download: DownloadState; }
 export interface SetupStatus {
-  ready: boolean; ollama?: boolean; ollama_download?: string; model?: string; model_ready?: boolean; browser_ready?: boolean;
-  browser_download?: DownloadState; model_download?: DownloadState;
+  ready: boolean; ollama?: boolean; ollama_download?: string; models?: SetupModel[]; model_ready?: boolean; browser_ready?: boolean;
+  browser_download?: DownloadState;
 }
 export interface DesktopInfo { desktop: boolean; start_with_windows: { available: boolean; on: boolean }; }
 export interface SavedLogin { site: string; username: string; created: string; last_used: string; scheduled: boolean; }
@@ -91,7 +92,8 @@ export class Api {
   }
   remove(name: string, confirm: string) { return this.http.delete(this.at(name), { params: { confirm } }); }
   setup() { return this.http.get<SetupStatus>('/api/setup'); }
-  downloadModel() { return this.http.post('/api/setup/model', {}); }
+  downloadModel(profile: string) { return this.http.post('/api/setup/model', { profile }); }
+  quit() { return this.http.post('/api/desktop/quit', {}); }
   downloadBrowser() { return this.http.post('/api/setup/browser', {}); }
   desktop() { return this.http.get<DesktopInfo>('/api/desktop'); }
   startWithWindows(on: boolean) { return this.http.put<{ on: boolean }>('/api/desktop/start', { on }); }
@@ -203,7 +205,7 @@ export interface RunListItem {
   name?: string | null; created?: string; started?: string; finished?: string; message?: string;
 }
 
-export interface Profile { name: string; label: string; }
+export interface Profile { name: string; label: string; downloaded?: boolean; }
 
 @Injectable({ providedIn: 'root' })
 export class Runs {

@@ -111,20 +111,23 @@ def test_the_first_opening_says_what_is_missing(tmp_path):
     s = setup.status()
     assert s["ollama"] is False and s["model_ready"] is False and s["browser_ready"] is False and s["ready"] is False
     browser.write_text("x")
-    setup = Setup(http=FakeOllama(models=["qwen3.5:4b"]), browser_path=lambda: str(browser))
-    assert setup.status()["ready"] is True
+    medium_only = Setup(http=FakeOllama(models=["qwen3.5:9b"]), browser_path=lambda: str(browser)).status()
+    assert medium_only["ready"] is True and [m["ready"] for m in medium_only["models"]] == [False, True]   # one model is enough
+    assert Setup(http=FakeOllama(models=[]), browser_path=lambda: str(browser)).status()["ready"] is False
 
 
 def test_the_model_is_downloaded_through_ollama_with_its_progress(tmp_path):
     lines = [{"status": "pulling manifest"}, {"status": "downloading", "total": 200, "completed": 50}, {"status": "success"}]
     setup = Setup(http=FakeOllama(pull_lines=lines), browser_path=lambda: "")
-    assert setup.download_model() is True
-    wait(setup.model_download)
-    assert setup.model_download.state == "done" and setup.model_download.percent == 100.0
+    assert setup.download_model("ollama-medium") is True
+    wait(setup.downloads["ollama-medium"])
+    assert setup.downloads["ollama-medium"].state == "done" and setup.downloads["ollama-small"].state == "idle"
     failing = Setup(http=FakeOllama(pull_lines=[{"error": "file does not exist"}]), browser_path=lambda: "")
-    failing.download_model()
-    wait(failing.model_download)
-    assert failing.model_download.state == "failed" and "try again" in failing.model_download.message
+    failing.download_model("ollama-small")
+    wait(failing.downloads["ollama-small"])
+    assert failing.downloads["ollama-small"].state == "failed" and "try again" in failing.downloads["ollama-small"].message
+    with pytest.raises(ValueError):
+        setup.download_model("nope")
 
 
 def test_the_browser_download_reports_its_percent_and_one_runs_at_a_time():
@@ -157,7 +160,7 @@ def test_the_interface_offers_the_checks_and_start_with_windows_only_in_the_desk
     assert plain.put("/api/desktop/start", json={"on": True}, headers=HEADERS).status_code == 404
 
     class Shell:
-        shown = 0
+        shown = quits = 0
 
         def __init__(self):
             self.start = StartWithWindows(exe="ANCHOR.exe", registry=FakeRegistry())
@@ -166,6 +169,9 @@ def test_the_interface_offers_the_checks_and_start_with_windows_only_in_the_desk
         def show(self):
             Shell.shown += 1
 
+        def quit(self):
+            Shell.quits += 1
+
     shell = Shell()
     desk = client(desktop=shell, setup=Setup(http=FakeOllama(running=False), browser_path=lambda: ""))
     assert desk.get("/api/setup", headers=HEADERS).json()["ollama"] is False
@@ -173,3 +179,8 @@ def test_the_interface_offers_the_checks_and_start_with_windows_only_in_the_desk
     assert desk.put("/api/desktop/start", json={"on": True}, headers=HEADERS).json() == {"on": True}
     assert desk.post("/api/desktop/show", headers=HEADERS).status_code == 200 and Shell.shown == 1
     assert desk.post("/api/desktop/show").status_code == 401                                   # the access code
+    assert desk.post("/api/desktop/quit", headers=HEADERS).json() == {"quitting": True}
+    time.sleep(0.5)
+    assert Shell.quits == 1 and plain.post("/api/desktop/quit", headers=HEADERS).status_code == 404
+    assert [p.get("downloaded") for p in desk.get("/api/profiles", headers=HEADERS).json()] == [False, False]
+    assert "downloaded" not in plain.get("/api/profiles", headers=HEADERS).json()[0]
