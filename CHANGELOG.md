@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **ANCHOR.exe opens (found testing 0.5.0-rc1 on another computer).** A windowed program on Windows
+  has no stdout or stderr, and the server's logging asked them whether they were a terminal, so the
+  installed program stopped as it opened ("Unable to configure formatter 'default'"). What would go
+  to a terminal now goes to `anchor.log`, in the user's data folder, and the build's self-test sets
+  the server's logging up as opening does, so this cannot reach an installer again.
 - **The Windows installer (0.5).** `packaging/anchor.spec` (PyInstaller) builds ANCHOR.exe with
   Python, its libraries, the built interface, the model profiles, the page script and ANCHOR's icon
   (`anchor/desktop/anchor.ico`); the browser is downloaded on the first opening. `packaging/installer.iss`

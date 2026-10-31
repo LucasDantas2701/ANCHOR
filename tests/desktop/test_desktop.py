@@ -184,3 +184,19 @@ def test_the_interface_offers_the_checks_and_start_with_windows_only_in_the_desk
     assert Shell.quits == 1 and plain.post("/api/desktop/quit", headers=HEADERS).status_code == 404
     assert [p.get("downloaded") for p in desk.get("/api/profiles", headers=HEADERS).json()] == [False, False]
     assert "downloaded" not in plain.get("/api/profiles", headers=HEADERS).json()[0]
+
+
+def test_a_windowed_program_without_stdout_logs_to_a_file_and_the_server_can_start(tmp_path):
+    """ANCHOR.exe has no stdout or stderr: the server's logging must not stop it as it opens."""
+    import subprocess
+    code = (
+        "import sys; sys.stdout = None; sys.stderr = None\n"
+        "from pathlib import Path\n"
+        "from anchor.desktop.app import log_to_file\n"
+        f"log_to_file(Path({str(tmp_path)!r}))\n"
+        "import uvicorn\n"
+        "uvicorn.Config(lambda s, r, x: None, host='127.0.0.1', port=1, log_level='warning')\n"
+        "print('server configured')\n")
+    run = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=60)
+    assert run.returncode == 0, run.stderr
+    assert "server configured" in (tmp_path / "anchor.log").read_text(encoding="utf-8")

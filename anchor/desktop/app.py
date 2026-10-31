@@ -24,6 +24,18 @@ from .startup import StartWithWindows
 INSTANCE = "instance.json"           # the running ANCHOR's port and code, so a second start can find it
 
 
+def log_to_file(folder: Path) -> None:
+    """A windowed program on Windows has no stdout or stderr (they are None), and the server's logging
+    asks them whether they are a terminal: without this, ANCHOR.exe stopped as it opened. What would
+    have gone to a terminal goes to anchor.log, in the user's data folder, instead."""
+    if sys.stdout is None or sys.stderr is None:
+        log = open(folder / "anchor.log", "a", encoding="utf-8", buffering=1)
+        if sys.stdout is None:
+            sys.stdout = log
+        if sys.stderr is None:
+            sys.stderr = log
+
+
 def running_instance(folder: Path):
     """The ANCHOR already running for this user, if any: (port, token)."""
     try:
@@ -42,6 +54,8 @@ def main(argv=None) -> int:
     parser.add_argument("--background", action="store_true", help="start hidden near the clock (how Windows starts it)")
     parser.add_argument("--self-test", metavar="FILE", help="check that everything the program needs came with it; write the result to FILE")
     args = parser.parse_args(argv)
+    from .paths import data_dir
+    log_to_file(data_dir())
     if args.self_test:
         return self_test(Path(args.self_test))
     folder = use_data_dir()
@@ -116,6 +130,14 @@ def self_test(report: Path) -> int:
         return sorted(load_profiles(DEFAULT_FILE))
     check("files (interface, profiles, page script, icon)", files)
     check("server", lambda: type(importlib.import_module("anchor.ui.server").create_app).__name__)
+
+    def server_config():
+        # What opening does, short of serving: the server's logging set up in this very program (a
+        # windowed one has no stdout; that stopped ANCHOR.exe as it opened, in 0.5.0-rc1).
+        import uvicorn
+        uvicorn.Config(lambda scope, receive, send: None, host="127.0.0.1", port=1, log_level="warning")
+        return f"stdout is {'a file' if sys.stdout is not None and not sys.stdout.isatty() else 'a terminal'}"
+    check("server's logging (as when opening)", server_config)
     report.write_text(json.dumps(checks, indent=1), encoding="utf-8")
     return 0 if all(c["ok"] for c in checks.values()) else 1
 
