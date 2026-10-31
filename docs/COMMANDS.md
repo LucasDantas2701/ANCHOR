@@ -338,7 +338,9 @@ questions (a sensitive action, which element, a login) are answered in the inter
 browser is shown live and a login is done on it; the person can also say a candidate is none of the
 ones found (and why) or that a login comes first. Each automation's page looks after its fixes
 (with undo), notes, decisions and remembered choices; **Settings** keeps the saved logins and the
-choices remembered from requests. **Schedules** runs proven automations by themselves at set
+choices remembered from requests. A run's result shows what it brought back (answers, tables and
+lists, downloaded files, and a screenshot of the page at the end when the form or the request's words
+ask for one). **Schedules** runs proven automations by themselves at set
 times, while the interface is open (see the README); the installer comes in the last step of 0.5. While it is in development, build the app once and start
 the server by hand:
 
@@ -369,6 +371,23 @@ python -m anchor.desktop.app --background     # hidden near the clock (how Windo
 | Option | Meaning |
 |---|---|
 | `--background` | Starts hidden near the clock. **Start with Windows** (Settings, or the icon's menu; on by default in the installer) starts it this way when the person logs in. |
+| `--self-test FILE` | Checks, from inside the built program, that everything it needs came with it (the window, the icon near the clock, the saved logins, the spreadsheets, the browser driver, the interface, the profiles, the page script, the icon) and writes the result to FILE; exit code 1 if something is missing. |
+
+**Building the installer** (on Windows; GitHub does it in `.github/workflows/installer.yml`, by hand or
+when a version tag is pushed, and attaches it to the release):
+
+```sh
+cd web && npm ci && npm run build && cd ..
+pip install -r requirements-desktop.txt
+pyinstaller packaging/anchor.spec --noconfirm           # dist/ANCHOR/ANCHOR.exe
+dist/ANCHOR/ANCHOR.exe --self-test selftest.json
+set ANCHOR_VERSION=0.5.0
+iscc packaging\installer.iss                            # dist/installer/ANCHOR-Setup-0.5.0.exe (Inno Setup 6)
+```
+
+The installer installs for the current user (`%LOCALAPPDATA%\Programs\ANCHOR`), adds ANCHOR to the
+Start menu, starts it with Windows unless that box is unticked, and, when uninstalled, asks whether to
+delete the user's data (`%LOCALAPPDATA%\ANCHOR`) too.
 
 ## Choice memory (`anchor.engine.memory`)
 

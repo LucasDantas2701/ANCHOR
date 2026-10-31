@@ -37,6 +37,7 @@ import { fromCommand } from '../command';
         </div>
       </div>
       <label class="check"><input type="checkbox" name="show" [(ngModel)]="show"> Also open the browser in its own window</label>
+      <label class="check"><input type="checkbox" name="shot" [(ngModel)]="shot"> Include a screenshot of the page at the end</label>
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
       <div class="actions">
         <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Starting…' : 'Run' }}</button>
@@ -74,7 +75,7 @@ export class RequestPage {
   private runs = inject(Runs);
   private router = inject(Router);
   profiles = signal<Profile[]>([]);
-  request = ''; url = ''; profile = 'ollama-small'; show = false;
+  request = ''; url = ''; profile = 'ollama-small'; show = false; shot = false;
   busy = signal(false);
   error = signal('');
 
@@ -96,7 +97,7 @@ export class RequestPage {
 
   start() {
     this.error.set(''); this.busy.set(true);
-    this.runs.startRequest(this.request, this.url, this.profile, this.show).subscribe({
+    this.runs.startRequest(this.request, this.url, this.profile, this.show, this.shot).subscribe({
       next: r => this.router.navigate(['/runs', r.id]),
       error: e => { this.busy.set(false); this.error.set(apiError(e, 'The run could not start.')); },
     });

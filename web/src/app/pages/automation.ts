@@ -34,6 +34,7 @@ const ACTIONS: Record<string, string> = {
           <details class="more"><summary class="muted">More options</summary>
             <label class="check"><input type="checkbox" name="relearn" [(ngModel)]="relearn"> Learn the plan again with the AI</label>
             <label class="check"><input type="checkbox" name="fresh" [(ngModel)]="fresh"> Use a clean browser (no saved logins)</label>
+            <label class="check"><input type="checkbox" name="shot" [(ngModel)]="shot"> Include a screenshot of the page at the end</label>
           </details>
         </div>
         @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
@@ -301,6 +302,7 @@ export class AutomationPage {
   private router = inject(Router);
   values: Record<string, string> = {};
   relearn = false; fresh = false; show = false;
+  shot = false;
   busy = signal(false);
   error = signal('');
 
@@ -313,7 +315,7 @@ export class AutomationPage {
 
   run(a: AutomationDetail) {
     this.error.set(''); this.busy.set(true);
-    this.runs.startAutomation(a.name, this.values, this.relearn, this.fresh, this.show).subscribe({
+    this.runs.startAutomation(a.name, this.values, this.relearn, this.fresh, this.show, undefined, this.shot).subscribe({
       next: r => this.router.navigate(['/runs', r.id]),
       error: e => { this.busy.set(false); this.error.set(apiError(e, 'The run could not start.')); },
     });
@@ -348,7 +350,7 @@ export class AutomationPage {
   sheetOk(s: SheetCheck) { return !s.missing.length && !s.blank_rows.length && !s.too_many && s.rows > 0; }
   runSheet(a: AutomationDetail, s: SheetCheck) {
     this.error.set(''); this.busy.set(true);
-    this.runs.startAutomation(a.name, {}, this.relearn, this.fresh, this.show, s.all).subscribe({
+    this.runs.startAutomation(a.name, {}, this.relearn, this.fresh, this.show, s.all, this.shot).subscribe({
       next: r => this.router.navigate(['/runs', r.id]),
       error: e => { this.busy.set(false); this.sheetError.set(apiError(e, 'The run could not start.')); },
     });

@@ -18,6 +18,22 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The Windows installer (0.5).** `packaging/anchor.spec` (PyInstaller) builds ANCHOR.exe with
+  Python, its libraries, the built interface, the model profiles, the page script and ANCHOR's icon
+  (`anchor/desktop/anchor.ico`); the browser is downloaded on the first opening. `packaging/installer.iss`
+  (Inno Setup) makes ANCHOR-Setup-<version>.exe: per user (no administrator password), Start menu,
+  Start with Windows ticked, a desktop icon if wanted, and the question, when uninstalling, whether to
+  delete the user's data. `.github/workflows/installer.yml` builds it on Windows, by hand or for a
+  version tag, runs the built program's `--self-test` first, and attaches the installer to the
+  release; the signing step waits for a certificate. A compiled chardet found on the building machine
+  crashed the frozen program, so it is never carried along (requests uses charset-normalizer).
+- **What a run brings back, in the interface.** A run's result shows its answers (with Copy), the
+  tables and lists it read (the first 50 rows on the screen, the CSV to download), the files it
+  downloaded, and a screenshot of the page at the end when **Include a screenshot of the page at the
+  end** is ticked (request form, automation's More options) or the request asks for one ("print",
+  "screenshot", "captura de tela"); a spreadsheet run shows each row's. Only the files listed in a
+  run's outputs can be downloaded from it. The screenshot is taken by the interface's code at the end
+  of the run, not planned by the AI: what the planner reads is unchanged.
 - **The desktop program: both models, and Quit.** The first opening offers both measured models, each
   with its download (at least one is needed; the small one is enough to start); the forms choose a
   downloaded model and mark the others. **Quit ANCHOR**, at the top of the desktop program, ends it

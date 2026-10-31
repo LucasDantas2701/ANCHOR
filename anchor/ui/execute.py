@@ -5,7 +5,9 @@ same run_automation and Agent, the same rules. Only the questions go to the inte
 from __future__ import annotations
 
 import base64
+import csv
 import dataclasses
+import re
 import time
 from pathlib import Path
 from typing import Callable
@@ -267,6 +269,49 @@ def _detach(job: Job, live: LiveView) -> None:
     job.tick = job.pump = None
 
 
+# A request asks for a screenshot in these words ("print" is how Portuguese speakers say it).
+SCREENSHOT_WORDS = re.compile(r"\b(screenshots?|prints?|printscreen|captura(s)? de tela|captura da tela|imagem da tela|foto da tela)\b", re.I)
+PREVIEW_ROWS = 50                        # the rows of a table shown in the interface (the CSV has them all)
+
+
+def wants_screenshot(spec: dict, request: str) -> bool:
+    """A screenshot of the page at the end: asked for in the form, or in the request's words."""
+    return bool(spec.get("screenshot")) or bool(SCREENSHOT_WORDS.search(request or ""))
+
+
+def run_outputs(result, page=None, screenshot: bool = False, folder: Path = Path("output"), tag: str = "") -> list[dict]:
+    """What a run brings back, for the interface: its answers, the tables and lists it read (the first rows
+    shown, the CSV to download), the files it downloaded, and the page's screenshot when it was asked."""
+    outputs = []
+    for item in getattr(result, "extractions", []) or []:
+        kind = item.get("kind")
+        if kind == "text":
+            outputs.append({"kind": "text", "description": item.get("description", ""), "text": item.get("text", "")})
+        elif kind == "file":
+            outputs.append({"kind": "file", "description": item.get("description", ""), "name": item.get("name", ""),
+                            "bytes": item.get("bytes", 0), "path": item.get("path", "")})
+        elif item.get("path"):
+            columns, rows = item.get("columns") or [], []
+            try:
+                text = Path(item["path"]).read_text(encoding="utf-8-sig")
+                dialect = csv.Sniffer().sniff(text.splitlines()[0] if text else ",", delimiters=",;")
+                lines = list(csv.reader(text.splitlines(), dialect))
+                columns, rows = (lines[0], lines[1:PREVIEW_ROWS + 1]) if lines else (columns, [])
+            except Exception:
+                pass
+            outputs.append({"kind": kind or "table", "description": item.get("description", ""), "name": item.get("name", ""),
+                            "columns": columns, "rows": rows, "total": item.get("rows", len(rows)), "path": item["path"]})
+    if screenshot and page is not None:
+        try:
+            folder.mkdir(parents=True, exist_ok=True)
+            target = folder / f"screenshot-{tag or time.strftime('%Y%m%d-%H%M%S')}.png"
+            page.screenshot(path=str(target), full_page=True)
+            outputs.append({"kind": "screenshot", "description": page.url, "name": target.name, "path": str(target)})
+        except Exception as exc:                  # the page went away: say so instead of failing the run
+            outputs.append({"kind": "text", "description": "Screenshot", "text": f"The screenshot could not be taken: {exc}"})
+    return outputs
+
+
 def _outcome(result, **more) -> dict:
     if result.ok:
         state = "checked"
@@ -350,6 +395,8 @@ class Executor:
                     confirm=WebConfirmer(job, remembers=True), login=self._login(job, executor),
                     unattended=bool(spec.get("unattended")))
                 ended = _ended(job, result, executor)
+                ended["outputs"] = run_outputs(result, executor.page, wants_screenshot(spec, automation.request),
+                                               self.output_dir, tag=str(job.id))
             finally:
                 if "live" in locals():
                     _detach(job, live)
@@ -379,7 +426,9 @@ class Executor:
                 outcomes.append({"number": number, "state": "error", "message": f"It could not run: {exc}", "values": values})
                 continue
             row = _outcome(result)
-            outcomes.append({"number": number, "state": row["state"], "message": result.message, "values": values})
+            outputs = run_outputs(result, page, wants_screenshot(job.spec, automation.request), self.output_dir,
+                                  tag=f"{job.id}-{number}")
+            outcomes.append({"number": number, "state": row["state"], "message": result.message, "values": values, "outputs": outputs})
             steps += row["steps"]; seconds += row["seconds"]; calls += row["model_calls"]
             mode = row_mode if number == 1 else mode
             if job.stop:
@@ -468,6 +517,8 @@ class Executor:
                                    "goals": [dataclasses.asdict(g) for g in agent._goals.values() if g.id in used],
                                    "language": agent.language}
                 ended = _ended(job, result, executor)
+                ended["outputs"] = run_outputs(result, executor.page, wants_screenshot(spec, spec.get("request", "")),
+                                               self.output_dir, tag=str(job.id))
             finally:
                 if "live" in locals():
                     _detach(job, live)

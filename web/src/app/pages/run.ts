@@ -2,6 +2,7 @@ import { Component, ElementRef, OnDestroy, effect, inject, input, signal, viewCh
 import { Router, RouterLink } from '@angular/router';
 
 import { LiveView } from './live';
+import { Outputs } from './outputs';
 
 import { ACTIVE, Api, JOB_CLASS, JOB_WORDS, JobState, Question, RowOutcome, RunEvent, RunView, Runs, apiError, nameFor } from '../api';
 
@@ -12,7 +13,7 @@ const WHAT: Record<string, string> = {
 
 @Component({
   selector: 'app-run',
-  imports: [RouterLink, LiveView],
+  imports: [RouterLink, LiveView, Outputs],
   template: `
     @if (run(); as r) {
       <div class="layout" [class.theater]="watching()">
@@ -131,12 +132,16 @@ const WHAT: Record<string, string> = {
             </form>
           }
           @if (res.summary && res.message && res.summary !== res.message && res.state !== 'checked' && res.state !== 'planned') { <p class="detail mono muted">{{ res.message }}</p> }
+          @if (res.outputs?.length) {
+            <div class="outputs"><p class="eyebrow">What it brought back</p><app-outputs [run]="r.id" [outputs]="res.outputs ?? []" /></div>
+          }
           @if (res.rows; as rows) {
             <div class="rows-wrap"><table class="rows">
               <thead><tr><th>#</th>@for (k of rowKeys(rows); track k) { <th>{{ k }}</th> }<th>Result</th><th>What happened</th></tr></thead>
               <tbody>@for (row of rows; track row.number) {
                 <tr><td class="muted">{{ row.number }}</td>@for (k of rowKeys(rows); track k) { <td class="mono">{{ row.values[k] }}</td> }
                   <td><span [class]="'badge ' + jobClass[row.state]">{{ jobWords[row.state] }}</span></td><td class="muted">{{ row.message }}</td></tr>
+                @if (row.outputs?.length) { <tr class="row-out"><td></td><td [attr.colspan]="rowKeys(rows).length + 2"><app-outputs [run]="r.id" [outputs]="row.outputs ?? []" [row]="row.number" /></td></tr> }
               }</tbody>
             </table></div>
             <div class="row-acts">
@@ -198,6 +203,9 @@ const WHAT: Record<string, string> = {
     } @else { <p class="muted">Loading…</p> }
   `,
   styles: [`
+    .outputs { width: 100%; display: grid; gap: var(--space-2); }
+    .outputs .eyebrow { margin: var(--space-2) 0 0; }
+    .rows tr.row-out td { white-space: normal; border-bottom: 1px solid var(--border); padding-bottom: var(--space-3); }
     .row-acts { display: flex; gap: var(--space-3); flex-wrap: wrap; }
     .rowsep .text { color: var(--lime); font-weight: 600; padding-top: 6px; }
     .rows-wrap { overflow-x: auto; width: 100%; }
@@ -364,7 +372,7 @@ export class RunPage implements OnDestroy {
   /** The plan looked right: run the same request for real. */
   runIt(r: RunView) {
     const s = r.spec as Record<string, unknown>;
-    this.runs.startRequest(String(s['request']), String(s['url']), String(s['profile']), !!s['show_browser'])
+    this.runs.startRequest(String(s['request']), String(s['url']), String(s['profile']), !!s['show_browser'], !!s['screenshot'])
       .subscribe(x => this.router.navigate(['/runs', x.id]));
   }
 

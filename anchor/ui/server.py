@@ -175,7 +175,8 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
                     raise HTTPException(400, "Fill in: " + ", ".join(missing) + ".")
             job = runs.submit("automation", name, {"name": name, "values": values, "rows": rows, "relearn": bool(body.get("relearn")),
                                                    "fresh_browser": bool(body.get("fresh_browser")),
-                                                   "show_browser": bool(body.get("show_browser", False))})
+                                                   "show_browser": bool(body.get("show_browser", False)),
+                                                   "screenshot": bool(body.get("screenshot"))})
         elif kind in ("request", "plan"):
             request, url, profile = (str(body.get(k, "")).strip() for k in ("request", "url", "profile"))
             if not request or not url:
@@ -188,7 +189,8 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
             if "://" not in url:                 # "crm.example.com" is a website, as a person writes it
                 url = "https://" + url
             job = runs.submit(kind, request, {"request": request, "url": url, "profile": profile,
-                                              "show_browser": bool(body.get("show_browser", False))})
+                                              "show_browser": bool(body.get("show_browser", False)),
+                                              "screenshot": bool(body.get("screenshot"))})
         else:
             raise HTTPException(400, "unknown kind of run")
         return {"id": job.id, "position": runs.position(job)}
@@ -219,6 +221,22 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
             return Response(status_code=204, headers={"Cache-Control": "no-store"})
         return Response(latest[1], media_type="image/jpeg",
                         headers={"X-Frame": str(latest[0]), "Cache-Control": "no-store"})
+
+    @app.get("/api/runs/{run_id}/outputs/{number}")
+    def output_file(run_id: int, number: int, row: int = 0):
+        """A file a run brought back (a table's CSV, a download, a screenshot): only one listed in its outputs."""
+        job = job_or_404(run_id)
+        result = job.result or {}
+        outputs = result.get("outputs") or []
+        if row:
+            rows = [r for r in result.get("rows") or [] if r.get("number") == row]
+            outputs = rows[0].get("outputs", []) if rows else []
+        if not 0 <= number < len(outputs) or not outputs[number].get("path"):
+            raise HTTPException(404, "no such output")
+        path = Path(outputs[number]["path"])
+        if not path.is_file():
+            raise HTTPException(404, "the file is no longer there")
+        return FileResponse(path, filename=path.name)
 
     @app.get("/api/runs/{run_id}/details")
     def details(run_id: int):

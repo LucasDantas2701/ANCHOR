@@ -60,7 +60,11 @@ export interface SetupStatus {
 }
 export interface DesktopInfo { desktop: boolean; start_with_windows: { available: boolean; on: boolean }; }
 export interface SavedLogin { site: string; username: string; created: string; last_used: string; scheduled: boolean; }
-export interface RowOutcome { number: number; state: JobState; message: string; values: Record<string, string>; }
+export interface RunOutput {
+  kind: 'text' | 'table' | 'list' | 'file' | 'screenshot'; description: string; text?: string; name?: string;
+  columns?: string[]; rows?: string[][]; total?: number; bytes?: number; path?: string;
+}
+export interface RowOutcome { number: number; state: JobState; message: string; values: Record<string, string>; outputs?: RunOutput[]; }
 export interface SheetCheck {
   rows: number; columns: string[]; missing: string[]; extra: string[]; blank_rows: number[]; too_many: boolean;
   preview: Record<string, string>[]; all: Record<string, string>[]; parameters: string[];
@@ -187,7 +191,7 @@ export interface Question {
 
 export interface RunEvent { seq: number; at: string; type: 'line' | 'used' | 'tried' | 'page' | 'ended_on' | 'row' | 'state' | 'question' | 'answered' | 'result'; text?: string; [k: string]: unknown; }
 
-export interface RunResult { state: JobState; message: string; summary?: string; hint?: string; rows?: RowOutcome[];
+export interface RunResult { state: JobState; message: string; summary?: string; hint?: string; rows?: RowOutcome[]; outputs?: RunOutput[];
   plan?: { steps: Step[]; goals: { id: string; description: string; conclusive: boolean }[] }; steps?: number; seconds?: number; model_calls?: number; mode?: string; }
 
 export interface RunView {
@@ -211,11 +215,14 @@ export interface Profile { name: string; label: string; downloaded?: boolean; }
 export class Runs {
   private http = inject(HttpClient);
   startAutomation(name: string, values: Record<string, string>, relearn: boolean, freshBrowser: boolean, showBrowser: boolean,
-                  rows?: Record<string, string>[]) {
-    return this.http.post<{ id: number }>('/api/runs', { kind: 'automation', name, values, relearn, fresh_browser: freshBrowser, show_browser: showBrowser, rows });
+                  rows?: Record<string, string>[], screenshot = false) {
+    return this.http.post<{ id: number }>('/api/runs', { kind: 'automation', name, values, relearn, fresh_browser: freshBrowser, show_browser: showBrowser, rows, screenshot });
   }
-  startRequest(request: string, url: string, profile: string, showBrowser: boolean) {
-    return this.http.post<{ id: number }>('/api/runs', { kind: 'request', request, url, profile, show_browser: showBrowser });
+  startRequest(request: string, url: string, profile: string, showBrowser: boolean, screenshot = false) {
+    return this.http.post<{ id: number }>('/api/runs', { kind: 'request', request, url, profile, show_browser: showBrowser, screenshot });
+  }
+  outputFile(id: number, n: number, row = 0) {
+    return this.http.get(`/api/runs/${id}/outputs/${n}`, { params: row ? { row } : {}, responseType: 'blob' });
   }
   view(id: number, after: number) { return this.http.get<RunView>(`/api/runs/${id}?after=${after}`); }
   list() { return this.http.get<RunListItem[]>('/api/runs'); }

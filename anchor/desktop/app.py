@@ -40,7 +40,10 @@ def running_instance(folder: Path):
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="ANCHOR", description="ANCHOR, the desktop program.")
     parser.add_argument("--background", action="store_true", help="start hidden near the clock (how Windows starts it)")
+    parser.add_argument("--self-test", metavar="FILE", help="check that everything the program needs came with it; write the result to FILE")
     args = parser.parse_args(argv)
+    if args.self_test:
+        return self_test(Path(args.self_test))
     folder = use_data_dir()
     if running_instance(folder):
         return 0                                             # the running one showed its window
@@ -71,6 +74,50 @@ def main(argv=None) -> int:
         except OSError:
             pass
     return 0
+
+
+def self_test(report: Path) -> int:
+    """For the installer's build: checks, from inside the built program, that its parts came with it."""
+    checks = {}
+
+    def check(name, test):
+        try:
+            value = test()
+            checks[name] = {"ok": True, "value": str(value)[:200]}
+        except Exception as exc:
+            checks[name] = {"ok": False, "value": f"{type(exc).__name__}: {exc}"[:300]}
+
+    import importlib
+
+    from anchor import __version__
+    check("version", lambda: __version__)
+    check("window (pywebview)", lambda: importlib.import_module("webview").__name__)
+    check("icon near the clock (pystray)", lambda: importlib.import_module("pystray").__name__)
+    check("saved logins (keyring)", lambda: type(importlib.import_module("keyring").get_keyring()).__name__)
+    check("spreadsheets (openpyxl)", lambda: importlib.import_module("openpyxl").__version__)
+
+    def driver():
+        from playwright._impl._driver import compute_driver_executable
+        parts = compute_driver_executable()
+        parts = list(parts) if isinstance(parts, (tuple, list)) else [parts]
+        missing = [str(p) for p in parts if not Path(p).exists()]
+        if missing:
+            raise FileNotFoundError(", ".join(missing))
+        return parts[0]
+    check("browser driver (Playwright)", driver)
+
+    def files():
+        from anchor.engine.element_resolver import loader
+        from anchor.planner.config import DEFAULT_FILE, load_profiles
+        from anchor.ui.server import STATIC
+        assert (STATIC / "index.html").is_file(), f"no interface at {STATIC}"
+        assert Path(loader.__file__).with_name("index_script.js").is_file(), "no index_script.js"
+        assert (Path(__file__).with_name("anchor.ico")).is_file(), "no anchor.ico"
+        return sorted(load_profiles(DEFAULT_FILE))
+    check("files (interface, profiles, page script, icon)", files)
+    check("server", lambda: type(importlib.import_module("anchor.ui.server").create_app).__name__)
+    report.write_text(json.dumps(checks, indent=1), encoding="utf-8")
+    return 0 if all(c["ok"] for c in checks.values()) else 1
 
 
 class Shell:
@@ -108,7 +155,7 @@ class Shell:
         import pystray
         from PIL import Image
 
-        icon_file = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parents[2])) / "anchor" / "desktop" / "anchor.ico"
+        icon_file = Path(__file__).with_name("anchor.ico")
         image = Image.open(icon_file) if icon_file.is_file() else Image.new("RGB", (64, 64), "#D2F57A")
         menu = pystray.Menu(
             pystray.MenuItem("Open ANCHOR", lambda: self.show(), default=True),

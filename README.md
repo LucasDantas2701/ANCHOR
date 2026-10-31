@@ -51,8 +51,19 @@
 
 ## Quick Start
 
-With [Python 3.10+](https://www.python.org/downloads/), [Node.js 22.12+](https://nodejs.org/) and
-[Ollama](https://ollama.com/download) installed:
+**On Windows, with the installer:** install [Ollama](https://ollama.com/download), then download
+`ANCHOR-Setup-<version>.exe` from the [releases](https://github.com/LucasDantas2701/ANCHOR/releases)
+and run it. It installs for your user only (no administrator password), and the first time ANCHOR
+opens it downloads the AI model (at least one of the two) and the browser it drives, with a button
+for each.
+
+> [!NOTE]
+> Until the installer is signed, Windows may say it comes from an **unknown publisher**: click
+> **More info**, then **Run anyway**. The installer is built by GitHub from this repository's code
+> (`.github/workflows/installer.yml`).
+
+**From the code**, with [Python 3.10+](https://www.python.org/downloads/), [Node.js 22.12+](https://nodejs.org/)
+and [Ollama](https://ollama.com/download) installed:
 
 ```sh
 git clone https://github.com/LucasDantas2701/ANCHOR.git
@@ -104,6 +115,7 @@ The step-by-step version, a first request on a test page and the requirements ar
       <a href="#using-anchor">Using ANCHOR</a>
       <ul>
         <li><a href="#run-a-request">Run a request</a></li>
+        <li><a href="#what-a-run-brings-back">What a Run Brings Back</a></li>
         <li><a href="#watch-it-run">Watch it run</a></li>
         <li><a href="#when-anchor-asks">When ANCHOR asks</a></li>
         <li><a href="#saved-logins">Saved Logins</a></li>
@@ -158,6 +170,7 @@ The step-by-step version, a first request on a test page and the requirements ar
 | Work on sites that log in | Logs in with a login you saved for that exact site, or waits while you log in on the live view; the AI never sees a password | [Saved logins](#saved-logins) |
 | Get through real pages | Follows new tabs and iframes, opens "Show more" and menus that hide a step, and declines cookie banners | [How It Works](#how-it-works) |
 | Do the same task again | Saves a checked request as an automation that runs without the AI, once or once per spreadsheet row, and repairs itself when the page changes | [Automations](#automations) |
+| Get something back | Shows the answers, the tables and lists it read (to download as CSV), the files it downloaded and, when asked, a screenshot of the page at the end | [What a run brings back](#what-a-run-brings-back) |
 | See what it is doing | Shows the browser live, step by step, with every tab and window it opened | [Watch it run](#watch-it-run) |
 | Stay safe on any page | Blocks actions the request did not ask for, and ignores instructions hidden in pages (tested on prompt-injection pages) | [Responsible Use](#responsible-use) |
 
@@ -380,6 +393,16 @@ would take, without doing any of them; **Run** does them.
 
 Never write a password in a request: ANCHOR refuses it. When a page needs a login, ANCHOR uses a
 login you saved for that site, or waits for you to do it (below).
+
+### What a run brings back
+
+A request can ask for something back: "search for RPA jobs in Manaus and send them to me", "what is
+the delivery fee?". The run's result then shows **What it brought back**: the answers (with **Copy**),
+the tables and lists it read (the first 50 rows on the screen, all of them in **Download CSV**), the
+files it downloaded, and, when asked, a **screenshot** of the page at the end: tick **Include a
+screenshot of the page at the end** (in the request form, or in an automation's **More options**), or
+ask for it in the request ("...and send me a print", "take a screenshot"). In a spreadsheet run, each
+row shows what it brought back. Everything stays in the `output` folder, on this computer.
 
 ### Watch it run
 

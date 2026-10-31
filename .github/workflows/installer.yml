@@ -1,0 +1,78 @@
+# The Windows installer, built on a Windows machine of GitHub's: the interface, ANCHOR.exe (PyInstaller),
+# a self-test of the built program, and ANCHOR-Setup-<version>.exe (Inno Setup). Run by hand (Actions →
+# Windows installer → Run workflow, choosing the branch), or when a version tag (v0.5.0...) is pushed;
+# then the installer is attached to that version's release.
+name: Windows installer
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build the interface
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install the desktop program's libraries
+        run: pip install -r requirements-desktop.txt
+
+      - name: The version
+        shell: pwsh
+        run: |
+          $version = python -c "import anchor; print(anchor.__version__)"
+          if ($env:GITHUB_REF -like "refs/tags/v*") { $version = $env:GITHUB_REF_NAME.TrimStart("v") }
+          "ANCHOR_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "Building ANCHOR $version"
+
+      - name: Build ANCHOR.exe
+        run: pyinstaller packaging/anchor.spec --noconfirm --distpath dist --workpath build
+
+      - name: Self-test of the built program
+        shell: pwsh
+        run: |
+          $run = Start-Process -FilePath "dist\ANCHOR\ANCHOR.exe" -ArgumentList "--self-test", "$PWD\selftest.json" -Wait -PassThru
+          Get-Content selftest.json
+          if ($run.ExitCode -ne 0) { throw "the built program is missing something (see above)" }
+
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" packaging\installer.iss
+
+      # Signing: when the SignPath Foundation's certificate is approved, sign dist\installer\*.exe here,
+      # so Windows stops showing "unknown publisher".
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ANCHOR-installer
+          path: dist/installer/*.exe
+
+      - name: Attach it to the version's release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view $env:GITHUB_REF_NAME 2>$null
+          if ($LASTEXITCODE -ne 0) { gh release create $env:GITHUB_REF_NAME --draft --title "ANCHOR $env:ANCHOR_VERSION" --notes "Draft: write the notes." }
+          gh release upload $env:GITHUB_REF_NAME (Get-ChildItem dist\installer\*.exe).FullName --clobber
