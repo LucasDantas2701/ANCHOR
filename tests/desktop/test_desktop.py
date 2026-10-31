@@ -200,3 +200,20 @@ def test_a_windowed_program_without_stdout_logs_to_a_file_and_the_server_can_sta
     run = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=60)
     assert run.returncode == 0, run.stderr
     assert "server configured" in (tmp_path / "anchor.log").read_text(encoding="utf-8")
+
+
+def test_the_browser_download_starts_with_no_console_window_on_windows(monkeypatch):
+    import subprocess
+
+    from anchor.desktop import setup as setup_module
+    if not hasattr(subprocess, "STARTUPINFO"):                       # these exist only on Windows: stand in for them
+        class Info:
+            dwFlags, wShowWindow = 0, None
+        monkeypatch.setattr(subprocess, "STARTUPINFO", Info, raising=False)
+        for name, value in (("STARTF_USESHOWWINDOW", 1), ("SW_HIDE", 0), ("CREATE_NO_WINDOW", 0x08000000)):
+            monkeypatch.setattr(subprocess, name, value, raising=False)
+    monkeypatch.setattr(sys, "platform", "win32")
+    hidden = setup_module.no_window()
+    assert hidden["creationflags"] == subprocess.CREATE_NO_WINDOW and hidden["startupinfo"].wShowWindow == subprocess.SW_HIDE
+    monkeypatch.setattr(sys, "platform", "linux")
+    assert setup_module.no_window() == {}

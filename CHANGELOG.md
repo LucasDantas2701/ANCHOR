@@ -18,6 +18,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The installer, after 0.5.0-rc2 on another computer.** Downloading the browser opened an empty
+  console window (closing it stopped the download): it now starts hidden, as Playwright starts its
+  own driver. Windows Defender flagged the unsigned ANCHOR.exe by its machine-learning heuristic
+  (`Trojan:Win32/Bearfoos.A!ml`, a false positive): the workflow now builds PyInstaller's bootloader
+  from source (the ready-made one is the same in every PyInstaller program, malware included), and
+  the build is to be submitted to Microsoft as a false positive and signed (SignPath).
 - **ANCHOR.exe opens (found testing 0.5.0-rc1 on another computer).** A windowed program on Windows
   has no stdout or stderr, and the server's logging asked them whether they were a terminal, so the
   installed program stopped as it opened ("Unable to configure formatter 'default'"). What would go

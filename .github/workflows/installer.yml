@@ -33,7 +33,14 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install the desktop program's libraries
-        run: pip install -r requirements-desktop.txt
+        shell: pwsh
+        run: |
+          pip install -r requirements-desktop.txt
+          # PyInstaller's bootloader, built here from its source: the ready-made one is the same in every
+          # PyInstaller program (malware included), so antivirus engines flag it; this one is ANCHOR's own.
+          pip uninstall -y pyinstaller
+          $env:PYINSTALLER_COMPILE_BOOTLOADER = "1"
+          pip install --no-binary pyinstaller --no-cache-dir pyinstaller==6.11.1
 
       - name: The version
         shell: pwsh

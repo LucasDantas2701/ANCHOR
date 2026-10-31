@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import sys
 import threading
 from pathlib import Path
 from typing import Callable, Optional
@@ -114,7 +115,8 @@ class Setup:
         """Playwright's own installer, which downloads Chromium into the data folder (PLAYWRIGHT_BROWSERS_PATH)."""
         def work(d: Download):
             command, env = (runner, None) if runner else _playwright_install_command()
-            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, env=env)
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1, env=env,
+                                       **no_window())
             for line in process.stdout:
                 found = re.search(r"(\d+(?:\.\d+)?)%", line)
                 if found:
@@ -123,6 +125,17 @@ class Setup:
             if process.wait() != 0:
                 raise RuntimeError("the browser download stopped")
         return self.browser.run(work)
+
+
+def no_window() -> dict:
+    """On Windows, a windowed program that starts another one gets a console window for it, empty, and
+    closing it stopped the download: start it hidden, as Playwright starts its own driver."""
+    if sys.platform != "win32":
+        return {}
+    info = subprocess.STARTUPINFO()
+    info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    info.wShowWindow = subprocess.SW_HIDE
+    return {"startupinfo": info, "creationflags": subprocess.CREATE_NO_WINDOW}
 
 
 def _has(have: set, model: str) -> bool:
