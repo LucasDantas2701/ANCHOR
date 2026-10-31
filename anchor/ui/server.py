@@ -19,6 +19,7 @@ from anchor.i18n import set_language, t
 from anchor.planner import Goal, Step
 from anchor.planner.config import ConfigError, load_profiles
 
+from .desktop import add_routes as add_desktop_routes
 from .logins import add_routes as add_login_routes
 from .manage import add_routes as add_manage_routes
 from .runs import RunManager, Runner
@@ -66,7 +67,8 @@ def _profiles() -> list[dict]:
 def create_app(store_root: str | Path = "automations", token: Optional[str] = None,
                static_dir: Path = STATIC, port: Optional[int] = None, runner: Optional[Runner] = None,
                headless: bool = False, request_memory: str | Path = "memory/agent.json",
-               vault=None, schedules_path: Optional[str | Path] = None, run_schedules: bool = False) -> FastAPI:
+               vault=None, schedules_path: Optional[str | Path] = None, run_schedules: bool = False,
+               desktop=None, setup=None) -> FastAPI:
     """
     The app. `token` is the code every API request must carry; `port`, the one it serves on;
     `runner` does the runs (default: the real browser and model, with a window unless `headless`).
@@ -312,6 +314,8 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
     if run_schedules:
         scheduler.start_thread()
     add_schedule_routes(app, schedules, store, scheduler)
+    # The desktop program (anchor/desktop): first opening's checks, Start with Windows, the window.
+    add_desktop_routes(app, desktop, setup)
 
     @app.get("/{path:path}")
     def files(path: str):

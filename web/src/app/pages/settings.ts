@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 
-import { Api, Choice, SavedLogin, apiError, isoDate } from '../api';
+import { Api, Choice, DesktopInfo, SavedLogin, apiError, isoDate } from '../api';
 
 /** Settings: for now, the choices remembered from requests (each automation keeps its own). */
 @Component({
@@ -11,6 +11,17 @@ import { Api, Choice, SavedLogin, apiError, isoDate } from '../api';
   template: `
     <p class="eyebrow">ANCHOR</p>
     <h1 class="title">Settings</h1>
+
+    @if (desk()?.start_with_windows?.available) {
+      <section>
+        <p class="eyebrow">Start with Windows</p>
+        <div class="card pad startrow">
+          <div><b>Open ANCHOR, hidden near the clock, when you log in to Windows.</b>
+            <p class="muted small">So schedules run without anyone opening ANCHOR. Turn it off if you do not use schedules.</p></div>
+          <label class="check"><input type="checkbox" [checked]="desk()?.start_with_windows?.on" (change)="startWithWindows($any($event.target).checked)"> On</label>
+        </div>
+      </section>
+    }
 
     <section>
       <p class="eyebrow">Saved logins</p>
@@ -96,6 +107,8 @@ import { Api, Choice, SavedLogin, apiError, isoDate } from '../api';
     .check { display: flex; gap: 8px; align-items: center; font-size: 13px; color: var(--ink-muted); }
     .replace { display: flex; gap: var(--space-3); margin-top: var(--space-2); }
     .site p { margin: 4px 0 0; }
+    .startrow { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); }
+    .startrow p { margin: 4px 0 0; }
   `],
 })
 export class SettingsPage {
@@ -110,7 +123,12 @@ export class SettingsPage {
   lSite = ''; lUser = ''; lPass = ''; lSched = false; newPass = '';
   key(l: SavedLogin) { return l.site + ' ' + l.username; }
 
-  constructor() { this.load(); this.loadLogins(); }
+  desk = signal<DesktopInfo | null>(null);
+  constructor() { this.load(); this.loadLogins(); this.api.desktop().subscribe({ next: d => this.desk.set(d), error: () => {} }); }
+  startWithWindows(on: boolean) {
+    this.api.startWithWindows(on).subscribe({ next: () => this.api.desktop().subscribe(d => this.desk.set(d)),
+                                              error: e => this.loginError.set(apiError(e, 'This could not be changed.')) });
+  }
   loadLogins() { this.api.logins().subscribe({ next: x => this.logins.set(x), error: e => this.loginError.set(apiError(e, 'The logins could not be loaded.')) }); }
   addLogin() {
     this.loginError.set('');

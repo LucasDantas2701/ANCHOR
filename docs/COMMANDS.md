@@ -352,6 +352,24 @@ It opens the browser on `http://127.0.0.1:<port>/`. Options: `--automations <fol
 carry the code made at this start, which the app receives in the address it opens; no other
 program or website on the computer can use it.
 
+## Desktop program (`anchor.desktop.app`, in development)
+
+What the Windows installer runs (ANCHOR.exe): the same interface, in its own window (WebView2) with an
+icon near the clock. Closing the window keeps ANCHOR running there, for the schedules; **Quit**, in
+the icon's menu, ends it, and starting it again brings the running one's window back. It works from
+the user's data folder (`%LOCALAPPDATA%\ANCHOR` on Windows), and the first opening checks Ollama, the
+model and the browser, offering to download the last two. It needs `requirements-desktop.txt`.
+
+```sh
+pip install -r requirements-desktop.txt
+python -m anchor.desktop.app                  # opens the window and the icon near the clock
+python -m anchor.desktop.app --background     # hidden near the clock (how Windows starts it)
+```
+
+| Option | Meaning |
+|---|---|
+| `--background` | Starts hidden near the clock. **Start with Windows** (Settings, or the icon's menu; on by default in the installer) starts it this way when the person logs in. |
+
 ## Choice memory (`anchor.engine.memory`)
 
 Reviews what the assistant learned from your choices, and forgets a wrong one.
@@ -637,3 +655,6 @@ Each profile tells ANCHOR which local model to use and where Ollama runs.
 | Variable | Meaning |
 |---|---|
 | `ANCHOR_LANG` | Interface language: `en` (default) or `pt`. `--lang` overrides it. |
+| `LOCALAPPDATA` | Windows' folder for a user's program data: the desktop program keeps its data in `ANCHOR` inside it. |
+| `XDG_DATA_HOME` | The same, on Linux (default `~/.local/share`), for the desktop program. |
+| `PLAYWRIGHT_BROWSERS_PATH` | Where the browser ANCHOR drives is kept; the desktop program sets it to `browsers` in its data folder. |

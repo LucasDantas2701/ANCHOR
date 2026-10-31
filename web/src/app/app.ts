@@ -3,11 +3,13 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { ACTIVE, Api, Missed, RunListItem, Runs, isoDate, takeCodeFromAddress } from './api';
 import { Guide, guideOnStart } from './guide';
+import { Setup } from './setup';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Guide],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Guide, Setup],
   template: `
+    @if (needsSetup()) { <app-setup (done)="needsSetup.set(false)" /> }
     @if (missed().length) {
       <div class="missed" role="dialog" aria-modal="true" aria-labelledby="missed-title">
         <div class="card box">
@@ -93,6 +95,7 @@ export class App implements OnInit {
   queued = signal(0);
   missed = signal<Missed[]>([]);
   failing = signal(0);
+  needsSetup = signal(false);
   isoDate = isoDate;
 
   constructor() { takeCodeFromAddress(); }
@@ -101,6 +104,7 @@ export class App implements OnInit {
     document.documentElement.dataset['theme'] = this.theme();
     this.api.info().subscribe({ next: i => { this.docs.set(i.docs); this.version.set(`version ${i.version}`); }, error: () => {} });
     this.watchRuns();
+    this.api.setup().subscribe({ next: s => this.needsSetup.set(!s.ready), error: () => {} });
     this.api.missedSchedules().subscribe({ next: m => this.missed.set(m), error: () => {} });
     this.watchSchedules();
   }

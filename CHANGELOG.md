@@ -18,6 +18,15 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The desktop program, first part (0.5).** `anchor/desktop`: ANCHOR in its own window (WebView2,
+  through pywebview) with its icon near the clock (pystray); closing the window keeps it running there
+  for the schedules, and **Quit**, in the icon's menu, ends it. Opening it again brings the window
+  back (one ANCHOR at a time). It works from the user's data folder (`%LOCALAPPDATA%\ANCHOR`), where
+  the browser it downloads goes too. **Start with Windows** (the user's Run key; `--background` opens
+  it hidden) is on by default and off in one click, in Settings or the icon's menu. A first-opening
+  screen, shown only when something is missing, checks Ollama, the model and the browser, and
+  downloads the model (through Ollama) and the browser (through Playwright) with their progress. Its
+  libraries are in `requirements-desktop.txt`, used only for the installer.
 - **Schedules, second part: the screens (0.5).** **Schedules**, in the menu, says at the top that
   ANCHOR must be open for a schedule to run, adds and edits schedules (the five kinds of when; the
   spreadsheet and the most rows per run, for an automation with values; only proven automations can

@@ -52,6 +52,12 @@ export interface Schedule {
   created: string; next_run: string | null; last: ScheduleEntry | null;
 }
 export interface Missed { schedule: number; automation: string; due: string; times: number; }
+export interface DownloadState { state: 'idle' | 'running' | 'done' | 'failed'; percent: number; message: string; }
+export interface SetupStatus {
+  ready: boolean; ollama?: boolean; ollama_download?: string; model?: string; model_ready?: boolean; browser_ready?: boolean;
+  browser_download?: DownloadState; model_download?: DownloadState;
+}
+export interface DesktopInfo { desktop: boolean; start_with_windows: { available: boolean; on: boolean }; }
 export interface SavedLogin { site: string; username: string; created: string; last_used: string; scheduled: boolean; }
 export interface RowOutcome { number: number; state: JobState; message: string; values: Record<string, string>; }
 export interface SheetCheck {
@@ -84,6 +90,11 @@ export class Api {
     return this.http.put<{ relearn: boolean; parameters: string[] }>(this.at(name), { request, url, profile });
   }
   remove(name: string, confirm: string) { return this.http.delete(this.at(name), { params: { confirm } }); }
+  setup() { return this.http.get<SetupStatus>('/api/setup'); }
+  downloadModel() { return this.http.post('/api/setup/model', {}); }
+  downloadBrowser() { return this.http.post('/api/setup/browser', {}); }
+  desktop() { return this.http.get<DesktopInfo>('/api/desktop'); }
+  startWithWindows(on: boolean) { return this.http.put<{ on: boolean }>('/api/desktop/start', { on }); }
   schedules() { return this.http.get<Schedule[]>('/api/schedules'); }
   addSchedule(automation: string, when: ScheduleWhen, sheet: string, maxRows: number) {
     return this.http.post<Schedule>('/api/schedules', { automation, when, sheet, max_rows: maxRows });
