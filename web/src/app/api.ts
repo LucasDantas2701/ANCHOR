@@ -41,6 +41,17 @@ export interface Fix {
 }
 export interface Note { number: number; date: string; text: string; run: string; sent: boolean; edited?: string; }
 export interface Decision { number: number; date: string; action: string; element: string; category: string; decision: 'allowed' | 'denied'; }
+export interface ScheduleWhen {
+  kind: 'once' | 'daily' | 'weekly' | 'monthly' | 'every';
+  at?: string; time?: string; days?: number[] | null; day?: number;
+  every?: number; unit?: 'minutes' | 'hours' | 'days'; start?: string; window?: [string, string] | null;
+}
+export interface ScheduleEntry { id: number; schedule: number; due: string; at: string; state: string; message: string; run: number | null; }
+export interface Schedule {
+  id: number; automation: string; when: ScheduleWhen; words: string; sheet: string; max_rows: number; enabled: boolean;
+  created: string; next_run: string | null; last: ScheduleEntry | null;
+}
+export interface Missed { schedule: number; automation: string; due: string; times: number; }
 export interface SavedLogin { site: string; username: string; created: string; last_used: string; scheduled: boolean; }
 export interface RowOutcome { number: number; state: JobState; message: string; values: Record<string, string>; }
 export interface SheetCheck {
@@ -73,6 +84,19 @@ export class Api {
     return this.http.put<{ relearn: boolean; parameters: string[] }>(this.at(name), { request, url, profile });
   }
   remove(name: string, confirm: string) { return this.http.delete(this.at(name), { params: { confirm } }); }
+  schedules() { return this.http.get<Schedule[]>('/api/schedules'); }
+  addSchedule(automation: string, when: ScheduleWhen, sheet: string, maxRows: number) {
+    return this.http.post<Schedule>('/api/schedules', { automation, when, sheet, max_rows: maxRows });
+  }
+  editSchedule(id: number, when: ScheduleWhen, sheet: string, maxRows: number) {
+    return this.http.put<Schedule>(`/api/schedules/${id}`, { when, sheet, max_rows: maxRows });
+  }
+  enableSchedule(id: number, enabled: boolean) { return this.http.put<Schedule>(`/api/schedules/${id}/enabled`, { enabled }); }
+  deleteSchedule(id: number) { return this.http.delete(`/api/schedules/${id}`); }
+  scheduleHistory(id: number) { return this.http.get<ScheduleEntry[]>(`/api/schedules/${id}/history`); }
+  forgetScheduleRows(id: number) { return this.http.post(`/api/schedules/${id}/forget-rows`, {}); }
+  missedSchedules() { return this.http.get<Missed[]>('/api/schedules/missed'); }
+  seenMissed() { return this.http.post('/api/schedules/missed/seen', {}); }
   logins() { return this.http.get<SavedLogin[]>('/api/logins'); }
   addLogin(site: string, username: string, password: string, scheduled: boolean) {
     return this.http.post<SavedLogin>('/api/logins', { site, username, password, scheduled });

@@ -1,3 +1,4 @@
+import { SchedulesPage } from './pages/schedules';
 import { SettingsPage } from './pages/settings';
 import { RunsPage } from './pages/runs';
 import { Routes } from '@angular/router';
@@ -7,7 +8,6 @@ import { AutomationsPage } from './pages/automations';
 import { NewAutomationPage } from './pages/new-automation';
 import { RequestPage } from './pages/request';
 import { RunPage } from './pages/run';
-import { SoonPage } from './pages/soon';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'automations' },
@@ -17,7 +17,7 @@ export const routes: Routes = [
   { path: 'run', component: RequestPage, title: 'Run a request · ANCHOR' },
   { path: 'runs', component: RunsPage, title: 'Runs · ANCHOR' },
   { path: 'runs/:id', component: RunPage, title: 'Run · ANCHOR' },
-  { path: 'schedules', component: SoonPage, title: 'Schedules · ANCHOR', data: { what: 'Schedules' } },
+  { path: 'schedules', component: SchedulesPage, title: 'Schedules · ANCHOR' },
   { path: 'settings', component: SettingsPage, title: 'Settings · ANCHOR' },
   { path: '**', redirectTo: 'automations' },
 ];

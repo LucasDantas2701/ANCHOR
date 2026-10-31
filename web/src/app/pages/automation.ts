@@ -67,7 +67,8 @@ const ACTIONS: Record<string, string> = {
         <div><dt>Site</dt><dd class="mono">{{ host(a.url) }}</dd></div>
         <div><dt>Model</dt><dd>{{ modelName(a.profile) }}</dd></div>
         <div><dt>Values you give</dt><dd>@for (p of a.parameters; track p) { <span class="param">{{ p }}</span> } @empty { None }</dd></div>
-        <div><dt>Scheduling</dt><dd>{{ a.proven ? 'Can run with no one present' : 'Needs one clean run with you first' }}</dd></div>
+        <div><dt>Scheduling</dt><dd>@if (a.proven) { Can run with no one present ·
+          <a [routerLink]="['/schedules']" [queryParams]="{ automation: a.name }">Schedule this</a> } @else { Needs one clean run with you first }</dd></div>
       </dl>
 
       <nav class="tabs" role="tablist" aria-label="This automation">

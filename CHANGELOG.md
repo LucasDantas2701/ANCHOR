@@ -18,6 +18,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Schedules, second part: the screens (0.5).** **Schedules**, in the menu, says at the top that
+  ANCHOR must be open for a schedule to run, adds and edits schedules (the five kinds of when; the
+  spreadsheet and the most rows per run, for an automation with values; only proven automations can
+  be chosen), and lists them with their next time, last result, on/off, history, **Do every row
+  again** and delete. When ANCHOR opens, a window lists the scheduled runs missed while it was
+  closed; the menu marks Schedules when a schedule's last time did not go well; a proven automation's
+  page has **Schedule this**.
 - **Schedules, first part: the engine (0.5).** A schedule runs a proven automation by itself, with
   no one present, at set times: once, every day, on chosen weekdays, on a day of the month (its last
   day when the month is shorter), or every N minutes, hours or days (at least 5 minutes), from a time,

@@ -257,7 +257,8 @@ In an unattended run nothing changes and no one is asked:
   opened, and an element whose id or class changed is still found by its text;
 * the first row that stops ends a spreadsheet run, and the exit code is 1.
 
-To schedule it on Windows (Task Scheduler), every day at 8:00:
+The interface's **Schedules** do this while ANCHOR is open. To run it with no ANCHOR window open, use
+the system's scheduler; on Windows (Task Scheduler), every day at 8:00:
 
 ```
 schtasks /Create /TN "ANCHOR register" /SC DAILY /ST 08:00 /TR "cmd /c cd /d C:\path\to\ANCHOR && venv\Scripts\python.exe -m anchor.automations run register --unattended --csv people.csv"
@@ -337,7 +338,8 @@ questions (a sensitive action, which element, a login) are answered in the inter
 browser is shown live and a login is done on it; the person can also say a candidate is none of the
 ones found (and why) or that a login comes first. Each automation's page looks after its fixes
 (with undo), notes, decisions and remembered choices; **Settings** keeps the saved logins and the
-choices remembered from requests. Schedules and the installer come in the last steps of 0.5. While it is in development, build the app once and start
+choices remembered from requests. **Schedules** runs proven automations by themselves at set
+times, while the interface is open (see the README); the installer comes in the last step of 0.5. While it is in development, build the app once and start
 the server by hand:
 
 ```

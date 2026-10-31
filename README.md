@@ -108,6 +108,7 @@ The step-by-step version, a first request on a test page and the requirements ar
         <li><a href="#when-anchor-asks">When ANCHOR asks</a></li>
         <li><a href="#saved-logins">Saved Logins</a></li>
         <li><a href="#automations">Automations</a></li>
+        <li><a href="#schedules">Schedules</a></li>
         <li><a href="#which-model">Which model</a></li>
       </ul>
     </li>
@@ -467,8 +468,27 @@ An automation's page also looks after everything it keeps, in tabs:
 * **Settings:** change the request, the page or the model (a new request or page makes it learn the
   plan again), or delete the automation for good, with its history and saved logins.
 
-Running automations by themselves, on a schedule, comes in 0.5; for now it is done with the command
-line (`--unattended`, below).
+### Schedules
+
+> [!WARNING]
+> **ANCHOR must be open for a schedule to run.** If it is closed at the time, that run does not
+> happen and is not run later: when ANCHOR opens again, it tells you which runs were missed.
+
+**Schedules**, in the menu, runs an automation by itself at set times: once, every day, on chosen
+days of the week, on a day of the month, or every N minutes, hours or days (from a time, and, if you
+want, only between two times and on some days). An automation's page has **Schedule this** once it
+can be scheduled.
+
+Only an automation that already had one clean run with you (nothing to fix) can be scheduled. With no
+one present, nothing is fixed or asked: only the sensitive actions you already allowed are done,
+only the saved logins with **Use in scheduled runs** are used, and a step whose element changed
+stops the run instead of guessing.
+
+An automation with values reads a spreadsheet (CSV or `.xlsx`) at run time, as it is then, and
+checks it first: a missing column or a file it cannot read runs nothing; more new rows than the
+schedule's limit runs nothing; rows with an empty value are skipped; and the rows the schedule
+already did are not done again (**Do every row again** forgets them). Each schedule keeps its last 20
+times, with what happened.
 
 ### Which model
 
@@ -487,8 +507,8 @@ or fixed.
 <!-- THE COMMAND LINE -->
 ## The Command Line
 
-Everything the interface does can also be done from the command line, which is also what scheduled
-runs use for now. For example:
+Everything the interface does can also be done from the command line, which can also run a proven
+automation from the system's own scheduler (`--unattended`), with no ANCHOR window open. For example:
 
 ```sh
 python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_en.html "<request>"
@@ -626,7 +646,7 @@ final numbers will come from the closed sets.
       editing and deleting; the queue; a spreadsheet per run; a note offered after a failed run
     - [x] Saved logins: in Windows' Credential Manager, filled by ANCHOR only on their own site and
       only in a password field; the model never sees a password
-    - [ ] Schedules, kept on this computer, run while ANCHOR is open
+    - [x] Schedules, kept on this computer, run while ANCHOR is open
     - [ ] A Windows installer, with its own window and no terminal
 - [ ] **1.0** — Evaluated version: final runs, once, on the tagged release, on the closed sets
   (synthetic, controlled synthetic and human requests, and the closed resilience set), with the
@@ -686,6 +706,16 @@ Manager. Without a saved login, ANCHOR waits while you log in yourself, on the l
 ANCHOR finds the element again by what it is (its text, label and place), checks that each step had
 its effect, and, when it is not sure, asks you which one is right. Your answer is remembered, so the
 next run does not ask again.
+
+</details>
+
+<details>
+<summary><strong>Do schedules run when ANCHOR is closed?</strong></summary>
+
+No. A schedule runs only while ANCHOR is open. If it was closed at the time, that run is missed (not
+run later), and ANCHOR tells you when it opens. To run an automation with no ANCHOR window open, use
+the system's own scheduler with the command line's `--unattended` (see the
+[command reference](docs/COMMANDS.md#unattended-runs-scheduling)).
 
 </details>
 

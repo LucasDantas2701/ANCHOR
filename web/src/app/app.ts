@@ -1,13 +1,25 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
-import { ACTIVE, Api, RunListItem, Runs, takeCodeFromAddress } from './api';
+import { ACTIVE, Api, Missed, RunListItem, Runs, isoDate, takeCodeFromAddress } from './api';
 import { Guide, guideOnStart } from './guide';
 
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, Guide],
   template: `
+    @if (missed().length) {
+      <div class="missed" role="dialog" aria-modal="true" aria-labelledby="missed-title">
+        <div class="card box">
+          <h2 id="missed-title" class="heading">Scheduled runs that did not happen</h2>
+          <p class="muted">ANCHOR was closed at these times, so these schedules did not run. They are not run late: schedules run only
+            while ANCHOR is open.</p>
+          <ul>@for (m of missed(); track m.schedule) { <li><b>{{ m.automation }}</b>, due {{ isoDate(m.due) }}@if (m.times > 1) { (and {{ m.times - 1 }} more time{{ m.times > 2 ? 's' : '' }}) }</li> }</ul>
+          <div><button class="btn primary" type="button" (click)="seenMissed()">OK</button>
+            <a class="btn" routerLink="/schedules" (click)="seenMissed()">See the schedules</a></div>
+        </div>
+      </div>
+    }
     <header class="top">
       <a routerLink="/automations" class="brand" aria-label="ANCHOR, home">
         <img [src]="theme() === 'dark' ? '/brand/anchor-wordmark-on-dark.svg' : '/brand/anchor-wordmark-on-light.svg'" alt="ANCHOR" height="18">
@@ -25,7 +37,7 @@ import { Guide, guideOnStart } from './guide';
         <a routerLink="/automations" routerLinkActive="on">Automations</a>
         <a routerLink="/run" routerLinkActive="on">Run a request</a>
         <a routerLink="/runs" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">Runs@if (queued() + (current() ? 1 : 0) > 0) { <span class="pill">{{ queued() + (current() ? 1 : 0) }}</span> }</a>
-        <a routerLink="/schedules" routerLinkActive="on">Schedules</a>
+        <a routerLink="/schedules" routerLinkActive="on">Schedules@if (failing() > 0) { <span class="pill warn" [title]="failing() + ' schedule(s) whose last time did not go well'">!</span> }</a>
         <a routerLink="/settings" routerLinkActive="on">Settings</a>
         @if (current(); as c) {
           <a class="now" [routerLink]="['/runs', c.id]">
@@ -54,6 +66,10 @@ import { Guide, guideOnStart } from './guide';
     .side a { color: var(--ink-muted); text-decoration: none; padding: 10px var(--space-4); border-radius: var(--radius-full);
               font: 500 14px/20px var(--font-sans); }
     .side a:hover { color: var(--ink); background: var(--surface-raised); }
+    .side .pill.warn { background: var(--waiting); }
+    .missed { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; z-index: 50; }
+    .missed .box { max-width: 520px; padding: var(--space-6); display: grid; gap: var(--space-3); }
+    .missed ul { margin: 0; padding-left: 18px; }
     .side .pill { margin-left: 8px; display: inline-block; min-width: 18px; padding: 0 6px; border-radius: 9px; background: var(--lime); color: #0C0A12; font: 600 11px/18px var(--font-mono); text-align: center; }
     .side a.on { color: var(--ink); background: var(--surface-raised); box-shadow: inset 0 0 0 1px var(--border); }
     .now { margin-top: auto; display: grid; gap: 2px; padding: var(--space-3) var(--space-4) !important; border-radius: var(--radius-md) !important;
@@ -75,6 +91,9 @@ export class App implements OnInit {
   private runs = inject(Runs);
   current = signal<RunListItem | null>(null);
   queued = signal(0);
+  missed = signal<Missed[]>([]);
+  failing = signal(0);
+  isoDate = isoDate;
 
   constructor() { takeCodeFromAddress(); }
 
@@ -82,7 +101,20 @@ export class App implements OnInit {
     document.documentElement.dataset['theme'] = this.theme();
     this.api.info().subscribe({ next: i => { this.docs.set(i.docs); this.version.set(`version ${i.version}`); }, error: () => {} });
     this.watchRuns();
+    this.api.missedSchedules().subscribe({ next: m => this.missed.set(m), error: () => {} });
+    this.watchSchedules();
   }
+
+  /** Schedules whose last time did not go well, every half minute, for the sidebar. */
+  private watchSchedules() {
+    this.api.schedules().subscribe({
+      next: list => this.failing.set(list.filter(s => s.enabled && s.last && ['not_done', 'error', 'missed'].includes(s.last.state)).length),
+      error: () => {},
+    });
+    setTimeout(() => this.watchSchedules(), 30000);
+  }
+
+  seenMissed() { this.missed.set([]); this.api.seenMissed().subscribe({ error: () => {} }); }
 
   /** What is running now, every few seconds, for the sidebar. */
   private watchRuns() {
