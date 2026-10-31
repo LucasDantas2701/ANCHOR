@@ -25,8 +25,9 @@ modelo, inclusive uma vez por linha de uma planilha.
 * **Roda inteiro no seu computador:** os planos vêm de um modelo pequeno (Qwen 3.5, de 4B ou 9B)
   rodando no Ollama; nenhuma página, pedido ou senha sai da sua máquina.
 * **Você continua no controle:** ele pergunta antes de qualquer ação sensível (salvar, enviar,
-  pagar, excluir, agir na sua conta), bloqueia o que o pedido não pediu, deixa os logins com você e
-  para em vez de adivinhar.
+  pagar, excluir, agir na sua conta), bloqueia o que o pedido não pediu e para em vez de adivinhar.
+  A IA nunca vê uma senha: o login é feito por você, na tela, ou com um login que você salvou para
+  aquele site exato (a senha fica no Gerenciador de Credenciais do Windows).
 * **Se recupera sozinho:** quando a página muda, ele acha o elemento de novo, confere cada passo e
   guarda a correção para a próxima vez.
 * **É medido:** suítes de desenvolvimento, páginas com injeção de instruções e um benchmark de

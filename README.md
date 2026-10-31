@@ -225,6 +225,8 @@ nothing:
 * [![Playwright][playwright-shield]][playwright-url]
 * [![Ollama][ollama-shield]][ollama-url]
 * [![FastAPI][fastapi-shield]][fastapi-url] and [![Angular][angular-shield]][angular-url], for the interface
+* keyring (saved logins, in Windows' Credential Manager), openpyxl (Excel spreadsheets) and SQLite
+  (schedules), from Python
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

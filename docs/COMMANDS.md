@@ -110,12 +110,15 @@ visible change waits for what the click itself scheduled on the page (up to 8 s)
 "no effect". A click on an element that something covers fails after 10 s, and the planner is told
 what covers it.
 
-**Logging in.** The agent never types a password: a fill that would land on a password field is
-not done. A request that seems to contain a password ("senha: ...", "password ...") is refused
-before anything reaches the model. When a task needs a login (the request asks to log in, the
-plan reaches a password field, or nothing can be planned on a page that asks for one), the agent
-asks in the terminal: log in (or fill in the password) yourself in the browser window and press
-Enter, or `q` to cancel. If the page still shows an empty password field, it asks again. A step that
+**Logging in.** The agent never types a password: a fill of the plan that would land on a password
+field is not done. A request that seems to contain a password ("senha: ...", "password ...") is
+refused before anything reaches the model. When a task needs a login (the request asks to log in,
+the plan reaches a password field, or nothing can be planned on a page that asks for one), ANCHOR
+first uses a login saved for exactly that page's site (saved in the interface, **Settings → Saved
+logins**; the password is in Windows' Credential Manager): its own code types it, only into a
+password field and only on that site, and the model never sees it. With no saved login, two for the
+site, or one that does not get in, the agent asks in the terminal: log in (or fill in the password)
+yourself in the browser window and press Enter, or `q` to cancel. If the page still shows an empty password field, it asks again. A step that
 leads to a login page (a "Star" that asks to sign in first) does the same, and the plan starts again
 from the page after the login. With `--browser-profile`, the session is kept for the next runs.
 
@@ -247,8 +250,9 @@ In an unattended run nothing changes and no one is asked:
 * each step acts only on the element of the proving run (same text and label): an element that differs,
   even one the heuristic would accept with someone present, stops the run before acting;
 * only sensitive actions approved before are done; a new one is refused;
-* a login is never waited for: log in once in a run with someone present (each automation keeps its
-  browser profile);
+* a login is never waited for: a saved login is used only if **Use in scheduled runs** is on for it
+  (Settings → Saved logins); otherwise, log in once in a run with someone present (each automation
+  keeps its browser profile);
 * what does not change the plan still happens: a cookie banner in the way is declined, "Show more" is
   opened, and an element whose id or class changed is still found by its text;
 * the first row that stops ends a spreadsheet run, and the exit code is 1.
@@ -325,15 +329,15 @@ with `--csv`, it asks once, at the end, if some row failed.
 
 ## Interface (`anchor.ui`, in development)
 
-The local program's interface: a server on this computer only, and the app it serves. For now it
-lists, creates and runs the saved automations (with the values they need), runs a one-off request
-or only shows its plan, and saves a request that was done and checked as an automation; runs go one
-at a time, in a queue, and their questions (a sensitive action, which element, a login) are
-answered in the interface, where the browser is shown live and a login is done on it. When ANCHOR
-asks which element a step meant, the interface also lets the person say it is none of the ones
-found (and why: the planner reads it when it plans again) or that a login comes first. Taking care
-of the automations (fixes, notes, decisions, the choice memory), spreadsheets, scheduling and the
-installer come in the next steps of 0.5. While it is in development, build the app once and start
+The local program's interface: a server on this computer only, and the app it serves. It lists,
+creates, edits, deletes and runs the saved automations (with the values they need, or once per row
+of a CSV or Excel spreadsheet), runs a one-off request or only shows its plan, and saves a request
+that was done and checked as an automation. Runs go one at a time, in a queue (**Runs**), and their
+questions (a sensitive action, which element, a login) are answered in the interface, where the
+browser is shown live and a login is done on it; the person can also say a candidate is none of the
+ones found (and why) or that a login comes first. Each automation's page looks after its fixes
+(with undo), notes, decisions and remembered choices; **Settings** keeps the saved logins and the
+choices remembered from requests. Schedules and the installer come in the last steps of 0.5. While it is in development, build the app once and start
 the server by hand:
 
 ```
