@@ -30,13 +30,14 @@ export function guideOnStart(): boolean {
         }
         @case (1) {
           <p class="eyebrow">Where things are</p>
-          <h2 id="guide-title" class="title">Four places, <em>one idea each</em></h2>
+          <h2 id="guide-title" class="title">Six places, <em>one idea each</em></h2>
           <dl class="places">
-            <div><dt>Automations</dt><dd>Tasks you run often. ANCHOR learns them once, then repeats the steps with one click, without the AI. Create one with New automation, or save a request that worked.</dd></div>
+            <div><dt>Automations</dt><dd>Tasks you run often. ANCHOR learns them once, then repeats the steps with one click, without the AI, also once per row of a spreadsheet. Each one's page keeps what it learned: the fixes (with undo), your notes, your decisions and choices.</dd></div>
             <div><dt>Run a request</dt><dd>Something you need done once. Write it, pick the page and the model, and run it. Not sure it will work? "See the plan first" shows the steps without doing any.</dd></div>
-            <div><dt>Schedules</dt><dd>Automations that run by themselves at a set time, while ANCHOR is open. Coming soon.</dd></div>
-            <div><dt>Settings</dt><dd>Your preferences. Coming soon.</dd></div>
-            <div><dt>Docs</dt><dd>The full documentation, in your browser, from the top right of every screen.</dd></div>
+            <div><dt>Runs</dt><dd>One run at a time: the one going now, the ones waiting their turn, and the ones that ended.</dd></div>
+            <div><dt>Schedules</dt><dd>Automations that run by themselves at set times, <strong>only while ANCHOR is open</strong>: a time missed while it was closed is not run later, and ANCHOR tells you.</dd></div>
+            <div><dt>Settings</dt><dd>Saved logins (the password stays in Windows' Credential Manager) and the choices remembered from requests.</dd></div>
+            <div><dt>Docs</dt><dd>The full documentation site, in your browser, from the top right of every screen.</dd></div>
           </dl>
         }
         @case (2) {
@@ -48,7 +49,8 @@ export function guideOnStart(): boolean {
             <div><dt>Stop</dt><dd>Stops at the next step. Nothing else is done after it.</dd></div>
             <div><dt>Try again</dt><dd>After a run that was not done, opens it again with what you wrote, to change and retry.</dd></div>
           </dl>
-          <p class="note">Never write a password in a request. When a page needs a login, ANCHOR waits for you to do it.</p>
+          <p class="note">Never write a password in a request. When a page needs a login, ANCHOR uses a login you saved for that exact site
+            (Settings), or waits for you to log in on the live view. The AI never sees a password.</p>
         }
         @case (3) {
           <p class="eyebrow">Which model</p>

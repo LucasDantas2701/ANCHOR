@@ -225,6 +225,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   the model read (the page summary) and answered at each planning, for working out what went wrong.
 
 ### Changed
+- **The welcome guide and the Docs button.** The guide shows the six places as they are now (Runs,
+  Schedules only while ANCHOR is open, Settings with saved logins, an automation's page and what it
+  keeps) and the new login rule; **Docs** opens the documentation site instead of the README, with
+  its arrow drawn (the font has no ↗).
 - **License: Apache 2.0** (was PolyForm Strict 1.0.0): ANCHOR is now open source; it may be used,
   modified and redistributed, commercially or not, keeping the license and the notices (`NOTICE`,
   new). Pull requests are still not accepted until the 1.0.0 evaluation, now for that reason.

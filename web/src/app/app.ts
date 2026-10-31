@@ -29,7 +29,7 @@ import { Guide, guideOnStart } from './guide';
           {{ theme() === 'dark' ? 'Light' : 'Dark' }} theme
         </button>
         <button class="theme" type="button" (click)="guide.set(true)">Guide</button>
-        <a class="btn" [href]="docs()" target="_blank" rel="noopener noreferrer">Docs <span aria-hidden="true">↗</span></a>
+        <a class="btn" [href]="docs()" target="_blank" rel="noopener noreferrer">Docs <svg aria-hidden="true" width="11" height="11" viewBox="0 0 12 12" style="margin-left:4px;vertical-align:-1px"><path d="M3.5 8.5l5-5M4.5 3.5h4v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       </div>
     </header>
     <div class="body">
@@ -85,7 +85,7 @@ import { Guide, guideOnStart } from './guide';
 export class App implements OnInit {
   private api = inject(Api);
   theme = signal<'dark' | 'light'>((localStorage.getItem('anchor-theme') as 'dark' | 'light') || 'dark');
-  docs = signal('https://github.com/LucasDantas2701/ANCHOR#readme');
+  docs = signal('https://lucasdantas2701.github.io/ANCHOR/');
   version = signal('');
   guide = signal(guideOnStart());
   private runs = inject(Runs);
