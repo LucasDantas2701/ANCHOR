@@ -18,6 +18,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Searching and filtering the automations.** The list has a search (in the name, the request and the
+  site; several words, without minding accents), filters with their counts (All, Can run alone, Ready,
+  Not learned yet, Last run not done) and an order (last run first, or by name). "Ready · 1 step" is
+  singular now, and the interface's size budget is 700 kB (the translations passed the old 500 kB).
 - **The interface in Portuguese or English, second part.** The automation's page (with its tabs and the
   spreadsheet), the run's page (the questions, the progress lines, the result and what it brought
   back), Schedules (each schedule's sentence is written by the server in the chosen language), a new

@@ -456,6 +456,9 @@ page, ANCHOR logs in by itself, and waits for you if it does not get in.
 
 ### Automations
 
+**Automations**, in the menu, lists them with a search (by name, request or site), filters (can run
+alone, ready, not learned yet, last run not done) and an order (last run first, or by name).
+
 An automation is a task you run often. **New automation** asks what it does, on which page and with
 which model. A word in braces in the request, like `{name}`, is a value that changes from run to
 run: each run asks for it.
