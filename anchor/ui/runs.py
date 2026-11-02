@@ -23,8 +23,11 @@ from anchor.engine.sensitive import ConfirmationRequest, Decision
 QUESTION_POLL = 0.25        # how often a waiting question looks for an answer or a stop
 
 
-class RunStopped(Exception):
-    """The person stopped the run: raised at the run's next report, like Ctrl+C in the terminal."""
+class RunStopped(BaseException):
+    """The person stopped the run: raised at the run's next report or the AI's next chunk, like Ctrl+C in the
+    terminal. A BaseException (as KeyboardInterrupt is), so the agent's "whatever went wrong, go on" handlers
+    (except Exception) let it through: before, a stop inside one of them was taken for a failure and the run
+    went on, "Stopping..." for good."""
 
 
 @dataclass

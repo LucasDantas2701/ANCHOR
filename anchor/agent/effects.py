@@ -67,6 +67,10 @@ OBSERVER_JS = r"""
 
 ERROR_RE = re.compile(
     r"erro|inválid|invalid|obrigat|required|falh|failed|incorret|incorrect|não foi possível", re.I)
+# The standing notice of AI chat sites ("ChatGPT é uma IA e pode cometer erros.", "Claude can make mistakes"),
+# which shows up after the first message: a notice, not an error.
+DISCLAIMER_RE = re.compile(
+    r"\b(pode|podem|may|can|might)\s+(cometer|conter|ter|make|contain|have)\s+(alguns\s+|some\s+)?(erros|mistakes|errors)\b", re.I)
 
 
 TIMERS_JS = """
@@ -118,7 +122,7 @@ class Effect:
 
     @property
     def errors(self) -> list[str]:
-        return [m for m in self.new_messages if ERROR_RE.search(m)]
+        return [m for m in self.new_messages if ERROR_RE.search(m) and not DISCLAIMER_RE.search(m)]
 
 
 class EffectWatcher:

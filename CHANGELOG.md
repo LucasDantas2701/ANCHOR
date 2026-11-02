@@ -18,6 +18,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Stop stops, and AI sites' notices are not errors (found automating a chat site).** A stop was an
+  ordinary exception, so the agent's "whatever went wrong, go on" handlers took it for a failure and
+  the run went on ("Stopping..." for good); it is now raised like Ctrl+C (a BaseException) and also
+  checked at each chunk the AI streams, so it counts within seconds even during a replan. The standing
+  notice of AI chat sites ("pode cometer erros", "can make mistakes"), which appears after the first
+  message, made the check of a step's effect see an error message; it is now recognized as a notice
+  (no page of the evaluation has such a sentence, so no measured result changes).
 - **Downloads in the desktop program.** Its window (WebView2, through pywebview) cancelled every
   download unless allowed, so "Save the details of this run", the CSVs and the screenshots did nothing
   in ANCHOR.exe; downloads are allowed now, and Windows asks where to save, starting in Downloads. A

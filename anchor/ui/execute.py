@@ -45,6 +45,8 @@ class StepwisePlanner:
         return self.planner.language_for(request)
 
     def _progress(self, phase: str, tokens: int) -> None:
+        if self.job.stop:                                   # the AI is writing: a stop counts at its next chunk
+            raise RunStopped()
         activity = self.job.activity
         if activity is not None:
             if tokens < activity.get("tokens", 0):          # a new attempt starts from nothing
