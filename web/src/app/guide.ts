@@ -1,3 +1,4 @@
+import { TrPipe, tr } from './i18n';
 import { Component, HostListener, output, signal } from '@angular/core';
 
 const KEY = 'anchor-guide';
@@ -10,6 +11,7 @@ export function guideOnStart(): boolean {
 /** A short guide to ANCHOR: what it does, where things are, what happens during a run, which model. */
 @Component({
   selector: 'app-guide',
+  imports: [TrPipe],
   template: `
     <div class="backdrop" (click)="done()"></div>
     <section class="panel" role="dialog" aria-modal="true" aria-labelledby="guide-title">
@@ -18,65 +20,64 @@ export function guideOnStart(): boolean {
       </div>
       @switch (page()) {
         @case (0) {
-          <p class="eyebrow">Welcome</p>
-          <h2 id="guide-title" class="title">Web work, done <em>and checked</em></h2>
-          <p>Write what you want done on a website, as you would ask a colleague: <span class="quote">“Register Ana Souza and save the record”</span>.</p>
+          <p class="eyebrow">{{ 'Welcome' | tr }}</p>
+          <h2 id="guide-title" class="title">{{ 'Web work, done' | tr }} <em>{{ 'and checked' | tr }}</em></h2>
+          <p>{{ 'Write what you want done on a website, as you would ask a colleague:' | tr }} <span class="quote">{{ '“Register Ana Souza and save the record”' | tr }}</span>.</p>
           <ol class="flow">
-            <li><strong>The AI plans</strong> the steps. It runs on this computer.</li>
-            <li><strong>ANCHOR does them</strong> in a browser, one by one.</li>
-            <li><strong>Every step is checked</strong>: if something did not happen, ANCHOR says so instead of pretending.</li>
+            <li><strong>{{ 'The AI plans' | tr }}</strong> {{ 'the steps. It runs on this computer.' | tr }}</li>
+            <li><strong>{{ 'ANCHOR does them' | tr }}</strong> {{ 'in a browser, one by one.' | tr }}</li>
+            <li><strong>{{ 'Every step is checked' | tr }}</strong>{{ ': if something did not happen, ANCHOR says so instead of pretending.' | tr }}</li>
           </ol>
-          <p class="muted">Nothing leaves your computer: not your requests, not the pages, not your logins.</p>
+          <p class="muted">{{ 'Nothing leaves your computer: not your requests, not the pages, not your logins.' | tr }}</p>
         }
         @case (1) {
-          <p class="eyebrow">Where things are</p>
-          <h2 id="guide-title" class="title">Six places, <em>one idea each</em></h2>
+          <p class="eyebrow">{{ 'Where things are' | tr }}</p>
+          <h2 id="guide-title" class="title">{{ 'Six places,' | tr }} <em>{{ 'one idea each' | tr }}</em></h2>
           <dl class="places">
-            <div><dt>Automations</dt><dd>Tasks you run often. ANCHOR learns them once, then repeats the steps with one click, without the AI, also once per row of a spreadsheet. Each one's page keeps what it learned: the fixes (with undo), your notes, your decisions and choices.</dd></div>
-            <div><dt>Run a request</dt><dd>Something you need done once. Write it, pick the page and the model, and run it. Not sure it will work? "See the plan first" shows the steps without doing any.</dd></div>
-            <div><dt>Runs</dt><dd>One run at a time: the one going now, the ones waiting their turn, and the ones that ended.</dd></div>
-            <div><dt>Schedules</dt><dd>Automations that run by themselves at set times, <strong>only while ANCHOR is open</strong>: a time missed while it was closed is not run later, and ANCHOR tells you.</dd></div>
-            <div><dt>Settings</dt><dd>Saved logins (the password stays in Windows' Credential Manager) and the choices remembered from requests.</dd></div>
-            <div><dt>Docs</dt><dd>The full documentation site, in your browser, from the top right of every screen.</dd></div>
+            <div><dt>{{ 'Automations' | tr }}</dt><dd>{{ "Tasks you run often. ANCHOR learns them once, then repeats the steps with one click, without the AI, also once per row of a spreadsheet. Each one's page keeps what it learned: the fixes (with undo), your notes, your decisions and choices." | tr }}</dd></div>
+            <div><dt>{{ 'Run a request' | tr }}</dt><dd>{{ 'Something you need done once. Write it, pick the page and the model, and run it. Not sure it will work? "See the plan first" shows the steps without doing any.' | tr }}</dd></div>
+            <div><dt>{{ 'Runs' | tr }}</dt><dd>{{ 'One run at a time: the one going now, the ones waiting their turn, and the ones that ended.' | tr }}</dd></div>
+            <div><dt>{{ 'Schedules' | tr }}</dt><dd>{{ 'Automations that run by themselves at set times,' | tr }} <strong>{{ 'only while ANCHOR is open' | tr }}</strong>{{ ': a time missed while it was closed is not run later, and ANCHOR tells you.' | tr }}</dd></div>
+            <div><dt>{{ 'Settings' | tr }}</dt><dd>{{ "Saved logins (the password stays in Windows' Credential Manager) and the choices remembered from requests." | tr }}</dd></div>
+            <div><dt>{{ 'Docs' | tr }}</dt><dd>{{ 'The full documentation site, in your browser, from the top right of every screen.' | tr }}</dd></div>
           </dl>
         }
         @case (2) {
-          <p class="eyebrow">While it runs</p>
-          <h2 id="guide-title" class="title">You can always <em>see and stop</em></h2>
+          <p class="eyebrow">{{ 'While it runs' | tr }}</p>
+          <h2 id="guide-title" class="title">{{ 'You can always' | tr }} <em>{{ 'see and stop' | tr }}</em></h2>
           <dl class="places">
-            <div><dt>Watch it run</dt><dd>The browser, live, beside the steps as they happen.</dd></div>
-            <div><dt>Waiting for you</dt><dd>Before anything sensitive (saving, sending, deleting, paying), ANCHOR asks. It also asks when two things look alike, and when a page needs you to log in: then the live view opens, and you click and type on it yourself.</dd></div>
-            <div><dt>Stop</dt><dd>Stops at the next step. Nothing else is done after it.</dd></div>
-            <div><dt>Try again</dt><dd>After a run that was not done, opens it again with what you wrote, to change and retry.</dd></div>
+            <div><dt>{{ 'Watch it run' | tr }}</dt><dd>{{ 'The browser, live, beside the steps as they happen.' | tr }}</dd></div>
+            <div><dt>{{ 'Waiting for you' | tr }}</dt><dd>{{ 'Before anything sensitive (saving, sending, deleting, paying), ANCHOR asks. It also asks when two things look alike, and when a page needs you to log in: then the live view opens, and you click and type on it yourself.' | tr }}</dd></div>
+            <div><dt>{{ 'Stop' | tr }}</dt><dd>{{ 'Stops at the next step. Nothing else is done after it.' | tr }}</dd></div>
+            <div><dt>{{ 'Try again' | tr }}</dt><dd>{{ 'After a run that was not done, opens it again with what you wrote, to change and retry.' | tr }}</dd></div>
           </dl>
-          <p class="note">Never write a password in a request. When a page needs a login, ANCHOR uses a login you saved for that exact site
-            (Settings), or waits for you to log in on the live view. The AI never sees a password.</p>
+          <p class="note">{{ 'Never write a password in a request. When a page needs a login, ANCHOR uses a login you saved for that exact site (Settings), or waits for you to log in on the live view. The AI never sees a password.' | tr }}</p>
         }
         @case (3) {
-          <p class="eyebrow">Which model</p>
-          <h2 id="guide-title" class="title">Start small, <em>go medium when needed</em></h2>
+          <p class="eyebrow">{{ 'Which model' | tr }}</p>
+          <h2 id="guide-title" class="title">{{ 'Start small,' | tr }} <em>{{ 'go medium when needed' | tr }}</em></h2>
           <div class="models">
             <div class="model card">
-              <p class="name">Small <span class="mono muted">Qwen 3.5 4B</span></p>
-              <p>Faster: about half the time of the medium one. Good for simple pages and short requests.</p>
-              <p class="pick">Start here.</p>
+              <p class="name">{{ 'Small' | tr }} <span class="mono muted">{{ 'Qwen 3.5 4B' | tr }}</span></p>
+              <p>{{ 'Faster: about half the time of the medium one. Good for simple pages and short requests.' | tr }}</p>
+              <p class="pick">{{ 'Start here.' | tr }}</p>
             </div>
             <div class="model card">
-              <p class="name">Medium <span class="mono muted">Qwen 3.5 9B</span></p>
-              <p>More careful with big, busy pages and long requests, but slower: on a 4 GB graphics card, around a minute for each plan.</p>
-              <p class="pick">Use it when the small one gets it wrong.</p>
+              <p class="name">{{ 'Medium' | tr }} <span class="mono muted">{{ 'Qwen 3.5 9B' | tr }}</span></p>
+              <p>{{ 'More careful with big, busy pages and long requests, but slower: on a 4 GB graphics card, around a minute for each plan.' | tr }}</p>
+              <p class="pick">{{ 'Use it when the small one gets it wrong.' | tr }}</p>
             </div>
           </div>
-          <p class="muted">Saved automations repeat their steps without the AI, so the model only matters when one is learned or fixed.</p>
+          <p class="muted">{{ 'Saved automations repeat their steps without the AI, so the model only matters when one is learned or fixed.' | tr }}</p>
         }
       }
       <footer>
-        <label class="check"><input type="checkbox" [checked]="onStart()" (change)="toggle($event)"> Show this guide when ANCHOR opens</label>
+        <label class="check"><input type="checkbox" [checked]="onStart()" (change)="toggle($event)"> {{ 'Show this guide when ANCHOR opens' | tr }}</label>
         <div class="nav">
-          @if (page() > 0) { <button class="btn" type="button" (click)="page.set(page() - 1)">Back</button> }
-          @else { <button class="btn quiet" type="button" (click)="done()">Skip</button> }
-          @if (page() < pages.length - 1) { <button class="btn primary" type="button" (click)="page.set(page() + 1)">Next</button> }
-          @else { <button class="btn primary" type="button" (click)="done()">Got it</button> }
+          @if (page() > 0) { <button class="btn" type="button" (click)="page.set(page() - 1)">{{ 'Back' | tr }}</button> }
+          @else { <button class="btn quiet" type="button" (click)="done()">{{ 'Skip' | tr }}</button> }
+          @if (page() < pages.length - 1) { <button class="btn primary" type="button" (click)="page.set(page() + 1)">{{ 'Next' | tr }}</button> }
+          @else { <button class="btn primary" type="button" (click)="done()">{{ 'Got it' | tr }}</button> }
         </div>
       </footer>
     </section>

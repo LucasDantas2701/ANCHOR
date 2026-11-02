@@ -1,3 +1,4 @@
+import { TrPipe, tr } from './i18n';
 import { Component, OnDestroy, inject, output, signal } from '@angular/core';
 
 import { Api, SetupStatus } from './api';
@@ -5,47 +6,47 @@ import { Api, SetupStatus } from './api';
 /** The first opening, when something is missing: Ollama, the model, the browser ANCHOR drives. */
 @Component({
   selector: 'app-setup',
+  imports: [TrPipe],
   template: `
     <div class="backdrop"></div>
     <section class="panel" role="dialog" aria-modal="true" aria-labelledby="setup-title">
-      <p class="eyebrow">Getting ready</p>
-      <h2 id="setup-title" class="title">Three things, <em>once</em></h2>
-      <p class="muted">ANCHOR runs everything on this computer. Before the first run, it needs these three things. You do this only once.</p>
+      <p class="eyebrow">{{ 'Getting ready' | tr }}</p>
+      <h2 id="setup-title" class="title">{{ 'Three things,' | tr }} <em>{{ 'once' | tr }}</em></h2>
+      <p class="muted">{{ 'ANCHOR runs everything on this computer. Before the first run, it needs these three things. You do this only once.' | tr }}</p>
       @if (s(); as st) {
         <ol class="items">
           <li [class.ok]="st.ollama">
-            <div><b>Ollama</b>, which runs the AI on this computer.
-              @if (st.ollama) { <span class="done">Running.</span> }
-              @else { <span class="muted">Not found. Install it from <a [href]="st.ollama_download" target="_blank" rel="noopener noreferrer">ollama.com/download</a>,
-                open it, and then check again.</span> }</div>
-            @if (!st.ollama) { <button class="btn" type="button" (click)="load()">Check again</button> }
+            <div><b>Ollama</b>{{ ', which runs the AI on this computer.' | tr }}
+              @if (st.ollama) { <span class="done">{{ 'Running.' | tr }}</span> }
+              @else { <span class="muted">{{ 'Not found. Install it from' | tr }} <a [href]="st.ollama_download" target="_blank" rel="noopener noreferrer">{{ 'ollama.com/download' | tr }}</a>{{ ', open it, and then check again.' | tr }}</span> }</div>
+            @if (!st.ollama) { <button class="btn" type="button" (click)="load()">{{ 'Check again' | tr }}</button> }
           </li>
           <li class="models" [class.ok]="st.model_ready">
-            <div><b>An AI model</b>: at least one. The small one is enough to start; the medium one is more careful and slower.</div>
+            <div><b>{{ 'An AI model' | tr }}</b>{{ ': at least one. The small one is enough to start; the medium one is more careful and slower.' | tr }}</div>
             @for (m of st.models ?? []; track m.profile) {
               <div class="model">
                 <div><b>{{ m.label }}</b>&nbsp;<span class="muted">{{ m.size }}</span>
-                  @if (m.ready) { <span class="done">Downloaded.</span> }
+                  @if (m.ready) { <span class="done">{{ 'Downloaded.' | tr }}</span> }
                   @else if (m.download.state === 'running') { <span class="bar"><i [style.width.%]="m.download.percent"></i></span>
                     <span class="muted small">{{ m.download.message }} {{ m.download.percent }}%</span> }
                   @else if (m.download.state === 'failed') { <span class="err">{{ m.download.message }}</span> }</div>
                 @if (!m.ready && m.download.state !== 'running') {
-                  <button class="btn" [class.primary]="!st.model_ready" type="button" [disabled]="!st.ollama" (click)="model(m.profile)">Download</button> }
+                  <button class="btn" [class.primary]="!st.model_ready" type="button" [disabled]="!st.ollama" (click)="model(m.profile)">{{ 'Download' | tr }}</button> }
               </div>
             }
           </li>
           <li [class.ok]="st.browser_ready">
-            <div><b>The browser</b> ANCHOR drives (Chromium), about 150 MB.
-              @if (st.browser_ready) { <span class="done">Downloaded.</span> }
+            <div><b>{{ 'The browser' | tr }}</b>{{ ' ANCHOR drives (Chromium), about 150 MB.' | tr }}
+              @if (st.browser_ready) { <span class="done">{{ 'Downloaded.' | tr }}</span> }
               @else if (st.browser_download?.state === 'running') { <span class="bar"><i [style.width.%]="st.browser_download?.percent"></i></span>
                 <span class="muted small">{{ st.browser_download?.percent }}%</span> }
               @else if (st.browser_download?.state === 'failed') { <span class="err">{{ st.browser_download?.message }}</span> }</div>
             @if (!st.browser_ready && st.browser_download?.state !== 'running') {
-              <button class="btn primary" type="button" (click)="browser()">Download the browser</button> }
+              <button class="btn primary" type="button" (click)="browser()">{{ 'Download the browser' | tr }}</button> }
           </li>
         </ol>
         <footer>
-          <button class="btn primary" type="button" [disabled]="!st.ready" (click)="done.emit()">{{ st.ready ? 'Start using ANCHOR' : 'Waiting for the three' }}</button>
+          <button class="btn primary" type="button" [disabled]="!st.ready" (click)="done.emit()">{{ (st.ready ? 'Start using ANCHOR' : 'Waiting for the three') | tr }}</button>
         </footer>
       }
     </section>

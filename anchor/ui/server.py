@@ -158,6 +158,17 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
         })
         return summary
 
+    @app.put("/api/language")
+    def language(body: dict = Body(...)):
+        """The interface's language (Settings): the runs' progress lines, from the engine, follow it. What the
+        AI reads (the planner's prompt) has its own language and does not change."""
+        from anchor.i18n import SUPPORTED, set_language
+        chosen = str(body.get("language", "en"))
+        if chosen not in SUPPORTED:
+            raise HTTPException(400, "use en or pt")
+        set_language(chosen)
+        return {"language": chosen}
+
     @app.get("/api/profiles")
     def profiles():
         return _profiles(setup)

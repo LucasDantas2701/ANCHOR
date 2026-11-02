@@ -337,8 +337,8 @@ that was done and checked as an automation. Runs go one at a time, in a queue (*
 questions (a sensitive action, which element, a login) are answered in the interface, where the
 browser is shown live and a login is done on it; the person can also say a candidate is none of the
 ones found (and why) or that a login comes first. Each automation's page looks after its fixes
-(with undo), notes, decisions and remembered choices; **Settings** keeps the saved logins and the
-choices remembered from requests. A run's result shows what it brought back (answers, tables and
+(with undo), notes, decisions and remembered choices; **Settings** keeps the language (Portuguese or
+English, starting in the computer's), the saved logins and the choices remembered from requests. A run's result shows what it brought back (answers, tables and
 lists, downloaded files, and a screenshot of the page at the end when the form or the request's words
 ask for one). **Schedules** runs proven automations by themselves at set
 times, while the interface is open (see the README); the installer comes in the last step of 0.5. While it is in development, build the app once and start

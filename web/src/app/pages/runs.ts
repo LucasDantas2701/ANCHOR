@@ -1,3 +1,4 @@
+import { TrPipe, tr } from '../i18n';
 import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
@@ -6,53 +7,53 @@ import { JOB_CLASS, JOB_WORDS, RunListItem, Runs, apiError, isoDate } from '../a
 /** The queue: what is running, what waits its turn, and what ended in this session. */
 @Component({
   selector: 'app-runs',
-  imports: [RouterLink],
+  imports: [RouterLink, TrPipe],
   template: `
-    <p class="eyebrow">This session</p>
-    <h1 class="title">Runs</h1>
-    <p class="muted lead">ANCHOR does one run at a time, in the order they came. The others wait their turn here.</p>
+    <p class="eyebrow">{{ 'This session' | tr }}</p>
+    <h1 class="title">{{ 'Runs' | tr }}</h1>
+    <p class="muted lead">{{ 'ANCHOR does one run at a time, in the order they came. The others wait their turn here.' | tr }}</p>
 
     <section>
-      <p class="eyebrow">Now</p>
+      <p class="eyebrow">{{ 'Now' | tr }}</p>
       @if (active().length) {
         <table class="card list">
-          <thead><tr><th class="pos">#</th><th>What</th><th>State</th><th>Since</th><th></th></tr></thead>
+          <thead><tr><th class="pos">#</th><th>{{ 'What' | tr }}</th><th>{{ 'State' | tr }}</th><th>{{ 'Since' | tr }}</th><th></th></tr></thead>
           <tbody>
             @for (r of active(); track r.id) {
               <tr>
-                <td class="pos mono">@if (r.position === 0) { <span class="live" aria-label="running"></span> } @else { {{ r.position }} }</td>
+                <td class="pos mono">@if (r.position === 0) { <span class="live" [attr.aria-label]="'running' | tr"></span> } @else { {{ r.position }} }</td>
                 <td class="what">{{ label(r) }}</td>
-                <td><span [class]="'badge ' + jobClass[r.state]">{{ jobWords[r.state] }}</span></td>
+                <td><span [class]="'badge ' + jobClass[r.state]">{{ jobWords[r.state] | tr }}</span></td>
                 <td class="muted">{{ when(r.started || r.created) }}</td>
                 <td class="acts">
-                  <a class="btn small" [routerLink]="['/runs', r.id]">{{ r.state === 'queued' ? 'Open' : 'Watch' }}</a>
-                  <button class="btn small" type="button" (click)="stop(r)">{{ r.state === 'queued' ? 'Remove from queue' : 'Stop' }}</button>
+                  <a class="btn small" [routerLink]="['/runs', r.id]">{{ (r.state === 'queued' ? 'Open' : 'Watch') | tr }}</a>
+                  <button class="btn small" type="button" (click)="stop(r)">{{ (r.state === 'queued' ? 'Remove from queue' : 'Stop') | tr }}</button>
                 </td>
               </tr>
             }
           </tbody>
         </table>
-      } @else { <div class="card pad muted">Nothing is running. Runs you start appear here.</div> }
+      } @else { <div class="card pad muted">{{ 'Nothing is running. Runs you start appear here.' | tr }}</div> }
     </section>
 
     <section>
-      <p class="eyebrow">Ended</p>
+      <p class="eyebrow">{{ 'Ended' | tr }}</p>
       @if (ended().length) {
         <table class="card list">
-          <thead><tr><th>What</th><th>Result</th><th>Ended</th><th>What happened</th><th></th></tr></thead>
+          <thead><tr><th>{{ 'What' | tr }}</th><th>{{ 'Result' | tr }}</th><th>{{ 'Ended' | tr }}</th><th>{{ 'What happened' | tr }}</th><th></th></tr></thead>
           <tbody>
             @for (r of ended(); track r.id) {
               <tr>
                 <td class="what">{{ label(r) }}</td>
-                <td><span [class]="'badge ' + jobClass[r.state]">{{ jobWords[r.state] }}</span></td>
+                <td><span [class]="'badge ' + jobClass[r.state]">{{ jobWords[r.state] | tr }}</span></td>
                 <td class="muted">{{ when(r.finished) }}</td>
                 <td class="msg muted" [title]="r.message || ''">{{ r.message }}</td>
-                <td class="acts"><a class="btn small" [routerLink]="['/runs', r.id]">Open</a></td>
+                <td class="acts"><a class="btn small" [routerLink]="['/runs', r.id]">{{ 'Open' | tr }}</a></td>
               </tr>
             }
           </tbody>
         </table>
-      } @else { <div class="card pad muted">No run has ended yet in this session.</div> }
+      } @else { <div class="card pad muted">{{ 'No run has ended yet in this session.' | tr }}</div> }
     </section>
     @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
   `,
@@ -93,7 +94,7 @@ export class RunsPage implements OnDestroy {
         this.active.set(live.sort((a, b) => a.position - b.position));
         this.ended.set(list.filter(r => !live.includes(r)));
       },
-      error: e => this.error.set(apiError(e, 'The runs could not be loaded.')),
+      error: e => this.error.set(apiError(e, tr('The runs could not be loaded.'))),
     });
   }
   label(r: RunListItem) { return r.kind === 'automation' ? r.title : r.kind === 'login' ? `Log in for ${r.title}` : r.title; }
@@ -101,6 +102,6 @@ export class RunsPage implements OnDestroy {
   stop(r: RunListItem) {
     const what = r.state === 'queued' ? 'Take this run out of the queue?' : 'Stop this run? What it already did on the site stays done.';
     if (!confirm(what)) return;
-    this.runs.stop(r.id).subscribe({ next: () => this.load(), error: e => this.error.set(apiError(e, 'The run could not be stopped.')) });
+    this.runs.stop(r.id).subscribe({ next: () => this.load(), error: e => this.error.set(apiError(e, tr('The run could not be stopped.'))) });
   }
 }

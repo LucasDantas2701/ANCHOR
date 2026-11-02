@@ -1,3 +1,4 @@
+import { TrPipe, lang, setLang, tr } from '../i18n';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -7,81 +8,90 @@ import { Api, Choice, DesktopInfo, SavedLogin, apiError, isoDate } from '../api'
 /** Settings: for now, the choices remembered from requests (each automation keeps its own). */
 @Component({
   selector: 'app-settings',
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, TrPipe],
   template: `
-    <p class="eyebrow">ANCHOR</p>
-    <h1 class="title">Settings</h1>
+    <p class="eyebrow">{{ 'ANCHOR' | tr }}</p>
+    <h1 class="title">{{ 'Settings' | tr }}</h1>
+
+    <section>
+      <p class="eyebrow">{{ 'Language' | tr }}</p>
+      <div class="card pad startrow">
+        <div><b>{{ "The language of ANCHOR's screens and of what runs say." | tr }}</b>
+          <p class="muted small">{{ 'What the AI reads does not change: each automation keeps the language it was measured with.' | tr }}</p></div>
+        <div class="langs" role="radiogroup" [attr.aria-label]="'Language' | tr">
+          <label class="lang" [class.on]="language() === 'pt'"><input type="radio" name="lang" value="pt" [checked]="language() === 'pt'" (change)="chooseLanguage('pt')">Português</label>
+          <label class="lang" [class.on]="language() === 'en'"><input type="radio" name="lang" value="en" [checked]="language() === 'en'" (change)="chooseLanguage('en')">English</label>
+        </div>
+      </div>
+    </section>
 
     @if (desk()?.start_with_windows?.available) {
       <section>
-        <p class="eyebrow">Start with Windows</p>
+        <p class="eyebrow">{{ 'Start with Windows' | tr }}</p>
         <div class="card pad startrow">
-          <div><b>Open ANCHOR, hidden near the clock, when you log in to Windows.</b>
-            <p class="muted small">So schedules run without anyone opening ANCHOR. Turn it off if you do not use schedules.</p></div>
-          <label class="check"><input type="checkbox" [checked]="desk()?.start_with_windows?.on" (change)="startWithWindows($any($event.target).checked)"> On</label>
+          <div><b>{{ 'Open ANCHOR, hidden near the clock, when you log in to Windows.' | tr }}</b>
+            <p class="muted small">{{ 'So schedules run without anyone opening ANCHOR. Turn it off if you do not use schedules.' | tr }}</p></div>
+          <label class="check"><input type="checkbox" [checked]="desk()?.start_with_windows?.on" (change)="startWithWindows($any($event.target).checked)"> {{ 'On' | tr }}</label>
         </div>
       </section>
     }
 
     <section>
-      <p class="eyebrow">Saved logins</p>
+      <p class="eyebrow">{{ 'Saved logins' | tr }}</p>
       <div class="lead muted">
-        <p>When a run reaches a login page, ANCHOR logs in by itself with a login saved here, and waits for you if it does not get in
-          (a wrong password, or a code sent to your phone).</p>
+        <p>{{ 'When a run reaches a login page, ANCHOR logs in by itself with a login saved here, and waits for you if it does not get in (a wrong password, or a code sent to your phone).' | tr }}</p>
         <ul class="rules">
-          <li><b>Only on its exact address.</b> A login saved for <span class="mono">accounts.example.com</span> is not used on
-            <span class="mono">mail.example.com</span>, on another port, or on a page without https.</li>
-          <li><b>The password goes to Windows' Credential Manager</b>, never to a file, and is never shown again: you can replace it or delete it.</li>
-          <li><b>The AI never sees it.</b> ANCHOR's own code types it, only into a password field, only on that site.</li>
-          <li><b>Scheduled runs use a login only if you turn it on</b> for that login.</li>
+          <li><b>{{ 'Only on its exact address.' | tr }}</b> {{ 'A login saved for' | tr }} <span class="mono">{{ 'accounts.example.com' | tr }}</span> {{ 'is not used on' | tr }}
+            <span class="mono">{{ 'mail.example.com' | tr }}</span>{{ ', on another port, or on a page without https.' | tr }}</li>
+          <li><b>{{ "The password goes to Windows' Credential Manager" | tr }}</b>{{ ', never to a file, and is never shown again: you can replace it or delete it.' | tr }}</li>
+          <li><b>{{ 'The AI never sees it.' | tr }}</b> {{ "ANCHOR's own code types it, only into a password field, only on that site." | tr }}</li>
+          <li><b>{{ 'Scheduled runs use a login only if you turn it on' | tr }}</b> {{ 'for that login.' | tr }}</li>
         </ul>
       </div>
       <form class="card pad loginform" (ngSubmit)="addLogin()" autocomplete="off">
-        <div class="field"><label for="l-site">Site address</label><input id="l-site" name="lSite" [(ngModel)]="lSite" placeholder="https://accounts.example.com"></div>
-        <div class="field"><label for="l-user">User name or e-mail</label><input id="l-user" name="lUser" [(ngModel)]="lUser" autocomplete="off"></div>
-        <div class="field"><label for="l-pass">Password</label><input id="l-pass" name="lPass" type="password" [(ngModel)]="lPass" autocomplete="new-password"></div>
-        <label class="check"><input type="checkbox" name="lSched" [(ngModel)]="lSched"> Use in scheduled runs</label>
-        <button class="btn primary" type="submit" [disabled]="!lSite.trim() || !lUser.trim() || !lPass">Save login</button>
+        <div class="field"><label for="l-site">{{ 'Site address' | tr }}</label><input id="l-site" name="lSite" [(ngModel)]="lSite" [placeholder]="'https://accounts.example.com' | tr"></div>
+        <div class="field"><label for="l-user">{{ 'User name or e-mail' | tr }}</label><input id="l-user" name="lUser" [(ngModel)]="lUser" autocomplete="off"></div>
+        <div class="field"><label for="l-pass">{{ 'Password' | tr }}</label><input id="l-pass" name="lPass" type="password" [(ngModel)]="lPass" autocomplete="new-password"></div>
+        <label class="check"><input type="checkbox" name="lSched" [(ngModel)]="lSched"> {{ 'Use in scheduled runs' | tr }}</label>
+        <button class="btn primary" type="submit" [disabled]="!lSite.trim() || !lUser.trim() || !lPass">{{ 'Save login' | tr }}</button>
       </form>
       @if (loginError()) { <p class="error" role="alert">{{ loginError() }}</p> }
       @for (l of logins(); track l.site + l.username) {
         <article class="card site">
           <header><span class="mono">{{ l.site }}</span><span class="muted">{{ l.username }}</span><span class="grow"></span>
-            <label class="check small"><input type="checkbox" [checked]="l.scheduled" (change)="schedule(l, $any($event.target).checked)"> Use in scheduled runs</label>
-            <button class="btn small" type="button" (click)="replacing.set(replacing() === key(l) ? '' : key(l))">Replace password</button>
-            <button class="btn small" type="button" (click)="removeLogin(l)">Delete</button></header>
-          <p class="muted small">Saved {{ isoDate(l.created) }}@if (l.last_used) { · last used {{ isoDate(l.last_used) }} } @else { · not used yet }</p>
+            <label class="check small"><input type="checkbox" [checked]="l.scheduled" (change)="schedule(l, $any($event.target).checked)"> {{ 'Use in scheduled runs' | tr }}</label>
+            <button class="btn small" type="button" (click)="replacing.set(replacing() === key(l) ? '' : key(l))">{{ 'Replace password' | tr }}</button>
+            <button class="btn small" type="button" (click)="removeLogin(l)">{{ 'Delete' | tr }}</button></header>
+          <p class="muted small">{{ 'Saved {date}' | tr: { date: isoDate(l.created) } }}@if (l.last_used) { {{ ' · last used {date}' | tr: { date: isoDate(l.last_used) } }} } @else { {{ ' · not used yet' | tr }} }</p>
           @if (replacing() === key(l)) {
             <form class="replace" (ngSubmit)="replace(l)" autocomplete="off">
-              <input name="newPass" type="password" [(ngModel)]="newPass" autocomplete="new-password" placeholder="New password">
-              <button class="btn primary small" type="submit" [disabled]="!newPass">Save</button>
+              <input name="newPass" type="password" [(ngModel)]="newPass" autocomplete="new-password" [placeholder]="'New password' | tr">
+              <button class="btn primary small" type="submit" [disabled]="!newPass">{{ 'Save' | tr }}</button>
             </form>
           }
         </article>
-      } @empty { <div class="card pad muted">No saved logins. Runs that reach a login page wait for you to log in on the live view.</div> }
+      } @empty { <div class="card pad muted">{{ 'No saved logins. Runs that reach a login page wait for you to log in on the live view.' | tr }}</div> }
     </section>
 
     <section>
-      <p class="eyebrow">Remembered choices</p>
-      <p class="muted lead">When ANCHOR was not sure which element a step of a request meant, you chose one, and it was remembered for
-        that page. Forget a choice if it is wrong: the next time, ANCHOR asks again. The choices of each automation are on its own page,
-        in the Choices tab (<a routerLink="/automations">Automations</a>).</p>
+      <p class="eyebrow">{{ 'Remembered choices' | tr }}</p>
+      <p class="muted lead">{{ 'When ANCHOR was not sure which element a step of a request meant, you chose one, and it was remembered for that page. Forget a choice if it is wrong: the next time, ANCHOR asks again. The choices of each automation are on its own page, in the Choices tab (' | tr }}<a routerLink="/automations">{{ 'Automations' | tr }}</a>).</p>
       @for (s of sites(); track s.site) {
         <article class="card site">
-          <header><span class="mono">{{ s.site }}</span><span class="muted small">{{ s.choices.length }} choice{{ s.choices.length === 1 ? '' : 's' }}</span>
+          <header><span class="mono">{{ s.site }}</span><span class="muted small">{{ (s.choices.length === 1 ? '1 choice' : '{n} choices') | tr: { n: s.choices.length } }}</span>
             <span class="grow"></span>
-            <button class="btn small" type="button" (click)="forgetSite(s.site)">Forget all for this site</button></header>
+            <button class="btn small" type="button" (click)="forgetSite(s.site)">{{ 'Forget all for this site' | tr }}</button></header>
           <ul>
             @for (c of s.choices; track c.key) {
               <li>
-                <div><span class="mono">{{ c.description }}</span>&nbsp;<span class="muted">is</span>&nbsp;<span class="mono">“{{ c.element || 'an element without text' }}”</span>
-                  <span class="muted small"> · used {{ c.uses }} time{{ c.uses === 1 ? '' : 's' }}@if (c.last_used) {, last {{ isoDate(c.last_used) }}}</span></div>
-                <button class="btn small" type="button" (click)="forget(c)">Forget</button>
+                <div><span class="mono">{{ c.description }}</span>&nbsp;<span class="muted">{{ 'is' | tr }}</span>&nbsp;<span class="mono">“{{ c.element || ('an element without text' | tr) }}”</span>
+                  <span class="muted small">{{ (c.uses === 1 ? ' · used once' : ' · used {n} times') | tr: { n: c.uses } }}@if (c.last_used) {{{ ', last {date}' | tr: { date: isoDate(c.last_used) } }}}</span></div>
+                <button class="btn small" type="button" (click)="forget(c)">{{ 'Forget' | tr }}</button>
               </li>
             }
           </ul>
         </article>
-      } @empty { <div class="card pad muted">No remembered choices from requests.</div> }
+      } @empty { <div class="card pad muted">{{ 'No remembered choices from requests.' | tr }}</div> }
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
     </section>
   `,
@@ -109,6 +119,10 @@ import { Api, Choice, DesktopInfo, SavedLogin, apiError, isoDate } from '../api'
     .site p { margin: 4px 0 0; }
     .startrow { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); }
     .startrow p { margin: 4px 0 0; }
+    .langs { display: flex; gap: 8px; }
+    .lang { border: 1px solid var(--border-strong); border-radius: var(--radius-full); padding: 6px 14px; font-size: 13px; cursor: pointer; color: var(--ink-muted); }
+    .lang.on { border-color: var(--lime); color: var(--ink); }
+    .lang input { display: none; }
   `],
 })
 export class SettingsPage {
@@ -124,19 +138,24 @@ export class SettingsPage {
   key(l: SavedLogin) { return l.site + ' ' + l.username; }
 
   desk = signal<DesktopInfo | null>(null);
+  language = lang;
+  chooseLanguage(next: 'pt' | 'en') {
+    setLang(next);
+    this.api.language(next).subscribe({ error: () => {} });
+  }
   constructor() { this.load(); this.loadLogins(); this.api.desktop().subscribe({ next: d => this.desk.set(d), error: () => {} }); }
   startWithWindows(on: boolean) {
     this.api.startWithWindows(on).subscribe({ next: () => this.api.desktop().subscribe(d => this.desk.set(d)),
-                                              error: e => this.loginError.set(apiError(e, 'This could not be changed.')) });
+                                              error: e => this.loginError.set(apiError(e, tr('This could not be changed.'))) });
   }
-  loadLogins() { this.api.logins().subscribe({ next: x => this.logins.set(x), error: e => this.loginError.set(apiError(e, 'The logins could not be loaded.')) }); }
+  loadLogins() { this.api.logins().subscribe({ next: x => this.logins.set(x), error: e => this.loginError.set(apiError(e, tr('The logins could not be loaded.'))) }); }
   addLogin() {
     this.loginError.set('');
     const password = this.lPass;
     this.lPass = '';                                   // never kept in the page after it is sent
     this.api.addLogin(this.lSite, this.lUser, password, this.lSched).subscribe({
       next: () => { this.lSite = ''; this.lUser = ''; this.lSched = false; this.loadLogins(); },
-      error: e => this.loginError.set(apiError(e, 'The login could not be saved.')),
+      error: e => this.loginError.set(apiError(e, tr('The login could not be saved.'))),
     });
   }
   replace(l: SavedLogin) {
@@ -144,23 +163,23 @@ export class SettingsPage {
     this.newPass = '';
     this.api.replacePassword(l.site, l.username, password).subscribe({
       next: () => { this.replacing.set(''); this.loadLogins(); },
-      error: e => this.loginError.set(apiError(e, 'The password could not be replaced.')),
+      error: e => this.loginError.set(apiError(e, tr('The password could not be replaced.'))),
     });
   }
   schedule(l: SavedLogin, on: boolean) {
-    this.api.setScheduled(l.site, l.username, on).subscribe({ next: () => this.loadLogins(), error: e => this.loginError.set(apiError(e, 'This could not be changed.')) });
+    this.api.setScheduled(l.site, l.username, on).subscribe({ next: () => this.loadLogins(), error: e => this.loginError.set(apiError(e, tr('This could not be changed.'))) });
   }
   removeLogin(l: SavedLogin) {
-    if (!confirm(`Delete the login ${l.username} on ${l.site}? Its password is removed from Windows' Credential Manager too.`)) return;
-    this.api.deleteLogin(l.site, l.username).subscribe({ next: () => this.loadLogins(), error: e => this.loginError.set(apiError(e, 'The login could not be deleted.')) });
+    if (!confirm(tr("Delete the login {user} on {site}? Its password is removed from Windows' Credential Manager too.", { user: l.username, site: l.site }))) return;
+    this.api.deleteLogin(l.site, l.username).subscribe({ next: () => this.loadLogins(), error: e => this.loginError.set(apiError(e, tr('The login could not be deleted.'))) });
   }
-  load() { this.api.requestChoices().subscribe({ next: s => this.sites.set(s), error: e => this.error.set(apiError(e, 'The choices could not be loaded.')) }); }
+  load() { this.api.requestChoices().subscribe({ next: s => this.sites.set(s), error: e => this.error.set(apiError(e, tr('The choices could not be loaded.'))) }); }
   forget(c: Choice) {
-    if (!confirm(`Forget this choice? Next time, ANCHOR asks you again which element “${c.description}” means.`)) return;
-    this.api.forgetRequestChoice(c.key).subscribe({ next: () => this.load(), error: e => this.error.set(apiError(e, 'This could not be done.')) });
+    if (!confirm(tr('Forget this choice? Next time, ANCHOR asks you again which element “{what}” means.', { what: c.description }))) return;
+    this.api.forgetRequestChoice(c.key).subscribe({ next: () => this.load(), error: e => this.error.set(apiError(e, tr('This could not be done.'))) });
   }
   forgetSite(site: string) {
-    if (!confirm(`Forget every choice remembered for ${site}?`)) return;
-    this.api.forgetRequestSite(site).subscribe({ next: () => this.load(), error: e => this.error.set(apiError(e, 'This could not be done.')) });
+    if (!confirm(tr('Forget every choice remembered for {site}?', { site }))) return;
+    this.api.forgetRequestSite(site).subscribe({ next: () => this.load(), error: e => this.error.set(apiError(e, tr('This could not be done.'))) });
   }
 }

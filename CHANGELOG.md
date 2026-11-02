@@ -18,6 +18,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The interface in Portuguese or English, first part.** **Settings → Language** (starting in the
+  computer's language, applied at once): a translator in the interface, with the English text as the
+  key and a Portuguese dictionary (`web/src/app/i18n-pt.ts`; a text not in it shows in English), and
+  the server follows the choice, so what runs say (the engine's messages) comes in the same
+  language; what the AI reads does not change. Translated in this part: the menu and the top bar, the
+  guide, the first opening, Settings, Run a request, Runs and the list of automations. The request
+  page's login note now mentions saved logins.
 - **An automation's last run log, and the title bar in ANCHOR's theme.** Each automation run's details
   (what happened, what the AI read and answered) are kept with the automation, the last ten; its page
   has **Download its log** for the last run, also after ANCHOR was closed or a schedule ran alone. The

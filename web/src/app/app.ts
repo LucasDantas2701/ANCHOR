@@ -1,3 +1,4 @@
+import { TrPipe, lang, tr } from './i18n';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
@@ -7,49 +8,48 @@ import { Setup } from './setup';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Guide, Setup],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Guide, Setup, TrPipe],
   template: `
     @if (needsSetup()) { <app-setup (done)="needsSetup.set(false)" /> }
     @if (missed().length) {
       <div class="missed" role="dialog" aria-modal="true" aria-labelledby="missed-title">
         <div class="card box">
-          <h2 id="missed-title" class="heading">Scheduled runs that did not happen</h2>
-          <p class="muted">ANCHOR was closed at these times, so these schedules did not run. They are not run late: schedules run only
-            while ANCHOR is open.</p>
+          <h2 id="missed-title" class="heading">{{ 'Scheduled runs that did not happen' | tr }}</h2>
+          <p class="muted">{{ 'ANCHOR was closed at these times, so these schedules did not run. They are not run late: schedules run only while ANCHOR is open.' | tr }}</p>
           <ul>@for (m of missed(); track m.schedule) { <li><b>{{ m.automation }}</b>, due {{ isoDate(m.due) }}@if (m.times > 1) { (and {{ m.times - 1 }} more time{{ m.times > 2 ? 's' : '' }}) }</li> }</ul>
-          <div><button class="btn primary" type="button" (click)="seenMissed()">OK</button>
-            <a class="btn" routerLink="/schedules" (click)="seenMissed()">See the schedules</a></div>
+          <div><button class="btn primary" type="button" (click)="seenMissed()">{{ 'OK' | tr }}</button>
+            <a class="btn" routerLink="/schedules" (click)="seenMissed()">{{ 'See the schedules' | tr }}</a></div>
         </div>
       </div>
     }
     <header class="top">
-      <a routerLink="/automations" class="brand" aria-label="ANCHOR, home">
+      <a routerLink="/automations" class="brand" [attr.aria-label]="'ANCHOR, home' | tr">
         <img [src]="theme() === 'dark' ? '/brand/anchor-wordmark-on-dark.svg' : '/brand/anchor-wordmark-on-light.svg'" alt="ANCHOR" height="18">
       </a>
       <div class="right">
         <button class="theme" type="button" (click)="toggleTheme()" [attr.aria-label]="'Switch to ' + (theme() === 'dark' ? 'light' : 'dark') + ' theme'">
-          {{ theme() === 'dark' ? 'Light' : 'Dark' }} theme
+          {{ (theme() === 'dark' ? 'Light theme' : 'Dark theme') | tr }}
         </button>
-        <button class="theme" type="button" (click)="guide.set(true)">Guide</button>
-        @if (isDesktop()) { <button class="theme" type="button" (click)="quit()">Quit ANCHOR</button> }
-        <a class="btn" [href]="docs()" target="_blank" rel="noopener noreferrer">Docs <svg aria-hidden="true" width="11" height="11" viewBox="0 0 12 12" style="margin-left:4px;vertical-align:-1px"><path d="M3.5 8.5l5-5M4.5 3.5h4v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <button class="theme" type="button" (click)="guide.set(true)">{{ 'Guide' | tr }}</button>
+        @if (isDesktop()) { <button class="theme" type="button" (click)="quit()">{{ 'Quit ANCHOR' | tr }}</button> }
+        <a class="btn" [href]="docs()" target="_blank" rel="noopener noreferrer">{{ 'Docs' | tr }} <svg aria-hidden="true" width="11" height="11" viewBox="0 0 12 12" style="margin-left:4px;vertical-align:-1px"><path d="M3.5 8.5l5-5M4.5 3.5h4v4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
       </div>
     </header>
     <div class="body">
-      <nav class="side" aria-label="Main">
-        <a routerLink="/automations" routerLinkActive="on">Automations</a>
-        <a routerLink="/run" routerLinkActive="on">Run a request</a>
-        <a routerLink="/runs" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">Runs@if (queued() + (current() ? 1 : 0) > 0) { <span class="pill">{{ queued() + (current() ? 1 : 0) }}</span> }</a>
-        <a routerLink="/schedules" routerLinkActive="on">Schedules@if (failing() > 0) { <span class="pill warn" [title]="failing() + ' schedule(s) whose last time did not go well'">!</span> }</a>
-        <a routerLink="/settings" routerLinkActive="on">Settings</a>
+      <nav class="side" [attr.aria-label]="'Main' | tr">
+        <a routerLink="/automations" routerLinkActive="on">{{ 'Automations' | tr }}</a>
+        <a routerLink="/run" routerLinkActive="on">{{ 'Run a request' | tr }}</a>
+        <a routerLink="/runs" routerLinkActive="on" [routerLinkActiveOptions]="{ exact: true }">{{ 'Runs' | tr }}@if (queued() + (current() ? 1 : 0) > 0) { <span class="pill">{{ queued() + (current() ? 1 : 0) }}</span> }</a>
+        <a routerLink="/schedules" routerLinkActive="on">{{ 'Schedules' | tr }}@if (failing() > 0) { <span class="pill warn" [title]="'{n} schedule(s) whose last time did not go well' | tr: { n: failing() }">!</span> }</a>
+        <a routerLink="/settings" routerLinkActive="on">{{ 'Settings' | tr }}</a>
         @if (current(); as c) {
           <a class="now" [routerLink]="['/runs', c.id]">
-            <span class="eyebrow">{{ c.state === 'waiting' ? 'Waiting for you' : 'Running now' }}</span>
-            <span class="what">{{ c.kind === 'automation' ? c.title : 'A request' }}</span>
-            @if (queued() > 0) { <span class="muted">+ {{ queued() }} waiting their turn</span> }
+            <span class="eyebrow">{{ (c.state === 'waiting' ? 'Waiting for you' : 'Running now') | tr }}</span>
+            <span class="what">{{ c.kind === 'automation' ? c.title : ('A request' | tr) }}</span>
+            @if (queued() > 0) { <span class="muted">{{ '+ {n} waiting their turn' | tr: { n: queued() } }}</span> }
           </a>
         }
-        <span class="version mono">{{ version() }}</span>
+        <span class="version mono">{{ 'version {v}' | tr: { v: version() } }}</span>
       </nav>
       <main><router-outlet /></main>
     </div>
@@ -104,9 +104,10 @@ export class App implements OnInit {
 
   ngOnInit() {
     document.documentElement.dataset['theme'] = this.theme();
-    this.api.info().subscribe({ next: i => { this.docs.set(i.docs); this.version.set(`version ${i.version}`); }, error: () => {} });
+    this.api.info().subscribe({ next: i => { this.docs.set(i.docs); this.version.set(i.version); }, error: () => {} });
     this.watchRuns();
     this.api.setup().subscribe({ next: s => this.needsSetup.set(!s.ready), error: () => {} });
+    this.api.language(lang()).subscribe({ error: () => {} });     // what runs say, in the chosen language
     this.api.desktop().subscribe({ next: d => { this.isDesktop.set(d.desktop); if (d.desktop) this.api.desktopTheme(this.theme()).subscribe({ error: () => {} }); }, error: () => {} });
     this.api.missedSchedules().subscribe({ next: m => this.missed.set(m), error: () => {} });
     this.watchSchedules();
@@ -122,7 +123,7 @@ export class App implements OnInit {
   }
 
   quit() {
-    if (!confirm('Quit ANCHOR? Runs in progress stop, and schedules do not run until you open ANCHOR again.')) return;
+    if (!confirm(tr('Quit ANCHOR? Runs in progress stop, and schedules do not run until you open ANCHOR again.'))) return;
     this.api.quit().subscribe({ error: () => {} });
   }
 

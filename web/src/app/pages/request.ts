@@ -1,3 +1,4 @@
+import { TrPipe, tr } from '../i18n';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -7,42 +8,41 @@ import { fromCommand } from '../command';
 
 @Component({
   selector: 'app-request',
-  imports: [FormsModule],
+  imports: [FormsModule, TrPipe],
   template: `
-    <p class="eyebrow">Run a request</p>
-    <h1 class="title">Tell ANCHOR <em>what to do</em></h1>
-    <p class="lead muted">Write it as you would ask a colleague. ANCHOR plans the steps with the AI on your computer,
-      does them in the browser and checks each one. Nothing is saved for next time; for that, create an automation.</p>
+    <p class="eyebrow">{{ 'Run a request' | tr }}</p>
+    <h1 class="title">{{ 'Tell ANCHOR' | tr }} <em>{{ 'what to do' | tr }}</em></h1>
+    <p class="lead muted">{{ 'Write it as you would ask a colleague. ANCHOR plans the steps with the AI on your computer, does them in the browser and checks each one. Nothing is saved for next time; for that, create an automation.' | tr }}</p>
 
     <form class="card form" (ngSubmit)="start()">
-      <label for="request">What should ANCHOR do?</label>
+      <label for="request">{{ 'What should ANCHOR do?' | tr }}</label>
       <textarea id="request" name="request" rows="3" [(ngModel)]="request"
-        placeholder="Search for wireless headphones and add the cheapest one to the cart"></textarea>
+        [placeholder]="'Search for wireless headphones and add the cheapest one to the cart' | tr"></textarea>
       @if (pasted(); as c) {
-        <div class="warn" role="status">This looks like a terminal command, not a request: ANCHOR would read the command itself.
-          @if (c.request) { <button class="btn quiet" type="button" (click)="useCommand()">Use “{{ c.request }}”@if (c.url) { on {{ c.url }} }</button> }
-          @else { Write only what ANCHOR should do, and put the page in “On which page?”. }
+        <div class="warn" role="status">{{ 'This looks like a terminal command, not a request: ANCHOR would read the command itself.' | tr }}
+          @if (c.request) { <button class="btn quiet" type="button" (click)="useCommand()">{{ 'Use “{request}”' | tr: { request: c.request } }}@if (c.url) { {{ 'on {url}' | tr: { url: c.url } }} }</button> }
+          @else { {{ 'Write only what ANCHOR should do, and put the page in “On which page?”.' | tr }} }
         </div>
       }
       <div class="row">
         <div>
-          <label for="url">On which page?</label>
-          <input id="url" name="url" [(ngModel)]="url" placeholder="shop.example.com">
+          <label for="url">{{ 'On which page?' | tr }}</label>
+          <input id="url" name="url" [(ngModel)]="url" [placeholder]="'shop.example.com' | tr">
         </div>
         <div>
-          <label for="profile">Model</label>
+          <label for="profile">{{ 'Model' | tr }}</label>
           <select id="profile" name="profile" [(ngModel)]="profile">
-            @for (p of profiles(); track p.name) { <option [value]="p.name" [disabled]="p.downloaded === false">{{ p.label }}{{ p.downloaded === false ? ' (not downloaded)' : '' }}</option> }
+            @for (p of profiles(); track p.name) { <option [value]="p.name" [disabled]="p.downloaded === false">{{ p.label }}{{ p.downloaded === false ? (' (not downloaded)' | tr) : '' }}</option> }
           </select>
         </div>
       </div>
-      <label class="check"><input type="checkbox" name="show" [(ngModel)]="show"> Also open the browser in its own window</label>
-      <label class="check"><input type="checkbox" name="shot" [(ngModel)]="shot"> Include a screenshot of the page at the end</label>
+      <label class="check"><input type="checkbox" name="show" [(ngModel)]="show"> {{ 'Also open the browser in its own window' | tr }}</label>
+      <label class="check"><input type="checkbox" name="shot" [(ngModel)]="shot"> {{ 'Include a screenshot of the page at the end' | tr }}</label>
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
       <div class="actions">
-        <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Starting…' : 'Run' }}</button>
-        <button class="btn" type="button" (click)="seePlan()" [disabled]="busy()" title="The AI plans the steps on the page; nothing is done">See the plan first</button>
-        <span class="muted small">Never write a password here: when a page needs a login, ANCHOR waits for you to do it.</span>
+        <button class="btn primary" type="submit" [disabled]="busy()">{{ (busy() ? 'Starting…' : 'Run') | tr }}</button>
+        <button class="btn" type="button" (click)="seePlan()" [disabled]="busy()" [title]="'The AI plans the steps on the page; nothing is done' | tr">{{ 'See the plan first' | tr }}</button>
+        <span class="muted small">{{ 'Never write a password here: when a page needs a login, ANCHOR uses a login you saved for that site (Settings), or waits for you to do it.' | tr }}</span>
       </div>
     </form>
   `,
@@ -91,7 +91,7 @@ export class RequestPage {
     this.error.set(''); this.busy.set(true);
     this.runs.plan(this.request, this.url, this.profile).subscribe({
       next: r => this.router.navigate(['/runs', r.id]),
-      error: e => { this.busy.set(false); this.error.set(apiError(e, 'The plan could not start.')); },
+      error: e => { this.busy.set(false); this.error.set(apiError(e, tr('The plan could not start.'))); },
     });
   }
 
@@ -99,7 +99,7 @@ export class RequestPage {
     this.error.set(''); this.busy.set(true);
     this.runs.startRequest(this.request, this.url, this.profile, this.show, this.shot).subscribe({
       next: r => this.router.navigate(['/runs', r.id]),
-      error: e => { this.busy.set(false); this.error.set(apiError(e, 'The run could not start.')); },
+      error: e => { this.busy.set(false); this.error.set(apiError(e, tr('The run could not start.'))); },
     });
   }
 }

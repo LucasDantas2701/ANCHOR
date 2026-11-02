@@ -476,7 +476,8 @@ in the same browser. The result has a line per row, with **Download the results 
 rows not done again**. The file is read once and never saved.
 
 Choices remembered from requests (not from an automation) are in **Settings**, by site, where you
-can forget one, or all of a site's.
+can forget one, or all of a site's. **Settings → Language** shows ANCHOR in Portuguese or English (it
+starts in the computer's language); what runs say follows it, and what the AI reads does not change.
 
 An automation's page has **Download its log** for its last run: what happened, and what the AI read
 and answered (the same file as **Save the details of this run**), kept for its last ten runs, also

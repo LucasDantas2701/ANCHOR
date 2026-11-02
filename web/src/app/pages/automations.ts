@@ -1,3 +1,4 @@
+import { TrPipe, tr } from '../i18n';
 import { Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
@@ -5,27 +6,26 @@ import { Api, AutomationSummary, STATE_CLASS, STATE_WORDS, host, parts, runDate 
 
 @Component({
   selector: 'app-automations',
-  imports: [RouterLink],
+  imports: [RouterLink, TrPipe],
   template: `
     <div class="top">
       <div>
-        <p class="eyebrow">Saved automations</p>
-        <h1 class="title">Your <em>automations</em></h1>
+        <p class="eyebrow">{{ 'Saved automations' | tr }}</p>
+        <h1 class="title">{{ 'Your' | tr }} <em>{{ 'automations' | tr }}</em></h1>
       </div>
-      <a class="btn primary" routerLink="/automations/new">New automation</a>
+      <a class="btn primary" routerLink="/automations/new">{{ 'New automation' | tr }}</a>
     </div>
-    <p class="lead muted">Each one is a request that ANCHOR learned once and now repeats with no AI, checking every step.</p>
+    <p class="lead muted">{{ 'Each one is a request that ANCHOR learned once and now repeats with no AI, checking every step.' | tr }}</p>
 
     @if (error()) {
-      <div class="card notice" role="alert"><span class="badge refused">Not loaded</span>
-        ANCHOR could not read your automations. Close this window and open ANCHOR again.</div>
+      <div class="card notice" role="alert"><span class="badge refused">{{ 'Not loaded' | tr }}</span>
+        {{ 'ANCHOR could not read your automations. Close this window and open ANCHOR again.' | tr }}</div>
     } @else if (items() === null) {
-      <p class="muted">Loading your automations…</p>
+      <p class="muted">{{ 'Loading your automations…' | tr }}</p>
     } @else if (items()!.length === 0) {
       <div class="card empty">
-        <p class="heading">No automations yet</p>
-        <p class="muted">An automation is a request you can run again, like "Register a customer and save". Create one
-          with <a routerLink="/automations/new">New automation</a>, or run a request and save it when it is done.</p>
+        <p class="heading">{{ 'No automations yet' | tr }}</p>
+        <p class="muted">{{ 'An automation is a request you can run again, like "Register a customer and save". Create one with' | tr }} <a routerLink="/automations/new">{{ 'New automation' | tr }}</a>{{ ', or run a request and save it when it is done.' | tr }}</p>
       </div>
     } @else {
       <ul class="list">
@@ -38,13 +38,13 @@ import { Api, AutomationSummary, STATE_CLASS, STATE_WORDS, host, parts, runDate 
                 <span class="site mono">{{ host(a.url) }}</span>
               </div>
               <div class="states">
-                @if (!a.learned) { <span class="badge accent">Learns on first run</span> }
-                @else if (a.proven) { <span class="badge">Ready · can run on a schedule</span> }
-                @else { <span class="badge">Ready · {{ a.steps }} steps</span> }
+                @if (!a.learned) { <span class="badge accent">{{ 'Learns on first run' | tr }}</span> }
+                @else if (a.proven) { <span class="badge">{{ 'Ready · can run on a schedule' | tr }}</span> }
+                @else { <span class="badge">{{ 'Ready · {n} steps' | tr: { n: a.steps } }}</span> }
                 @if (a.last_run; as r) {
-                  <span class="badge" [class]="'badge ' + stateClass[r.state]">{{ stateWords[r.state] }}</span>
+                  <span class="badge" [class]="'badge ' + stateClass[r.state]">{{ stateWords[r.state] | tr }}</span>
                   <span class="when muted">{{ runDate(r.when) }}</span>
-                } @else { <span class="when muted">Never run</span> }
+                } @else { <span class="when muted">{{ 'Never run' | tr }}</span> }
               </div>
             </a>
           </li>

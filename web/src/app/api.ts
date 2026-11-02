@@ -98,6 +98,7 @@ export class Api {
   setup() { return this.http.get<SetupStatus>('/api/setup'); }
   downloadModel(profile: string) { return this.http.post('/api/setup/model', { profile }); }
   quit() { return this.http.post('/api/desktop/quit', {}); }
+  language(language: string) { return this.http.put('/api/language', { language }); }
   desktopTheme(theme: string) { return this.http.put('/api/desktop/theme', { theme }); }
   lastLog(name: string) { return this.http.get(`/api/automations/${encodeURIComponent(name)}/last-log`, { responseType: 'blob' }); }
   downloadBrowser() { return this.http.post('/api/setup/browser', {}); }
