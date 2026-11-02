@@ -23,7 +23,7 @@ export interface Run { id: string; mode: string; state: RunState; status: string
 
 export interface AutomationSummary {
   name: string; request: string; url: string; profile: string; parameters: string[];
-  learned: boolean; steps: number; proven: boolean; last_run: Run | null;
+  learned: boolean; steps: number; proven: boolean; last_run: Run | null; has_log?: boolean;
 }
 
 export interface Step { action: string; description: string; value: string | null; }
@@ -98,6 +98,8 @@ export class Api {
   setup() { return this.http.get<SetupStatus>('/api/setup'); }
   downloadModel(profile: string) { return this.http.post('/api/setup/model', { profile }); }
   quit() { return this.http.post('/api/desktop/quit', {}); }
+  desktopTheme(theme: string) { return this.http.put('/api/desktop/theme', { theme }); }
+  lastLog(name: string) { return this.http.get(`/api/automations/${encodeURIComponent(name)}/last-log`, { responseType: 'blob' }); }
   downloadBrowser() { return this.http.post('/api/setup/browser', {}); }
   desktop() { return this.http.get<DesktopInfo>('/api/desktop'); }
   startWithWindows(on: boolean) { return this.http.put<{ on: boolean }>('/api/desktop/start', { on }); }

@@ -271,6 +271,7 @@ class RunManager:
     KEEP = 30
 
     def __init__(self, runner: Runner):
+        self.ended_hooks: list = []          # called with every job when it ends (an automation's log)
         self.runner = runner
         self.jobs: dict[int, Job] = {}
         self.queue: deque[Job] = deque()
@@ -343,10 +344,10 @@ class RunManager:
             result = explain(result)
             job.activity = None
             job.result = result
-            if job.on_end is not None:            # recorded before the run shows as ended (a schedule's history)
-                try:
-                    job.on_end(job)
-                except Exception:                 # a schedule's record must not stop the queue
+            for hook in ([job.on_end] if job.on_end is not None else []) + self.ended_hooks:
+                try:                              # recorded before the run shows as ended (a schedule's history,
+                    hook(job)                     # an automation's log)
+                except Exception:                 # a record must not stop the queue
                     pass
             job.state = result.get("state", "not_done")
             job.finished = time.strftime("%Y-%m-%dT%H:%M:%S")

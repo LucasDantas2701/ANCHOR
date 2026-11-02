@@ -357,7 +357,8 @@ program or website on the computer can use it.
 ## Desktop program (`anchor.desktop.app`, in development)
 
 What the Windows installer runs (ANCHOR.exe): the same interface, in its own window (WebView2) with an
-icon near the clock. Closing the window keeps ANCHOR running there, for the schedules; **Quit**, in
+icon near the clock, whose title bar follows the interface's theme (on Windows 10, only while "accent
+color on title bars" is off in Windows' color settings). Closing the window keeps ANCHOR running there, for the schedules; **Quit**, in
 the icon's menu, ends it, and starting it again brings the running one's window back. It works from
 the user's data folder (`%LOCALAPPDATA%\ANCHOR` on Windows), and the first opening checks Ollama, the
 model and the browser, offering to download the last two. It needs `requirements-desktop.txt`.

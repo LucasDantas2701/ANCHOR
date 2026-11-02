@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **An automation's last run log, and the title bar in ANCHOR's theme.** Each automation run's details
+  (what happened, what the AI read and answered) are kept with the automation, the last ten; its page
+  has **Download its log** for the last run, also after ANCHOR was closed or a schedule ran alone. The
+  desktop window's title bar follows the interface's theme (dark mode on Windows 10 and 11, the exact
+  colors on Windows 11), instead of Windows' accent color.
 - **Stop stops, and AI sites' notices are not errors (found automating a chat site).** A stop was an
   ordinary exception, so the agent's "whatever went wrong, go on" handlers took it for a failure and
   the run went on ("Stopping..." for good); it is now raised like Ctrl+C (a BaseException) and also

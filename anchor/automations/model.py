@@ -234,6 +234,23 @@ class AutomationStore:
         self._write(self.folder(name) / "runs" / f"{run_id}.json", {"id": run_id, **record})
         return run_id
 
+    LOGS_KEPT = 10
+
+    def save_log(self, name: str, run: int, details: dict) -> Path:
+        """A run's details (what happened, what the AI read and answered), kept with the automation: the last
+        ten, so the last run's log can be downloaded after ANCHOR was closed, or after a schedule ran alone."""
+        folder = self.folder(name) / "logs"
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / f"{datetime.now().strftime('%Y%m%d-%H%M%S-%f')}-run{run}.json"
+        path.write_text(json.dumps(details, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
+        for old in sorted(folder.glob("*.json"))[:-self.LOGS_KEPT]:
+            old.unlink()
+        return path
+
+    def last_log(self, name: str) -> Optional[Path]:
+        logs = sorted((self.folder(name) / "logs").glob("*.json"))
+        return logs[-1] if logs else None
+
     def runs(self, name: str) -> list[dict]:
         folder = self.folder(name) / "runs"
         return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(folder.glob("*.json"))]

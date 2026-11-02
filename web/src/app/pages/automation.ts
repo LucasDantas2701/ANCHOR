@@ -70,6 +70,8 @@ const ACTIONS: Record<string, string> = {
         <div><dt>Values you give</dt><dd>@for (p of a.parameters; track p) { <span class="param">{{ p }}</span> } @empty { None }</dd></div>
         <div><dt>Scheduling</dt><dd>@if (a.proven) { Can run with no one present ·
           <a [routerLink]="['/schedules']" [queryParams]="{ automation: a.name }">Schedule this</a> } @else { Needs one clean run with you first }</dd></div>
+        <div><dt>Last run</dt><dd>@if (a.has_log) { <button class="linkish" type="button" (click)="downloadLog(a)">Download its log</button> }
+          @else { No run kept yet }</dd></div>
       </dl>
 
       <nav class="tabs" role="tablist" aria-label="This automation">
@@ -251,7 +253,8 @@ const ACTIONS: Record<string, string> = {
     .preview th, .preview td { padding: 6px 12px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
     .sheet button.primary { justify-self: start; }
     .sheet button:disabled { opacity: .4; cursor: not-allowed; }
-    .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin: 0 0 var(--space-8); max-width: 1080px; }
+    .linkish { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; }
+    .facts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-4); margin: 0 0 var(--space-8); max-width: 1080px; }
     .facts div { border-top: 1px solid var(--border); padding-top: var(--space-3); }
     dt { font: 500 12px/16px var(--font-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-muted); }
     dd { margin: 6px 0 0; }
@@ -325,6 +328,18 @@ export class AutomationPage {
   notFound = signal(false);
   stateWords = STATE_WORDS; stateClass = STATE_CLASS; host = host; runDate = runDate; parts = parts; modelName = modelName; isoDate = isoDate;
   action = (a: string) => ACTIONS[a] ?? a;
+
+  downloadLog(a: AutomationDetail) {
+    this.api.lastLog(a.name).subscribe({
+      next: blob => {
+        const url = URL.createObjectURL(blob);
+        const link = Object.assign(document.createElement('a'), { href: url, download: `anchor-${a.name}-last-run.json` });
+        document.body.appendChild(link); link.click(); link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      },
+      error: e => this.error.set(apiError(e, 'The log could not be downloaded.')),
+    });
+  }
 
   // ------------------------------------------------------------------ a spreadsheet
   sheet = signal<SheetCheck | null>(null);

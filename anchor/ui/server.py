@@ -51,7 +51,13 @@ def _summary(store: AutomationStore, name: str) -> dict:
     return {"name": name, "request": automation.request, "url": automation.url, "profile": automation.profile,
             "parameters": automation.parameters, "learned": plan is not None,
             "steps": len(plan.steps) if plan else 0, "proven": bool(plan and plan.proven_run),
-            "last_run": _run(runs[-1]) if runs else None}
+            "last_run": _run(runs[-1]) if runs else None, "has_log": store.last_log(name) is not None}
+
+
+def run_details(job) -> dict:
+    """A run's details file: what happened, and what the AI read and answered at each planning."""
+    return {"anchor": __version__, "run": job.id, "kind": job.kind, "title": job.title, "state": job.state,
+            "about": job.about, "result": job.result, "events": job.events, "plannings": job.details}
 
 
 def _profiles(setup=None) -> list[dict]:
@@ -86,6 +92,11 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
         from .execute import Executor
         runner = Executor(store, headless=headless, vault=vault)
     runs = RunManager(runner)
+
+    def keep_log(job):                       # each automation run's details, kept with the automation
+        if job.kind == "automation" and job.spec.get("name"):
+            store.save_log(job.spec["name"], job.id, run_details(job))
+    runs.ended_hooks.append(keep_log)
     app = FastAPI(title="ANCHOR", version=__version__, docs_url=None, redoc_url=None, openapi_url=None)
     app.state.runs = runs
     app.state.token = token
@@ -117,6 +128,18 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
     @app.get("/api/automations")
     def automations():
         return [_summary(store, name) for name in store.names()]
+
+    @app.get("/api/automations/{name}/last-log")
+    def last_log(name: str):
+        """The last run's details file (kept with the automation, the last ten)."""
+        try:
+            store.load(name)
+        except (AutomationError, FileNotFoundError):
+            raise HTTPException(404, "no such automation")
+        path = store.last_log(name)
+        if path is None:
+            raise HTTPException(404, "no run of this automation was kept yet")
+        return FileResponse(path, filename=f"anchor-{name}-{path.stem}.json")
 
     @app.get("/api/automations/{name}")
     def automation(name: str):
@@ -242,8 +265,7 @@ def create_app(store_root: str | Path = "automations", token: Optional[str] = No
     def details(run_id: int):
         """What the model read and answered at each planning, for diagnosis; a file saved on this computer."""
         job = job_or_404(run_id)
-        body = {"anchor": __version__, "run": job.id, "kind": job.kind, "title": job.title, "state": job.state,
-                "about": job.about, "result": job.result, "events": job.events, "plannings": job.details}
+        body = run_details(job)
         return Response(json.dumps(body, ensure_ascii=False, indent=1, default=str), media_type="application/json",
                         headers={"Content-Disposition": f'attachment; filename="anchor-run-{job.id}.json"'})
 

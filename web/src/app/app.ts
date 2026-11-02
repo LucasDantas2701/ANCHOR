@@ -107,7 +107,7 @@ export class App implements OnInit {
     this.api.info().subscribe({ next: i => { this.docs.set(i.docs); this.version.set(`version ${i.version}`); }, error: () => {} });
     this.watchRuns();
     this.api.setup().subscribe({ next: s => this.needsSetup.set(!s.ready), error: () => {} });
-    this.api.desktop().subscribe({ next: d => this.isDesktop.set(d.desktop), error: () => {} });
+    this.api.desktop().subscribe({ next: d => { this.isDesktop.set(d.desktop); if (d.desktop) this.api.desktopTheme(this.theme()).subscribe({ error: () => {} }); }, error: () => {} });
     this.api.missedSchedules().subscribe({ next: m => this.missed.set(m), error: () => {} });
     this.watchSchedules();
   }
@@ -143,6 +143,7 @@ export class App implements OnInit {
   toggleTheme() {
     this.theme.set(this.theme() === 'dark' ? 'light' : 'dark');
     document.documentElement.dataset['theme'] = this.theme();
+    if (this.isDesktop()) this.api.desktopTheme(this.theme()).subscribe({ error: () => {} });
     try { localStorage.setItem('anchor-theme', this.theme()); } catch { /* a preference only */ }
   }
 }

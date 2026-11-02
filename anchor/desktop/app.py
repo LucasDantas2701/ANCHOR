@@ -142,6 +142,28 @@ def self_test(report: Path) -> int:
     return 0 if all(c["ok"] for c in checks.values()) else 1
 
 
+TITLE_COLORS = {"dark": (0x0C0A12, 0xF3F1F7), "light": (0xF4F2F7, 0x14121A)}   # the interface's page and ink
+
+
+def colorref(rgb: int) -> int:
+    """0xRRGGBB as Windows' COLORREF (0x00BBGGRR)."""
+    return ((rgb & 0xFF) << 16) | (rgb & 0xFF00) | ((rgb >> 16) & 0xFF)
+
+
+def paint_title_bar(hwnd: int, theme: str) -> None:
+    """The window's title bar in ANCHOR's theme, instead of Windows' accent color: dark or light (Windows 10
+    and 11; on Windows 10 the accent color wins while "accent color on title bars" is on), and the exact
+    colors on Windows 11. Failures are ignored: the bar keeps Windows' colors."""
+    import ctypes
+    dwm = ctypes.windll.dwmapi
+    background, text = TITLE_COLORS.get(theme, TITLE_COLORS["dark"])
+    dark = ctypes.c_int(1 if theme == "dark" else 0)
+    dwm.DwmSetWindowAttribute(hwnd, 20, ctypes.byref(dark), ctypes.sizeof(dark))        # DWMWA_USE_IMMERSIVE_DARK_MODE
+    for attribute, color in ((35, background), (36, text)):                             # DWMWA_CAPTION_COLOR, _TEXT_COLOR
+        value = ctypes.c_uint(colorref(color))
+        dwm.DwmSetWindowAttribute(hwnd, attribute, ctypes.byref(value), ctypes.sizeof(value))
+
+
 class Shell:
     """The window and the icon near the clock (pywebview and pystray; only the installed program uses them)."""
 
@@ -150,6 +172,19 @@ class Shell:
         self.window = None
         self.icon = None
         self.quitting = False
+        self.theme = "dark"
+
+    def set_theme(self, theme: str) -> None:
+        """The interface's theme, for the window's title bar."""
+        self.theme = theme if theme in TITLE_COLORS else "dark"
+        self._paint()
+
+    def _paint(self) -> None:
+        try:
+            if self.window is not None and getattr(self.window, "native", None) is not None:
+                paint_title_bar(int(self.window.native.Handle.ToInt64()), self.theme)
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------ what the interface's server calls
     def show(self) -> None:
@@ -166,6 +201,7 @@ class Shell:
         webview.settings["ALLOW_DOWNLOADS"] = True
         self.window = webview.create_window("ANCHOR", url, width=1360, height=880, min_size=(980, 640), hidden=hidden)
         self.window.events.closing += self._closing
+        self.window.events.shown += self._paint
         threading.Thread(target=self._tray, daemon=True).start()
         webview.start(gui="edgechromium", private_mode=False, storage_path=str(Path.cwd() / "webview"))
 

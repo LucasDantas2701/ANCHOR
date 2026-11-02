@@ -41,6 +41,14 @@ def add_routes(app, desktop=None, setup=None) -> None:
             raise HTTPException(404, "only in the installed program, on Windows")
         return {"on": start.set(bool(body.get("on")))}
 
+    @app.put("/api/desktop/theme")
+    def theme(body: dict = Body(...)):
+        """The interface's theme changed: the window's title bar follows it."""
+        if desktop is None:
+            raise HTTPException(404, "not in the desktop program")
+        desktop.set_theme(str(body.get("theme", "dark")))
+        return {"theme": desktop.theme}
+
     @app.post("/api/desktop/quit")
     def quit_anchor():
         """Ends ANCHOR (the window and the icon near the clock): the same as Quit in the icon's menu."""

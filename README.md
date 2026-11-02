@@ -478,6 +478,10 @@ rows not done again**. The file is read once and never saved.
 Choices remembered from requests (not from an automation) are in **Settings**, by site, where you
 can forget one, or all of a site's.
 
+An automation's page has **Download its log** for its last run: what happened, and what the AI read
+and answered (the same file as **Save the details of this run**), kept for its last ten runs, also
+after ANCHOR was closed or when a schedule ran it alone.
+
 An automation's page also looks after everything it keeps, in tabs:
 
 * **Fixes:** each time the site changed and ANCHOR fixed a step (or asked you which element was

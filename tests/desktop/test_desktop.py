@@ -229,6 +229,7 @@ def test_the_window_allows_downloads(monkeypatch):
     class Events:
         def __init__(self):
             self.closing = self
+            self.shown = self
 
         def __iadd__(self, handler):
             return self
