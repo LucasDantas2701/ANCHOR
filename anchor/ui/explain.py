@@ -20,7 +20,7 @@ _RULES = [
      "Run it again with the browser window shown, and log in when ANCHOR asks."),
     (r"password",
      "A password cannot go in a request.",
-     "Write the request without it: when a page needs a login, ANCHOR waits for you to do it."),
+     "Write the request without it: when a page needs a login, ANCHOR uses a login you saved for that site (Settings), or waits for you to do it."),
     (r"cannot be done on this page|nothing to do",
      "This page has nothing for that request.",
      "Check the page's address, or say the request in other words."),

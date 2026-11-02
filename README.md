@@ -286,7 +286,7 @@ End of plan ──► LLM checks whether anything is left ──► all goals me
 
 What the model reads and what the person reads are separate, each with its own language: the
 planner prompt is in Portuguese by default (the measured one) or English; the interface is in
-English, and the command line in English or Portuguese.
+Portuguese or English (Settings → Language), and the command line in English or Portuguese.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -658,7 +658,7 @@ final numbers will come from the closed sets.
     - [x] Unattended runs (`--unattended`), for scheduling: only an automation proven by a run with
       someone present, and nothing repaired or asked; any change stops it until someone looks
 - [ ] **0.5** — A local program for people who do not program: an interface on this computer only,
-  in English, that does what the commands do
+  in Portuguese or English, that does what the commands do
     - [x] The server and the automations (list, page), with the design system
     - [x] Runs from the interface: a queue, what happens as it happens, the questions answered there
     - [x] The live view: the browser beside the run; logging in and pointing at an element on it
@@ -863,7 +863,8 @@ requests and page contents do not leave the computer or the company network.
 <!-- KNOWN LIMITATIONS -->
 ## Known Limitations
 
-* The interface is in English only (the command line is in English and Portuguese).
+* A few messages the server builds with values in them (for example, a spreadsheet's row count in a
+  schedule's history) are still in English in the Portuguese interface.
 * Some sites block automated browsers. ANCHOR's browser is an ordinary one, in a window kept off the
   screen (it no longer says "HeadlessChrome"), but a site may still recognize automation; if it blocks
   ANCHOR, the site does not want to be automated, and an official API, when there is one, is the right way.

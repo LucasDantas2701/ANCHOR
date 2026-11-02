@@ -1,3 +1,4 @@
+import { TrPipe, tr } from '../i18n';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -7,50 +8,49 @@ import { fromCommand } from '../command';
 
 @Component({
   selector: 'app-new-automation',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, TrPipe],
   template: `
-    <a routerLink="/automations" class="back muted">← All automations</a>
-    <p class="eyebrow">New automation</p>
-    <h1 class="title">A task you will <em>run again</em></h1>
-    <p class="lead muted">The first run learns the steps with the AI and checks each one. After that, ANCHOR repeats them
-      with one click, without the AI, and fixes them by itself if the site changes.</p>
+    <a routerLink="/automations" class="back muted">{{ '← All automations' | tr }}</a>
+    <p class="eyebrow">{{ 'New automation' | tr }}</p>
+    <h1 class="title">{{ 'A task you will' | tr }} <em>{{ 'run again' | tr }}</em></h1>
+    <p class="lead muted">{{ 'The first run learns the steps with the AI and checks each one. After that, ANCHOR repeats them with one click, without the AI, and fixes them by itself if the site changes.' | tr }}</p>
 
     <form class="card form" (ngSubmit)="create()">
-      <label for="request">What should it do?</label>
+      <label for="request">{{ 'What should it do?' | tr }}</label>
       <textarea id="request" name="request" rows="3" [(ngModel)]="request" (ngModelChange)="suggest()"
-        placeholder="Register {name}, phone {phone}, and save the record"></textarea>
+        [placeholder]="'Register {name}, phone {phone}, and save the record' | tr"></textarea>
       @if (pasted(); as c) {
-        <div class="warn" role="status">This looks like a terminal command, not a request: ANCHOR would read the command itself.
-          @if (c.request) { <button class="btn quiet" type="button" (click)="useCommand()">Use “{{ c.request }}”@if (c.url) { on {{ c.url }} }</button> }
-          @else { Write only what ANCHOR should do, and put the page in “On which page?”. }
+        <div class="warn" role="status">{{ 'This looks like a terminal command, not a request: ANCHOR would read the command itself.' | tr }}
+          @if (c.request) { <button class="btn quiet" type="button" (click)="useCommand()">{{ 'Use “{request}”' | tr: { request: c.request } }}@if (c.url) { {{ 'on {url}' | tr: { url: c.url } }} }</button> }
+          @else { {{ 'Write only what ANCHOR should do, and put the page in “On which page?”.' | tr }} }
         </div>
       }
-      <p class="hint muted">Put a word in braces for each value that changes from run to run, like <span class="param">name</span>
-        in <span class="mono">{{ '{' }}name{{ '}' }}</span>: each run asks for it (or reads it from a spreadsheet).</p>
+      <p class="hint muted">{{ 'Put a word in braces for each value that changes from run to run, like' | tr }} <span class="param">{{ 'name' | tr }}</span>
+        {{ 'in' | tr }} <span class="mono">{{ '{' }}name{{ '}' }}</span>{{ ': each run asks for it (or reads it from a spreadsheet).' | tr }}</p>
       @if (values().length) {
-        <p class="found">Each run will ask for: @for (v of values(); track v) { <span class="param">{{ v }}</span> }</p>
+        <p class="found">{{ 'Each run will ask for:' | tr }} @for (v of values(); track v) { <span class="param">{{ v }}</span> }</p>
       }
       <div class="row">
         <div>
-          <label for="url">On which page does it start?</label>
-          <input id="url" name="url" [(ngModel)]="url" placeholder="crm.example.com/customers/new">
+          <label for="url">{{ 'On which page does it start?' | tr }}</label>
+          <input id="url" name="url" [(ngModel)]="url" [placeholder]="'crm.example.com/customers/new' | tr">
         </div>
         <div>
-          <label for="profile">Model</label>
+          <label for="profile">{{ 'Model' | tr }}</label>
           <select id="profile" name="profile" [(ngModel)]="profile">
-            @for (p of profiles(); track p.name) { <option [value]="p.name" [disabled]="p.downloaded === false">{{ p.label }}{{ p.downloaded === false ? ' (not downloaded)' : '' }}</option> }
+            @for (p of profiles(); track p.name) { <option [value]="p.name" [disabled]="p.downloaded === false">{{ p.label | tr }}{{ p.downloaded === false ? (' (not downloaded)' | tr) : '' }}</option> }
           </select>
         </div>
       </div>
       <div>
-        <label for="name">Name</label>
+        <label for="name">{{ 'Name' | tr }}</label>
         <input id="name" name="name" [(ngModel)]="name" (ngModelChange)="named = true" class="mono">
-        <p class="hint muted">Lowercase letters, numbers and hyphens, like <span class="mono">register-customer</span>.</p>
+        <p class="hint muted">{{ 'Lowercase letters, numbers and hyphens, like' | tr }} <span class="mono">{{ 'register-customer' | tr }}</span>.</p>
       </div>
       @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
       <div class="actions">
-        <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Creating…' : 'Create automation' }}</button>
-        <span class="muted small">Never write a password here: when a page needs a login, ANCHOR waits for you to do it.</span>
+        <button class="btn primary" type="submit" [disabled]="busy()">{{ (busy() ? 'Creating…' : 'Create automation') | tr }}</button>
+        <span class="muted small">{{ 'Never write a password here: when a page needs a login, ANCHOR waits for you to do it.' | tr }}</span>
       </div>
     </form>
   `,
@@ -104,7 +104,7 @@ export class NewAutomationPage {
     this.error.set(''); this.busy.set(true);
     this.api.create(this.name.trim(), this.request, this.url, this.profile).subscribe({
       next: a => this.router.navigate(['/automations', a.name]),
-      error: e => { this.busy.set(false); this.error.set(apiError(e, 'The automation could not be created.')); },
+      error: e => { this.busy.set(false); this.error.set(apiError(e, tr('The automation could not be created.'))); },
     });
   }
 }

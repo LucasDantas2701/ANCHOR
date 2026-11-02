@@ -1,3 +1,4 @@
+import { TrPipe, tr } from '../i18n';
 import { Component, ElementRef, HostListener, OnDestroy, OnInit, effect, inject, input, output, signal, viewChild } from '@angular/core';
 
 import { JOB_CLASS, JOB_WORDS, JobState, Runs, Tab } from '../api';
@@ -5,12 +6,13 @@ import { JOB_CLASS, JOB_WORDS, JobState, Runs, Tab } from '../api';
 /** The browser, live, in a window over the run: shown only while it is open. */
 @Component({
   selector: 'app-live',
+  imports: [TrPipe],
   template: `
     @if (tabs().length > 1) {
-      <nav class="tabs" aria-label="The run's tabs and windows">
+      <nav class="tabs" [attr.aria-label]="'The run’s tabs and windows' | tr">
         @for (t of tabs(); track t.index) {
           <button type="button" class="tab" [class.on]="shownIndex() === t.index" (click)="see(t)" [title]="t.url">
-            @if (t.anchor) { <span class="dot" aria-label="ANCHOR is working here"></span> }{{ t.title || t.url }}
+            @if (t.anchor) { <span class="dot" [attr.aria-label]="'ANCHOR is working here' | tr"></span> }{{ t.title || t.url }}
           </button>
         }
       </nav>
@@ -19,12 +21,12 @@ import { JOB_CLASS, JOB_WORDS, JobState, Runs, Tab } from '../api';
          [attr.aria-label]="interactive() ? 'The browser: click and type here' : 'The browser, live: ' + jobWords[state()]"
          (keydown)="key($event)" (paste)="paste($event)" (wheel)="wheel($event)">
       @if (src()) { <img #img [src]="src()" alt="" (click)="click($event)" draggable="false"> }
-      @else { <p class="muted">{{ ended() ? 'The run ended before the browser could be shown.' : 'Waiting for the browser…' }}</p> }
+      @else { <p class="muted">{{ (ended() ? 'The run ended before the browser could be shown.' : 'Waiting for the browser…') | tr }}</p> }
     </div>
     @if (interactive()) {
-      <p class="foot control-note">You are in control: click and type on the page. Paste with Ctrl+V. Nothing you type is kept or shown to the AI.</p>
+      <p class="foot control-note">{{ 'You are in control: click and type on the page. Paste with Ctrl+V. Nothing you type is kept or shown to the AI.' | tr }}</p>
     } @else {
-      <p class="foot muted">{{ ended() ? 'The run has ended: this is the last thing the browser showed.' : 'Live. Closing this view does not stop the run.' }}</p>
+      <p class="foot muted">{{ (ended() ? 'The run has ended: this is the last thing the browser showed.' : 'Live. Closing this view does not stop the run.') | tr }}</p>
     }
   `,
   styles: [`

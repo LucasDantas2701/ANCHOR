@@ -1,3 +1,4 @@
+import { TrPipe, tr } from '../i18n';
 import { Component, HostListener, OnDestroy, effect, inject, input, signal } from '@angular/core';
 
 import { RunOutput, Runs } from '../api';
@@ -5,11 +6,12 @@ import { RunOutput, Runs } from '../api';
 /** What a run brought back: answers, tables and lists (first rows shown), files, screenshots. */
 @Component({
   selector: 'app-outputs',
+  imports: [TrPipe],
   template: `
     @if (big(); as url) {
-      <div class="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot in full size" (click)="big.set(null)">
+      <div class="lightbox" role="dialog" aria-modal="true" [attr.aria-label]="'Screenshot in full size' | tr" (click)="big.set(null)">
         <img [src]="url" alt="The screenshot in full size">
-        <p>Click anywhere or press Esc to close.</p>
+        <p>{{ 'Click anywhere or press Esc to close.' | tr }}</p>
       </div>
     }
     @for (o of outputs(); track $index) {
@@ -18,25 +20,25 @@ import { RunOutput, Runs } from '../api';
         @switch (o.kind) {
           @case ('text') {
             <div class="text">{{ o.text }}</div>
-            <button class="btn small" type="button" (click)="copy(o.text ?? '', $index)">{{ copied() === $index ? 'Copied' : 'Copy' }}</button>
+            <button class="btn small" type="button" (click)="copy(o.text ?? '', $index)">{{ (copied() === $index ? 'Copied' : 'Copy') | tr }}</button>
           }
           @case ('screenshot') {
             @if (images()[$index]; as url) {
-              <button type="button" class="shot" title="See it in full size" (click)="big.set(url)"><img [src]="url" [alt]="'The page at the end: ' + o.description"></button>
-            } @else { <p class="muted small">Loading the screenshot…</p> }
-            <button class="btn small" type="button" (click)="download($index, o)">Download</button>
+              <button type="button" class="shot" [title]="'See it in full size' | tr" (click)="big.set(url)"><img [src]="url" [alt]="'The page at the end: ' + o.description"></button>
+            } @else { <p class="muted small">{{ 'Loading the screenshot…' | tr }}</p> }
+            <button class="btn small" type="button" (click)="download($index, o)">{{ 'Download' | tr }}</button>
           }
           @case ('file') {
             <p class="mono small">{{ o.name }} <span class="muted">· {{ size(o.bytes) }}</span></p>
-            <button class="btn small" type="button" (click)="download($index, o)">Download</button>
+            <button class="btn small" type="button" (click)="download($index, o)">{{ 'Download' | tr }}</button>
           }
           @default {
-            <p class="muted small">{{ o.total }} row{{ o.total === 1 ? '' : 's' }}@if ((o.total ?? 0) > (o.rows?.length ?? 0)) {, the first {{ o.rows?.length }} shown}</p>
+            <p class="muted small">{{ (o.total === 1 ? '1 row' : '{n} rows') | tr: { n: o.total } }}@if ((o.total ?? 0) > (o.rows?.length ?? 0)) {{{ ', the first {n} shown' | tr: { n: o.rows?.length } }}}</p>
             <div class="scroll"><table>
               <thead><tr>@for (c of o.columns ?? []; track $index) { <th>{{ c }}</th> }</tr></thead>
               <tbody>@for (r of o.rows ?? []; track $index) { <tr>@for (cell of r; track $index) { <td>{{ cell }}</td> }</tr> }</tbody>
             </table></div>
-            <button class="btn small" type="button" (click)="download($index, o)">Download CSV</button>
+            <button class="btn small" type="button" (click)="download($index, o)">{{ 'Download CSV' | tr }}</button>
           }
         }
       </article>
@@ -88,7 +90,7 @@ export class Outputs implements OnDestroy {
   ngOnDestroy() { this.urls.forEach(u => URL.revokeObjectURL(u)); }
 
   label(o: RunOutput) {
-    return { text: 'Answer', table: 'Table', list: 'List', file: 'Downloaded file', screenshot: 'Screenshot of the page' }[o.kind] ?? o.kind;
+    return tr({ text: 'Answer', table: 'Table', list: 'List', file: 'Downloaded file', screenshot: 'Screenshot of the page' }[o.kind] ?? o.kind);
   }
   size(bytes?: number) {
     const b = bytes ?? 0;

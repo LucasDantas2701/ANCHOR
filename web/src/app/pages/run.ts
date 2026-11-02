@@ -1,3 +1,4 @@
+import { TrPipe, tr } from '../i18n';
 import { Component, ElementRef, OnDestroy, effect, inject, input, signal, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 
@@ -13,51 +14,51 @@ const WHAT: Record<string, string> = {
 
 @Component({
   selector: 'app-run',
-  imports: [RouterLink, LiveView, Outputs],
+  imports: [RouterLink, LiveView, Outputs, TrPipe],
   template: `
     @if (run(); as r) {
       <div class="layout" [class.theater]="watching()">
       <div class="top">
       @if (r.kind === 'automation' || r.kind === 'login') { <a [routerLink]="['/automations', r.title]" class="back muted">← {{ r.title }}</a> }
-      @else { <a routerLink="/run" class="back muted">← Run a request</a> }
-      <p class="eyebrow">{{ r.kind === 'automation' ? 'Running an automation' : r.kind === 'login' ? 'Logging in' : r.kind === 'plan' ? 'Planning only: nothing is done' : 'Running a request' }}</p>
+      @else { <a routerLink="/run" class="back muted">{{ '← Run a request' | tr }}</a> }
+      <p class="eyebrow">{{ (r.kind === 'automation' ? 'Running an automation' : r.kind === 'login' ? 'Logging in' : r.kind === 'plan' ? 'Planning only: nothing is done' : 'Running a request') | tr }}</p>
       <div class="head">
-        <h1 class="title">{{ r.kind === 'request' ? 'Your request' : r.kind === 'plan' ? 'The plan for your request' : r.title }}</h1>
-        <span [class]="'badge ' + jobClass[r.state]">{{ jobWords[r.state] }}@if (r.state === 'queued' && r.position > 1) { · {{ r.position - 1 }} ahead }</span>
+        <h1 class="title">{{ (r.kind === 'request' ? 'Your request' : r.kind === 'plan' ? 'The plan for your request' : r.title) | tr }}</h1>
+        <span [class]="'badge ' + jobClass[r.state]">{{ jobWords[r.state] | tr }}@if (r.state === 'queued' && r.position > 1) { {{ ' · {n} ahead' | tr: { n: r.position - 1 } }} }</span>
         <div class="head-actions">
-          @if (watching()) { <button class="btn" type="button" (click)="watching.set(false)">Close the live view</button> }
-          @else if (r.state !== 'queued' && r.kind !== 'plan') { <button class="btn" type="button" (click)="watching.set(true)">{{ active(r) ? 'Watch it run' : 'See the last view' }}</button> }
-          @if (active(r)) { <button class="btn" type="button" (click)="stop()" [disabled]="stopping()">{{ stopping() ? 'Stopping…' : 'Stop' }}</button> }
+          @if (watching()) { <button class="btn" type="button" (click)="watching.set(false)">{{ 'Close the live view' | tr }}</button> }
+          @else if (r.state !== 'queued' && r.kind !== 'plan') { <button class="btn" type="button" (click)="watching.set(true)">{{ (active(r) ? 'Watch it run' : 'See the last view') | tr }}</button> }
+          @if (active(r)) { <button class="btn" type="button" (click)="stop()" [disabled]="stopping()">{{ (stopping() ? 'Stopping…' : 'Stop') | tr }}</button> }
         </div>
       </div>
       @if (r.kind === 'request' || r.kind === 'plan') { <blockquote class="request">{{ r.title }}</blockquote> }
       </div>
       @if ((r.state === 'running' || r.state === 'waiting') && r.spec['show_browser']) {
-        <p class="muted note">The browser is also open in its own window.</p>
+        <p class="muted note">{{ 'The browser is also open in its own window.' | tr }}</p>
       }
       @if (watching()) { <app-live class="live" [run]="r.id" [state]="r.state" [ended]="!active(r)" [interactive]="takesInput(r)"
                                    [tabs]="r.tabs ?? []" [viewing]="r.viewing ?? null" (close)="watching.set(false)" /> }
 
       @if (r.question; as q) {
         <section class="ask card" role="alertdialog" aria-labelledby="ask-title">
-          <p class="eyebrow">Waiting for you</p>
+          <p class="eyebrow">{{ 'Waiting for you' | tr }}</p>
           @switch (q.kind) {
             @case ('confirm') {
-              <h2 id="ask-title" class="heading">ANCHOR wants to {{ what(q.category) }}: <em>{{ q.shown || q.element }}</em></h2>
-              <p class="muted">Step: {{ q.description }}</p>
-              @if (q.near && q.near !== q.shown) { <p class="muted small near">On the page: “{{ q.near }}”</p> }
-              <p class="muted small">{{ q.remembers ? 'Your answer is kept: this automation will not ask again for this step.' : 'Your answer is only for this run.' }}</p>
+              <h2 id="ask-title" class="heading">{{ 'ANCHOR wants to {what}:' | tr: { what: what(q.category) } }} <em>{{ q.shown || q.element }}</em></h2>
+              <p class="muted">{{ 'Step: {what}' | tr: { what: q.description } }}</p>
+              @if (q.near && q.near !== q.shown) { <p class="muted small near">{{ 'On the page: “{text}”' | tr: { text: q.near } }}</p> }
+              <p class="muted small">{{ (q.remembers ? 'Your answer is kept: this automation will not ask again for this step.' : 'Your answer is only for this run.') | tr }}</p>
               <div class="actions">
-                <button class="btn primary" type="button" (click)="answer(q, { choice: 'allow' })">Allow</button>
-                <button class="btn" type="button" (click)="answer(q, { choice: 'deny' })">Don't allow</button>
-                @if (q.remembers) { <button class="btn quiet" type="button" (click)="answer(q, { choice: 'not_now' })">Not now, ask me next time</button> }
+                <button class="btn primary" type="button" (click)="answer(q, { choice: 'allow' })">{{ 'Allow' | tr }}</button>
+                <button class="btn" type="button" (click)="answer(q, { choice: 'deny' })">{{ "Don't allow" | tr }}</button>
+                @if (q.remembers) { <button class="btn quiet" type="button" (click)="answer(q, { choice: 'not_now' })">{{ 'Not now, ask me next time' | tr }}</button> }
               </div>
             }
             @case ('choose') {
-              <h2 id="ask-title" class="heading">@if (q.reason === 'ambiguous') { Which one is <em>“{{ q.description }}”</em>? } @else { ANCHOR could not find <em>“{{ q.description }}”</em> }</h2>
+              <h2 id="ask-title" class="heading">@if (q.reason === 'ambiguous') { {{ 'Which one is' | tr }} <em>“{{ q.description }}”</em>? } @else { {{ 'ANCHOR could not find' | tr }} <em>“{{ q.description }}”</em> }</h2>
               @if (q.screenshot) { <img class="shot" [src]="'data:image/png;base64,' + q.screenshot" alt="The page, with each option numbered"> }
               @if (q.candidates?.length) {
-                <p class="muted small">{{ q.reason === 'ambiguous' ? 'These look alike. Choose the right one:' : 'Is it one of these?' }}</p>
+                <p class="muted small">{{ (q.reason === 'ambiguous' ? 'These look alike. Choose the right one:' : 'Is it one of these?') | tr }}</p>
                 <div class="options">
                   @for (c of q.candidates; track c.number) {
                     <button class="option" type="button" (click)="answer(q, { choice: 'candidate', number: c.number })">
@@ -67,37 +68,37 @@ const WHAT: Record<string, string> = {
                 </div>
               }
               <div class="actions">
-                @if (q.can_point) { <button class="btn" type="button" (click)="answer(q, { choice: 'point' })">I'll point at it on the live view</button> }
-                <button class="btn" type="button" (click)="answer(q, { choice: 'login' })" title="Log in on the live view; then ANCHOR plans again from there">It needs a login first</button>
-                <button class="btn" type="button" (click)="noneOpen.set(!noneOpen())" [attr.aria-expanded]="noneOpen()">It's none of these</button>
-                <button class="btn quiet" type="button" (click)="answer(q, { choice: 'skip' })">Skip this step</button>
+                @if (q.can_point) { <button class="btn" type="button" (click)="answer(q, { choice: 'point' })">{{ "I'll point at it on the live view" | tr }}</button> }
+                <button class="btn" type="button" (click)="answer(q, { choice: 'login' })" [title]="'Log in on the live view; then ANCHOR plans again from there' | tr">{{ 'It needs a login first' | tr }}</button>
+                <button class="btn" type="button" (click)="noneOpen.set(!noneOpen())" [attr.aria-expanded]="noneOpen()">{{ "It's none of these" | tr }}</button>
+                <button class="btn quiet" type="button" (click)="answer(q, { choice: 'skip' })">{{ 'Skip this step' | tr }}</button>
               </div>
               @if (noneOpen()) {
                 <form class="none" (submit)="$event.preventDefault(); answer(q, { choice: 'none', note: note(), keep: keep() }); noneOpen.set(false); note.set('')">
-                  <label for="none-why">Tell ANCHOR why (optional). The AI reads it and plans again.</label>
+                  <label for="none-why">{{ 'Tell ANCHOR why (optional). The AI reads it and plans again.' | tr }}</label>
                   <textarea id="none-why" rows="2" [value]="note()" (input)="note.set($any($event.target).value)"
-                    placeholder="The reports are inside the portal: you have to log in first"></textarea>
+                    [placeholder]="'The reports are inside the portal: you have to log in first' | tr"></textarea>
                   @if (q.keeps_notes) {
-                    <label class="keep"><input type="checkbox" [checked]="keep()" (change)="keep.set($any($event.target).checked)"> Keep this note for next runs of this automation</label>
+                    <label class="keep"><input type="checkbox" [checked]="keep()" (change)="keep.set($any($event.target).checked)"> {{ 'Keep this note for next runs of this automation' | tr }}</label>
                   }
-                  <div><button class="btn primary" type="submit">Send</button></div>
+                  <div><button class="btn primary" type="submit">{{ 'Send' | tr }}</button></div>
                 </form>
               }
             }
             @case ('point') {
-              <h2 id="ask-title" class="heading">Click the element <em>on the live view</em></h2>
-              <p class="muted">ANCHOR will use what you click for this step, and remember it for next time.</p>
+              <h2 id="ask-title" class="heading">{{ 'Click the element' | tr }} <em>{{ 'on the live view' | tr }}</em></h2>
+              <p class="muted">{{ 'ANCHOR will use what you click for this step, and remember it for next time.' | tr }}</p>
               <div class="actions">
-                <button class="btn" type="button" (click)="answer(q, { choice: 'cancel' })">Cancel</button>
+                <button class="btn" type="button" (click)="answer(q, { choice: 'cancel' })">{{ 'Cancel' | tr }}</button>
               </div>
             }
             @case ('login') {
-              <h2 id="ask-title" class="heading">This page needs you to <em>{{ q.signup ? 'sign up' : 'log in' }}</em></h2>
-              <p class="muted">@if (q.window) { A browser window opened: log in there, or on the live view. } @else { Log in on the live view: click and type on the page (paste with Ctrl+V). }
+              <h2 id="ask-title" class="heading">{{ 'This page needs you to' | tr }} <em>{{ q.signup ? 'sign up' : 'log in' }}</em></h2>
+              <p class="muted">@if (q.window) { {{ 'A browser window opened: log in there, or on the live view.' | tr }} } @else { {{ 'Log in on the live view: click and type on the page (paste with Ctrl+V).' | tr }} }
                 ANCHOR never types, keeps or sees your password.</p>
               <div class="actions">
-                <button class="btn primary" type="button" (click)="answer(q, { choice: 'done' })">I've logged in, continue</button>
-                <button class="btn" type="button" (click)="answer(q, { choice: 'cancel' })">Cancel the run</button>
+                <button class="btn primary" type="button" (click)="answer(q, { choice: 'done' })">{{ "I've logged in, continue" | tr }}</button>
+                <button class="btn" type="button" (click)="answer(q, { choice: 'cancel' })">{{ 'Cancel the run' | tr }}</button>
               </div>
             }
           }
@@ -106,9 +107,9 @@ const WHAT: Record<string, string> = {
 
       @if (r.result; as res) {
         <section [class]="'outcome card ' + jobClass[res.state]">
-          <span [class]="'badge ' + jobClass[res.state]">{{ jobWords[res.state] }}</span>
-          <p class="summary">{{ res.summary || res.message }}</p>
-          @if (res.hint) { <p class="hint">{{ res.hint }}</p> }
+          <span [class]="'badge ' + jobClass[res.state]">{{ jobWords[res.state] | tr }}</span>
+          <p class="summary">{{ (res.summary || res.message) | tr }}</p>
+          @if (res.hint) { <p class="hint">{{ res.hint | tr }}</p> }
           @if (res.plan; as plan) {
             <ol class="plan">
               @for (s of plan.steps; track $index) {
@@ -116,91 +117,91 @@ const WHAT: Record<string, string> = {
               }
             </ol>
             @if (plan.goals.length) {
-              <p class="muted small goals-head">What it would check at the end:</p>
+              <p class="muted small goals-head">{{ 'What it would check at the end:' | tr }}</p>
               <ul class="goals">@for (g of plan.goals; track g.id) { <li>{{ g.description }}</li> }</ul>
             }
           }
           @if (r.can_save) {
             <form class="save" (submit)="$event.preventDefault(); save(r)">
-              <label for="save-name">Save it as an automation, to run it again with one click and no AI:</label>
+              <label for="save-name">{{ 'Save it as an automation, to run it again with one click and no AI:' | tr }}</label>
               <div class="save-row">
                 <input id="save-name" name="save-name" class="mono" [value]="saveName() || nameFor(r.title)" (input)="saveName.set($any($event.target).value)">
-                <button class="btn primary" type="submit">Save as an automation</button>
+                <button class="btn primary" type="submit">{{ 'Save as an automation' | tr }}</button>
               </div>
-              <p class="save-note muted">It will do exactly what this run did, with the same values. For an automation that asks for a value each time, use New automation with the value in braces.</p>
+              <p class="save-note muted">{{ 'It will do exactly what this run did, with the same values. For an automation that asks for a value each time, use New automation with the value in braces.' | tr }}</p>
               @if (saveError()) { <p class="err">{{ saveError() }}</p> }
             </form>
           }
-          @if (res.summary && res.message && res.summary !== res.message && res.state !== 'checked' && res.state !== 'planned') { <p class="detail mono muted">{{ res.message }}</p> }
+          @if (res.summary && res.message && res.summary !== res.message && res.state !== 'checked' && res.state !== 'planned') { <p class="detail mono muted">{{ res.message | tr }}</p> }
           @if (res.outputs?.length) {
-            <div class="outputs"><p class="eyebrow">What it brought back</p><app-outputs [run]="r.id" [outputs]="res.outputs ?? []" /></div>
+            <div class="outputs"><p class="eyebrow">{{ 'What it brought back' | tr }}</p><app-outputs [run]="r.id" [outputs]="res.outputs ?? []" /></div>
           }
           @if (res.rows; as rows) {
             <div class="rows-wrap"><table class="rows">
-              <thead><tr><th>#</th>@for (k of rowKeys(rows); track k) { <th>{{ k }}</th> }<th>Result</th><th>What happened</th></tr></thead>
+              <thead><tr><th>#</th>@for (k of rowKeys(rows); track k) { <th>{{ k }}</th> }<th>{{ 'Result' | tr }}</th><th>{{ 'What happened' | tr }}</th></tr></thead>
               <tbody>@for (row of rows; track row.number) {
                 <tr><td class="muted">{{ row.number }}</td>@for (k of rowKeys(rows); track k) { <td class="mono">{{ row.values[k] }}</td> }
-                  <td><span [class]="'badge ' + jobClass[row.state]">{{ jobWords[row.state] }}</span></td><td class="muted">{{ row.message }}</td></tr>
+                  <td><span [class]="'badge ' + jobClass[row.state]">{{ jobWords[row.state] | tr }}</span></td><td class="muted">{{ row.message }}</td></tr>
                 @if (row.outputs?.length) { <tr class="row-out"><td></td><td [attr.colspan]="rowKeys(rows).length + 2"><app-outputs [run]="r.id" [outputs]="row.outputs ?? []" [row]="row.number" /></td></tr> }
               }</tbody>
             </table></div>
             <div class="row-acts">
-              <button class="btn" type="button" (click)="downloadRows(r, rows)">Download the results (CSV)</button>
+              <button class="btn" type="button" (click)="downloadRows(r, rows)">{{ 'Download the results (CSV)' | tr }}</button>
               @if (notDone(rows).length && !active(r)) {
-                <button class="btn primary" type="button" (click)="runAgain(r, rows)">Run the {{ notDone(rows).length }} row{{ notDone(rows).length === 1 ? '' : 's' }} not done again</button>
+                <button class="btn primary" type="button" (click)="runAgain(r, rows)">{{ (notDone(rows).length === 1 ? 'Run the 1 row not done again' : 'Run the {n} rows not done again') | tr: { n: notDone(rows).length } }}</button>
               }
             </div>
           }
           @if (r.suggest_note && !noteSaved()) {
             <form class="save" (submit)="$event.preventDefault(); keepNote(r)">
-              <label for="note-text">Add a note for next time? It tells the AI something about this site when it plans this automation again.</label>
+              <label for="note-text">{{ 'Add a note for next time? It tells the AI something about this site when it plans this automation again.' | tr }}</label>
               <div class="save-row">
                 <input id="note-text" name="note-text" class="note-input" maxlength="500" [value]="noteText() ?? r.suggest_note.text"
-                       placeholder="For example: the Save button is at the bottom, under More details" (input)="noteText.set($any($event.target).value)">
-                <button class="btn primary" type="submit" [disabled]="!(noteText() ?? r.suggest_note.text).trim()">Add note</button>
+                       [placeholder]="'For example: the Save button is at the bottom, under More details' | tr" (input)="noteText.set($any($event.target).value)">
+                <button class="btn primary" type="submit" [disabled]="!(noteText() ?? r.suggest_note.text).trim()">{{ 'Add note' | tr }}</button>
               </div>
-              <p class="save-note muted">@if (r.suggest_note.text) { These are your own words, from when you said it was none of these. Edit them as you like; } Nothing is added unless you click Add note.</p>
+              <p class="save-note muted">@if (r.suggest_note.text) { {{ 'These are your own words, from when you said it was none of these. Edit them as you like;' | tr }} } {{ 'Nothing is added unless you click Add note.' | tr }}</p>
               @if (noteError()) { <p class="err">{{ noteError() }}</p> }
             </form>
           }
-          @if (noteSaved()) { <p class="muted small">Note added to {{ r.title }}. The AI reads it the next time it plans this automation (see its Notes tab).</p> }
+          @if (noteSaved()) { <p class="muted small">{{ 'Note added to {name}. The AI reads it the next time it plans this automation (see its Notes tab).' | tr: { name: r.title } }}</p> }
           @if (res.steps !== undefined) {
-            <p class="muted small mono">{{ res.steps }} steps done · {{ res.seconds }} s · {{ res.model_calls ? res.model_calls + ' AI calls' : 'no AI calls' }}</p>
+            <p class="muted small mono">{{ '{n} steps done' | tr: { n: res.steps } }} · {{ res.seconds }} s · {{ (res.model_calls === 1 ? '1 AI call' : res.model_calls ? '{n} AI calls' : 'no AI calls') | tr: { n: res.model_calls } }}</p>
           }
           <div class="actions">
-            @if (res.state === 'planned') { <button class="btn primary" type="button" (click)="runIt(r)">Run it</button>
-              <button class="btn" type="button" (click)="retry(r)">Change the request</button> }
-            @else if (res.state !== 'checked') { <button class="btn primary" type="button" (click)="retry(r)">Try again</button> }
-            <button class="btn" type="button" (click)="saveDetails(r)">Save the details of this run</button>
+            @if (res.state === 'planned') { <button class="btn primary" type="button" (click)="runIt(r)">{{ 'Run it' | tr }}</button>
+              <button class="btn" type="button" (click)="retry(r)">{{ 'Change the request' | tr }}</button> }
+            @else if (res.state !== 'checked') { <button class="btn primary" type="button" (click)="retry(r)">{{ 'Try again' | tr }}</button> }
+            <button class="btn" type="button" (click)="saveDetails(r)">{{ 'Save the details of this run' | tr }}</button>
           </div>
         </section>
       }
 
       <section class="logsec">
-        <p class="eyebrow">What happened</p>
+        <p class="eyebrow">{{ 'What happened' | tr }}</p>
         <ol class="log card" #log>
           @for (e of events(); track e.seq) {
             @if (e.type === 'line') { <li [class]="'row ' + kindOf(e.text)"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ shown(e.text) }}</span></li> }
-            @if (e.type === 'row') { <li class="row rowsep"><time></time><span></span><span class="text">Row {{ e['number'] }} of {{ e['total'] }}@if (e.text) { · {{ e.text }} }</span></li> }
-            @if (e.type === 'used') { <li class="row used"><time></time><span></span><span class="text">↳ on the {{ lower(e.text) }}</span></li> }
-            @if (e.type === 'tried') { <li class="row used tried"><time></time><span></span><span class="text">↳ @if (e.text) { tried the {{ lower(e.text) }}: } {{ e['error'] }}</span></li> }
-            @if (e.type === 'page') { <li class="row used"><time></time><span></span><span class="text">↳ now on {{ e.text }}</span></li> }
-            @if (e.type === 'ended_on') { <li class="row used tried"><time></time><span></span><span class="text">↳ the page showed: {{ e.text || e['url'] }}@for (m of asList(e['messages']); track $index) { · “{{ m }}” }</span></li> }
-            @if (e.type === 'question') { <li class="row ask-row"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">ANCHOR asked you a question</span></li> }
-            @if (e.type === 'answered') { <li class="row you"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">You answered: {{ said(e) }}</span></li> }
-            @if (e.type === 'result') { <li [class]="'row end ' + jobClass[stateOf(e)]"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ jobWords[stateOf(e)] }}</span></li> }
-          } @empty { @if (!r.activity) { <li class="row muted"><time></time><span class="mark"></span><span class="text">{{ r.state === 'queued' ? 'Waiting for the run before it to finish…' : 'Starting…' }}</span></li> } }
+            @if (e.type === 'row') { <li class="row rowsep"><time></time><span></span><span class="text">{{ 'Row {n} of {total}' | tr: { n: e['number'], total: e['total'] } }}@if (e.text) { · {{ e.text }} }</span></li> }
+            @if (e.type === 'used') { <li class="row used"><time></time><span></span><span class="text">↳ {{ 'on the {what}' | tr: { what: lower(e.text) } }}</span></li> }
+            @if (e.type === 'tried') { <li class="row used tried"><time></time><span></span><span class="text">↳ @if (e.text) { {{ 'tried the {what}:' | tr: { what: lower(e.text) } }} } {{ e['error'] }}</span></li> }
+            @if (e.type === 'page') { <li class="row used"><time></time><span></span><span class="text">↳ {{ 'now on {page}' | tr: { page: e.text } }}</span></li> }
+            @if (e.type === 'ended_on') { <li class="row used tried"><time></time><span></span><span class="text">↳ {{ 'the page showed: {what}' | tr: { what: e.text || e['url'] } }}@for (m of asList(e['messages']); track $index) { · “{{ m }}” }</span></li> }
+            @if (e.type === 'question') { <li class="row ask-row"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ 'ANCHOR asked you a question' | tr }}</span></li> }
+            @if (e.type === 'answered') { <li class="row you"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ 'You answered: {what}' | tr: { what: said(e) } }}</span></li> }
+            @if (e.type === 'result') { <li [class]="'row end ' + jobClass[stateOf(e)]"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ jobWords[stateOf(e)] | tr }}</span></li> }
+          } @empty { @if (!r.activity) { <li class="row muted"><time></time><span class="mark"></span><span class="text">{{ (r.state === 'queued' ? 'Waiting for the run before it to finish…' : 'Starting…') | tr }}</span></li> } }
           @if (r.activity; as a) {
-            <li class="row live"><time>now</time><span class="mark pulse" aria-hidden="true"></span>
-              <span class="text">{{ a.phase === 'writing' ? 'The AI is writing the plan' : 'The AI is thinking' }}@if (a.attempt > 1) { (attempt {{ a.attempt }}) }… {{ a.seconds }} s</span></li>
+            <li class="row live"><time>{{ 'now' | tr }}</time><span class="mark pulse" aria-hidden="true"></span>
+              <span class="text">{{ (a.phase === 'writing' ? 'The AI is writing the plan' : 'The AI is thinking') | tr }}@if (a.attempt > 1) { {{ '(attempt {n})' | tr: { n: a.attempt } }} }… {{ a.seconds }} s</span></li>
           }
         </ol>
       </section>
       </div>
     } @else if (missing()) {
-      <h1 class="title">This run <em>is not here</em></h1>
-      <p class="muted">Runs are kept only while ANCHOR is open.</p>
-    } @else { <p class="muted">Loading…</p> }
+      <h1 class="title">{{ 'This run' | tr }} <em>{{ 'is not here' | tr }}</em></h1>
+      <p class="muted">{{ 'Runs are kept only while ANCHOR is open.' | tr }}</p>
+    } @else { <p class="muted">{{ 'Loading…' | tr }}</p> }
   `,
   styles: [`
     .outputs { width: 100%; display: grid; gap: var(--space-2); }
@@ -336,7 +337,7 @@ export class RunPage implements OnDestroy {
   active(r: RunView) { return ACTIVE.includes(r.state); }
   asList(v: unknown): string[] { return Array.isArray(v) ? v as string[] : []; }
   takesInput(r: RunView) { return !!r.question && (r.question.kind === 'login' || r.question.kind === 'point'); }
-  what(category?: string) { return WHAT[category ?? ''] ?? 'do something sensitive'; }
+  what(category?: string) { return tr(WHAT[category ?? ''] ?? 'do something sensitive'); }
 
   answer(q: Question, answer: Record<string, unknown>) {
     const r = this.run(); if (!r) return;
@@ -365,7 +366,7 @@ export class RunPage implements OnDestroy {
     this.saveError.set('');
     this.runs.save(r.id, (this.saveName() || nameFor(r.title)).trim()).subscribe({
       next: a => this.router.navigate(['/automations', a.name]),
-      error: e => this.saveError.set(apiError(e, 'It could not be saved.')),
+      error: e => this.saveError.set(apiError(e, tr('It could not be saved.'))),
     });
   }
 
@@ -395,7 +396,7 @@ export class RunPage implements OnDestroy {
     if (!text) return;
     this.api.addNote(r.title, text, String(r.id)).subscribe({
       next: () => this.noteSaved.set(true),
-      error: e => this.noteError.set(apiError(e, 'The note could not be added.')),
+      error: e => this.noteError.set(apiError(e, tr('The note could not be added.'))),
     });
   }
   rowKeys(rows: RowOutcome[]) { return rows.length ? Object.keys(rows[0].values) : []; }
@@ -414,7 +415,7 @@ export class RunPage implements OnDestroy {
     const again = this.notDone(rows).map(row => row.values);
     this.runs.startAutomation(r.title, {}, false, false, false, again).subscribe({
       next: x => this.router.navigate(['/runs', x.id]),
-      error: e => this.noteError.set(apiError(e, 'The rows could not start again.')),
+      error: e => this.noteError.set(apiError(e, tr('The rows could not start again.'))),
     });
   }
   saveDetails(r: RunView) {
@@ -437,8 +438,14 @@ export class RunPage implements OnDestroy {
 
   shown(text?: string): string { return (text ?? '').replace(/^(→|->)\s*/, ''); }
 
-  said(e: RunEvent): string {
+  said(e: RunEvent): string { return this.saidIn(e); }
+  private saidIn(e: RunEvent): string {
     const a = (e['answer'] ?? {}) as Record<string, unknown>;
+    const said = this.saidEnglish(e, a);
+    return said.startsWith('option ') ? tr('option {n}', { n: a['number'] })
+         : said.startsWith("It's none of these: ") ? tr('It’s none of these: “{note}”', { note: a['note'] }) : tr(said);
+  }
+  private saidEnglish(e: RunEvent, a: Record<string, unknown>): string {
     switch (a['choice']) {
       case 'allow': return 'Allow'; case 'deny': return "Don't allow"; case 'not_now': return 'Not now';
       case 'candidate': return `option ${a['number']}`; case 'point': return "I'll point at it on the live view";

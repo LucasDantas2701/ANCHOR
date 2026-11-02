@@ -18,6 +18,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The interface in Portuguese or English, second part.** The automation's page (with its tabs and the
+  spreadsheet), the run's page (the questions, the progress lines, the result and what it brought
+  back), Schedules (each schedule's sentence is written by the server in the chosen language), a new
+  automation, the live view, the model names, the dates' months, and the server's fixed messages
+  (errors, a schedule's history, a run's summary). A few messages the server builds with values in
+  them stay in English for now. Buttons keep their text on one line (a longer Portuguese label broke
+  "See the plan first" in three). The run summary's login hint now mentions saved logins.
 - **The interface in Portuguese or English, first part.** **Settings → Language** (starting in the
   computer's language, applied at once): a translator in the interface, with the English text as the
   key and a Portuguese dictionary (`web/src/app/i18n-pt.ts`; a text not in it shows in English), and

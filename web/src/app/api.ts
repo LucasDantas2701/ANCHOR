@@ -1,3 +1,4 @@
+import { lang, tr } from './i18n';
 import { HttpClient, HttpInterceptorFn } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 
@@ -134,7 +135,8 @@ export class Api {
 export function runDate(id: string): string {
   const m = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/.exec(id);
   if (!m) return id;
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = lang() === 'pt' ? ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+                                  : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${+m[3]} ${months[+m[2] - 1]} ${m[1]}, ${m[4]}:${m[5]}`;
 }
 
@@ -257,5 +259,5 @@ export const ACTIVE: JobState[] = ['queued', 'running', 'waiting'];
 /** An error from the API, in the words the server wrote for the person. */
 export function apiError(err: unknown, fallback: string): string {
   const detail = (err as { error?: { detail?: unknown } })?.error?.detail;
-  return typeof detail === 'string' ? detail : fallback;
+  return typeof detail === 'string' ? tr(detail) : fallback;              // the server's message, translated when it can be
 }

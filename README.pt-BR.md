@@ -54,8 +54,9 @@ cd ..
 python -m anchor.ui
 ```
 
-O navegador abre na interface do ANCHOR, com um guia curto na primeira vez. A interface é em
-inglês; os pedidos podem ser em português. O passo a passo completo, a referência de comandos e a
+O navegador abre na interface do ANCHOR, com um guia curto na primeira vez. A interface começa no
+idioma do computador (português ou inglês) e muda em **Configurações → Idioma**; os pedidos podem ser
+em português. O passo a passo completo, a referência de comandos e a
 avaliação estão no [README em inglês](README.md).
 
 ## Licença e citação

@@ -1,3 +1,4 @@
+import { TrPipe, tr } from '../i18n';
 import { Component, inject, input, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -11,14 +12,14 @@ const ACTIONS: Record<string, string> = {
 
 @Component({
   selector: 'app-automation',
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, TrPipe],
   template: `
-    <a routerLink="/automations" class="back muted">← All automations</a>
+    <a routerLink="/automations" class="back muted">{{ '← All automations' | tr }}</a>
     @if (notFound()) {
-      <h1 class="title">This automation <em>is not here</em></h1>
-      <p class="muted">It may have been renamed or removed.</p>
+      <h1 class="title">{{ 'This automation' | tr }} <em>{{ 'is not here' | tr }}</em></h1>
+      <p class="muted">{{ 'It may have been renamed or removed.' | tr }}</p>
     } @else if (a(); as a) {
-      <p class="eyebrow">Automation</p>
+      <p class="eyebrow">{{ 'Automation' | tr }}</p>
       <h1 class="title">{{ a.name }}</h1>
       <blockquote class="request">@for (p of parts(a.request); track $index) {<span [class.param]="p.param">{{ p.text }}</span>}</blockquote>
 
@@ -28,13 +29,13 @@ const ACTIONS: Record<string, string> = {
             <input [id]="'v-' + p" [name]="'v-' + p" [(ngModel)]="values[p]" autocomplete="off"></div>
         }
         <div class="go">
-          <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Starting…' : (a.learned ? 'Run' : 'Run and learn') }}</button>
-          <label class="check window"><input type="checkbox" name="show" [(ngModel)]="show"> Also open the browser in its own window</label>
-          <button class="btn" type="button" (click)="logIn(a)" title="Opens this automation's browser so you can log in once; its runs keep the session">Log in to this site</button>
-          <details class="more"><summary class="muted">More options</summary>
-            <label class="check"><input type="checkbox" name="relearn" [(ngModel)]="relearn"> Learn the plan again with the AI</label>
-            <label class="check"><input type="checkbox" name="fresh" [(ngModel)]="fresh"> Use a clean browser (no saved logins)</label>
-            <label class="check"><input type="checkbox" name="shot" [(ngModel)]="shot"> Include a screenshot of the page at the end</label>
+          <button class="btn primary" type="submit" [disabled]="busy()">{{ (busy() ? 'Starting…' : (a.learned ? 'Run' : 'Run and learn')) | tr }}</button>
+          <label class="check window"><input type="checkbox" name="show" [(ngModel)]="show"> {{ 'Also open the browser in its own window' | tr }}</label>
+          <button class="btn" type="button" (click)="logIn(a)" [title]="'Opens this automation’s browser so you can log in once; its runs keep the session' | tr">{{ 'Log in to this site' | tr }}</button>
+          <details class="more"><summary class="muted">{{ 'More options' | tr }}</summary>
+            <label class="check"><input type="checkbox" name="relearn" [(ngModel)]="relearn"> {{ 'Learn the plan again with the AI' | tr }}</label>
+            <label class="check"><input type="checkbox" name="fresh" [(ngModel)]="fresh"> {{ 'Use a clean browser (no saved logins)' | tr }}</label>
+            <label class="check"><input type="checkbox" name="shot" [(ngModel)]="shot"> {{ 'Include a screenshot of the page at the end' | tr }}</label>
           </details>
         </div>
         @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
@@ -43,50 +44,50 @@ const ACTIONS: Record<string, string> = {
       @if (a.parameters.length) {
         <div class="card sheet">
           <div class="sheet-head">
-            <div><p class="eyebrow">Run for each row of a spreadsheet</p>
-              <p class="muted small">A CSV or Excel (.xlsx) file whose first row names the columns: {{ a.parameters.join(', ') }}. One run per row, one after the other.</p></div>
-            <label class="btn">Choose a file<input type="file" accept=".csv,.xlsx" hidden (change)="pickSheet(a, $event)"></label>
+            <div><p class="eyebrow">{{ 'Run for each row of a spreadsheet' | tr }}</p>
+              <p class="muted small">{{ 'A CSV or Excel (.xlsx) file whose first row names the columns: {cols}. One run per row, one after the other.' | tr: { cols: a.parameters.join(', ') } }}</p></div>
+            <label class="btn">{{ 'Choose a file' | tr }}<input type="file" accept=".csv,.xlsx" hidden (change)="pickSheet(a, $event)"></label>
           </div>
           @if (sheetError()) { <p class="error" role="alert">{{ sheetError() }}</p> }
           @if (sheet(); as s) {
-            <p class="small"><b>{{ sheetName() }}</b> · {{ s.rows }} row{{ s.rows === 1 ? '' : 's' }}
-              @if (s.extra.length) { <span class="muted"> · not used: {{ s.extra.join(', ') }}</span> }</p>
-            @if (s.missing.length) { <p class="warn">The spreadsheet has no column for: {{ s.missing.join(', ') }}. Name a column exactly like that.</p> }
-            @if (s.blank_rows.length) { <p class="warn">These rows have an empty value: {{ s.blank_rows.slice(0, 10).join(', ') }}@if (s.blank_rows.length > 10) {…}. Fill them in, or remove them.</p> }
-            @if (s.too_many) { <p class="warn">A spreadsheet run has at most 500 rows: split it in parts.</p> }
+            <p class="small"><b>{{ sheetName() }}</b> · {{ (s.rows === 1 ? '1 row' : '{n} rows') | tr: { n: s.rows } }}
+              @if (s.extra.length) { <span class="muted">{{ ' · not used: {cols}' | tr: { cols: s.extra.join(', ') } }}</span> }</p>
+            @if (s.missing.length) { <p class="warn">{{ 'The spreadsheet has no column for: {cols}. Name a column exactly like that.' | tr: { cols: s.missing.join(', ') } }}</p> }
+            @if (s.blank_rows.length) { <p class="warn">{{ 'These rows have an empty value: {rows}. Fill them in, or remove them.' | tr: { rows: s.blank_rows.slice(0, 10).join(', ') + (s.blank_rows.length > 10 ? '…' : '') } }}</p> }
+            @if (s.too_many) { <p class="warn">{{ 'A spreadsheet run has at most 500 rows: split it in parts.' | tr }}</p> }
             <div class="scroll"><table class="preview">
               <thead><tr><th>#</th>@for (p of s.parameters; track p) { <th>{{ p }}</th> }</tr></thead>
               <tbody>@for (row of s.preview; track $index) { <tr><td class="muted">{{ $index + 1 }}</td>@for (p of s.parameters; track p) { <td class="mono">{{ row[p] }}</td> }</tr> }</tbody>
             </table></div>
-            @if (s.rows > s.preview.length) { <p class="muted small">and {{ s.rows - s.preview.length }} more.</p> }
-            <button class="btn primary" type="button" [disabled]="!sheetOk(s) || busy()" (click)="runSheet(a, s)">Run {{ s.rows }} row{{ s.rows === 1 ? '' : 's' }}</button>
+            @if (s.rows > s.preview.length) { <p class="muted small">{{ 'and {n} more.' | tr: { n: s.rows - s.preview.length } }}</p> }
+            <button class="btn primary" type="button" [disabled]="!sheetOk(s) || busy()" (click)="runSheet(a, s)">{{ (s.rows === 1 ? 'Run 1 row' : 'Run {n} rows') | tr: { n: s.rows } }}</button>
           }
         </div>
       }
 
       <dl class="facts">
-        <div><dt>Site</dt><dd class="mono">{{ host(a.url) }}</dd></div>
-        <div><dt>Model</dt><dd>{{ modelName(a.profile) }}</dd></div>
-        <div><dt>Values you give</dt><dd>@for (p of a.parameters; track p) { <span class="param">{{ p }}</span> } @empty { None }</dd></div>
-        <div><dt>Scheduling</dt><dd>@if (a.proven) { Can run with no one present ·
-          <a [routerLink]="['/schedules']" [queryParams]="{ automation: a.name }">Schedule this</a> } @else { Needs one clean run with you first }</dd></div>
-        <div><dt>Last run</dt><dd>@if (a.has_log) { <button class="linkish" type="button" (click)="downloadLog(a)">Download its log</button> }
-          @else { No run kept yet }</dd></div>
+        <div><dt>{{ 'Site' | tr }}</dt><dd class="mono">{{ host(a.url) }}</dd></div>
+        <div><dt>{{ 'Model' | tr }}</dt><dd>{{ modelName(a.profile) | tr }}</dd></div>
+        <div><dt>{{ 'Values you give' | tr }}</dt><dd>@for (p of a.parameters; track p) { <span class="param">{{ p }}</span> } @empty { None }</dd></div>
+        <div><dt>{{ 'Scheduling' | tr }}</dt><dd>@if (a.proven) { {{ 'Can run with no one present' | tr }} ·
+          <a [routerLink]="['/schedules']" [queryParams]="{ automation: a.name }">{{ 'Schedule this' | tr }}</a> } @else { {{ 'Needs one clean run with you first' | tr }} }</dd></div>
+        <div><dt>{{ 'Last run' | tr }}</dt><dd>@if (a.has_log) { <button class="linkish" type="button" (click)="downloadLog(a)">{{ 'Download its log' | tr }}</button> }
+          @else { {{ 'No run kept yet' | tr }} }</dd></div>
       </dl>
 
-      <nav class="tabs" role="tablist" aria-label="This automation">
+      <nav class="tabs" role="tablist" [attr.aria-label]="'This automation' | tr">
         @for (t of tabs; track t.id) {
           <button type="button" role="tab" class="tab" [class.on]="tab() === t.id" [attr.aria-selected]="tab() === t.id" (click)="open(t.id, a)">
-            {{ t.label }}@if (count(a, t.id) !== null) { <span class="count">{{ count(a, t.id) }}</span> }
+            {{ t.label | tr }}@if (count(a, t.id) !== null) { <span class="count">{{ count(a, t.id) }}</span> }
           </button>
         }
       </nav>
 
       @if (tab() === 'overview') {
       <section>
-        <p class="eyebrow">The plan</p>
+        <p class="eyebrow">{{ 'The plan' | tr }}</p>
         @if (a.plan; as plan) {
-          <p class="muted small">Learned {{ isoDate(plan.approved) }}. ANCHOR repeats these steps with no AI.</p>
+          <p class="muted small">{{ 'Learned {date}. ANCHOR repeats these steps with no AI.' | tr: { date: isoDate(plan.approved) } }}</p>
           <ol class="steps card">
             @for (s of plan.steps; track $index) {
               <li><span class="n mono">{{ $index + 1 }}</span>
@@ -95,139 +96,138 @@ const ACTIONS: Record<string, string> = {
             }
           </ol>
         } @else {
-          <div class="card pad muted">Not learned yet. The first run plans the steps with the AI and asks you to approve them.</div>
+          <div class="card pad muted">{{ 'Not learned yet. The first run plans the steps with the AI and asks you to approve them.' | tr }}</div>
         }
       </section>
 
       <section>
-        <p class="eyebrow">Last runs</p>
+        <p class="eyebrow">{{ 'Last runs' | tr }}</p>
         @if (a.runs.length) {
           <table class="runs card">
-            <thead><tr><th>When</th><th>How</th><th>Result</th><th class="num">Time</th><th>What happened</th></tr></thead>
+            <thead><tr><th>{{ 'When' | tr }}</th><th>{{ 'How' | tr }}</th><th>{{ 'Result' | tr }}</th><th class="num">{{ 'Time' | tr }}</th><th>{{ 'What happened' | tr }}</th></tr></thead>
             <tbody>
               @for (r of a.runs; track r.id) {
                 <tr><td>{{ runDate(r.when) }}</td>
-                  <td>{{ r.mode === 'learn' ? 'Learned the plan' : 'Repeated the plan' }}</td>
-                  <td><span [class]="'badge ' + stateClass[r.state]">{{ stateWords[r.state] }}</span></td>
+                  <td>{{ (r.mode === 'learn' ? 'Learned the plan' : 'Repeated the plan') | tr }}</td>
+                  <td><span [class]="'badge ' + stateClass[r.state]">{{ stateWords[r.state] | tr }}</span></td>
                   <td class="num mono">{{ r.seconds }} s</td>
                   <td class="msg muted">{{ r.message }}</td></tr>
               }
             </tbody>
           </table>
-        } @else { <div class="card pad muted">Never run.</div> }
+        } @else { <div class="card pad muted">{{ 'Never run.' | tr }}</div> }
       </section>
 
       }
 
       @if (tab() === 'fixes') {
         <section>
-          <p class="muted small">When the site changed and a step stopped working, ANCHOR fixed the plan, or asked you which element was right. Undoing a fix brings the step back as it was.</p>
+          <p class="muted small">{{ 'When the site changed and a step stopped working, ANCHOR fixed the plan, or asked you which element was right. Undoing a fix brings the step back as it was.' | tr }}</p>
           @for (f of fixes(); track f.number) {
             <article class="card pad item" [class.dim]="f.undone">
               <header><span class="mono muted">#{{ f.number }} · {{ isoDate(f.date) }}</span>
                 <span class="grow"></span>
-                @if (f.undone) { <span class="badge">Undone</span> }
-                @else { <button class="btn small" type="button" (click)="undo(a, f)">Undo</button> }</header>
+                @if (f.undone) { <span class="badge">{{ 'Undone' | tr }}</span> }
+                @else { <button class="btn small" type="button" (click)="undo(a, f)">{{ 'Undo' | tr }}</button> }</header>
               @if (f.method === 'replan') {
-                <p><span class="lab">Step that stopped working</span> <span class="mono">{{ stepText(f.failed) }}</span></p>
-                @if (f.reason) { <p><span class="lab">Why</span> {{ f.reason }}</p> }
-                <p><span class="lab">Replaced by</span> @for (r of f.replaced_by ?? []; track $index) { <span class="mono">{{ stepText(r) }}</span>@if (!$last) {; } } @empty { nothing }</p>
-                <p class="muted small">{{ f.effect_confirmed ? 'The new step had its effect.' : 'The effect of the new step was not confirmed.' }}</p>
+                <p><span class="lab">{{ 'Step that stopped working' | tr }}</span> <span class="mono">{{ stepText(f.failed) }}</span></p>
+                @if (f.reason) { <p><span class="lab">{{ 'Why' | tr }}</span> {{ f.reason }}</p> }
+                <p><span class="lab">{{ 'Replaced by' | tr }}</span> @for (r of f.replaced_by ?? []; track $index) { <span class="mono">{{ stepText(r) }}</span>@if (!$last) {; } } @empty { {{ 'nothing' | tr }} }</p>
+                <p class="muted small">{{ (f.effect_confirmed ? 'The new step had its effect.' : 'The effect of the new step was not confirmed.') | tr }}</p>
               } @else {
-                <p>You chose the element for <span class="mono">{{ f.step?.description }}</span>.</p>
+                <p>{{ 'You chose the element for' | tr }} <span class="mono">{{ f.step?.description }}</span>.</p>
               }
             </article>
-          } @empty { <div class="card pad muted">No fixes: the site has not changed under this automation.</div> }
+          } @empty { <div class="card pad muted">{{ 'No fixes: the site has not changed under this automation.' | tr }}</div> }
         </section>
       }
 
       @if (tab() === 'notes') {
         <section>
-          <p class="muted small">Notes tell the AI something about this site when it plans (for example, "The reports are inside the Portal menu").
-            The {{ notesSent }} most recent go to the AI; they count from the next time it plans.</p>
+          <p class="muted small">{{ 'Notes tell the AI something about this site when it plans (for example, "The reports are inside the Portal menu"). The {n} most recent go to the AI; they count from the next time it plans.' | tr: { n: notesSent } }}</p>
           <form class="card pad noteform" (ngSubmit)="addNote(a)">
-            <textarea name="newNote" rows="2" maxlength="500" [(ngModel)]="newNote" placeholder="Write a note about this site"></textarea>
-            <button class="btn primary" type="submit" [disabled]="!newNote.trim()">Add note</button>
+            <textarea name="newNote" rows="2" maxlength="500" [(ngModel)]="newNote" [placeholder]="'Write a note about this site' | tr"></textarea>
+            <button class="btn primary" type="submit" [disabled]="!newNote.trim()">{{ 'Add note' | tr }}</button>
           </form>
           @for (n of notes(); track n.number) {
             <article class="card pad item">
               <header><span class="mono muted">#{{ n.number }} · {{ isoDate(n.edited || n.date) }}</span>
-                @if (n.sent) { <span class="badge ok">Sent to the AI</span> }
+                @if (n.sent) { <span class="badge ok">{{ 'Sent to the AI' | tr }}</span> }
                 <span class="grow"></span>
                 @if (editing() !== n.number) {
-                  <button class="btn small" type="button" (click)="startEdit(n)">Edit</button>
-                  <button class="btn small" type="button" (click)="removeNote(a, n)">Remove</button>
+                  <button class="btn small" type="button" (click)="startEdit(n)">{{ 'Edit' | tr }}</button>
+                  <button class="btn small" type="button" (click)="removeNote(a, n)">{{ 'Remove' | tr }}</button>
                 }</header>
               @if (editing() === n.number) {
                 <form class="noteform" (ngSubmit)="saveEdit(a, n)">
                   <textarea name="editNote" rows="2" maxlength="500" [(ngModel)]="editText"></textarea>
-                  <button class="btn primary small" type="submit" [disabled]="!editText.trim()">Save</button>
-                  <button class="btn small" type="button" (click)="editing.set(null)">Cancel</button>
+                  <button class="btn primary small" type="submit" [disabled]="!editText.trim()">{{ 'Save' | tr }}</button>
+                  <button class="btn small" type="button" (click)="editing.set(null)">{{ 'Cancel' | tr }}</button>
                 </form>
               } @else { <p>{{ n.text }}</p> }
             </article>
-          } @empty { <div class="card pad muted">No notes yet.</div> }
+          } @empty { <div class="card pad muted">{{ 'No notes yet.' | tr }}</div> }
         </section>
       }
 
       @if (tab() === 'decisions') {
         <section>
-          <p class="muted small">What you allowed or denied when this automation reached a sensitive action. ANCHOR does it again without asking; forget one to be asked again next time.</p>
+          <p class="muted small">{{ 'What you allowed or denied when this automation reached a sensitive action. ANCHOR does it again without asking; forget one to be asked again next time.' | tr }}</p>
           @if (decisions().length) {
             <table class="runs card">
-              <thead><tr><th>Decision</th><th>Action</th><th>On</th><th>When</th><th></th></tr></thead>
+              <thead><tr><th>{{ 'Decision' | tr }}</th><th>{{ 'Action' | tr }}</th><th>{{ 'On' | tr }}</th><th>{{ 'When' | tr }}</th><th></th></tr></thead>
               <tbody>
                 @for (d of decisions(); track d.number) {
-                  <tr><td><span [class]="'badge ' + (d.decision === 'allowed' ? 'ok' : 'no')">{{ d.decision === 'allowed' ? 'Allowed' : 'Denied' }}</span></td>
+                  <tr><td><span [class]="'badge ' + (d.decision === 'allowed' ? 'ok' : 'no')">{{ (d.decision === 'allowed' ? 'Allowed' : 'Denied') | tr }}</span></td>
                     <td>{{ category(d.category) }}</td><td class="mono msg">{{ d.element }}</td><td class="muted">{{ isoDate(d.date) }}</td>
-                    <td class="num"><button class="btn small" type="button" (click)="forgetDecision(a, d)">Forget</button></td></tr>
+                    <td class="num"><button class="btn small" type="button" (click)="forgetDecision(a, d)">{{ 'Forget' | tr }}</button></td></tr>
                 }
               </tbody>
             </table>
-          } @else { <div class="card pad muted">No decisions: this automation has not reached a sensitive action, or asks every time.</div> }
+          } @else { <div class="card pad muted">{{ 'No decisions: this automation has not reached a sensitive action, or asks every time.' | tr }}</div> }
         </section>
       }
 
       @if (tab() === 'choices') {
         <section>
-          <p class="muted small">When ANCHOR was not sure which element a step meant, you chose one, and it was remembered. Forget a choice if it is wrong: the next run asks again.</p>
+          <p class="muted small">{{ 'When ANCHOR was not sure which element a step meant, you chose one, and it was remembered. Forget a choice if it is wrong: the next run asks again.' | tr }}</p>
           @for (c of choices(); track c.key) {
             <article class="card pad item">
               <header><span class="mono">{{ c.description }}</span><span class="grow"></span>
-                <button class="btn small" type="button" (click)="forgetChoice(a, c)">Forget</button></header>
-              <p>is the element <span class="mono">“{{ c.element || 'without text' }}”</span> <span class="muted">· used {{ c.uses }} time{{ c.uses === 1 ? '' : 's' }}@if (c.last_used) {, last {{ isoDate(c.last_used) }}}</span></p>
+                <button class="btn small" type="button" (click)="forgetChoice(a, c)">{{ 'Forget' | tr }}</button></header>
+              <p>{{ 'is the element' | tr }} <span class="mono">“{{ c.element || ('without text' | tr) }}”</span> <span class="muted">{{ (c.uses === 1 ? ' · used once' : ' · used {n} times') | tr: { n: c.uses } }}@if (c.last_used) {{{ ', last {date}' | tr: { date: isoDate(c.last_used) } }}}</span></p>
             </article>
-          } @empty { <div class="card pad muted">No remembered choices.</div> }
+          } @empty { <div class="card pad muted">{{ 'No remembered choices.' | tr }}</div> }
         </section>
       }
 
       @if (tab() === 'settings') {
         <section>
           <form class="card pad settings" (ngSubmit)="save(a)">
-            <div class="field wide"><label for="s-request">Request</label>
+            <div class="field wide"><label for="s-request">{{ 'Request' | tr }}</label>
               <textarea id="s-request" name="sRequest" rows="3" [(ngModel)]="sRequest"></textarea></div>
-            <div class="field wide"><label for="s-url">Page</label><input id="s-url" name="sUrl" [(ngModel)]="sUrl"></div>
-            <div class="field"><label for="s-profile">Model</label>
+            <div class="field wide"><label for="s-url">{{ 'Page' | tr }}</label><input id="s-url" name="sUrl" [(ngModel)]="sUrl"></div>
+            <div class="field"><label for="s-profile">{{ 'Model' | tr }}</label>
               <select id="s-profile" name="sProfile" [(ngModel)]="sProfile">
                 @for (p of profiles(); track p.name) { <option [value]="p.name">{{ p.label }}</option> }
               </select></div>
-            @if (relearns(a)) { <p class="warn">Changing the request or the page makes ANCHOR learn the plan again on the next run: the plan it has was checked for the old one.</p> }
-            <div class="go"><button class="btn primary" type="submit" [disabled]="!changed(a)">Save changes</button>
+            @if (relearns(a)) { <p class="warn">{{ 'Changing the request or the page makes ANCHOR learn the plan again on the next run: the plan it has was checked for the old one.' | tr }}</p> }
+            <div class="go"><button class="btn primary" type="submit" [disabled]="!changed(a)">{{ 'Save changes' | tr }}</button>
               @if (saved()) { <span class="muted small">{{ saved() }}</span> }</div>
           </form>
 
           <div class="card pad danger">
-            <p class="eyebrow">Delete this automation</p>
-            <p class="muted small">This deletes it for good: its plan, its history, its notes, decisions and choices, and its browser with the saved logins. It cannot be undone.</p>
+            <p class="eyebrow">{{ 'Delete this automation' | tr }}</p>
+            <p class="muted small">{{ 'This deletes it for good: its plan, its history, its notes, decisions and choices, and its browser with the saved logins. It cannot be undone.' | tr }}</p>
             <div class="go">
               <input name="confirmName" [(ngModel)]="confirmName" [placeholder]="'Type ' + a.name + ' to confirm'" autocomplete="off">
-              <button class="btn dangerbtn" type="button" [disabled]="confirmName !== a.name" (click)="remove(a)">Delete for good</button>
+              <button class="btn dangerbtn" type="button" [disabled]="confirmName !== a.name" (click)="remove(a)">{{ 'Delete for good' | tr }}</button>
             </div>
           </div>
         </section>
       }
       @if (actionError()) { <p class="error" role="alert">{{ actionError() }}</p> }
-    } @else { <p class="muted">Loading…</p> }
+    } @else { <p class="muted">{{ 'Loading…' | tr }}</p> }
   `,
   styles: [`
     .back { display: inline-block; margin-bottom: var(--space-6); text-decoration: none; font-size: 13px; }
@@ -312,7 +312,7 @@ export class AutomationPage {
   logIn(a: AutomationDetail) {
     this.runs.logIn(a.name).subscribe({
       next: r => this.router.navigate(['/runs', r.id]),
-      error: e => this.error.set(apiError(e, 'The browser could not open.')),
+      error: e => this.error.set(apiError(e, tr('The browser could not open.'))),
     });
   }
 
@@ -320,14 +320,14 @@ export class AutomationPage {
     this.error.set(''); this.busy.set(true);
     this.runs.startAutomation(a.name, this.values, this.relearn, this.fresh, this.show, undefined, this.shot).subscribe({
       next: r => this.router.navigate(['/runs', r.id]),
-      error: e => { this.busy.set(false); this.error.set(apiError(e, 'The run could not start.')); },
+      error: e => { this.busy.set(false); this.error.set(apiError(e, tr('The run could not start.'))); },
     });
   }
   name = input.required<string>();
   a = signal<AutomationDetail | null>(null);
   notFound = signal(false);
   stateWords = STATE_WORDS; stateClass = STATE_CLASS; host = host; runDate = runDate; parts = parts; modelName = modelName; isoDate = isoDate;
-  action = (a: string) => ACTIONS[a] ?? a;
+  action = (a: string) => tr(ACTIONS[a] ?? a);
 
   downloadLog(a: AutomationDetail) {
     this.api.lastLog(a.name).subscribe({
@@ -337,7 +337,7 @@ export class AutomationPage {
         document.body.appendChild(link); link.click(); link.remove();
         setTimeout(() => URL.revokeObjectURL(url), 1000);
       },
-      error: e => this.error.set(apiError(e, 'The log could not be downloaded.')),
+      error: e => this.error.set(apiError(e, tr('The log could not be downloaded.'))),
     });
   }
 
@@ -357,7 +357,7 @@ export class AutomationPage {
       const content = String(reader.result).split(',')[1] ?? '';
       this.api.checkSheet(a.name, file.name, content).subscribe({
         next: s => { this.sheet.set(s); this.sheetName.set(file.name); },
-        error: e => this.sheetError.set(apiError(e, 'The spreadsheet could not be read.')),
+        error: e => this.sheetError.set(apiError(e, tr('The spreadsheet could not be read.'))),
       });
     };
     reader.readAsDataURL(file);
@@ -367,7 +367,7 @@ export class AutomationPage {
     this.error.set(''); this.busy.set(true);
     this.runs.startAutomation(a.name, {}, this.relearn, this.fresh, this.show, s.all, this.shot).subscribe({
       next: r => this.router.navigate(['/runs', r.id]),
-      error: e => { this.busy.set(false); this.sheetError.set(apiError(e, 'The run could not start.')); },
+      error: e => { this.busy.set(false); this.sheetError.set(apiError(e, tr('The run could not start.'))); },
     });
   }
 
@@ -387,7 +387,7 @@ export class AutomationPage {
   }
   open(id: string, a: AutomationDetail) {
     this.tab.set(id); this.actionError.set(''); this.saved.set('');
-    const fail = (e: unknown) => this.actionError.set(apiError(e, 'This could not be loaded.'));
+    const fail = (e: unknown) => this.actionError.set(apiError(e, tr('This could not be loaded.')));
     if (id === 'fixes') this.api.fixes(a.name).subscribe({ next: x => this.fixes.set(x), error: fail });
     if (id === 'notes') this.api.notes(a.name).subscribe({ next: x => this.notes.set(x), error: fail });
     if (id === 'decisions') this.api.decisions(a.name).subscribe({ next: x => this.decisions.set(x), error: fail });
@@ -400,14 +400,14 @@ export class AutomationPage {
   private refresh(a: AutomationDetail, id: string) {
     this.api.automation(a.name).subscribe(d => { this.a.set(d); this.open(id, d); });
   }
-  private failed = (e: unknown) => this.actionError.set(apiError(e, 'This could not be done.'));
+  private failed = (e: unknown) => this.actionError.set(apiError(e, tr('This could not be done.')));
   stepText(s: PlanStep | null | undefined) { return s ? `${this.action(s.action)} ${s.description}${s.value !== null ? ' = "' + s.value + '"' : ''}` : '—'; }
-  category(c: string) { return ({ delete: 'Delete', submit: 'Save or send', send: 'Send', pay: 'Pay', download: 'Download', upload: 'Upload', account: 'Act on your account' } as Record<string, string>)[c] ?? c; }
+  category(c: string) { return tr(({ delete: 'Delete', submit: 'Save or send', send: 'Send', pay: 'Pay', download: 'Download', upload: 'Upload', account: 'Act on your account' } as Record<string, string>)[c] ?? c); }
 
   undo(a: AutomationDetail, f: Fix) {
-    const what = f.method === 'replan' ? 'This brings the plan back to how it was before this fix (later plan fixes are undone too).'
-                                       : 'ANCHOR forgets the element you chose, and asks again next time.';
-    if (!confirm(`Undo fix #${f.number}? ${what}`)) return;
+    const what = tr(f.method === 'replan' ? 'This brings the plan back to how it was before this fix (later plan fixes are undone too).'
+                                          : 'ANCHOR forgets the element you chose, and asks again next time.');
+    if (!confirm(tr('Undo fix #{n}?', { n: f.number }) + ' ' + what)) return;
     this.api.undoFix(a.name, f.number).subscribe({ next: () => this.refresh(a, 'fixes'), error: this.failed });
   }
   addNote(a: AutomationDetail) {
@@ -418,15 +418,15 @@ export class AutomationPage {
     this.api.editNote(a.name, n.number, this.editText).subscribe({ next: () => { this.editing.set(null); this.refresh(a, 'notes'); }, error: this.failed });
   }
   removeNote(a: AutomationDetail, n: Note) {
-    if (!confirm(`Remove note #${n.number}?`)) return;
+    if (!confirm(tr('Remove note #{n}?', { n: n.number }))) return;
     this.api.removeNote(a.name, n.number).subscribe({ next: () => this.refresh(a, 'notes'), error: this.failed });
   }
   forgetDecision(a: AutomationDetail, d: Decision) {
-    if (!confirm(`Forget this decision? Next time, ANCHOR asks you again before: ${this.category(d.category).toLowerCase()} “${d.element}”.`)) return;
+    if (!confirm(tr('Forget this decision? Next time, ANCHOR asks you again before: {what} “{element}”.', { what: this.category(d.category).toLowerCase(), element: d.element }))) return;
     this.api.forgetDecision(a.name, d.number).subscribe({ next: () => this.refresh(a, 'decisions'), error: this.failed });
   }
   forgetChoice(a: AutomationDetail, c: Choice) {
-    if (!confirm(`Forget this choice? Next time, ANCHOR asks you again which element “${c.description}” means.`)) return;
+    if (!confirm(tr('Forget this choice? Next time, ANCHOR asks you again which element “{what}” means.', { what: c.description }))) return;
     this.api.forgetChoice(a.name, c.key).subscribe({ next: () => this.refresh(a, 'choices'), error: this.failed });
   }
   relearns(a: AutomationDetail) { return this.sRequest.trim() !== a.request || this.sUrl.trim() !== a.url; }

@@ -135,8 +135,17 @@ def _fits(when: dict, at: datetime) -> bool:
     return True
 
 
-def describe(when: dict) -> str:
-    """The schedule in words, for the list: "Every weekday at 08:00"."""
+DIAS = ("segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo")
+UNIDADES = {"minutes": ("minuto", "minutos"), "hours": ("hora", "horas"), "days": ("dia", "dias")}
+
+
+def describe(when: dict, language: Optional[str] = None) -> str:
+    """The schedule in words, for the list, in the interface's language: "Every weekday at 08:00"."""
+    if language is None:
+        from anchor.i18n import get_language
+        language = get_language()
+    if language == "pt":
+        return _descreve(when)
     kind = when["kind"]
     if kind == "once":
         return "Once, on " + datetime.fromisoformat(when["at"]).strftime("%d %b %Y at %H:%M")
@@ -156,6 +165,39 @@ def describe(when: dict) -> str:
         days = when["days"]
         text += ", on weekdays" if days == [0, 1, 2, 3, 4] else ", on weekends" if days == [5, 6] else f", on {_day_list(days)}"
     return text
+
+
+def _descreve(when: dict) -> str:
+    kind = when["kind"]
+    if kind == "once":
+        return "Uma vez, em " + datetime.fromisoformat(when["at"]).strftime("%d/%m/%Y às %H:%M")
+    if kind == "daily":
+        return f"Todo dia às {when['time']}"
+    if kind == "weekly":
+        return f"{_dias(when['days'])}, às {when['time']}"
+    if kind == "monthly":
+        ultimo = " (ou o último dia do mês, se ele for mais curto)" if when["day"] > 28 else ""
+        return f"Todo mês no dia {when['day']}{ultimo} às {when['time']}"
+    um, varios = UNIDADES[when["unit"]]
+    gender = "Toda" if when["unit"] == "hours" else "Todo"
+    text = f"{gender} {um}" if when["every"] == 1 else f"A cada {when['every']} {varios}"
+    text += f", a partir das {when['start']}"
+    if when.get("window"):
+        text += f", entre {when['window'][0]} e {when['window'][1]}"
+    if when.get("days"):
+        text += f", {_dias(when['days']).lower()}"
+    return text
+
+
+def _dias(days: list[int]) -> str:
+    """The days as a diary writes them: "De segunda a sexta", "Sábado e domingo", "Segunda e quarta"."""
+    if days == [0, 1, 2, 3, 4]:
+        return "De segunda a sexta"
+    if days == list(range(7)):
+        return "Todos os dias"
+    names = [DIAS[d] for d in days]
+    text = ", ".join(names[:-1]) + " e " + names[-1] if len(names) > 1 else names[0]
+    return text[0].upper() + text[1:]
 
 
 def _day_list(days: list[int]) -> str:

@@ -147,3 +147,10 @@ def test_the_interface_refuses_an_unproven_automation_and_values_without_a_sprea
     assert len(c.get("/api/schedules/missed", headers=HEADERS).json()) == 1
     c.post("/api/schedules/missed/seen", headers=HEADERS)
     assert c.get("/api/schedules/missed", headers=HEADERS).json() == []                # shown once
+
+
+def test_a_schedule_in_words_follows_the_interfaces_language():
+    every = check_when({"kind": "every", "every": 2, "unit": "hours", "start": "08:00", "window": ["08:00", "18:00"], "days": [0, 1, 2, 3, 4]})
+    assert describe(every, "pt") == "A cada 2 horas, a partir das 08:00, entre 08:00 e 18:00, de segunda a sexta"
+    assert describe(check_when({"kind": "weekly", "days": [0, 2], "time": "09:30"}), "pt") == "Segunda e quarta, às 09:30"
+    assert describe(check_when({"kind": "daily", "time": "08:00"}), "en") == "Every day at 08:00"

@@ -32,7 +32,7 @@ import { fromCommand } from '../command';
         <div>
           <label for="profile">{{ 'Model' | tr }}</label>
           <select id="profile" name="profile" [(ngModel)]="profile">
-            @for (p of profiles(); track p.name) { <option [value]="p.name" [disabled]="p.downloaded === false">{{ p.label }}{{ p.downloaded === false ? (' (not downloaded)' | tr) : '' }}</option> }
+            @for (p of profiles(); track p.name) { <option [value]="p.name" [disabled]="p.downloaded === false">{{ p.label | tr }}{{ p.downloaded === false ? (' (not downloaded)' | tr) : '' }}</option> }
           </select>
         </div>
       </div>
