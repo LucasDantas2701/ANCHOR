@@ -17,6 +17,8 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-03
+
 ### Added
 - **Searching and filtering the automations.** The list has a search (in the name, the request and the
   site; several words, without minding accents), filters with their counts (All, Can run alone, Ready,
@@ -1147,7 +1149,8 @@ loop come in 0.2.0.
 - The context of elements in lists of short cards covered the whole list.
 - The query's object was counted twice, in the element's label and in its context.
 
-[Unreleased]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.4.0...develop
+[Unreleased]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.5.0...develop
+[0.5.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.2.1...v0.3.0

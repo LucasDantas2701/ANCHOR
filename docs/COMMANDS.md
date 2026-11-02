@@ -328,7 +328,7 @@ Pressing Enter, or having no terminal to answer, saves nothing: the next run ask
 After a run that did not work, `run` also asks whether you want to leave a note (Enter skips);
 with `--csv`, it asks once, at the end, if some row failed.
 
-## Interface (`anchor.ui`, in development)
+## Interface (`anchor.ui`)
 
 The local program's interface: a server on this computer only, and the app it serves. It lists,
 creates, edits, deletes and runs the saved automations (with the values they need, or once per row
@@ -341,7 +341,7 @@ ones found (and why) or that a login comes first. Each automation's page looks a
 English, starting in the computer's), the saved logins and the choices remembered from requests. A run's result shows what it brought back (answers, tables and
 lists, downloaded files, and a screenshot of the page at the end when the form or the request's words
 ask for one). **Schedules** runs proven automations by themselves at set
-times, while the interface is open (see the README); the installer comes in the last step of 0.5. While it is in development, build the app once and start
+times, while the interface is open (see the README). From the code, build the app once and start
 the server by hand:
 
 ```
@@ -354,7 +354,7 @@ It opens the browser on `http://127.0.0.1:<port>/`. Options: `--automations <fol
 carry the code made at this start, which the app receives in the address it opens; no other
 program or website on the computer can use it.
 
-## Desktop program (`anchor.desktop.app`, in development)
+## Desktop program (`anchor.desktop.app`)
 
 What the Windows installer runs (ANCHOR.exe): the same interface, in its own window (WebView2) with an
 icon near the clock, whose title bar follows the interface's theme (on Windows 10, only while "accent

@@ -227,9 +227,10 @@ nothing:
 > **Status:** version 0.4.0. The engine, the planner, the agent loop, effect verification, saved
 > automations with self-healing, confirmation of sensitive actions and the defenses against prompt
 > injection are done, and 0.4 added data extraction, downloads, uploads, new tabs, iframes, hidden
-> content, cookie banners and unattended runs for scheduling. 0.5, in development, is a local program
-> for people who do not program: the interface (`python -m anchor.ui` for now), saved logins,
-> schedules and a Windows installer. See the [roadmap](#roadmap) and the [changelog](CHANGELOG.md).
+> content, cookie banners and unattended runs for scheduling. 0.5 is a local program for people who
+> do not program: a Windows installer (or `python -m anchor.ui`), in Portuguese or English, with saved
+> logins, schedules and what each run brings back. 1.0, the evaluated version, is next. See the
+> [roadmap](#roadmap) and the [changelog](CHANGELOG.md).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -660,7 +661,7 @@ final numbers will come from the closed sets.
       ("Show more", expanders) before replanning; cookie banners in the way are declined
     - [x] Unattended runs (`--unattended`), for scheduling: only an automation proven by a run with
       someone present, and nothing repaired or asked; any change stops it until someone looks
-- [ ] **0.5** — A local program for people who do not program: an interface on this computer only,
+- [x] **0.5** — A local program for people who do not program: an interface on this computer only,
   in Portuguese or English, that does what the commands do
     - [x] The server and the automations (list, page), with the design system
     - [x] Runs from the interface: a queue, what happens as it happens, the questions answered there
@@ -678,7 +679,7 @@ final numbers will come from the closed sets.
     - [x] Saved logins: in Windows' Credential Manager, filled by ANCHOR only on their own site and
       only in a password field; the model never sees a password
     - [x] Schedules, kept on this computer, run while ANCHOR is open
-    - [ ] A Windows installer, with its own window and no terminal
+    - [x] A Windows installer, with its own window and no terminal
 - [ ] **1.0** — Evaluated version: final runs, once, on the tagged release, on the closed sets
   (synthetic, controlled synthetic and human requests, and the closed resilience set), with the
   results by origin and generator; the version the article describes
