@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Downloads in the desktop program.** Its window (WebView2, through pywebview) cancelled every
+  download unless allowed, so "Save the details of this run", the CSVs and the screenshots did nothing
+  in ANCHOR.exe; downloads are allowed now, and Windows asks where to save, starting in Downloads. A
+  screenshot opens in full size inside ANCHOR (a new tab would have gone to the system's browser,
+  which cannot open it).
 - **The installer, after 0.5.0-rc2 on another computer.** Downloading the browser opened an empty
   console window (closing it stopped the download): it now starts hidden, as Playwright starts its
   own driver. Windows Defender flagged the unsigned ANCHOR.exe by its machine-learning heuristic

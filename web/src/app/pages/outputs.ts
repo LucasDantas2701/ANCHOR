@@ -1,4 +1,4 @@
-import { Component, OnDestroy, effect, inject, input, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, effect, inject, input, signal } from '@angular/core';
 
 import { RunOutput, Runs } from '../api';
 
@@ -6,6 +6,12 @@ import { RunOutput, Runs } from '../api';
 @Component({
   selector: 'app-outputs',
   template: `
+    @if (big(); as url) {
+      <div class="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot in full size" (click)="big.set(null)">
+        <img [src]="url" alt="The screenshot in full size">
+        <p>Click anywhere or press Esc to close.</p>
+      </div>
+    }
     @for (o of outputs(); track $index) {
       <article class="out" [class.wide]="o.kind === 'table' || o.kind === 'list'">
         <p class="what">{{ label(o) }}@if (o.description && o.kind !== 'screenshot') { <span class="muted"> · {{ o.description }}</span> }</p>
@@ -16,7 +22,7 @@ import { RunOutput, Runs } from '../api';
           }
           @case ('screenshot') {
             @if (images()[$index]; as url) {
-              <a [href]="url" target="_blank" rel="noopener" class="shot" title="Open in full size"><img [src]="url" [alt]="'The page at the end: ' + o.description"></a>
+              <button type="button" class="shot" title="See it in full size" (click)="big.set(url)"><img [src]="url" [alt]="'The page at the end: ' + o.description"></button>
             } @else { <p class="muted small">Loading the screenshot…</p> }
             <button class="btn small" type="button" (click)="download($index, o)">Download</button>
           }
@@ -44,6 +50,10 @@ import { RunOutput, Runs } from '../api';
     .what { margin: 0; font-weight: 600; font-size: 14px; }
     .text { font-size: 15px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
     .small { font-size: 12.5px; margin: 0; }
+    .shot { padding: 0; border: 0; background: none; cursor: zoom-in; display: block; }
+    .lightbox { position: fixed; inset: 0; z-index: 80; background: rgba(4,3,8,.88); display: grid; place-items: center; gap: 8px; padding: 24px; cursor: zoom-out; }
+    .lightbox img { max-width: 100%; max-height: calc(100vh - 80px); border-radius: var(--radius-sm); }
+    .lightbox p { margin: 0; color: #ddd; font-size: 13px; }
     .shot img { display: block; width: 100%; max-height: 260px; object-fit: cover; object-position: top; border-radius: var(--radius-sm); border: 1px solid var(--border); }
     .scroll { overflow: auto; max-height: 360px; }
     table { border-collapse: collapse; font-size: 13px; width: 100%; }
@@ -58,6 +68,7 @@ export class Outputs implements OnDestroy {
   outputs = input<RunOutput[]>([]);
   row = input(0);
   images = signal<Record<number, string>>({});
+  big = signal<string | null>(null);
   copied = signal<number | null>(null);
   private urls: string[] = [];
 
@@ -73,6 +84,7 @@ export class Outputs implements OnDestroy {
       });
     });
   }
+  @HostListener('document:keydown.escape') close() { this.big.set(null); }
   ngOnDestroy() { this.urls.forEach(u => URL.revokeObjectURL(u)); }
 
   label(o: RunOutput) {

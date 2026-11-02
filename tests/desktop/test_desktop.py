@@ -217,3 +217,30 @@ def test_the_browser_download_starts_with_no_console_window_on_windows(monkeypat
     assert hidden["creationflags"] == subprocess.CREATE_NO_WINDOW and hidden["startupinfo"].wShowWindow == subprocess.SW_HIDE
     monkeypatch.setattr(sys, "platform", "linux")
     assert setup_module.no_window() == {}
+
+
+def test_the_window_allows_downloads(monkeypatch):
+    """WebView2 (pywebview) cancels every download unless allowed: the run's details, CSVs and screenshots."""
+    import types
+
+    fake = types.ModuleType("webview")
+    fake.settings = {"ALLOW_DOWNLOADS": False}
+
+    class Events:
+        def __init__(self):
+            self.closing = self
+
+        def __iadd__(self, handler):
+            return self
+
+    class Window:
+        events = Events()
+
+    fake.create_window = lambda *a, **k: Window()
+    fake.start = lambda *a, **k: None
+    monkeypatch.setitem(sys.modules, "webview", fake)
+    from anchor.desktop.app import Shell
+    shell = Shell(start=StartWithWindows(exe="ANCHOR.exe", registry=FakeRegistry()))
+    monkeypatch.setattr(shell, "_tray", lambda: None)
+    shell.run("http://127.0.0.1:1/")
+    assert fake.settings["ALLOW_DOWNLOADS"] is True

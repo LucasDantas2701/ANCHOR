@@ -161,6 +161,9 @@ class Shell:
     def run(self, url: str, hidden: bool = False) -> None:
         import webview
 
+        # Downloads (the run's details, a table's CSV, a screenshot) are cancelled unless allowed; allowed,
+        # WebView2 asks where to save, starting in the Downloads folder.
+        webview.settings["ALLOW_DOWNLOADS"] = True
         self.window = webview.create_window("ANCHOR", url, width=1360, height=880, min_size=(980, 640), hidden=hidden)
         self.window.events.closing += self._closing
         threading.Thread(target=self._tray, daemon=True).start()
