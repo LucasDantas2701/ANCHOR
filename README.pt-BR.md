@@ -36,27 +36,24 @@ modelo, inclusive uma vez por linha de uma planilha.
 
 ## Como começar
 
-Você precisa de Python 3.10 ou mais novo, Node.js 22.12 ou mais novo (só para montar a interface uma
-vez) e do [Ollama](https://ollama.com). Depois:
+1. Instale o [Ollama](https://ollama.com/download), que roda a IA no seu computador.
+2. Baixe o `ANCHOR-Setup-<versão>.exe` na [última versão](https://github.com/LucasDantas2701/ANCHOR/releases/latest)
+   e execute. Ele instala só para o seu usuário (sem senha de administrador).
+3. Abra o ANCHOR pelo menu Iniciar. Na primeira vez, ele baixa o navegador que controla e pelo menos
+   um modelo de IA, com um botão para cada.
 
-```sh
-git clone https://github.com/LucasDantas2701/ANCHOR.git
-cd ANCHOR
-python -m venv venv
-venv\Scripts\activate            # Windows (Linux/macOS: source venv/bin/activate)
-pip install -r requirements.txt
-playwright install chromium
-ollama pull qwen3.5:4b
-cd web
-npm install
-npm run build
-cd ..
-python -m anchor.ui
-```
+> [!NOTE]
+> Enquanto o instalador não tiver assinatura digital, o Windows pode avisar que ele é de um **editor
+> desconhecido**: clique em **Mais informações** e depois em **Executar assim mesmo**. O instalador é
+> montado pelo GitHub a partir do código deste repositório.
 
-O navegador abre na interface do ANCHOR, com um guia curto na primeira vez. A interface começa no
-idioma do computador (português ou inglês) e muda em **Configurações → Idioma**; os pedidos podem ser
-em português. O passo a passo completo, a referência de comandos e a
+O ANCHOR abre numa janela própria, com um guia curto na primeira vez. A interface começa no idioma do
+computador (português ou inglês) e muda em **Configurações → Idioma**; os pedidos podem ser em
+português. Para atualizar, baixe e execute o instalador da versão nova: as suas automações,
+agendamentos e logins são mantidos.
+
+Precisa de Windows 10 ou 11, e uma placa de vídeo com 4 GB já basta (tudo aqui foi medido numa GTX
+1050 Ti). O passo a passo completo, como rodar a partir do código, a referência de comandos e a
 avaliação estão no [README em inglês](README.md).
 
 ## Licença e citação
