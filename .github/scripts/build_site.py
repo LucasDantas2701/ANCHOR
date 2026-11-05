@@ -27,26 +27,29 @@ BASE = "/ANCHOR/"
 # Docs pages: (file, title, README section, subsection or None). A subsection page holds that "###".
 SECTION_PAGES = [
     ("docs/introduction.md", "Introduction", "About The Project", None),
-    ("docs/installation.md", "Installation", "Getting Started", "Prerequisites+Installation"),
-    ("docs/quick-example.md", "Quick example", "Getting Started", "Quick Example"),
+    ("docs/installation.md", "Installation", "Getting Started", "Prerequisites+Installation+Open ANCHOR+Keeping ANCHOR Up To Date"),
+    ("docs/quick-example.md", "A first try", "Getting Started", "A First Try"),
     ("docs/responsible-use.md", "Responsible use", "Responsible Use", None),
     ("docs/limitations.md", "Known limitations", "Known Limitations", None),
     ("docs/roadmap.md", "Roadmap", "Roadmap", None),
+    ("docs/faq.md", "FAQ", "FAQ", None),
     ("docs/contributing.md", "Contributing", "Feedback+Development", None),
     ("docs/license.md", "License and contact", "License+Contact+Acknowledgments", None),
     ("evaluation.md", "Evaluation", "Evaluation", None),
 ]
-# Guides: the bold-led paragraphs of "Usage" (the start of each), in order.
+PROJECT_PAGES = slice(3, 9)          # the "Project" group of the navigation: responsible use ... license
+# Guides: the subsections of "Using ANCHOR", one page each, in order, and the command line.
 GUIDES = [
-    ("docs/guides/run-a-request.md", "Run a request", "**Run a request end to end**"),
-    ("docs/guides/logins.md", "Logins", "**Systems with login.**"),
-    ("docs/guides/files.md", "Send and download files", "**Send files.**"),
-    ("docs/guides/reading-data.md", "Read data from a page", "**Read data from a page.**"),
-    ("docs/guides/saved-automations.md", "Saved automations and recoveries", "**Save an automation**"),
-    ("docs/guides/plans.md", "Plans only", "**Only generate a plan**"),
-    ("docs/guides/disambiguation.md", "Disambiguation and memory", "**See the disambiguation and the memory at work**"),
-    ("docs/guides/model-profiles.md", "Model profiles", "**Model profiles**"),
+    ("docs/guides/run-a-request.md", "Run a request", "Run a request"),
+    ("docs/guides/outputs.md", "What a run brings back", "What a run brings back"),
+    ("docs/guides/watch.md", "Watch it run", "Watch it run"),
+    ("docs/guides/questions.md", "When ANCHOR asks", "When ANCHOR asks"),
+    ("docs/guides/logins.md", "Saved logins", "Saved logins"),
+    ("docs/guides/automations.md", "Automations", "Automations"),
+    ("docs/guides/schedules.md", "Schedules", "Schedules"),
+    ("docs/guides/models.md", "Which model", "Which model"),
 ]
+COMMAND_LINE_GUIDE = ("docs/guides/command-line.md", "The command line", "The Command Line")
 FILES = {"CHANGELOG.md": "changelog.md"}
 
 
@@ -118,20 +121,18 @@ class Site:
                 if "+" in names:
                     body = "\n\n".join(f"## {n}\n\n{up(clean(sections(self.readme)[n]), 1)}" for n in names.split("+"))
             self.pages[file] = f"# {title}\n\n{body}\n"
-        usage = self.section("Usage")
-        starts = []
-        for file, title, lead in GUIDES:
-            i = usage.find(lead)
-            if i < 0:
-                raise SystemExit(f"Usage paragraph not found: {lead!r}")
-            starts.append(i)
-        intro = usage[:starts[0]].strip()
-        for n, (file, title, lead) in enumerate(GUIDES):
-            end = starts[n + 1] if n + 1 < len(GUIDES) else len(usage)
-            text = usage[starts[n]:end].strip()
+        usage = self.section("Using ANCHOR")
+        intro = re.split(r"(?m)^### ", usage, maxsplit=1)[0].strip()
+        subs = sections(usage, 3)
+        for n, (file, title, name) in enumerate(GUIDES):
+            if name not in subs:
+                raise SystemExit(f"README subsection of 'Using ANCHOR' not found: {name!r}")
+            text = up(subs[name].strip(), 1)
             if n == 0 and intro:
                 text = intro + "\n\n" + text
             self.pages[file] = f"# {title}\n\n{text}\n"
+        file, title, name = COMMAND_LINE_GUIDE
+        self.pages[file] = f"# {title}\n\n{up(self.section(name), 1)}\n"
         cmd_parts = sections(self.commands)
         cmd_intro = re.split(r"(?m)^## ", self.commands, maxsplit=1)[0]
         cmd_intro = re.sub(r"(?m)^# .*\n", "", cmd_intro).strip()
@@ -191,6 +192,10 @@ class Site:
             for name in names.split("+"):
                 self.anchor_page.setdefault(slug(name), file)
         self.anchor_page.setdefault("usage", GUIDES[0][0])
+        self.anchor_page.setdefault("using-anchor", GUIDES[0][0])
+        self.anchor_page.setdefault("the-command-line", COMMAND_LINE_GUIDE[0])
+        for file, _, name in GUIDES:
+            self.anchor_page.setdefault(slug(name), file)
         self.anchor_page.setdefault("getting-started", "docs/installation.md")
         self.anchor_page["readme-top"] = "index.md"
 
@@ -247,8 +252,8 @@ class Site:
         shutil.copytree(ROOT / "docs" / "site" / "assets", OUT / "assets")
         nav = ["nav:", "  - Home: index.md", "  - Docs:", "    - Getting started:"]
         nav += [f"      - {t}: {f}" for f, t, *_ in SECTION_PAGES[:3]]
-        nav += ["    - Guides:"] + [f"      - {t}: {f}" for f, t, _ in GUIDES]
-        nav += ["    - Project:"] + [f"      - {t}: {f}" for f, t, *_ in SECTION_PAGES[3:8]]
+        nav += ["    - Guides:"] + [f"      - {t}: {f}" for f, t, _ in GUIDES + [COMMAND_LINE_GUIDE]]
+        nav += ["    - Project:"] + [f"      - {t}: {f}" for f, t, *_ in SECTION_PAGES[PROJECT_PAGES]]
         nav += ["  - Command reference:"] + [f"    - {quote(t)}: {f}" for t, f in self.command_pages]
         nav += ["  - Evaluation: evaluation.md", "  - Changelog: changelog.md", "  - Português: pt-BR.md"]
         (ROOT / "site_nav.yml").write_text("\n".join(nav) + "\n", encoding="utf-8")
