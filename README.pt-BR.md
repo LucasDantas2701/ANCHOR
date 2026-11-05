@@ -37,8 +37,7 @@ modelo, inclusive uma vez por linha de uma planilha.
 ## Como começar
 
 1. Instale o [Ollama](https://ollama.com/download), que roda a IA no seu computador.
-2. Baixe o `ANCHOR-Setup-<versão>.exe` na [última versão](https://github.com/LucasDantas2701/ANCHOR/releases/latest)
-   e execute. Ele instala só para o seu usuário (sem senha de administrador).
+2. Baixe o [**ANCHOR-Setup.exe**](https://github.com/LucasDantas2701/ANCHOR/releases/latest/download/ANCHOR-Setup.exe) (sempre a versão mais recente) e execute. Ele instala só para o seu usuário (sem senha de administrador).
 3. Abra o ANCHOR pelo menu Iniciar. Na primeira vez, ele baixa o navegador que controla e pelo menos
    um modelo de IA, com um botão para cada.
 
@@ -49,7 +48,7 @@ modelo, inclusive uma vez por linha de uma planilha.
 
 O ANCHOR abre numa janela própria, com um guia curto na primeira vez. A interface começa no idioma do
 computador (português ou inglês) e muda em **Configurações → Idioma**; os pedidos podem ser em
-português. Para atualizar, baixe e execute o instalador da versão nova: as suas automações,
+português. Para atualizar, baixe e execute o `ANCHOR-Setup.exe` de novo: as suas automações,
 agendamentos e logins são mantidos.
 
 Precisa de Windows 10 ou 11, e uma placa de vídeo com 4 GB já basta (tudo aqui foi medido numa GTX

@@ -69,6 +69,12 @@ jobs:
       # Signing: when the SignPath Foundation's certificate is approved, sign dist\installer\*.exe here,
       # so Windows stops showing "unknown publisher".
 
+      - name: A copy with a fixed name, for the README's download link
+        shell: pwsh
+        run: |
+          # releases/latest/download/ANCHOR-Setup.exe always gives the latest version's installer
+          Copy-Item "dist\installer\ANCHOR-Setup-$env:ANCHOR_VERSION.exe" "dist\installer\ANCHOR-Setup.exe"
+
       - uses: actions/upload-artifact@v4
         with:
           name: ANCHOR-installer
