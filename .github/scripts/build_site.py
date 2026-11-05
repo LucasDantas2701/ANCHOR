@@ -49,7 +49,6 @@ GUIDES = [
     ("docs/guides/schedules.md", "Schedules", "Schedules"),
     ("docs/guides/models.md", "Which model", "Which model"),
 ]
-COMMAND_LINE_GUIDE = ("docs/guides/command-line.md", "The command line", "The Command Line")
 FILES = {"CHANGELOG.md": "changelog.md"}
 
 
@@ -131,8 +130,6 @@ class Site:
             if n == 0 and intro:
                 text = intro + "\n\n" + text
             self.pages[file] = f"# {title}\n\n{text}\n"
-        file, title, name = COMMAND_LINE_GUIDE
-        self.pages[file] = f"# {title}\n\n{up(self.section(name), 1)}\n"
         cmd_parts = sections(self.commands)
         cmd_intro = re.split(r"(?m)^## ", self.commands, maxsplit=1)[0]
         cmd_intro = re.sub(r"(?m)^# .*\n", "", cmd_intro).strip()
@@ -193,11 +190,19 @@ class Site:
                 self.anchor_page.setdefault(slug(name), file)
         self.anchor_page.setdefault("usage", GUIDES[0][0])
         self.anchor_page.setdefault("using-anchor", GUIDES[0][0])
-        self.anchor_page.setdefault("the-command-line", COMMAND_LINE_GUIDE[0])
+        self.anchor_page.setdefault("the-command-line", "docs/contributing.md")
+        self.anchor_page.setdefault("running-from-the-code", "docs/contributing.md")
         for file, _, name in GUIDES:
             self.anchor_page.setdefault(slug(name), file)
         self.anchor_page.setdefault("getting-started", "docs/installation.md")
         self.anchor_page["readme-top"] = "index.md"
+
+    @property
+    def references(self) -> dict:
+        """The README's reference-style link definitions: [name]: url."""
+        if not hasattr(self, "_references"):
+            self._references = dict(re.findall(r"(?m)^\[([^\]]+)\]:\s*(\S+)", self.readme))
+        return self._references
 
     def rel(self, here: str, target: str) -> str:
         depth = here.count("/")
@@ -237,7 +242,12 @@ class Site:
                 return self.rel(here, self.anchor_page.get(frag, "index.md")) + (f"#{frag}" if frag else "")
             return REPO + target.replace("../", "")
         text = re.sub(r"\]\(([^)\s]+)\)", lambda m: f"]({fix(m.group(1))})", text)
-        return re.sub(r'(href|src)="([^"]+)"', lambda m: f'{m.group(1)}="{fix_html(m.group(2))}"', text)
+        text = re.sub(r'(href|src|srcset)="([^"]+)"', lambda m: f'{m.group(1)}="{fix_html(m.group(2))}"', text)
+        # Reference-style links ([![Python][python-shield]][python-url]) are defined at the README's end: each page
+        # carries the definitions it uses, or they show as raw text.
+        used = set(re.findall(r"\]\[([^\]]+)\]", text))
+        defs = [f"[{name}]: {fix(url)}" for name, url in self.references.items() if name in used]
+        return text + ("\n\n" + "\n".join(defs) + "\n" if defs else "")
 
     # ------------------------------------------------------------------ writing
     def write(self) -> None:
@@ -252,7 +262,7 @@ class Site:
         shutil.copytree(ROOT / "docs" / "site" / "assets", OUT / "assets")
         nav = ["nav:", "  - Home: index.md", "  - Docs:", "    - Getting started:"]
         nav += [f"      - {t}: {f}" for f, t, *_ in SECTION_PAGES[:3]]
-        nav += ["    - Guides:"] + [f"      - {t}: {f}" for f, t, _ in GUIDES + [COMMAND_LINE_GUIDE]]
+        nav += ["    - Guides:"] + [f"      - {t}: {f}" for f, t, _ in GUIDES]
         nav += ["    - Project:"] + [f"      - {t}: {f}" for f, t, *_ in SECTION_PAGES[PROJECT_PAGES]]
         nav += ["  - Command reference:"] + [f"    - {quote(t)}: {f}" for t, f in self.command_pages]
         nav += ["  - Evaluation: evaluation.md", "  - Changelog: changelog.md", "  - Português: pt-BR.md"]

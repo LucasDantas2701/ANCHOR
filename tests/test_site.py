@@ -41,3 +41,19 @@ def test_links_inside_raw_html_are_written_from_the_site_root():
     site.link_map()
     out = site.rewrite('<img src="docs/images/a.gif"> <a href="docs/COMMANDS.md">x</a>', "docs/introduction.md")
     assert 'src="/ANCHOR/images/a.gif"' in out and 'href="/ANCHOR/commands/"' in out
+
+
+def test_no_page_has_an_unresolved_reference_link_or_an_unfixed_image_path(tmp_path):
+    """Badges ([![Python][python-shield]][python-url]) need their definitions on the page, and the dark version
+    of a figure (srcset) its path from the site's root: both showed broken on the 0.5 site."""
+    import re
+    site = builder().Site()
+    site.build()
+    site.link_map()
+    assert len(site.pages) > 30
+    for file, text in site.pages.items():
+        out = site.rewrite(text, file, commands_doc=file.startswith("commands/"))
+        defined = set(re.findall(r"(?m)^\[([^\]]+)\]:\s*\S+", out))
+        unresolved = set(re.findall(r"\]\[([^\]]+)\]", out)) - defined
+        assert not unresolved, f"{file}: reference links with no definition: {sorted(unresolved)}"
+        assert not re.search(r'(src|srcset|href)="docs/images/', out), f"{file}: an image path not from the site's root"

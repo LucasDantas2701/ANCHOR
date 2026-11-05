@@ -51,42 +51,18 @@
 
 ## Quick Start
 
-**On Windows, with the installer:** install [Ollama](https://ollama.com/download), then download
-`ANCHOR-Setup-<version>.exe` from the [releases](https://github.com/LucasDantas2701/ANCHOR/releases)
-and run it. It installs for your user only (no administrator password), and the first time ANCHOR
-opens it downloads the AI model (at least one of the two) and the browser it drives, with a button
-for each.
+1. Install [Ollama](https://ollama.com/download), which runs the AI on your computer.
+2. Download `ANCHOR-Setup-<version>.exe` from the [latest release](https://github.com/LucasDantas2701/ANCHOR/releases/latest) and run it.
+3. Open ANCHOR from the Start menu. The first time, it downloads the browser it drives and at least
+   one AI model, with a button for each.
 
 > [!NOTE]
 > Until the installer is signed, Windows may say it comes from an **unknown publisher**: click
 > **More info**, then **Run anyway**. The installer is built by GitHub from this repository's code
 > (`.github/workflows/installer.yml`).
 
-**From the code**, with [Python 3.10+](https://www.python.org/downloads/), [Node.js 22.12+](https://nodejs.org/)
-and [Ollama](https://ollama.com/download) installed:
-
-```sh
-git clone https://github.com/LucasDantas2701/ANCHOR.git
-cd ANCHOR
-python -m venv venv
-venv\Scripts\activate            # Linux/macOS: source venv/bin/activate
-pip install -r requirements.txt
-playwright install chromium
-ollama pull qwen3.5:4b
-cd web
-npm install
-npm run build
-cd ..
-```
-
-Then, every time:
-
-```sh
-python -m anchor.ui
-```
-
-The step-by-step version, a first request on a test page and the requirements are in
-[Getting Started](#getting-started).
+The step by step, a first request and the requirements are in [Getting Started](#getting-started).
+To run ANCHOR from its code, see [Development](#development).
 
 <!-- TABLE OF CONTENTS -->
 <details>
@@ -124,7 +100,6 @@ The step-by-step version, a first request on a test page and the requirements ar
         <li><a href="#which-model">Which model</a></li>
       </ul>
     </li>
-    <li><a href="#the-command-line">The Command Line</a></li>
     <li><a href="#evaluation">Evaluation</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
     <li><a href="#faq">FAQ</a></li>
@@ -224,11 +199,11 @@ nothing:
   and page contents do not leave the computer or the company network. Logins use persistent
   browser profiles: credentials never go through the AI.
 
-> **Status:** version 0.4.0. The engine, the planner, the agent loop, effect verification, saved
+> **Status:** version 0.5.0. The engine, the planner, the agent loop, effect verification, saved
 > automations with self-healing, confirmation of sensitive actions and the defenses against prompt
 > injection are done, and 0.4 added data extraction, downloads, uploads, new tabs, iframes, hidden
 > content, cookie banners and unattended runs for scheduling. 0.5 is a local program for people who
-> do not program: a Windows installer (or `python -m anchor.ui`), in Portuguese or English, with saved
+> do not program: a Windows installer, in Portuguese or English, with saved
 > logins, schedules and what each run brings back. 1.0, the evaluated version, is next. See the
 > [roadmap](#roadmap) and the [changelog](CHANGELOG.md).
 
@@ -296,14 +271,11 @@ Portuguese or English (Settings → Language), and the command line in English o
 <!-- GETTING STARTED -->
 ## Getting Started
 
-ANCHOR runs on your computer: the AI, the browser and your data stay on it. Until the Windows
-installer arrives (0.5), it is installed from the source, once, and opened with one command.
+ANCHOR runs on your computer: the AI, the browser and your data stay on it.
 
 ### Prerequisites
 
-* **Windows 10 or 11** (where ANCHOR is developed; Linux and macOS should work, but are tested less).
-* **Python 3.10 or newer.**
-* **Node.js 22.12 or newer**, only to build the interface once (the installer will not need it).
+* **Windows 10 or 11.**
 * **[Ollama](https://ollama.com)**, which runs the AI on your computer, for free.
 * A graphics card with 4 GB of memory is enough: everything here was measured on a GTX 1050 Ti
   (with an i7-7700HQ and 16 GB of RAM). Without one, it works more slowly (not measured). Each
@@ -311,73 +283,42 @@ installer arrives (0.5), it is installed from the source, once, and opened with 
 
 ### Installation
 
-1. Get ANCHOR
-   ```sh
-   git clone https://github.com/LucasDantas2701/ANCHOR.git
-   cd ANCHOR
-   ```
-2. Install its parts and the browser it uses
-   ```sh
-   python -m venv venv
-   venv\Scripts\activate            # Windows (Linux/macOS: source venv/bin/activate)
-   pip install -r requirements.txt
-   playwright install chromium
-   ```
-3. Install [Ollama](https://ollama.com/download) (it runs in the background) and download the models
-   ```sh
-   ollama pull qwen3.5:4b
-   ollama pull qwen3.5:9b      # optional: slower, more careful with big pages
-   ```
-4. Build the interface (once, and again after each update)
-   ```sh
-   cd web
-   npm install
-   npm run build
-   cd ..
-   ```
+1. Install [Ollama](https://ollama.com/download) and open it once (it then runs in the background).
+2. Download `ANCHOR-Setup-<version>.exe` from the [latest release](https://github.com/LucasDantas2701/ANCHOR/releases/latest).
+3. Run it. It installs for your user only (no administrator password). Leave **Start ANCHOR with
+   Windows** ticked if you will use schedules (you can turn it off later in **Settings**).
 
 ### Open ANCHOR
 
-```sh
-python -m anchor.ui
-```
+Open **ANCHOR** from the Start menu (or its desktop icon). It opens in its own window, with an icon
+near the clock. The first time, a screen checks what it needs and downloads it with a button for
+each: the browser ANCHOR drives (about 150 MB) and at least one AI model (the small one, about 3 GB,
+is enough to start). Then a short guide shows where things are; it can be opened again from
+**Guide**, at the top.
 
-Your browser opens on ANCHOR. The first time, a short guide shows where things are and which model
-to use (it can be opened again from **Guide**, at the top). Keep the terminal open while you use
-ANCHOR: closing it closes ANCHOR.
-
-ANCHOR serves only this computer (`127.0.0.1`), and each time it opens it makes a new code that only
-its own page knows: no other computer, program or website can use it. The address it opens has
-that code, so open ANCHOR from the command, not from an old bookmark.
+Closing the window keeps ANCHOR running near the clock, so that schedules run; **Quit ANCHOR**, at the
+top (or in the icon's menu), closes it. The interface starts in your computer's language, Portuguese
+or English, and changes in **Settings**.
 
 ### A First Try
 
-The repository comes with test pages, so you can try ANCHOR without touching a real site. In
-**Run a request**, write:
+In **Run a request**, write:
 
 ```text
-Register Maria Silva, tax ID 123-45-6789, work e-mail maria.silva@company.com, IT department, contractor. Accept the terms and save the registration.
+Search the books in the Travel category and send me back their titles and prices.
 ```
 
-Give `eval/fixtures/registration_en.html` as the page, choose the **Small** model and press **Run**. Then
-**Watch it run**: the browser fills the form step by step and, before saving, asks you (saving is a
-sensitive action).
+Give `https://books.toscrape.com` as the page (a site made for practising automation), choose the
+**Small** model, tick **Include a screenshot of the page at the end** and press **Run**. Then **Watch
+it run**: the browser opens the category and reads the books, and the result shows **What it brought
+back**: the list of books (with **Download CSV**) and the screenshot.
 
 ### Keeping ANCHOR Up To Date
 
-ANCHOR changes often. To update it, close it and run, in its folder:
-
-```sh
-git pull
-venv\Scripts\activate            # Linux/macOS: source venv/bin/activate
-pip install -r requirements.txt
-cd web
-npm install
-npm run build
-cd ..
-```
-
-Your automations, choices and logins are kept: they live in folders the update does not touch.
+Download the new `ANCHOR-Setup-<version>.exe` from the releases and run it: it installs over the old
+one. Your automations, schedules, choices and logins are kept (they live in `%LOCALAPPDATA%\ANCHOR`,
+which the installer does not touch). To uninstall, use **Settings → Apps** in Windows; it asks whether
+to delete your data too.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -537,23 +478,6 @@ or fixed.
 
 
 <!-- THE COMMAND LINE -->
-## The Command Line
-
-Everything the interface does can also be done from the command line, which can also run a proven
-automation from the system's own scheduler (`--unattended`), with no ANCHOR window open. For example:
-
-```sh
-python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_en.html "<request>"
-python -m anchor.automations create register --url <link> --profile ollama-small "Register {name} and save"
-python -m anchor.automations run register --unattended --param name="Maria Silva"
-```
-
-Every command and option is in the [command reference](docs/COMMANDS.md).
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
-
-
-
 <!-- EVALUATION -->
 ## Evaluation
 
@@ -584,7 +508,7 @@ SauceDemo), version 0.3.0:
 | The Executor refuses and asks the user | 16.7% | 8.3% |
 
 **Complete tasks** — the development suites, on local pages, through the full agent loop, with no
-human help and the default (Portuguese) planner prompt, version 0.4.0, Ollama 0.40.4, Qwen 3.5 4B and
+human help and the default (Portuguese) planner prompt, version 0.4.0 (measured again on 0.5.0, with the same results), Ollama 0.40.4, Qwen 3.5 4B and
 9B (i7-7700HQ, 16 GB RAM, GTX 1050 Ti 4 GB). Tasks done, Portuguese / English requests:
 
 | Suite | Tasks | 4B (PT / EN) | 9B (PT / EN) |
@@ -604,7 +528,8 @@ model and 45 s with the 9B one. The extraction, download, upload and tab numbers
 looking at their own tasks; the iframe suite was at 100% on its first run, with no fix after it.
 
 **Resilience** — the 30 tasks on pages altered in 5 levels (superficial, semantic, structural,
-behavioral, adversarial), 150 runs per executor and model, both languages, with no user, version 0.4.0:
+behavioral, adversarial), 150 runs per executor and model, both languages, with no user, version 0.4.0
+(ANCHOR's runs measured again on 0.5.0, with the same results):
 
 | Executor | Tasks done | False successes | Attacks that worked | Model calls per run |
 |---|---|---|---|---|
@@ -797,6 +722,47 @@ the one the article describes.
 
 <!-- DEVELOPMENT -->
 ## Development
+
+### Running from the code
+
+With [Python 3.10+](https://www.python.org/downloads/), [Node.js 22.12+](https://nodejs.org/) and
+[Ollama](https://ollama.com/download) installed:
+
+```sh
+git clone https://github.com/LucasDantas2701/ANCHOR.git
+cd ANCHOR
+python -m venv venv
+venv\Scripts\activate            # Linux/macOS: source venv/bin/activate
+pip install -r requirements.txt
+playwright install chromium
+ollama pull qwen3.5:4b
+cd web
+npm install
+npm run build                     # again after each update
+cd ..
+python -m anchor.ui               # opens the interface in your browser; keep the terminal open
+```
+
+`python -m anchor.ui` serves only this computer (`127.0.0.1`), with a new access code each time it
+opens: open ANCHOR from the command, not from an old bookmark. To update, `git pull`, `pip install
+-r requirements.txt` and build the interface again. The desktop program (what the installer runs) is
+`python -m anchor.desktop.app`, with `requirements-desktop.txt`.
+
+### The command line
+
+Everything the interface does can also be done from the command line, which can also run a proven
+automation from the system's own scheduler (`--unattended`), with no ANCHOR window open. For example:
+
+```sh
+python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_en.html "<request>"
+python -m anchor.automations create register --url <link> --profile ollama-small "Register {name} and save"
+python -m anchor.automations run register --unattended --param name="Maria Silva"
+```
+
+Every command and option is in the [command reference](docs/COMMANDS.md).
+
+### Tests and layout
+
 
 ```sh
 pytest tests -v                                   # the test suite (the interface's server too)
