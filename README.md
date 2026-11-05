@@ -23,7 +23,9 @@
     Playwright. Describe the task in plain language, a small local LLM plans it, and you stay in control.
     <br />
     <br />
-    <a href="#quick-start"><strong>Get started »</strong></a>
+    <a href="https://github.com/LucasDantas2701/ANCHOR/releases/latest/download/ANCHOR-Setup.exe"><strong>Download for Windows »</strong></a>
+    &middot;
+    <a href="#quick-start"><strong>Get started</strong></a>
     &middot;
     <a href="https://lucasdantas2701.github.io/ANCHOR/"><strong>Documentation</strong></a>
     &middot;
@@ -52,7 +54,7 @@
 ## Quick Start
 
 1. Install [Ollama](https://ollama.com/download), which runs the AI on your computer.
-2. Download `ANCHOR-Setup-<version>.exe` from the [latest release](https://github.com/LucasDantas2701/ANCHOR/releases/latest) and run it.
+2. Download [**ANCHOR-Setup.exe**](https://github.com/LucasDantas2701/ANCHOR/releases/latest/download/ANCHOR-Setup.exe) (always the latest version) and run it.
 3. Open ANCHOR from the Start menu. The first time, it downloads the browser it drives and at least
    one AI model, with a button for each.
 
@@ -284,7 +286,8 @@ ANCHOR runs on your computer: the AI, the browser and your data stay on it.
 ### Installation
 
 1. Install [Ollama](https://ollama.com/download) and open it once (it then runs in the background).
-2. Download `ANCHOR-Setup-<version>.exe` from the [latest release](https://github.com/LucasDantas2701/ANCHOR/releases/latest).
+2. Download [**ANCHOR-Setup.exe**](https://github.com/LucasDantas2701/ANCHOR/releases/latest/download/ANCHOR-Setup.exe), always the latest version (each version's installer, and its
+   notes, are also in the [releases](https://github.com/LucasDantas2701/ANCHOR/releases)).
 3. Run it. It installs for your user only (no administrator password). Leave **Start ANCHOR with
    Windows** ticked if you will use schedules (you can turn it off later in **Settings**).
 
@@ -315,7 +318,7 @@ back**: the list of books (with **Download CSV**) and the screenshot.
 
 ### Keeping ANCHOR Up To Date
 
-Download the new `ANCHOR-Setup-<version>.exe` from the releases and run it: it installs over the old
+Download [ANCHOR-Setup.exe](https://github.com/LucasDantas2701/ANCHOR/releases/latest/download/ANCHOR-Setup.exe) again and run it: it installs the latest version over the old
 one. Your automations, schedules, choices and logins are kept (they live in `%LOCALAPPDATA%\ANCHOR`,
 which the installer does not touch). To uninstall, use **Settings → Apps** in Windows; it asks whether
 to delete your data too.
