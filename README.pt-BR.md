@@ -11,7 +11,12 @@ navegador, e você continua no controle.
 ## O que ele faz
 
 A automação web tradicional depende de seletores fixos, escritos por um programador, e quebra
-quando a página muda. Com o ANCHOR, quem conhece a tarefa escreve o pedido como pediria a um colega,
+quando a página muda. Com o ANCHOR, quem conhece a tarefa escreve o pedido como pediria a um colega:
+
+```text
+Cadastre a colaboradora Maria Silva, CPF 123.456.789-00, departamento de TI, contrato PJ. Aceite os termos e salve o cadastro.
+```
+
 e ele planeja, executa e confere cada passo. Uma tarefa aprendida pode ser salva e repetida sem o
 modelo, inclusive uma vez por linha de uma planilha.
 
@@ -20,8 +25,9 @@ modelo, inclusive uma vez por linha de uma planilha.
 * **Roda inteiro no seu computador:** os planos vêm de um modelo pequeno (Qwen 3.5, de 4B ou 9B)
   rodando no Ollama; nenhuma página, pedido ou senha sai da sua máquina.
 * **Você continua no controle:** ele pergunta antes de qualquer ação sensível (salvar, enviar,
-  pagar, excluir, baixar ou enviar arquivos), bloqueia o que o pedido não pediu, deixa os logins com
-  você e para em vez de adivinhar.
+  pagar, excluir, agir na sua conta), bloqueia o que o pedido não pediu e para em vez de adivinhar.
+  A IA nunca vê uma senha: o login é feito por você, na tela, ou com um login que você salvou para
+  aquele site exato (a senha fica no Gerenciador de Credenciais do Windows).
 * **Se recupera sozinho:** quando a página muda, ele acha o elemento de novo, confere cada passo e
   guarda a correção para a próxima vez.
 * **É medido:** suítes de desenvolvimento, páginas com injeção de instruções e um benchmark de
@@ -30,7 +36,8 @@ modelo, inclusive uma vez por linha de uma planilha.
 
 ## Como começar
 
-Você precisa de Python 3.10 ou mais novo e do [Ollama](https://ollama.com). Depois:
+Você precisa de Python 3.10 ou mais novo, Node.js 22.12 ou mais novo (só para montar a interface uma
+vez) e do [Ollama](https://ollama.com). Depois:
 
 ```sh
 git clone https://github.com/LucasDantas2701/ANCHOR.git
@@ -40,17 +47,17 @@ venv\Scripts\activate            # Windows (Linux/macOS: source venv/bin/activat
 pip install -r requirements.txt
 playwright install chromium
 ollama pull qwen3.5:4b
+cd web
+npm install
+npm run build
+cd ..
+python -m anchor.ui
 ```
 
-E um primeiro pedido, numa página de teste que vem com o repositório:
-
-```sh
-python -m anchor.agent --profile ollama-small --url eval/fixtures/registration.html "Cadastre a colaboradora Maria Silva, CPF 123.456.789-00, e-mail maria.silva@empresa.com.br, departamento de TI, contrato PJ. Aceite os termos e salve o cadastro."
-```
-
-O navegador abre, o ANCHOR planeja e executa cada passo, pergunta no terminal quando não tem certeza
-(e antes de salvar, que é uma ação sensível) e, no fim, mostra o resultado. A interface gráfica chega
-na versão 0.5. O passo a passo completo e a referência de comandos estão no [README em inglês](README.md).
+O navegador abre na interface do ANCHOR, com um guia curto na primeira vez. A interface começa no
+idioma do computador (português ou inglês) e muda em **Configurações → Idioma**; os pedidos podem ser
+em português. O passo a passo completo, a referência de comandos e a
+avaliação estão no [README em inglês](README.md).
 
 ## Licença e citação
 

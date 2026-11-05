@@ -1,0 +1,354 @@
+"""Runs from the interface: the queue, the questions, stopping, and a real run of a saved automation."""
+import threading
+import time
+
+import pytest
+from fastapi.testclient import TestClient
+
+from anchor.automations.model import ApprovedPlan, Automation, AutomationStore
+from anchor.engine.sensitive import ConfirmationRequest
+from anchor.planner import Goal, Step
+from anchor.ui.runs import RunManager, WebConfirmer
+from anchor.ui.server import TOKEN_HEADER, create_app
+
+PORT = 8766
+HEADERS = {TOKEN_HEADER: "the-code"}
+
+
+def wait_for(check, seconds=10.0):
+    end = time.time() + seconds
+    while time.time() < end:
+        value = check()
+        if value:
+            return value
+        time.sleep(0.05)
+    raise AssertionError("timed out")
+
+
+def client_for(store, runner=None, headless=True):
+    app = create_app(store.root, token="the-code", port=PORT, runner=runner, headless=headless)
+    return TestClient(app, base_url=f"http://127.0.0.1:{PORT}")
+
+
+@pytest.fixture
+def store(tmp_path):
+    store = AutomationStore(tmp_path / "automations")
+    store.create(Automation(name="greet", request="Say hello to {name}", url="https://example.com", profile="ollama-small",
+                            parameters=["name"]))
+    return store
+
+
+def run_until_done(client, run_id):
+    return wait_for(lambda: (r := client.get(f"/api/runs/{run_id}", headers=HEADERS).json())["state"]
+                    not in ("queued", "running", "waiting") and r)
+
+
+def test_runs_go_one_at_a_time_in_the_order_they_came():
+    release, order = threading.Event(), []
+
+    def runner(job):
+        order.append(job.id)
+        release.wait(5)
+        return {"state": "checked", "message": "done"}
+
+    manager = RunManager(runner)
+    first, second = manager.submit("request", "a", {}), manager.submit("request", "b", {})
+    wait_for(lambda: first.state == "running")
+    assert second.state == "queued" and manager.position(second) == 1
+    release.set()
+    wait_for(lambda: second.state == "checked")
+    assert order == [first.id, second.id]
+
+
+def test_a_question_reaches_the_interface_and_its_answer_reaches_the_run(store):
+    def runner(job):
+        decision = WebConfirmer(job, remembers=True).confirm(
+            ConfirmationRequest(action="click", description="Save the record", element="Save", category="submit"))
+        return {"state": "checked" if decision else "not_done", "message": f"allowed={bool(decision)} saved={decision.save}"}
+
+    client = client_for(store, runner)
+    run = client.post("/api/runs", json={"kind": "automation", "name": "greet", "values": {"name": "Ana"}}, headers=HEADERS).json()
+    question = wait_for(lambda: client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"])
+    assert question["kind"] == "confirm" and question["element"] == "Save" and question["remembers"]
+    assert client.post(f"/api/runs/{run['id']}/answer", json={"number": question["number"], "answer": {"choice": "allow"}},
+                       headers=HEADERS).status_code == 200
+    done = run_until_done(client, run["id"])
+    assert done["state"] == "checked" and done["result"]["message"] == "allowed=True saved=True"
+    # an answer to a question that is no longer open is refused
+    assert client.post(f"/api/runs/{run['id']}/answer", json={"number": question["number"], "answer": {}},
+                       headers=HEADERS).status_code == 409
+
+
+def test_stopping_with_a_question_open_answers_no_and_keeps_no_decision(store):
+    seen = {}
+
+    def runner(job):
+        decision = WebConfirmer(job, remembers=True).confirm(
+            ConfirmationRequest(action="click", description="Delete", element="Delete", category="delete"))
+        seen.update(allowed=bool(decision), saved=decision.save)
+        return {"state": "not_done", "message": "refused"}
+
+    client = client_for(store, runner)
+    run = client.post("/api/runs", json={"kind": "automation", "name": "greet", "values": {"name": "Ana"}}, headers=HEADERS).json()
+    wait_for(lambda: client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"])
+    client.post(f"/api/runs/{run['id']}/stop", headers=HEADERS)
+    assert run_until_done(client, run["id"])["state"] == "stopped"
+    assert seen == {"allowed": False, "saved": False}
+
+
+def test_stopping_a_run_takes_effect_at_its_next_step(store):
+    def runner(job):
+        for i in range(400):
+            job.say(f"step {i}")
+            time.sleep(0.01)
+        return {"state": "checked", "message": "never"}
+
+    client = client_for(store, runner)
+    run = client.post("/api/runs", json={"kind": "automation", "name": "greet", "values": {"name": "Ana"}}, headers=HEADERS).json()
+    wait_for(lambda: len(client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["events"]) > 3)
+    client.post(f"/api/runs/{run['id']}/stop", headers=HEADERS)
+    done = run_until_done(client, run["id"])
+    assert done["state"] == "stopped" and done["result"]["message"] == "Stopped by you."
+    later = client.get(f"/api/runs/{run['id']}?after=2", headers=HEADERS).json()["events"]
+    assert all(e["seq"] > 2 for e in later)
+
+
+def test_a_run_is_refused_before_it_starts_when_something_is_missing(store):
+    client = client_for(store, lambda job: {"state": "checked", "message": ""})
+    post = lambda body, **h: client.post("/api/runs", json=body, headers={**HEADERS, **h})
+    assert post({"kind": "automation", "name": "greet"}).status_code == 400                   # the value it needs
+    assert post({"kind": "automation", "name": "none-such"}).status_code == 404
+    assert post({"kind": "request", "request": "Log in with password Abc123!", "url": "example.com",
+                 "profile": "ollama-small"}).status_code == 400                                # a password: never
+    assert post({"kind": "request", "request": "Search for shoes", "url": "example.com", "profile": "nope"}).status_code == 400
+    assert client.post("/api/runs", json={"kind": "automation", "name": "greet", "values": {"name": "x"}}).status_code == 401
+    assert post({"kind": "automation", "name": "greet", "values": {"name": "x"}}, origin="https://evil.example").status_code == 403
+
+
+def test_a_saved_automation_really_runs_and_its_sensitive_step_is_asked_in_the_interface(tmp_path):
+    page = tmp_path / "form.html"
+    page.write_text("""<!doctype html><html><body><h1>New customer</h1>
+      <label for="n">Name</label><input id="n">
+      <button onclick="document.getElementById('ok').textContent='Saved: '+document.getElementById('n').value">Save</button>
+      <p id="ok"></p></body></html>""", encoding="utf-8")
+    store = AutomationStore(tmp_path / "automations")
+    store.create(Automation(name="new-customer", request="Register {name} and save", url=page.as_uri(),
+                            profile="ollama-small", parameters=["name"]))
+    store.save_plan("new-customer", ApprovedPlan(
+        steps=[Step(action="fill", description="Name", value="{name}", goal="g1"),
+               Step(action="click", description="Save", goal="g1")],
+        goals=[Goal(id="g1", description="the customer is saved", conclusive=True)]))
+    client = client_for(store, headless=True)
+    run = client.post("/api/runs", json={"kind": "automation", "name": "new-customer", "values": {"name": "Ana Souza"}},
+                      headers=HEADERS).json()
+    question = wait_for(lambda: client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"], 60)
+    assert question["kind"] == "confirm" and question["element"] == "Save"
+    client.post(f"/api/runs/{run['id']}/answer", json={"number": question["number"], "answer": {"choice": "allow"}}, headers=HEADERS)
+    done = wait_for(lambda: (r := client.get(f"/api/runs/{run['id']}", headers=HEADERS).json())["state"]
+                    not in ("queued", "running", "waiting") and r, 60)
+    assert done["state"] == "checked", done["result"]
+    assert store.runs("new-customer")[-1]["status"] == "success"
+    assert store.confirmations("new-customer")             # the decision is kept, as in the command line
+
+
+def test_every_event_has_its_time_of_day():
+    from anchor.ui.runs import Job
+    job = Job(1, "request", "x", {})
+    job.say("Planning...")
+    assert len(job.events[0]["at"]) == 8 and job.events[0]["at"].count(":") == 2      # 13:15:02
+
+
+def test_the_interface_sees_what_the_ai_is_doing_and_why_a_plan_was_not_usable():
+    from anchor.planner import Plan, PlanError
+    from anchor.ui.execute import StepwisePlanner
+    from anchor.ui.runs import Job
+    job, seen = Job(1, "request", "x", {}), []
+
+    class Inner:
+        language = "pt"
+
+        def __init__(self, progress):
+            self.progress, self.last_attempts = progress, []
+
+        def plan(self, *a, **k):
+            self.progress("thinking", 40)
+            seen.append(dict(job.activity))
+            self.progress("writing", 3)                # a second attempt starts from nothing
+            seen.append(dict(job.activity))
+            self.last_attempts = [("{}", 'step 2: the "fill" action needs a value')]
+            raise PlanError("could not generate the plan")
+
+    planner = StepwisePlanner(job, Inner)
+    with pytest.raises(PlanError):
+        planner.plan("faça login e pesquise")
+    assert seen[0]["phase"] == "thinking" and seen[1]["attempt"] == 2 and job.activity is None
+    assert job.events[-1]["text"] == 'The AI\'s plan (attempt 1) was not usable: step 2: the "fill" action needs a value'
+
+
+def test_an_outcome_is_said_in_plain_words_with_what_to_do():
+    from anchor.ui.explain import explain
+    linkedin = explain({"state": "not_done", "message": 'could not generate the plan: invalid plan after 2 attempts: '
+                                                        'step 2: the "fill" action needs a value'})
+    assert linkedin["summary"] == "The AI could not make a plan for this page." and "log in" in linkedin["hint"]
+    assert explain({"state": "checked", "message": "goal reached"})["summary"] == "Done, and every step was checked."
+    assert explain({"state": "not_done", "message": "something new"})["summary"] == "Something new"
+
+
+def test_with_the_window_hidden_a_login_is_not_waited_for_and_the_person_is_told_why():
+    from anchor.ui.runs import Job, WebLoginWaiter
+    job = Job(1, "request", "x", {})
+    assert WebLoginWaiter(job, can_log_in=False).wait("https://example.com") is False
+    assert job.question is None and "browser window is hidden" in job.events[-1]["text"]
+
+
+def test_each_action_tells_the_interface_what_it_was_done_on(page):
+    from anchor.engine.action_executor import ActionExecutor
+    page.set_content('<nav><a href="#jobs">Jobs</a></nav><main><button>Jobs</button><button>People</button></main>')
+    seen = []
+    executor = ActionExecutor(page)
+    executor.on_result = seen.append
+    executor.click("Jobs")
+    assert seen and seen[0].status == "success" and seen[0].selected_element is not None
+
+
+def test_the_live_view_shows_the_browser_while_it_is_watched(tmp_path):
+    page = tmp_path / "form.html"
+    page.write_text('<!doctype html><html><body style="background:#fff"><h1>New customer</h1><label for="n">Name</label>'
+                    '<input id="n"><button onclick="this.textContent=&#39;Saved&#39;">Save</button></body></html>', encoding="utf-8")
+    store = AutomationStore(tmp_path / "automations")
+    store.create(Automation(name="nc", request="Register {name} and save", url=page.as_uri(), profile="ollama-small", parameters=["name"]))
+    store.save_plan("nc", ApprovedPlan(steps=[Step(action="fill", description="Name", value="{name}", goal="g1"),
+                                              Step(action="click", description="Save", goal="g1")],
+                                       goals=[Goal(id="g1", description="saved", conclusive=True)]))
+    client = client_for(store, headless=True)
+    run = client.post("/api/runs", json={"kind": "automation", "name": "nc", "values": {"name": "Ana"}}, headers=HEADERS).json()
+    assert client.get(f"/api/runs/{run['id']}/frame").status_code == 401                 # the live view needs the code too
+    question = wait_for(lambda: client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"], 60)
+
+    def an_image():
+        r = client.get(f"/api/runs/{run['id']}/frame", headers=HEADERS)
+        return r if r.status_code == 200 else None
+
+    image = wait_for(an_image, 20)                       # while the run waits for the person, the picture still comes
+    assert image.headers["content-type"] == "image/jpeg" and image.content[:2] == b"\xff\xd8" and int(image.headers["x-frame"]) >= 1
+    assert client.get(f"/api/runs/{run['id']}/frame?after={image.headers['x-frame']}", headers=HEADERS).status_code in (200, 204)
+    client.post(f"/api/runs/{run['id']}/answer", json={"number": question["number"], "answer": {"choice": "allow"}}, headers=HEADERS)
+    done = run_until_done(client, run["id"])
+    assert done["state"] == "checked"
+    used = [e["text"] for e in done["events"] if e["type"] == "used"]
+    assert any("Name" in u for u in used) and any("Save" in u for u in used)            # what each step was done on
+
+
+def test_the_details_of_a_run_are_a_file_with_what_the_model_read_and_answered(store):
+    def runner(job):
+        job.details.append({"request": "search", "page": ['Button "Jobs"'], "refused": [], "answer": "{}", "error": None})
+        return {"state": "checked", "message": "goal reached"}
+
+    client = client_for(store, runner)
+    run = client.post("/api/runs", json={"kind": "automation", "name": "greet", "values": {"name": "Ana"}}, headers=HEADERS).json()
+    run_until_done(client, run["id"])
+    r = client.get(f"/api/runs/{run['id']}/details", headers=HEADERS)
+    assert r.status_code == 200 and "attachment" in r.headers["content-disposition"]
+    assert r.json()["plannings"][0]["page"] == ['Button "Jobs"'] and r.json()["state"] == "checked"
+
+
+def test_the_persons_clicks_and_keys_reach_the_page_and_only_known_keys_are_pressed(page):
+    from anchor.ui.execute import deliver
+    from anchor.ui.runs import Job
+    page.set_viewport_size({"width": 1000, "height": 600})
+    page.set_content('<input id="u" style="position:absolute;left:100px;top:100px;width:200px;height:30px">')
+    job = Job(1, "request", "x", {})
+    job.frame_meta = {"deviceWidth": 1000, "deviceHeight": 600}
+    job.inputs.extend([{"type": "click", "x": 0.2, "y": 115 / 600}, {"type": "text", "text": "Ana"},
+                       {"type": "key", "key": "Backspace"}, {"type": "key", "key": "F12"}])
+    deliver(job, page)
+    assert page.input_value("#u") == "An" and not job.inputs
+
+
+def test_the_live_view_takes_clicks_and_keys_only_while_a_login_waits_and_never_records_them(store):
+    from anchor.ui.runs import WebLoginWaiter
+    seen = {}
+
+    def runner(job):
+        time.sleep(0.5)
+        WebLoginWaiter(job).wait("https://example.com")
+        return {"state": "checked", "message": "logged in"}
+
+    client = client_for(store, runner)
+    run = client.post("/api/runs", json={"kind": "automation", "name": "greet", "values": {"name": "Ana"}}, headers=HEADERS).json()
+    assert client.post(f"/api/runs/{run['id']}/input", json={"type": "text", "text": "x"}, headers=HEADERS).status_code == 409
+    question = wait_for(lambda: client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"])
+    assert question["kind"] == "login"
+    assert client.post(f"/api/runs/{run['id']}/input", json={"type": "text", "text": "my-secret"}, headers=HEADERS).status_code == 200
+    client.post(f"/api/runs/{run['id']}/answer", json={"number": question["number"], "answer": {"choice": "done"}}, headers=HEADERS)
+    done = run_until_done(client, run["id"])
+    assert "my-secret" not in str(done) and "my-secret" not in client.get(f"/api/runs/{run['id']}/details", headers=HEADERS).text
+
+
+def test_pointing_at_the_element_on_the_live_view_does_the_step(tmp_path):
+    page = tmp_path / "order.html"
+    page.write_text('<!doctype html><html><body style="margin:0"><h1 style="margin:20px">Order 42</h1>'
+                    '<button id="go" style="position:absolute;left:300px;top:200px;width:80px;height:40px" '
+                    'onclick="document.getElementById(\'s\').textContent=\'Details shown\'">▶</button><p id="s"></p></body></html>',
+                    encoding="utf-8")
+    store = AutomationStore(tmp_path / "automations")
+    store.create(Automation(name="details", request="Open the order's details", url=page.as_uri(), profile="ollama-small"))
+    store.save_plan("details", ApprovedPlan(steps=[Step(action="click", description="Ver detalhes do pedido", goal="g1")],
+                                            goals=[Goal(id="g1", description="the details are shown")]))
+    client = client_for(store, headless=True)
+    run = client.post("/api/runs", json={"kind": "automation", "name": "details"}, headers=HEADERS).json()
+    choose = wait_for(lambda: (q := client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"]) and q, 60)
+    assert choose["kind"] == "choose" and choose["can_point"]
+    client.post(f"/api/runs/{run['id']}/answer", json={"number": choose["number"], "answer": {"choice": "point"}}, headers=HEADERS)
+    point = wait_for(lambda: (q := client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"]) and q["kind"] == "point" and q, 30)
+    # the person clicks the button on the live view (the page is 1280 x 720 in a hidden browser)
+    client.post(f"/api/runs/{run['id']}/input", json={"type": "click", "x": 340 / 1280, "y": 220 / 720}, headers=HEADERS)
+    done = run_until_done(client, run["id"])
+    assert point["number"] > choose["number"]
+    assert any(e["type"] == "used" and "▶" in e["text"] for e in done["events"]), done["events"][-6:]
+
+
+def test_logging_in_to_an_automations_site_asks_and_keeps_the_session(tmp_path):
+    site = tmp_path / "site.html"
+    site.write_text("<h1>Sign in</h1><input type=password>", encoding="utf-8")
+    store = AutomationStore(tmp_path / "automations")
+    store.create(Automation(name="crm", request="Open the CRM", url=site.as_uri(), profile="ollama-small"))
+    client = client_for(store, headless=True)
+    run = client.post("/api/automations/crm/login", headers=HEADERS).json()
+    question = wait_for(lambda: client.get(f"/api/runs/{run['id']}", headers=HEADERS).json()["question"], 60)
+    assert question["kind"] == "login" and question["window"] is False
+    client.post(f"/api/runs/{run['id']}/answer", json={"number": question["number"], "answer": {"choice": "done"}}, headers=HEADERS)
+    assert run_until_done(client, run["id"])["state"] == "checked"
+    assert client.post("/api/automations/none-such/login", headers=HEADERS).status_code == 404
+
+
+def test_none_of_these_with_why_goes_to_the_engine_and_can_be_kept_as_the_automations_note():
+    from anchor.engine.disambiguation.types import CandidateView, ChoiceRequest
+    from anchor.ui.runs import Job, WebDisambiguator
+    job, kept, got = Job(1, "automation", "portal", {}), [], {}
+    job.keep_note = kept.append
+    request = ChoiceRequest(action="click", description="relatorios", reason="not_found",
+                            candidates=[CandidateView(number=1, kind="Button", name="ACESSAR", near="PORTAL DO ALUNO")],
+                            screenshot=None, can_point=True)
+    worker = threading.Thread(target=lambda: got.setdefault("choice", WebDisambiguator(job).choose(request)))
+    worker.start()
+    question = wait_for(lambda: job.question)
+    assert question["keeps_notes"] and question["kind"] == "choose"
+    job.give(question["number"], {"choice": "none", "note": "  The reports are inside the portal:\n log in first ", "keep": True})
+    worker.join(5)
+    assert got["choice"].kind == "none" and got["choice"].note == "The reports are inside the portal: log in first"
+    assert kept == ["The reports are inside the portal: log in first"]
+
+
+def test_the_outcomes_seen_in_the_17_10_runs_are_said_right():
+    from anchor.ui.explain import explain
+    timeout = explain({"state": "not_done", "message": "3 failed attempts; last problem: click Vagas — the action could not be "
+                                                       "performed (Locator.click: Timeout 30000ms exceeded.)"})
+    assert "AI could not be reached" not in timeout["summary"] and "tried 3 times" in timeout["summary"]
+    covered = explain({"state": "not_done", "message": "3 failed attempts; last problem: click Vagas — the click was blocked: "
+                                                       "\"Mensagens\" is on top of the element; close it, or scroll, first"})
+    assert "on top of the element" in covered["summary"]
+    loop = explain({"state": "not_done", "message": "the end check kept finding steps; please check the result"})
+    assert loop["summary"] == "ANCHOR kept finding more to do, so it stopped."
+    ollama = explain({"state": "error", "message": "The run could not go on: could not reach the model at localhost:11434"})
+    assert ollama["summary"] == "The AI could not be reached."

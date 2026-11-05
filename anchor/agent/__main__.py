@@ -26,6 +26,7 @@ from anchor.engine.sensitive import TerminalConfirmer
 from anchor.i18n import t
 from anchor.planner import ConfigError, get_profile
 from anchor.planner.progress import Progress
+from anchor.vault.fill import with_vault
 
 from .agent import Agent
 
@@ -105,7 +106,8 @@ def main() -> int:
             vision = VisionChecker(profile.client(), profile.model)
         try:
             result = Agent(page, planner, executor, max_failures=args.max_attempts, vision=vision,
-                           output_dir=args.output_dir, login=TerminalLoginWaiter()).run(args.request)
+                           output_dir=args.output_dir,
+                           login=with_vault(TerminalLoginWaiter(), lambda: executor.page)).run(args.request)
         except KeyboardInterrupt:
             print("\n\n" + t("cli.interrupted"))
             context.close()

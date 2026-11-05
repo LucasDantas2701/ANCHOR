@@ -99,6 +99,7 @@ MANIFEST
 #   before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
+!packaging/anchor.spec
 
 # Installer logs
 pip-log.txt
@@ -289,7 +290,14 @@ __marimo__/
 # Tables and lists extracted by anchor.agent (--output-dir)
 /output/
 
+<<<<<<< HEAD
 # The documentation site's build (see .github/workflows/pages.yml)
 /site_src/
 /site/
 /site_nav.yml
+=======
+# The interface: its dependencies, and the build (made by `npm run build` in web/)
+/web/node_modules/
+/web/.angular/
+/anchor/ui/static/
+>>>>>>> develop

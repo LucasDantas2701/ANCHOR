@@ -16,6 +16,7 @@ from anchor.engine.disambiguation import (
 )
 from anchor.engine.element_resolver import ElementResolver, Match
 from anchor.engine.memory import ChoiceMemory
+from anchor.i18n import t
 
 from .constants import (
     DEFAULT_AMBIGUITY_GAP,
@@ -37,6 +38,18 @@ def _free_path(folder: Path, name: str) -> Path:
     while path.exists():
         path, n = folder / f"{stem} ({n}){suffix}", n + 1
     return path
+
+
+def _shown(match: Match) -> str:
+    """The element in a few words, for a confirmation: its kind and name ("button “Save the form”")."""
+    try:
+        from anchor.engine.disambiguation.describe import describe
+        seen = describe(match, 0, "en")
+        name = " ".join(seen.name.split())
+        kind = seen.kind[:1].lower() + seen.kind[1:]
+        return f"{kind} “{name[:60] + ('…' if len(name) > 60 else '')}”"
+    except Exception:
+        return ""
 
 class ActionExecutor:
     """
@@ -118,6 +131,9 @@ class ActionExecutor:
         # a reason it returns stops the action ("changed"). Unattended runs use it to act only on
         # the elements of the run that proved the automation.
         self.guard: Optional[Callable] = None
+        self.on_result: Optional[Callable[[ActionResult], None]] = None   # told after each action
+        self._last_choice = None          # the person's last answer to "which element" (none, login, skip...)
+        self.click_timeout_ms = 10_000    # how long a click may wait for its element to be clickable
         # When True, filling a password field is refused (status "credential") instead of typed:
         # the agent turns it on, so credentials never go through the model and the user logs in
         # by hand. Off by default, for the resolver's evaluation on test pages.
@@ -181,7 +197,17 @@ class ActionExecutor:
             matches,
         )
 
-    def _run(
+    def _run(self, description: str, action_name: str, fn: Callable[[Match], Any]) -> ActionResult:
+        """Resolves and acts; then tells whoever listens (on_result: the interface) what was done, and on what."""
+        result = self._resolve_and_act(description, action_name, fn)
+        if self.on_result is not None:
+            try:
+                self.on_result(result)
+            except Exception:
+                pass                            # a listener never changes the run
+        return result
+
+    def _resolve_and_act(
         self,
         description: str,
         action_name: str,
@@ -259,12 +285,17 @@ class ActionExecutor:
             )
 
             if match is None:
+                # The person skipped the step, said it is none of these (maybe saying why), or that a
+                # login comes first: the agent replans with what they said, or waits for the login.
+                choice = self._last_choice
+                kind = choice.kind if choice is not None else "skip"
                 return ActionResult(
                     status=status,
                     action=action_name,
                     description=description,
                     candidates=candidates,
-                    resolved_by="user_skipped",
+                    resolved_by={"none": "user_none", "login": "user_login"}.get(kind, "user_skipped"),
+                    note=" ".join((choice.note or "").split())[:300] if choice is not None else "",
                 )
 
             resolved_by = "user"
@@ -350,7 +381,8 @@ class ActionExecutor:
         category = classify(action_name, description, element)
         if category is None:
             return None
-        request = ConfirmationRequest(action_name, description, element or description, category, self.page.url)
+        request = ConfirmationRequest(action_name, description, element or description, category, self.page.url,
+                                      shown=_shown(match))
         waited = time.perf_counter()
         allowed = self.confirmer.confirm(request)
         self.user_wait_s += time.perf_counter() - waited
@@ -480,6 +512,7 @@ class ActionExecutor:
 
         shown = self._choices_to_show(reason, candidates)
         waited = time.perf_counter()
+        self._last_choice = None
 
         try:
             highlight_candidates(self.page, shown)
@@ -498,15 +531,16 @@ class ActionExecutor:
         finally:
             clear_highlights(self.page)
 
+        self._last_choice = choice
         if choice.kind == "candidate" and choice.number:
             self.user_wait_s += time.perf_counter() - waited
             return shown[choice.number - 1]
 
         if choice.kind == "point" and self.can_point:
-            self.disambiguator.notify(
-                "Clique no elemento na janela do navegador."
-            )
-            captured = capture_click(self.page, self.point_timeout_s)
+            self.disambiguator.notify(t("dis.point_now"))
+            # A disambiguator may capture the click its own way (the interface: through the live view).
+            capture = getattr(self.disambiguator, "capture_click", None) or capture_click
+            captured = capture(self.page, self.point_timeout_s)
             self.user_wait_s += time.perf_counter() - waited
             return self._enrich_captured(captured, action_name) if captured else None
 
@@ -565,6 +599,9 @@ class ActionExecutor:
         **kwargs,
     ) -> ActionResult:
 
+        # A click that cannot happen in a few seconds will not happen: something covers the
+        # element, or it is not ready. Playwright's 30 s made each such step cost half a minute.
+        kwargs.setdefault("timeout", self.click_timeout_ms)
         return self._run(
             description,
             "click",

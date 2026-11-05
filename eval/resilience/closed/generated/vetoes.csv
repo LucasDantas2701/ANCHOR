@@ -1,0 +1,10 @@
+task;level;element;word;replacement;draw
+en-reg-01;2;4;Phone;sound;1
+en-reg-02;2;4;Phone;earpiece;1
+p-log-01;2;1;Password;parole;1
+p-store-01;2;8;stock;sprout;1
+p-store-02;2;6;Add;lend;1
+p-log-01;2;1;Password;word;2
+p-store-02;2;6;Add;tally;2
+p-log-01;2;1;Password;countersign;3
+p-store-02;2;6;Add;impart;3

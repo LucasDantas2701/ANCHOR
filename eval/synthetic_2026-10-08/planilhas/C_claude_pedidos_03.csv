@@ -1,0 +1,27 @@
+﻿pagina;pedido
+holdout_booking.html;quero reservar a sala Amazonas amanhã das 10h às 11h com a Marina e o João, e manda o convite por e-mail
+holdout_booking.html;cancela aquela reunião de planejamento que eu marquei
+holdout_helpdesk.html;assume o chamado da VPN da Juliana
+holdout_helpdesk.html;assume o chamado do monitor novo do Pedro
+holdout_blog.html;publish the interns post
+holdout_blog.html;add the tags hiring and summer to the welcome post and save it as a draft
+holdout_hr.html;I need vacation from Nov 16 to Nov 20, put in the notes that it's a family trip, and submit it
+holdout_hr.html;cancel my approved vacation please
+registration.html;cadastra a Ana Souza, CPF 123.456.789-00, nascida em 14/03/1992, e-mail ana.souza@empresa.com, departamento de TI, CLT, aceita os termos e salva
+registration.html;preenche o nome Carlos Pereira e o telefone 92 99999-0000 e já envia pra aprovação
+registration_en.html;register Michael Brown, work email michael.brown@company.com, contractor, accept the terms and send it for approval
+registration_en.html;put my name as Dana Reed, born 05/22/1990, and just save it for now
+users.html;procura o Bruno
+users.html;desativa a Carla Mendes
+users_en.html;show me only the inactive users
+users_en.html;go to the next page and select everybody
+orders.html;cancela o pedido que ainda não saiu
+orders.html;coloca a caneca de cerâmica e a garrafa térmica no carrinho e continua
+orders_en.html;cancel order 1023
+orders_en.html;add the thermos bottle to my cart and continue
+jobs.html;tira da lista a vaga de Desenvolvedor RPA da TechNorte
+jobs.html;abre a vaga de Consultor RPA da NUMEN
+jobs_en.html;dismiss the Automation Analyst job
+jobs_en.html;open the remote one
+store.html (pedido em português);procura fone com cancelamento de ruído e põe o QuietMax no carrinho
+store.html (pedido em inglês);add the UltraBook 14 to my cart and show me the total

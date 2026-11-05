@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><link rel="stylesheet" href="colecao.css"><title>Publicações — CMS</title>
+<style>[role=switch]{display:inline-block;width:30px;height:16px;background:#ccc;cursor:pointer}</style></head><body>
+<aside><a href="/posts" class="nav-posts">Publicações</a> <a href="/media">Biblioteca de mídia</a> <a href="/settings">Configurações</a></aside>
+<main>
+  <div class="top"><h1>Publicações</h1><button class="new">Nova publicação</button></div>
+  <table class="posts">
+    <tr class="p1"><td class="title">Saíram os resultados do trimestre</td><td class="state">Publicado</td>
+      <td><a href="/posts/1/edit" class="edit">Editar</a> <a href="/posts/1" class="preview">Pré-visualizar</a> <button class="del" title="Mover para a lixeira"><i class="fa fa-trash" style="display:inline-block;width:14px;height:14px"></i></button></td></tr>
+    <tr class="p2"><td class="title">Boas-vindas aos novos estagiários</td><td class="state">Rascunho</td>
+      <td><a href="/posts/2/edit" class="edit">Editar</a> <a href="/posts/2" class="preview">Pré-visualizar</a> <button class="del" title="Mover para a lixeira"><i class="fa fa-trash" style="display:inline-block;width:14px;height:14px"></i></button></td></tr>
+  </table>
+  <section class="editor">
+    <label for="ptitle">Título</label><input id="ptitle" value="Boas-vindas aos novos estagiários">
+    <div class="body" contenteditable="true" aria-label="Conteúdo da publicação">Neste semestre recebemos cinco estagiários...</div>
+    <label for="tags">Etiquetas</label><input id="tags" placeholder="Adicione etiquetas separadas por vírgulas">
+    <span id="cmt-label">Permitir comentários</span><div role="switch" aria-checked="false" aria-labelledby="cmt-label" tabindex="0" class="comments"></div>
+    <button class="draft">Salvar rascunho</button><button class="publish">Publicar</button>
+    <p class="edited">Editado há 2 horas por Ana</p>
+  </section>
+</main>
+<script src="feedback.js"></script>
+</body></html>

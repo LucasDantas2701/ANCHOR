@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="250" viewBox="0 0 900 250" role="img" aria-label="How ANCHOR works: request, planner (a local model writes the steps), resolver, executor, check">
+<rect width="900" height="250" rx="14" fill="#FFFFFF"/>
+<text x="40" y="44" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="19" font-weight="700" fill="#14121A">In ANCHOR, the model only plans.</text>
+<text x="40" y="68" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="13.5" fill="#5D576B">Code does the acting, and every action is checked.</text>
+<defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#7C5CD6"/><stop offset=".3" stop-color="#7DB31A"/><stop offset=".55" stop-color="#0E9F8E"/><stop offset="1" stop-color="#0E9F8E"/></linearGradient></defs>
+<rect x="90" y="125" width="720" height="3" rx="1.5" fill="url(#g)"/>
+<circle cx="90" cy="126" r="25" fill="#F6F4FA" stroke="#7C5CD6" stroke-width="2.5"/>
+<text x="90" y="132" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="17" font-weight="700" fill="#7C5CD6">1</text>
+<text x="90" y="178" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="700" fill="#14121A">Request</text>
+<text x="90" y="199" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12.5" fill="#5D576B">what you want,</text>
+<text x="90" y="216" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12.5" fill="#5D576B">in plain language</text>
+<circle cx="270" cy="126" r="25" fill="#7DB31A" stroke="#7DB31A" stroke-width="2.5"/>
+<text x="270" y="132" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="17" font-weight="700" fill="#0C0A12">2</text>
+<text x="270" y="178" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="700" fill="#14121A">Planner</text>
+<text x="270" y="199" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12.5" fill="#5D576B">a local model</text>
+<text x="270" y="216" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12.5" fill="#5D576B">writes the steps</text>
+<circle cx="450" cy="126" r="25" fill="#F6F4FA" stroke="#0E9F8E" stroke-width="2.5"/>
+<text x="450" y="132" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="17" font-weight="700" fill="#0E9F8E">3</text>
+<text x="450" y="178" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="700" fill="#14121A">Resolver</text>
+<text x="450" y="199" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12.5" fill="#5D576B">finds the element</text>
+<text x="450" y="216" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12.5" fill="#5D576B">on the page</text>
+<circle cx="630" cy="126" r="25" fill="#F6F4FA" stroke="#0E9F8E" stroke-width="2.5"/>
+<text x="630" y="132" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="17" font-weight="700" fill="#0E9F8E">4</text>
+<text x="630" y="178" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="700" fill="#14121A">Executor</text>
+<text x="630" y="199" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12.5" fill="#5D576B">acts in</text>
+<text x="630" y="216" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12.5" fill="#5D576B">the browser</text>
+<circle cx="810" cy="126" r="25" fill="#F6F4FA" stroke="#0E9F8E" stroke-width="2.5"/>
+<text x="810" y="132" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="17" font-weight="700" fill="#0E9F8E">5</text>
+<text x="810" y="178" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="700" fill="#14121A">Check</text>
+<text x="810" y="199" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12.5" fill="#5D576B">did the effect</text>
+<text x="810" y="216" text-anchor="middle" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="12.5" fill="#5D576B">happen?</text>
+</svg>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt"><head><meta charset="utf-8"><title>Página inventada</title>
+<style>.btn { padding: 4px } #nome { width: 10em }</style></head>
+<body>
+<main id="conteudo" class="main">
+  <section class="filtros">
+    <label for="nome">Nome completo</label>
+    <input id="nome" name="nome" type="text" class="campo" data-eval="e1">
+    <label for="setor">Setor</label>
+    <select id="setor" name="setor" data-eval="e2"><option value="ti">TI</option><option value="rh">RH</option></select>
+    <img src="x.png" alt="Logotipo da empresa">
+  </section>
+  <form id="cadastro" class="form" onsubmit="event.preventDefault(); document.body.dataset.sent = '1'">
+    <label><input type="checkbox" name="aceito" data-eval="e3"> Aceito os termos</label>
+    <button type="submit" class="btn primario" data-eval="e4">Salvar cadastro</button>
+  </form>
+  <ul class="lista">
+    <li><a href="#a" class="item">Primeiro item</a></li>
+    <li><a href="detalhe.html" class="item" data-eval="e5">Ver detalhes</a></li>
+    <li><a href="#c" class="item">Terceiro item</a></li>
+  </ul>
+  <button class="btn" onclick="document.body.dataset.opened = '1'" data-eval="e6">Abrir painel</button>
+</main>
+<script>document.querySelectorAll('.btn').forEach(function (b) { b.dataset.ready = '1'; });</script>
+</body></html>

@@ -225,9 +225,20 @@ def test_the_blind_check_catches_a_wrong_annotation(browser):
 
 def test_the_closed_set_has_every_request_and_is_valid():
     from eval.plan_run import load_tasks
-    closed = [t for t in load_tasks() if t.get("split") == "test"]
+    closed = [t for t in load_tasks() if t.get("split") == "test" and t.get("origin") == "synthetic"]
     assert len(closed) == 80 and {t["author"] for t in closed} == {"A", "B", "C"}
     assert all(t.get("reference_targets") or t.get("expected") == "not_possible" for t in closed)
+
+
+def test_the_controlled_set_has_its_42_requests_14_per_generator():
+    from collections import Counter
+
+    from eval.plan_run import load_tasks
+    closed = [t for t in load_tasks() if t.get("split") == "test" and t.get("origin") == "synthetic_controlled"]
+    if not closed:
+        return                                   # not made yet (eval.closed_sets skeleton)
+    assert Counter(t["generator"] for t in closed) == {"chatgpt": 14, "claude_1": 14, "claude_2": 14}
+    assert all(t["fixture"].startswith("collection/") for t in closed)
 
 
 def test_extraction_checks_compare_what_was_read():

@@ -1,0 +1,29 @@
+﻿pagina;pedido
+holdout_booking.html;reserva a sala Negro pra amanhã das 14h às 15h, com a Juliana e o Pedro, e manda o convite por e-mail
+holdout_booking.html;cancela minha reunião de planejamento
+holdout_helpdesk.html;assume o chamado da VPN da Juliana e comenta que vou olhar hoje à tarde
+holdout_helpdesk.html;fecha o chamado 481
+holdout_blog.html;publish the interns post and turn off comments
+holdout_blog.html;add the tags hiring and summer to the welcome post and save it as a draft
+holdout_hr.html;request vacation from Nov 16 to Nov 20 and tell my manager I'll be reachable by phone
+holdout_hr.html;cancel my approved vacation in October
+registration.html;cadastra a Marina Costa, CPF 123.456.789-00, nascida em 14/03/1992, e-mail marina.costa@empresa.com, no Financeiro, CLT, aceita os termos e salva
+registration.html;preenche o cadastro do João Pedro como PJ e envia pra aprovação
+registration_en.html;register Daniel Brooks, work email daniel.brooks@company.com, contractor, and save it
+registration_en.html;fill the form for Sarah Kim, employee, born 05/22/1990, accept the terms and send it for approval
+users.html;ativa o Bruno Lima
+users.html;apaga todos os usuários inativos
+users_en.html;add a new user Peter Hall, peter@company.com
+users_en.html;show only the active users and select Anna and Carol
+orders.html;cancela o pedido que ainda não saiu
+orders.html;cancela o pedido 1023
+orders_en.html;add the thermos bottle to my cart
+orders_en.html;show me the details of the order that's being packed
+jobs.html;abre a vaga de Desenvolvedor RPA
+jobs.html;tira da lista a vaga da NUMEN e abre a da IndusAM
+jobs_en.html;open the Automation Analyst job
+jobs_en.html;dismiss the remote one
+store.html (pedido em português);coloca o UltraBook 14 no carrinho e me leva pra tela de login
+store.html (pedido em inglês);add the QuietMax headphones to my cart
+store.html (pedido em português);quero a cafeteira Barista, põe no carrinho
+store.html (pedido em inglês);show me only the laptops, sorted from cheapest to most expensive

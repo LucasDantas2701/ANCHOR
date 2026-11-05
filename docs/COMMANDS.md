@@ -34,8 +34,8 @@ The planner runs on local models served by [Ollama](https://ollama.com):
 | `ollama list` | Shows the downloaded models and their exact names (they go in `llm_profiles.json`). |
 | `ollama ps` | Shows the loaded model and whether it runs on the GPU or the CPU (column `PROCESSOR`). |
 
-For the paid OpenAI profile, set the key in an environment variable, never in a file. On
-Windows: `setx OPENAI_API_KEY "your-key"`, then open a new terminal.
+ANCHOR plans only with local models, through Ollama: no page, request or password leaves the
+computer, and no key is needed.
 
 ---
 
@@ -56,7 +56,7 @@ python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_e
 | `--browser-profile` | Folder of a persistent browser profile, for systems with login (e.g. `profiles/user_001`). |
 | `--max-attempts` | Failures before the run is cancelled. Default: 3. |
 | `--vision` | When the other checks doubt a step (a field that does not show the value, a click with no visible effect in the page's code, an expected text that did not appear), asks the model about a screenshot, scaled to 640 pixels. It can only confirm a doubted step, never fail one that worked. Slower: about 5 s per question with the 4B model and 9 s with the 9B, on the test machine. The model must have the `vision` capability. |
-| `--allow-sensitive` | Does not ask before sensitive actions. By default, before deleting, saving or submitting, sending, paying, downloading or uploading, the agent shows the element and asks; a denial stops the run. |
+| `--allow-sensitive` | Does not ask before sensitive actions. By default, before deleting, saving or submitting, sending, paying, downloading or uploading, or acting on your account (following someone, connecting, liking, commenting, sharing, subscribing, inviting), the agent shows the element and asks; a denial stops the run. |
 | `--output-dir` | Where tables and lists read by the agent are saved (one CSV file each) and where downloaded files go, never overwriting a file. Default: `output`. |
 | `--lang` | Interface language: `en` (default) or `pt`. Overrides `ANCHOR_LANG`. |
 | `--prompt-language` | Planner prompt language: `pt` (default, the measured one), `en`, or `auto` (follows the request). |
@@ -93,15 +93,34 @@ did not ask for: such a click is blocked, and the planner is told so. It is aske
 request has a verb for it ("salve", "envie", "pague"; for exporting, a verb or a word for a file),
 or when the request and the button are about the same thing ("reserve a sala" and "Reservar sala").
 So "attach the resume" does not end with the application sent; "attach the resume and send the
-application" does. Destructive actions (deleting, cancelling) have their own barrier.
+application" does. Destructive actions (deleting, cancelling) have their own barrier. Acting on your
+account on a social site (following someone, connecting, liking, reacting, commenting, sharing,
+reposting, subscribing, inviting) is blocked too unless the request has a verb for it ("siga",
+"curta", "share"): a request about the same person does not ask to follow them. "Seguir" alone, or
+"Seguir para o pagamento", is going on, not following.
 
-**Logging in.** The agent never types a password: a fill that would land on a password field is
-not done. A request that seems to contain a password ("senha: ...", "password ...") is refused
-before anything reaches the model. When a task needs a login (the request asks to log in, the
-plan reaches a password field, or nothing can be planned on a page that asks for one), the agent
-asks in the terminal: log in (or fill in the password) yourself in the browser window and press
-Enter, or `q` to cancel. If the page still shows an empty password field, it asks again. With
-`--browser-profile`, the session is kept for the next runs.
+**Goals and the end check.** A goal of the plan is met by its last planned step (a search is not met
+by the click that opens the search box), never by a step that led to a login page. Before saying a
+request is done, the agent checks that what it asks to finish was finished: a search must be sent
+(a click or Enter) after its term was typed; "confirm whether…" is a check, not a click on Confirm.
+
+**The site's own pop-ups.** An alert is accepted and what it says reaches the planner; a question
+("Are you sure?") is always answered no, since the agent never confirms on its own. A click with no
+visible change waits for what the click itself scheduled on the page (up to 8 s) before it counts as
+"no effect". A click on an element that something covers fails after 10 s, and the planner is told
+what covers it.
+
+**Logging in.** The agent never types a password: a fill of the plan that would land on a password
+field is not done. A request that seems to contain a password ("senha: ...", "password ...") is
+refused before anything reaches the model. When a task needs a login (the request asks to log in,
+the plan reaches a password field, or nothing can be planned on a page that asks for one), ANCHOR
+first uses a login saved for exactly that page's site (saved in the interface, **Settings → Saved
+logins**; the password is in Windows' Credential Manager): its own code types it, only into a
+password field and only on that site, and the model never sees it. With no saved login, two for the
+site, or one that does not get in, the agent asks in the terminal: log in (or fill in the password)
+yourself in the browser window and press Enter, or `q` to cancel. If the page still shows an empty password field, it asks again. A step that
+leads to a login page (a "Star" that asks to sign in first) does the same, and the plan starts again
+from the page after the login. With `--browser-profile`, the session is kept for the next runs.
 
 **Sending files.** A request to send a file ("Attach the resume C:/Users/ana/cv.pdf") is planned
 as an `upload` step: the agent puts the file in the file field, or clicks the button that opens the
@@ -231,13 +250,15 @@ In an unattended run nothing changes and no one is asked:
 * each step acts only on the element of the proving run (same text and label): an element that differs,
   even one the heuristic would accept with someone present, stops the run before acting;
 * only sensitive actions approved before are done; a new one is refused;
-* a login is never waited for: log in once in a run with someone present (each automation keeps its
-  browser profile);
+* a login is never waited for: a saved login is used only if **Use in scheduled runs** is on for it
+  (Settings → Saved logins); otherwise, log in once in a run with someone present (each automation
+  keeps its browser profile);
 * what does not change the plan still happens: a cookie banner in the way is declined, "Show more" is
   opened, and an element whose id or class changed is still found by its text;
 * the first row that stops ends a spreadsheet run, and the exit code is 1.
 
-To schedule it on Windows (Task Scheduler), every day at 8:00:
+The interface's **Schedules** do this while ANCHOR is open. To run it with no ANCHOR window open, use
+the system's scheduler; on Windows (Task Scheduler), every day at 8:00:
 
 ```
 schtasks /Create /TN "ANCHOR register" /SC DAILY /ST 08:00 /TR "cmd /c cd /d C:\path\to\ANCHOR && venv\Scripts\python.exe -m anchor.automations run register --unattended --csv people.csv"
@@ -289,9 +310,9 @@ value in every run; an unknown parameter is refused.
 |---|---|
 | `--forget` | Forgets the decision with this number: the next run asks again. |
 
-Sensitive actions (deleting, saving or submitting, sending, paying, downloading, uploading, and
-cancelling an order, a subscription, a booking or another irreversible thing; a plain "Cancel"
-that closes a form is not asked about) are asked about once, when the element is found and
+Sensitive actions (deleting, saving or submitting, sending, paying, downloading, uploading, acting
+on your account on a social site, and cancelling an order, a subscription, a booking or another
+irreversible thing; a plain "Cancel" that closes a form is not asked about) are asked about once, when the element is found and
 before acting. Answer `s`/`y` to allow it, `n` to deny it, or just press Enter to deny it only this
 time. An action you allowed is not asked again (nor in the next rows of a spreadsheet); an action
 you denied with `n` stops the run, in that run and in the next ones, until you forget the decision.
@@ -306,6 +327,68 @@ Pressing Enter, or having no terminal to answer, saves nothing: the next run ask
 
 After a run that did not work, `run` also asks whether you want to leave a note (Enter skips);
 with `--csv`, it asks once, at the end, if some row failed.
+
+## Interface (`anchor.ui`)
+
+The local program's interface: a server on this computer only, and the app it serves. It lists,
+creates, edits, deletes and runs the saved automations (with the values they need, or once per row
+of a CSV or Excel spreadsheet), runs a one-off request or only shows its plan, and saves a request
+that was done and checked as an automation. Runs go one at a time, in a queue (**Runs**), and their
+questions (a sensitive action, which element, a login) are answered in the interface, where the
+browser is shown live and a login is done on it; the person can also say a candidate is none of the
+ones found (and why) or that a login comes first. Each automation's page looks after its fixes
+(with undo), notes, decisions and remembered choices; **Settings** keeps the language (Portuguese or
+English, starting in the computer's), the saved logins and the choices remembered from requests. A run's result shows what it brought back (answers, tables and
+lists, downloaded files, and a screenshot of the page at the end when the form or the request's words
+ask for one). **Schedules** runs proven automations by themselves at set
+times, while the interface is open (see the README). From the code, build the app once and start
+the server by hand:
+
+```
+cd web && npm install && npm run build && cd ..
+python -m anchor.ui
+```
+
+It opens the browser on `http://127.0.0.1:<port>/`. Options: `--automations <folder>` (default
+`automations`), `--port <n>` (default: a free one), `--no-browser`. Every request to its API must
+carry the code made at this start, which the app receives in the address it opens; no other
+program or website on the computer can use it.
+
+## Desktop program (`anchor.desktop.app`)
+
+What the Windows installer runs (ANCHOR.exe): the same interface, in its own window (WebView2) with an
+icon near the clock, whose title bar follows the interface's theme (on Windows 10, only while "accent
+color on title bars" is off in Windows' color settings). Closing the window keeps ANCHOR running there, for the schedules; **Quit**, in
+the icon's menu, ends it, and starting it again brings the running one's window back. It works from
+the user's data folder (`%LOCALAPPDATA%\ANCHOR` on Windows), and the first opening checks Ollama, the
+model and the browser, offering to download the last two. It needs `requirements-desktop.txt`.
+
+```sh
+pip install -r requirements-desktop.txt
+python -m anchor.desktop.app                  # opens the window and the icon near the clock
+python -m anchor.desktop.app --background     # hidden near the clock (how Windows starts it)
+```
+
+| Option | Meaning |
+|---|---|
+| `--background` | Starts hidden near the clock. **Start with Windows** (Settings, or the icon's menu; on by default in the installer) starts it this way when the person logs in. |
+| `--self-test FILE` | Checks, from inside the built program, that everything it needs came with it (the window, the icon near the clock, the saved logins, the spreadsheets, the browser driver, the interface, the profiles, the page script, the icon) and writes the result to FILE; exit code 1 if something is missing. |
+
+**Building the installer** (on Windows; GitHub does it in `.github/workflows/installer.yml`, by hand or
+when a version tag is pushed, and attaches it to the release):
+
+```sh
+cd web && npm ci && npm run build && cd ..
+pip install -r requirements-desktop.txt
+pyinstaller packaging/anchor.spec --noconfirm           # dist/ANCHOR/ANCHOR.exe
+dist/ANCHOR/ANCHOR.exe --self-test selftest.json
+set ANCHOR_VERSION=0.5.0
+iscc packaging\installer.iss                            # dist/installer/ANCHOR-Setup-0.5.0.exe (Inno Setup 6)
+```
+
+The installer installs for the current user (`%LOCALAPPDATA%\Programs\ANCHOR`), adds ANCHOR to the
+Start menu, starts it with Windows unless that box is unticked, and, when uninstalled, asks whether to
+delete the user's data (`%LOCALAPPDATA%\ANCHOR`) too.
 
 ## Choice memory (`anchor.engine.memory`)
 
@@ -349,6 +432,10 @@ are kept in `memory/saucedemo.json`.
 ## Evaluation
 
 Details and the evaluation rules (development sets, closed sets) are in [`eval/README.md`](../eval/README.md).
+
+Every result file records where it was measured: the full commit, its tag, and whether the working
+copy had uncommitted changes (then its name says `+dirty`). `--final` refuses to run unless the
+working copy is clean and the commit has a tag (tag the release first: `git tag v1.0.0`).
 
 ### Element resolver (`eval.run`)
 
@@ -394,6 +481,22 @@ python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama
 | `--final` | Runs the closed set (split `test`). Once, at the end. |
 | `-v`, `--verbose` | Shows each task's plan and, when the plan failed, the model's refused answers and why each was refused. |
 
+### Closed sets' sources (`eval.closed_sets`)
+
+Turns a closed set's sheets (one per generator, `pagina;pedido`) into the tasks file to annotate, one
+task per request with its `origin` and `generator`, `split: "test"`, and empty `checks`, `allowed`
+and `reference`. It prints only how many tasks it wrote, never a request, and does not write over a
+tasks file that exists (it may be annotated already).
+
+```sh
+python -m eval.closed_sets skeleton eval/synthetic_controlled_2026-10-22 synthetic_controlled
+python -m eval.closed_sets page-items synthetic     # per generator: how many requests cite an item of their page
+python -m eval.closed_sets negatives eval/plans/holdout_controlled_tasks.json   # prefill the negative checks
+```
+
+The results of `eval.plan_run --final` come out by origin, by generator, and without the generators
+a sensitivity analysis leaves out (for `synthetic_controlled`: the ChatGPT's requests).
+
 ### Resilience benchmark pages (`eval.resilience.build`)
 
 Builds the altered versions of the task pages, in 5 levels of perturbation, the tasks
@@ -419,6 +522,32 @@ python -m eval.resilience.build --check
 |---|---|
 | `--check` | Also runs the reference plans on the L0 pages, to check the rewritten tasks. |
 
+### The closed resilience set's catalog (`eval.resilience.closed.catalog_md`)
+
+The closed set's perturbations come from `eval/resilience/closed/catalog.json`: each operator with
+its source and category (the taxonomy of Hammoudi et al. for levels 1 to 4; Greshake et al. and
+Gray et al. for level 5), its weight, what is left out and why, the generator's rules and the seed.
+`CATALOG.md` is written from it, so the two never differ:
+
+```sh
+python -m eval.resilience.closed.catalog_md
+```
+
+### The closed resilience set's generation (`eval.resilience.closed.targets`, `eval.resilience.closed.generate`)
+
+`targets` records, once, on the original (L0) development pages, the evaluation's marker of the element
+each step of a base task's reference plan acts on (`reference_targets.json`, committed); the closed
+set's check then uses only these markers, with plain Playwright and no part of ANCHOR. `generate`
+makes the closed set from the catalog, once, by the author, who reads only its counts and the list of
+level-2 replacements for the veto (see `eval/resilience/closed/README.md`):
+
+```sh
+python -m eval.resilience.closed.targets                  # already run: its result is committed
+python -m nltk.downloader wordnet omw-2.0                 # the dictionaries, once
+python -m eval.resilience.closed.generate                 # prints counts; writes the list for the veto
+python -m eval.resilience.closed.generate --vetoes vetoes.csv   # again, until no new veto
+```
+
 ### Resilience benchmark runs (`eval.resilience.run`, `eval.resilience.report`)
 
 Runs the three executors on the altered pages: the traditional script (fixed selectors recorded
@@ -431,6 +560,7 @@ Each part saves its own results, so the benchmark can run in parts; the report p
 python -m eval.resilience.run --executors script
 python -m eval.resilience.run --executors anchor --profiles ollama-small --language pt
 python -m eval.resilience.run --executors llm --profiles ollama-medium --language en
+python -m eval.resilience.run --final --profiles ollama-small ollama-medium   # the closed set, once, at the end
 python -m eval.resilience.report eval/results/resilience_*.json
 ```
 
@@ -483,6 +613,38 @@ python -m eval.vision_probe --profiles ollama-small ollama-medium
 |---|---|
 | `--profiles` | Ollama model profiles to measure (the model must have the `vision` capability: `ollama show <model>`). |
 
+### The human closed set's draw (`eval.human_sample`)
+
+Draws the human closed set's 60 requests from the collection's Google Forms export: 30 from people
+who work in IT and 30 from people who do not, each profile spread over the 9 pages, with a fixed
+seed; the form's pilot response and whoever did not agree are left out, every request field of a page
+is read (one or two per page), a stratum takes one request per person before anyone's second, and a
+stratum with too few requests is completed (the other profile on the same page, then another page),
+each completion recorded. The rules are in the
+module's docstring. It runs only exactly as committed, once, prints only counts, and writes the
+tasks to annotate (`eval/plans/holdout_human_tasks.json`) and how the draw went
+(`eval/plans/holdout_human_sample.json`: the commit, the seed, the input's hash, counts, who answered
+by profile, how many different people the 60 requests come from and how many each gave, and the share
+who opened each page's link).
+
+```sh
+python -m eval.human_sample <export.csv>
+```
+
+### The human collection's publication (`eval.human_publish`)
+
+After the draw, and after the person checks the responses for accidental personal data, writes
+`eval/human_collection/responses.csv`: every response the consent allows to publish, numbered by its
+place in the export before anything is left out (the numbers of "Não concordo" are simply missing),
+without the time it was sent, with the profile, every "abriu o link" and every request, and the tasks
+drawn from it. Removals come from a file kept outside the repository (`response;field;text;type`):
+each text becomes `[removido: type]`, in the publication and in a drawn task, and
+`eval/human_collection/removals.csv` records the response, field, type and task, never the text.
+
+```sh
+python -m eval.human_publish <export.csv> --removals <removals.csv>
+```
+
 ## Development
 
 ```sh
@@ -492,20 +654,20 @@ isort --check-only anchor eval tests examples     # import order (PEP 8 groups)
 
 ## Model profiles (`llm_profiles.json`)
 
-Each profile tells ANCHOR where the model is and how to call it. The file never stores keys.
+Each profile tells ANCHOR which local model to use and where Ollama runs.
 
 | Field | Meaning |
 |---|---|
 | `name` | The profile's name, used with `--profile` (e.g. `ollama-small`). The old names `ollama-pequeno` and `ollama-medio` still work. |
 | `model` | The model's exact name (in Ollama, as shown by `ollama list`, e.g. `qwen3.5:4b`). |
-| `api` | `ollama` (Ollama's native API, recommended for local models) or `openai` (the OpenAI format; default). |
-| `base_url` | The server's address (e.g. `http://localhost:11434` for Ollama); empty for the OpenAI API. |
-| `api_key_env` | The **name** of the environment variable holding the key (e.g. `OPENAI_API_KEY`); `null` for local models. |
+| `api` | `ollama`: Ollama's native API (the only one; the default). |
+| `base_url` | Ollama's address. Default: `http://localhost:11434`. |
+| `api_key_env` | Ignored. Accepted only so that older profile files (from when ANCHOR could call a remote API) still load. |
 | `temperature` | Sampling temperature. Default: 0 (the most repeatable answers). |
 | `timeout_s` | Seconds to wait for the model's answer. Default: 180. |
-| `think` | `ollama` API only: turns the reasoning of "thinking" models on or off. Default: `false`. |
-| `options` | `ollama` API only: model options, e.g. `{"num_ctx": 4096}` to fit a small GPU. |
-| `extra_body` | Extra parameters passed to the server on every call. |
+| `think` | Turns the reasoning of "thinking" models on or off. Default: `false`. |
+| `options` | Model options, e.g. `{"num_ctx": 4096}` to fit a small GPU. |
+| `extra_body` | Extra parameters passed to Ollama on every call. |
 | `prompt_language` | Planner prompt language: `pt` (default, the measured one), `en` or `auto`. |
 
 ## Environment variables
@@ -513,5 +675,6 @@ Each profile tells ANCHOR where the model is and how to call it. The file never 
 | Variable | Meaning |
 |---|---|
 | `ANCHOR_LANG` | Interface language: `en` (default) or `pt`. `--lang` overrides it. |
-| `ANCHOR_LINKEDIN` | Set to `1` to run the LinkedIn tests (disabled by default: the site forbids automation). The old name `SMART_RPA_LINKEDIN` still works. |
-| `OPENAI_API_KEY` | The OpenAI key, if you use the `openai` profile (the name is set by `api_key_env` in `llm_profiles.json`). |
+| `LOCALAPPDATA` | Windows' folder for a user's program data: the desktop program keeps its data in `ANCHOR` inside it. |
+| `XDG_DATA_HOME` | The same, on Linux (default `~/.local/share`), for the desktop program. |
+| `PLAYWRIGHT_BROWSERS_PATH` | Where the browser ANCHOR drives is kept; the desktop program sets it to `browsers` in its data folder. |

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><link rel="stylesheet" href="colecao.css"><title>TechStore</title>
+<style>
+ body{font-family:sans-serif;margin:0} header{display:flex;gap:12px;align-items:center;padding:8px;background:#eee}
+ .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:12px}
+ .card{border:1px solid #ccc;padding:8px} .icon{display:inline-block;width:20px;height:20px;background:#999}
+ .chip{cursor:pointer;display:inline-block;padding:4px 8px;border:1px solid #888;border-radius:12px}
+</style></head><body>
+<header>
+  <a href="/" class="logo">TechStore</a>
+  <input type="search" name="q" placeholder="Buscar produtos">
+  <button aria-label="Buscar"><svg width="16" height="16"><title>Buscar</title></svg></button>
+  <a href="/wishlist" title="Lista de desejos"><i class="icon fa-heart"></i></a>
+  <a href="/cart" class="cart-link"><img src="/assets/icons/shopping-cart.svg" alt="" width="20" height="20"><span class="badge">2</span></a>
+  <button>Entrar</button>
+</header>
+<nav>
+  <span class="chip">Notebooks</span><span class="chip">Áudio</span><span class="chip">Cozinha</span>
+  <select aria-label="Ordenar por"><option>Destaques</option><option>Preço: menor para maior</option><option>Preço: maior para menor</option></select>
+</nav>
+<main class="grid">
+  <div class="card"><img src="/img/p1.jpg" alt="Notebook UltraBook 14" width="80" height="60">
+    <h3><a href="/p/1">UltraBook 14</a></h3><p class="price">R$ 899,00</p>
+    <button class="add">Adicionar ao carrinho</button><button class="fav" aria-label="Adicionar à lista de desejos"><i class="icon fa-heart"></i></button></div>
+  <div class="card"><img src="/img/p2.jpg" alt="Fone com cancelamento de ruído" width="80" height="60">
+    <h3><a href="/p/2">Fone QuietMax</a></h3><p class="price">R$ 199,00</p>
+    <button class="add">Adicionar ao carrinho</button><button class="fav" aria-label="Adicionar à lista de desejos"><i class="icon fa-heart"></i></button></div>
+  <div class="card"><img src="/img/p3.jpg" alt="Cafeteira expresso" width="80" height="60">
+    <h3><a href="/p/3">Cafeteira Barista</a></h3><p class="price">R$ 129,00</p>
+    <button class="add" disabled>Esgotado</button><button class="fav" aria-label="Adicionar à lista de desejos"><i class="icon fa-heart"></i></button></div>
+</main>
+<footer><a href="/help">Central de ajuda</a> <a href="/returns">Trocas e devoluções</a> <a href="/contact">Fale conosco</a></footer>
+<script src="feedback.js"></script>
+</body></html>

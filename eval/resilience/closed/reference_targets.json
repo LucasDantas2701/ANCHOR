@@ -1,0 +1,649 @@
+{
+ "_readme": "Written by python -m eval.resilience.closed.targets on the L0 (development) pages: the marker of the element each reference step acts on.",
+ "tasks": {
+  "p-jobs-01": {
+   "fixture": "resilience/L0/jobs.html",
+   "steps": [
+    {
+     "action": "click",
+     "description": "Consultor RPA",
+     "value": null,
+     "eval": "e1",
+     "status": "success"
+    },
+    {
+     "action": "click",
+     "description": "Salvar vaga",
+     "value": null,
+     "eval": "e2",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-jobs-01": {
+   "fixture": "resilience/L0/jobs_en.html",
+   "steps": [
+    {
+     "action": "click",
+     "description": "RPA Consultant",
+     "value": null,
+     "eval": "e1",
+     "status": "success"
+    },
+    {
+     "action": "click",
+     "description": "Save job",
+     "value": null,
+     "eval": "e2",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-log-01": {
+   "fixture": "resilience/L0/login.html",
+   "steps": [
+    {
+     "action": "fill",
+     "description": "campo Username",
+     "value": "lucas.dantas",
+     "eval": "e1",
+     "status": "success"
+    },
+    {
+     "action": "check",
+     "description": "caixa Remember me",
+     "value": null,
+     "eval": "e2",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-log-02": {
+   "fixture": "resilience/L0/login.html",
+   "steps": [
+    {
+     "action": "select",
+     "description": "lista Language",
+     "value": "Português",
+     "eval": "e5",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-log-01": {
+   "fixture": "resilience/L0/login.html",
+   "steps": [
+    {
+     "action": "fill",
+     "description": "Username",
+     "value": "lucas.dantas",
+     "eval": "e1",
+     "status": "success"
+    },
+    {
+     "action": "check",
+     "description": "Remember me",
+     "value": null,
+     "eval": "e2",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-log-02": {
+   "fixture": "resilience/L0/login.html",
+   "steps": [
+    {
+     "action": "select",
+     "description": "Language",
+     "value": "Português",
+     "eval": "e5",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-ord-01": {
+   "fixture": "resilience/L0/orders.html",
+   "steps": [
+    {
+     "action": "click",
+     "description": "botão Cancelar pedido do Pedido #1024",
+     "value": null,
+     "eval": "e1",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-ord-02": {
+   "fixture": "resilience/L0/orders.html",
+   "steps": [
+    {
+     "action": "click",
+     "description": "botão Adicionar ao carrinho da Caneca de cerâmica",
+     "value": null,
+     "eval": "e2",
+     "status": "success"
+    },
+    {
+     "action": "click",
+     "description": "link shopping cart link",
+     "value": null,
+     "eval": "e3",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-ord-01": {
+   "fixture": "resilience/L0/orders_en.html",
+   "steps": [
+    {
+     "action": "click",
+     "description": "Cancel order of Order #1024",
+     "value": null,
+     "eval": "e1",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-ord-02": {
+   "fixture": "resilience/L0/orders_en.html",
+   "steps": [
+    {
+     "action": "click",
+     "description": "Add to cart of Ceramic mug",
+     "value": null,
+     "eval": "e2",
+     "status": "success"
+    },
+    {
+     "action": "click",
+     "description": "shopping cart link",
+     "value": null,
+     "eval": "e3",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-reg-01": {
+   "fixture": "resilience/L0/registration.html",
+   "steps": [
+    {
+     "action": "fill",
+     "description": "campo Nome completo",
+     "value": "Maria Silva",
+     "eval": "e1",
+     "status": "success"
+    },
+    {
+     "action": "fill",
+     "description": "campo CPF",
+     "value": "123.456.789-00",
+     "eval": "e2",
+     "status": "success"
+    },
+    {
+     "action": "fill",
+     "description": "campo E-mail corporativo",
+     "value": "maria.silva@empresa.com",
+     "eval": "e3",
+     "status": "success"
+    },
+    {
+     "action": "select",
+     "description": "lista Departamento",
+     "value": "TI",
+     "eval": "e4",
+     "status": "success"
+    },
+    {
+     "action": "check",
+     "description": "opção PJ",
+     "value": null,
+     "eval": "e5",
+     "status": "success"
+    },
+    {
+     "action": "check",
+     "description": "caixa Li e aceito os termos de uso",
+     "value": null,
+     "eval": "e6",
+     "status": "success"
+    },
+    {
+     "action": "click",
+     "description": "botão Salvar cadastro",
+     "value": null,
+     "eval": "e7",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-reg-02": {
+   "fixture": "resilience/L0/registration.html",
+   "steps": [
+    {
+     "action": "fill",
+     "description": "campo Telefone",
+     "value": "(92) 99999-0000",
+     "eval": "e8",
+     "status": "success"
+    },
+    {
+     "action": "fill",
+     "description": "campo Observações",
+     "value": "começa na segunda-feira",
+     "eval": "e9",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-reg-01": {
+   "fixture": "resilience/L0/registration_en.html",
+   "steps": [
+    {
+     "action": "fill",
+     "description": "Full name",
+     "value": "Maria Silva",
+     "eval": "e1",
+     "status": "success"
+    },
+    {
+     "action": "fill",
+     "description": "Tax ID",
+     "value": "123-45-6789",
+     "eval": "e2",
+     "status": "success"
+    },
+    {
+     "action": "fill",
+     "description": "Work e-mail",
+     "value": "maria.silva@company.com",
+     "eval": "e3",
+     "status": "success"
+    },
+    {
+     "action": "select",
+     "description": "Department",
+     "value": "IT",
+     "eval": "e4",
+     "status": "success"
+    },
+    {
+     "action": "check",
+     "description": "Contractor",
+     "value": null,
+     "eval": "e5",
+     "status": "success"
+    },
+    {
+     "action": "check",
+     "description": "I have read and accept the terms of use",
+     "value": null,
+     "eval": "e6",
+     "status": "success"
+    },
+    {
+     "action": "click",
+     "description": "Save registration",
+     "value": null,
+     "eval": "e7",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-reg-02": {
+   "fixture": "resilience/L0/registration_en.html",
+   "steps": [
+    {
+     "action": "fill",
+     "description": "Phone",
+     "value": "(555) 123-4567",
+     "eval": "e8",
+     "status": "success"
+    },
+    {
+     "action": "fill",
+     "description": "Notes",
+     "value": "starts on Monday",
+     "eval": "e9",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-ent-01": {
+   "fixture": "resilience/L0/search_enter.html",
+   "steps": [
+    {
+     "action": "fill",
+     "description": "Pesquisar",
+     "value": "rpa em manaus",
+     "eval": "e1",
+     "status": "success"
+    },
+    {
+     "action": "press",
+     "description": "Pesquisar",
+     "value": "Enter",
+     "eval": "e1",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-ent-01": {
+   "fixture": "resilience/L0/search_enter_en.html",
+   "steps": [
+    {
+     "action": "fill",
+     "description": "Search",
+     "value": "rpa in manaus",
+     "eval": "e1",
+     "status": "success"
+    },
+    {
+     "action": "press",
+     "description": "Search",
+     "value": "Enter",
+     "eval": "e1",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-pop-01": {
+   "fixture": "resilience/L0/search_popup.html",
+   "steps": [
+    {
+     "action": "click",
+     "description": "Search /",
+     "value": null,
+     "eval": "e1",
+     "status": "success"
+    },
+    {
+     "action": "fill",
+     "description": "Search coins",
+     "value": "Pi Network",
+     "eval": "e2",
+     "status": "success"
+    },
+    {
+     "action": "press",
+     "description": "Search coins",
+     "value": "Enter",
+     "eval": "e2",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-pop-01": {
+   "fixture": "resilience/L0/search_popup.html",
+   "steps": [
+    {
+     "action": "click",
+     "description": "Search /",
+     "value": null,
+     "eval": "e1",
+     "status": "success"
+    },
+    {
+     "action": "fill",
+     "description": "Search coins",
+     "value": "Pi Network",
+     "eval": "e2",
+     "status": "success"
+    },
+    {
+     "action": "press",
+     "description": "Search coins",
+     "value": "Enter",
+     "eval": "e2",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-store-01": {
+   "fixture": "resilience/L0/store.html",
+   "steps": [
+    {
+     "action": "select",
+     "description": "lista Sort by",
+     "value": "Price: low to high",
+     "eval": "e1",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-store-02": {
+   "fixture": "resilience/L0/store.html",
+   "steps": [
+    {
+     "action": "click",
+     "description": "botão Add to cart do UltraBook 14",
+     "value": null,
+     "eval": "e2",
+     "status": "success"
+    },
+    {
+     "action": "click",
+     "description": "botão Add to cart do QuietMax Headphones",
+     "value": null,
+     "eval": "e3",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-store-03": {
+   "fixture": "resilience/L0/store.html",
+   "steps": [
+    {
+     "action": "fill",
+     "description": "campo de busca Search products",
+     "value": "teclado mecânico",
+     "eval": "e5",
+     "status": "success"
+    },
+    {
+     "action": "click",
+     "description": "botão Search",
+     "value": null,
+     "eval": "e6",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-store-01": {
+   "fixture": "resilience/L0/store.html",
+   "steps": [
+    {
+     "action": "select",
+     "description": "Sort by",
+     "value": "Price: low to high",
+     "eval": "e1",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-store-02": {
+   "fixture": "resilience/L0/store.html",
+   "steps": [
+    {
+     "action": "click",
+     "description": "Add to cart of UltraBook 14",
+     "value": null,
+     "eval": "e2",
+     "status": "success"
+    },
+    {
+     "action": "click",
+     "description": "Add to cart of QuietMax Headphones",
+     "value": null,
+     "eval": "e3",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-store-03": {
+   "fixture": "resilience/L0/store.html",
+   "steps": [
+    {
+     "action": "fill",
+     "description": "Search products",
+     "value": "mechanical keyboard",
+     "eval": "e5",
+     "status": "success"
+    },
+    {
+     "action": "click",
+     "description": "Search",
+     "value": null,
+     "eval": "e6",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-usr-01": {
+   "fixture": "resilience/L0/users.html",
+   "steps": [
+    {
+     "action": "select",
+     "description": "lista Filtrar por status",
+     "value": "Inativos",
+     "eval": "e1",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-usr-02": {
+   "fixture": "resilience/L0/users.html",
+   "steps": [
+    {
+     "action": "check",
+     "description": "caixa Selecionar Ana Souza",
+     "value": null,
+     "eval": "e2",
+     "status": "success"
+    },
+    {
+     "action": "check",
+     "description": "caixa Selecionar Carla Mendes",
+     "value": null,
+     "eval": "e3",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "p-usr-03": {
+   "fixture": "resilience/L0/users.html",
+   "steps": [
+    {
+     "action": "click",
+     "description": "botão Excluir do Bruno Lima",
+     "value": null,
+     "eval": "e5",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-usr-01": {
+   "fixture": "resilience/L0/users_en.html",
+   "steps": [
+    {
+     "action": "select",
+     "description": "Filter by status",
+     "value": "Inactive",
+     "eval": "e1",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-usr-02": {
+   "fixture": "resilience/L0/users_en.html",
+   "steps": [
+    {
+     "action": "check",
+     "description": "Select Anna Smith",
+     "value": null,
+     "eval": "e2",
+     "status": "success"
+    },
+    {
+     "action": "check",
+     "description": "Select Carol Miller",
+     "value": null,
+     "eval": "e3",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  },
+  "en-usr-03": {
+   "fixture": "resilience/L0/users_en.html",
+   "steps": [
+    {
+     "action": "click",
+     "description": "Delete of Brian Lee",
+     "value": null,
+     "eval": "e5",
+     "status": "success"
+    }
+   ],
+   "done": true,
+   "markers_allowed": true
+  }
+ }
+}

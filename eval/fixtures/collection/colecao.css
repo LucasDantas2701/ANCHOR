@@ -1,0 +1,32 @@
+/* Aparência mais clara para as páginas da coleta. Só fontes, espaços, cores e bordas:
+   nada é escondido, sobreposto ou reposicionado. Os estilos de cada página vêm depois e prevalecem. */
+html { background: #f4f6f8; }
+body {
+  font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 16px; line-height: 1.5; color: #1f2933;
+  max-width: 1000px; margin: 24px auto; padding: 16px 24px;
+  background: #ffffff; border: 1px solid #dde3ea; border-radius: 10px;
+}
+h1, h2, h3 { line-height: 1.25; color: #102a43; }
+h1 { font-size: 1.6em; } h2 { font-size: 1.25em; margin-top: 1.2em; } h3 { font-size: 1.05em; }
+a { color: #0b57d0; }
+label { font-weight: 500; margin: 0 6px 0 0; }
+input, select, textarea {
+  font: inherit; padding: 6px 10px; margin: 4px 8px 8px 0;
+  border: 1px solid #9aa5b1; border-radius: 6px; background: #ffffff; color: #1f2933;
+}
+textarea { min-height: 4em; }
+input[type=checkbox], input[type=radio] { padding: 0; margin: 0 6px 0 0; }
+button {
+  font: inherit; padding: 6px 14px; margin: 4px 6px 4px 0;
+  border: 1px solid #7b8794; border-radius: 6px; background: #f0f4f8; color: #102a43; cursor: pointer;
+}
+button:hover:not(:disabled) { background: #d9e2ec; }
+button:disabled { opacity: .55; cursor: not-allowed; }
+:focus-visible { outline: 2px solid #0b57d0; outline-offset: 2px; }
+table { border-collapse: collapse; margin: 8px 0; }
+th, td { border-bottom: 1px solid #e4e7eb; padding: 8px 10px; text-align: left; }
+th { background: #f0f4f8; }
+header, nav, aside, footer { padding: 6px 0; margin-bottom: 8px; }
+footer { border-top: 1px solid #e4e7eb; margin-top: 16px; padding-top: 10px; }
+section { margin: 12px 0; padding: 4px 0; }

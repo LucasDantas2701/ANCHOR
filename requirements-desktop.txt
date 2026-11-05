@@ -1,0 +1,8 @@
+# The desktop program (anchor/desktop) and its installer: its own window (WebView2, through pywebview),
+# the icon near the clock (pystray, with Pillow) and the packaging (PyInstaller). Not needed to develop
+# ANCHOR or to run it with `python -m anchor.ui`.
+-r requirements.txt
+pywebview==5.3.2
+pystray==0.19.5
+Pillow==11.1.0
+pyinstaller==6.11.1

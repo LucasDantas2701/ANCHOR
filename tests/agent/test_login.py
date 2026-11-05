@@ -135,3 +135,24 @@ def test_password_field_reports_whether_it_was_filled(page):
     assert password_field(page)["filled"] is True
     page.set_content(AFTER)
     assert password_field(page) is None
+
+
+def test_a_request_to_log_in_whose_login_is_behind_a_link_waits_for_the_login(page):
+    """LinkedIn's home: no password field until "Sign in" is clicked; the model's plan types an e-mail it does not have."""
+    from anchor.planner import PlanError
+    page.set_content('<html><body><h1>Welcome</h1><a href="#">Sign in</a></body></html>')
+
+    class FailsFirst(Planner):
+        def plan(self, *args, **kwargs):
+            if self.calls == 0:
+                self.calls += 1
+                raise PlanError('step 2: the "fill" action needs a value')
+            return super().plan(*args, **kwargs)
+
+    planner, waiter = FailsFirst([("click", "Pesquisar", None)]), FakeWaiter(page)
+    result = Agent(page, planner, ActionExecutor(page), report=None, login=waiter).run("faça login no site e pesquise vagas")
+    assert result.ok and waiter.calls == 1 and planner.calls >= 2
+    # with no one to ask, the plan's failure is reported as before
+    page.set_content('<html><body><h1>Welcome</h1><a href="#">Sign in</a></body></html>')
+    alone = Agent(page, FailsFirst([("click", "Pesquisar", None)]), ActionExecutor(page), report=None).run("faça login no site e pesquise vagas")
+    assert not alone.ok and alone.plan_failed

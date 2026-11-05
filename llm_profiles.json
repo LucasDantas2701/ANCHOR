@@ -1,5 +1,5 @@
 {
-  "_readme": "Profiles of the compared models. NEVER put keys here: api_key_env is the NAME of the environment variable holding the key. Replace PUT_... with the exact model names (in Ollama: 'ollama list'). extra_body (optional) is passed to the server on every call, for example to turn off the reasoning of 'thinking' models; check the server's documentation for the parameter it accepts. prompt_language (optional) is the planner prompt's language: 'pt' (default, the measured one) or 'en'. The old names ollama-pequeno and ollama-medio still work.",
+  "_readme": "Profiles of the compared models, all local through Ollama. Replace the model names with the exact ones (in Ollama: 'ollama list'). extra_body (optional) is passed to Ollama on every call. prompt_language (optional) is the planner prompt's language: 'pt' (default, the measured one) or 'en'. The old names ollama-pequeno and ollama-medio still work.",
   "profiles": [
     {
       "name": "ollama-small",
@@ -10,7 +10,6 @@
       "options": {
         "num_ctx": 4096
       },
-      "api_key_env": null,
       "extra_body": null
     },
     {
@@ -22,16 +21,8 @@
       "options": {
         "num_ctx": 4096
       },
-      "api_key_env": null,
       "extra_body": null,
       "timeout_s": 300
-    },
-    {
-      "name": "openai",
-      "model": "PUT_THE_OPENAI_MODEL_HERE",
-      "base_url": null,
-      "api_key_env": "OPENAI_API_KEY",
-      "extra_body": null
     }
   ]
 }

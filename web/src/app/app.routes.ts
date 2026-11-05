@@ -1,0 +1,23 @@
+import { SchedulesPage } from './pages/schedules';
+import { SettingsPage } from './pages/settings';
+import { RunsPage } from './pages/runs';
+import { Routes } from '@angular/router';
+
+import { AutomationPage } from './pages/automation';
+import { AutomationsPage } from './pages/automations';
+import { NewAutomationPage } from './pages/new-automation';
+import { RequestPage } from './pages/request';
+import { RunPage } from './pages/run';
+
+export const routes: Routes = [
+  { path: '', pathMatch: 'full', redirectTo: 'automations' },
+  { path: 'automations', component: AutomationsPage, title: 'Automations · ANCHOR' },
+  { path: 'automations/new', component: NewAutomationPage, title: 'New automation · ANCHOR' },
+  { path: 'automations/:name', component: AutomationPage, title: 'Automation · ANCHOR' },
+  { path: 'run', component: RequestPage, title: 'Run a request · ANCHOR' },
+  { path: 'runs', component: RunsPage, title: 'Runs · ANCHOR' },
+  { path: 'runs/:id', component: RunPage, title: 'Run · ANCHOR' },
+  { path: 'schedules', component: SchedulesPage, title: 'Schedules · ANCHOR' },
+  { path: 'settings', component: SettingsPage, title: 'Settings · ANCHOR' },
+  { path: '**', redirectTo: 'automations' },
+];

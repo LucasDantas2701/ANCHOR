@@ -1,12 +1,9 @@
 """
 Model profiles (the llm_profiles.json file at the project root).
 
-Each profile says WHERE the model is and HOW to authenticate, without storing
-the key: "api_key_env" is the NAME of the environment variable holding the key.
-Two kinds of API:
-    "openai" (default): the OpenAI API format (OpenAI, or Ollama at /v1).
-    "ollama": Ollama's native API, which can turn off reasoning
-              ("think": false) and set options such as "num_ctx".
+Each profile says which model to use and where Ollama runs. ANCHOR plans only with a local model,
+through Ollama's native API, which can turn off reasoning ("think": false) and set options such as
+"num_ctx". (Remote APIs are not supported: no page, request or password leaves the computer.)
 "prompt_language" chooses the planner prompt's language: "pt" (default,
 the measured one) or "en".
 """
@@ -14,12 +11,9 @@ the measured one) or "en".
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-
-from openai import OpenAI
 
 from anchor.i18n import t
 
@@ -36,12 +30,12 @@ class ConfigError(RuntimeError):
 class LLMProfile:
     name: str
     model: str
-    base_url: Optional[str] = None       # None = the OpenAI API
-    api_key_env: Optional[str] = None    # None = no key (e.g. local Ollama)
+    base_url: Optional[str] = None       # Ollama's address (None: http://localhost:11434)
+    api_key_env: Optional[str] = None    # ignored: kept so older profile files still load
     temperature: float = 0.0
     timeout_s: float = 180.0
     extra_body: Optional[dict] = None    # extra parameters passed to the server
-    api: str = "openai"                  # "openai" or "ollama" (native API)
+    api: str = "ollama"                  # Ollama's native API (the only one)
     think: Optional[bool] = False        # "ollama" API only: reasoning of "thinking" models
     options: Optional[dict] = None       # "ollama" API only: e.g. {"num_ctx": 4096}
     prompt_language: str = "pt"          # planner prompt language: "pt" (measured), "en" or "auto"
@@ -52,24 +46,13 @@ class LLMProfile:
         return LLMPlanner(self.client(on_progress), self.model, temperature=self.temperature,
                           extra_body=self.extra_body, language=prompt_language or self.prompt_language)
 
-    def api_key(self) -> str:
-        if not self.api_key_env:
-            return "no-key"  # Ollama ignores the key, but the SDK requires one
-        key = os.environ.get(self.api_key_env)
-        if not key:
-            raise ConfigError(t("config.needs_key", profile=self.name, env=self.api_key_env))
-        return key
-
     def client(self, on_progress=None):
         if not self.model or self.model.startswith(("COLOQUE", "PUT_")):
             raise ConfigError(t("config.no_model", profile=self.name))
-        if self.api == "ollama":
-            return OllamaClient(self.base_url, self.timeout_s, think=self.think, options=self.options,
-                                on_progress=on_progress)
-        if self.api != "openai":
+        if self.api != "ollama":
             raise ConfigError(t("config.bad_api", profile=self.name, api=self.api))
-        # max_retries=0: no hidden SDK retries; a timeout shows up right away.
-        return OpenAI(api_key=self.api_key(), base_url=self.base_url, timeout=self.timeout_s, max_retries=0)
+        return OllamaClient(self.base_url or "http://localhost:11434", self.timeout_s, think=self.think,
+                            options=self.options, on_progress=on_progress)
 
 
 def load_profiles(path: Path | str = DEFAULT_FILE) -> dict[str, LLMProfile]:

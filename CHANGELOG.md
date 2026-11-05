@@ -17,6 +17,359 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-03
+
+### Added
+- **Searching and filtering the automations.** The list has a search (in the name, the request and the
+  site; several words, without minding accents), filters with their counts (All, Can run alone, Ready,
+  Not learned yet, Last run not done) and an order (last run first, or by name). "Ready · 1 step" is
+  singular now, and the interface's size budget is 700 kB (the translations passed the old 500 kB).
+- **The interface in Portuguese or English, second part.** The automation's page (with its tabs and the
+  spreadsheet), the run's page (the questions, the progress lines, the result and what it brought
+  back), Schedules (each schedule's sentence is written by the server in the chosen language), a new
+  automation, the live view, the model names, the dates' months, and the server's fixed messages
+  (errors, a schedule's history, a run's summary). A few messages the server builds with values in
+  them stay in English for now. Buttons keep their text on one line (a longer Portuguese label broke
+  "See the plan first" in three). The run summary's login hint now mentions saved logins.
+- **The interface in Portuguese or English, first part.** **Settings → Language** (starting in the
+  computer's language, applied at once): a translator in the interface, with the English text as the
+  key and a Portuguese dictionary (`web/src/app/i18n-pt.ts`; a text not in it shows in English), and
+  the server follows the choice, so what runs say (the engine's messages) comes in the same
+  language; what the AI reads does not change. Translated in this part: the menu and the top bar, the
+  guide, the first opening, Settings, Run a request, Runs and the list of automations. The request
+  page's login note now mentions saved logins.
+- **An automation's last run log, and the title bar in ANCHOR's theme.** Each automation run's details
+  (what happened, what the AI read and answered) are kept with the automation, the last ten; its page
+  has **Download its log** for the last run, also after ANCHOR was closed or a schedule ran alone. The
+  desktop window's title bar follows the interface's theme (dark mode on Windows 10 and 11, the exact
+  colors on Windows 11), instead of Windows' accent color.
+- **Stop stops, and AI sites' notices are not errors (found automating a chat site).** A stop was an
+  ordinary exception, so the agent's "whatever went wrong, go on" handlers took it for a failure and
+  the run went on ("Stopping..." for good); it is now raised like Ctrl+C (a BaseException) and also
+  checked at each chunk the AI streams, so it counts within seconds even during a replan. The standing
+  notice of AI chat sites ("pode cometer erros", "can make mistakes"), which appears after the first
+  message, made the check of a step's effect see an error message; it is now recognized as a notice
+  (no page of the evaluation has such a sentence, so no measured result changes).
+- **Downloads in the desktop program.** Its window (WebView2, through pywebview) cancelled every
+  download unless allowed, so "Save the details of this run", the CSVs and the screenshots did nothing
+  in ANCHOR.exe; downloads are allowed now, and Windows asks where to save, starting in Downloads. A
+  screenshot opens in full size inside ANCHOR (a new tab would have gone to the system's browser,
+  which cannot open it).
+- **The installer, after 0.5.0-rc2 on another computer.** Downloading the browser opened an empty
+  console window (closing it stopped the download): it now starts hidden, as Playwright starts its
+  own driver. Windows Defender flagged the unsigned ANCHOR.exe by its machine-learning heuristic
+  (`Trojan:Win32/Bearfoos.A!ml`, a false positive): the workflow now builds PyInstaller's bootloader
+  from source (the ready-made one is the same in every PyInstaller program, malware included), and
+  the build is to be submitted to Microsoft as a false positive and signed (SignPath).
+- **ANCHOR.exe opens (found testing 0.5.0-rc1 on another computer).** A windowed program on Windows
+  has no stdout or stderr, and the server's logging asked them whether they were a terminal, so the
+  installed program stopped as it opened ("Unable to configure formatter 'default'"). What would go
+  to a terminal now goes to `anchor.log`, in the user's data folder, and the build's self-test sets
+  the server's logging up as opening does, so this cannot reach an installer again.
+- **The Windows installer (0.5).** `packaging/anchor.spec` (PyInstaller) builds ANCHOR.exe with
+  Python, its libraries, the built interface, the model profiles, the page script and ANCHOR's icon
+  (`anchor/desktop/anchor.ico`); the browser is downloaded on the first opening. `packaging/installer.iss`
+  (Inno Setup) makes ANCHOR-Setup-<version>.exe: per user (no administrator password), Start menu,
+  Start with Windows ticked, a desktop icon if wanted, and the question, when uninstalling, whether to
+  delete the user's data. `.github/workflows/installer.yml` builds it on Windows, by hand or for a
+  version tag, runs the built program's `--self-test` first, and attaches the installer to the
+  release; the signing step waits for a certificate. A compiled chardet found on the building machine
+  crashed the frozen program, so it is never carried along (requests uses charset-normalizer).
+- **What a run brings back, in the interface.** A run's result shows its answers (with Copy), the
+  tables and lists it read (the first 50 rows on the screen, the CSV to download), the files it
+  downloaded, and a screenshot of the page at the end when **Include a screenshot of the page at the
+  end** is ticked (request form, automation's More options) or the request asks for one ("print",
+  "screenshot", "captura de tela"); a spreadsheet run shows each row's. Only the files listed in a
+  run's outputs can be downloaded from it. The screenshot is taken by the interface's code at the end
+  of the run, not planned by the AI: what the planner reads is unchanged.
+- **The desktop program: both models, and Quit.** The first opening offers both measured models, each
+  with its download (at least one is needed; the small one is enough to start); the forms choose a
+  downloaded model and mark the others. **Quit ANCHOR**, at the top of the desktop program, ends it
+  (the same as Quit in the icon's menu), after saying schedules do not run while it is closed.
+- **The desktop program, first part (0.5).** `anchor/desktop`: ANCHOR in its own window (WebView2,
+  through pywebview) with its icon near the clock (pystray); closing the window keeps it running there
+  for the schedules, and **Quit**, in the icon's menu, ends it. Opening it again brings the window
+  back (one ANCHOR at a time). It works from the user's data folder (`%LOCALAPPDATA%\ANCHOR`), where
+  the browser it downloads goes too. **Start with Windows** (the user's Run key; `--background` opens
+  it hidden) is on by default and off in one click, in Settings or the icon's menu. A first-opening
+  screen, shown only when something is missing, checks Ollama, the model and the browser, and
+  downloads the model (through Ollama) and the browser (through Playwright) with their progress. Its
+  libraries are in `requirements-desktop.txt`, used only for the installer.
+- **Schedules, second part: the screens (0.5).** **Schedules**, in the menu, says at the top that
+  ANCHOR must be open for a schedule to run, adds and edits schedules (the five kinds of when; the
+  spreadsheet and the most rows per run, for an automation with values; only proven automations can
+  be chosen), and lists them with their next time, last result, on/off, history, **Do every row
+  again** and delete. When ANCHOR opens, a window lists the scheduled runs missed while it was
+  closed; the menu marks Schedules when a schedule's last time did not go well; a proven automation's
+  page has **Schedule this**.
+- **Schedules, first part: the engine (0.5).** A schedule runs a proven automation by itself, with
+  no one present, at set times: once, every day, on chosen weekdays, on a day of the month (its last
+  day when the month is shorter), or every N minutes, hours or days (at least 5 minutes), from a time,
+  optionally within a window and on chosen weekdays; this computer's time. They are kept in a local
+  SQLite file (`memory/schedules.db`) with the last 20 times of each. They run only while ANCHOR is
+  open: the times missed while it was closed are recorded as missed and shown when it opens, never run
+  late. An automation with values reads its spreadsheet at run time and checks it first: a missing
+  column or an unreadable file runs nothing, more new rows than the schedule's limit runs nothing,
+  rows with an empty value are skipped, and the rows the schedule already did (by their content) are
+  not done again. A schedule whose automation is still in the queue skips that time. The screens come
+  in the second part.
+- **Saved logins, second part: using them (0.5).** When a run reaches a login page (in the interface
+  or on the command line), ANCHOR first logs in with the login saved for exactly that page's site,
+  one step or two (the user name, then the password), and hands over to the person when there is
+  none, when two are saved for the site, when it does not get in, or when the form is inside a frame
+  of another site. The password is typed by ANCHOR's own code (`anchor/vault/fill.py`), checked to be
+  a password field on that exact site right before typing, and never said in a message; the page
+  reader still shows the AI a password only as `********`, and the planner's prompt is unchanged.
+  Runs with no one present use only the logins allowed for scheduled runs. The rule of 0.3.1 ("ANCHOR
+  never types a password") becomes: the AI never sees or types one; only a saved login is typed, by
+  ANCHOR's code, only on its site and only in a password field.
+- **Saved logins, first part: keeping them (0.5).** In Settings, a login is saved for an exact site
+  (scheme, host and port; https only, or this computer): the password goes to the system's credential
+  store (Windows' Credential Manager, through `keyring`, a new dependency), and a local file keeps only
+  the site, the user name, dates and whether scheduled runs may use it (off until turned on). No
+  interface, answer or error ever returns a password: it can be replaced or deleted, never read back.
+  Using a saved login in runs comes in the second part.
+- **Settings, with the choices remembered from requests (0.5, part 5b-5).** The choices made when
+  ANCHOR was not sure, in requests (the file the command line shares, `memory/agent.json`), listed by
+  site, with **Forget** and **Forget all for this site**; each automation's are in its Choices tab.
+- **An automation for each row of a spreadsheet, from the interface (0.5, part 5b-3).** A CSV (UTF-8
+  or Excel's Windows encoding, comma or semicolon) or an `.xlsx` (its first sheet; numbers and dates as
+  a person would type them; `openpyxl` is a new dependency) is checked before running (missing and
+  unused columns, rows with an empty value, at most 500 rows) and run once per row in one queued run,
+  in the same browser. A row that fails does not stop the others; stopping ends the rows still to go.
+  The result has a line per row, a CSV download, and a button to run again only the rows not done.
+  The file is never saved.
+- **A note offered after a run that was not done (0.5, part 5b-4).** When an automation's run is not
+  done, its result offers **Add a note for next time**, filled with what the person explained during
+  the run ("none of these", without keeping it) and editable; the AI never writes a note, and nothing
+  is added unless the person clicks.
+- **The queue on a page of its own (0.5, part 5b-2).** **Runs**, in the menu (with how many are
+  running or waiting), shows the run going now (Watch, Stop), the ones waiting their turn in order
+  (Remove from queue), and the ones that ended in this session, with when and how they ended.
+- **An automation's page looks after what it keeps (0.5, part 5b-1).** Tabs for its fixes (with what
+  changed, and **Undo**), its notes for the planner (add, edit, remove), its decisions on sensitive
+  actions and its remembered choices (both with **Forget**), and its settings: change the request, the
+  page or the model (a new request or page forgets the learned plan, which was checked for the old
+  one), or delete it for good after typing its name. Nothing changes while one of its runs is queued
+  or running. The routes use the same code as the command line (`anchor/ui/manage.py`).
+- **A README easier to start from.** Badges (release, license, Python, local LLM, documentation site),
+  a navigation line, a highlighted note on what stays on your computer, a quick start, a "What ANCHOR
+  does" table linking to the guides, the five-step figure in light and dark versions, a "Keeping
+  ANCHOR up to date" section and a collapsed FAQ.
+- **Easier to find and to cite.** The README opens with what ANCHOR is and why (local, in your
+  control, self-healing, measured, open source), with a short Portuguese version (`README.pt-BR.md`)
+  and a `CITATION.cff` (GitHub's "Cite this repository").
+- **Interface fixes from real runs, second part.** The browser runs in a real window kept off the
+  screen instead of headless (sites see an ordinary browser, not "HeadlessChrome"), on the screen when
+  the person asks to see it, at 1366 × 768, with notifications off, in the system's language and time
+  zone (`anchor/browser/launch.py`; the tests alone stay headless). The live view lists the run's tabs
+  and windows, marks the one ANCHOR works on, and lets the person see another one, where their clicks
+  and keys go during a login (a "Sign in with Google" window, for example).
+- **Interface fixes from real runs, first part.** A request pasted as a terminal command
+  (`python -m anchor... "..." --url ...`) is flagged, with a button that keeps only the request and the
+  page; a confirmation shows the element in a few words ("button “Save”"), with the text around it only
+  as context; in the watch mode, a long question scrolls inside its panel and the progress never
+  disappears; the progress and the details file say which element a failed step tried, with the whole
+  message (a blocked click says what covers it), when the page changes, and what the page showed when a
+  run did not end well (its title, address and visible messages); the details file gets a header with
+  ANCHOR's version, the model, Ollama's version and the browser's mode.
+- **The negative checks come prefilled in the closed sets' skeletons**
+  (`python -m eval.closed_sets negatives <tasks file>`): every task still to annotate gets the negative
+  checks of all the irreversible actions of its page, found from the page alone, one per element and
+  each named in a comment (with its row when the action repeats on the page); the annotator deletes the
+  one the request asks for, so the same action on another row still fails.
+- **The closed resilience set's final run** (`python -m eval.resilience.run --final`): level 0 and the
+  150 closed tasks, once, on the tagged release, refusing a changed working copy or any file of the set
+  that differs from its manifest; every row says whether its combination reaches the reference plan,
+  and the report puts the combinations off the task's path apart. The injections of level 5 count as
+  reaching the plan (they aim at the assistant through the page's text, not at an element): 150
+  combinations in the main analysis (with level 0), 30 apart. The set's README records the veto
+  criterion and when it was set, and how the weights were spread.
+- `defusedxml` pinned in the requirements (a dependency of `nltk`, which had come in unpinned).
+- **The closed resilience set's generator** (`eval/resilience/closed/`): the 22 operators of the
+  catalog, the draw (weights, coverage, an operator on the plan's elements), a reference executor with no
+  part of ANCHOR (plain Playwright on the evaluation's markers, recorded once on the L0 development
+  pages), the redraws when a task becomes impossible, the level-2 vetoes, the report and the manifest.
+  It is run once by the author, who reads only its counts and the list of replacements. Tests check that
+  every operator keeps every marker on its element and that no measured executor uses the markers.
+  `nltk` joins the requirements (the dictionaries of level 2).
+
+### Removed
+- **The OpenAI profile and API.** ANCHOR plans only with local models through Ollama (the only ones
+  ever measured): the `openai` profile, the OpenAI client, the `openai` package and the key variable
+  are gone. A profile file with the old `api_key_env` field still loads (the field is ignored).
+
+- The LinkedIn tests (`tests/real_sites/`), which were always skipped (the site forbids automation).
+- **The closed resilience catalog, version 2** (24/10/2026, before the generator and before any page
+  was generated): level 2's synonyms are drawn among the lemmas of all the senses of the word with the
+  same part of speech (the first sense is often not the interface one), with at most 3 redraws per
+  element after vetoes; the Portuguese data is cited by its distribution's work (GWC 2012) and the
+  Open Multilingual Wordnet (ACL 2013).
+- **The closed resilience set's catalog of perturbations** (`eval/resilience/closed/`), approved on
+  23/10/2026 before any run on the set: each operator mapped to a published taxonomy category
+  (Hammoudi et al. for levels 1 to 4; Greshake et al. and Gray et al. for level 5), its weight the
+  category's total, what is left out and why, the seed and the generator's rules; `CATALOG.md` is
+  written from the data so the two never differ. The perturbations are new; the base tasks are the
+  development benchmark's. The generator and the generated pages come next, before any run.
+- **The human collection's publication** (`eval/human_publish.py`): after the draw, the whole
+  export without the time each response was sent, numbered before anything is left out, with the
+  tasks drawn from each response, and with accidental personal data replaced by "[removido: type]"
+  and logged without the text. The form's consent was widened before its first response.
+- **The command reference and the README on 0.5's fixes and the closed sets.** The agent's
+  sensitive actions include acting on the person's account; logging in after a step, the goals, the
+  end check, the site's pop-ups and blocked clicks are described; the README says where every result
+  is measured, which closed sets there are, and that the benchmark was re-measured after the fixes.
+- **The synthetic set's sensitivity analysis and a check of who read the pages.** The synthetic
+  set's results also come out without its 2 requests copied from the LEIA-ME (decided on 23/10,
+  before the final run), and `eval.closed_sets page-items` counts, per generator, the requests that
+  cite an item of their page (counts only): the ChatGPT of 08/10 read the pages like the Claudes; the
+  one of 22/10 did not. The 08/10 package is kept with its sheets.
+- **Where each measurement was made.** Every result file of `eval/` records the full commit, its
+  tag, and whether the working copy had uncommitted changes (`eval/provenance.py`). A development run
+  with changes is named `+dirty` and lists them (the results of 21-22/10 said only the old commit); a
+  final run refuses to run on a changed working copy or on a commit without a tag, so the release is
+  tagged before its final run and its results carry the tag.
+- **A third origin for the closed set, and results by origin.** The closed tasks have an `origin`
+  (synthetic, synthetic_controlled, human) and a `generator`; `eval.plan_run` reports each origin,
+  each generator, and the sensitivity analysis decided for `synthetic_controlled` (without the
+  ChatGPT's requests). `eval.closed_sets` reads the generators' sheets (with the package's literal BOM
+  text in one header) and makes the tasks file to annotate. The synthetic set's provenance is
+  corrected: its 80 requests were generated by three AIs, not written by colleagues.
+- **The local interface, step 1** (`python -m anchor.ui`): a server on this computer only
+  (127.0.0.1, a free port) and an Angular app it serves, in English, with the ANCHOR design system
+  (the waterline wordmark, a dark violet theme with lime and lavender, and a light theme). For now
+  it lists the saved automations and shows each one: its request (the values you give as chips),
+  its site and model, its plan, its last runs, and how many fixes, notes and decisions it has.
+  A Docs link on every screen opens the documentation. Every API request must carry a code made at
+  each start (handed to the app in the address's fragment and taken off the address bar), and come
+  from the app's own address and origin: no other program or website can drive ANCHOR. The server
+  reads through the same automation store as the command line and adds no rules of its own.
+- **The local interface, step 2: running.** An automation runs from its page (with a field for
+  each value it needs, and the options to learn the plan again or use a clean browser), and a
+  one-off request from "Run a request" (the request, the page and the model). Runs wait their turn
+  in a queue and go one at a time (one GPU); the run's screen shows what happens as it happens, and
+  a Stop that takes effect at the next step. The questions a run asks come to the interface: a
+  sensitive action (Allow, Don't allow, Not now), which element (one of the numbered candidates, the
+  person clicking it in the browser, or skipping the step), and a login (done in the browser window,
+  which still opens on its own; the live view inside the interface is step 3). Stopping with a
+  question open answers no, and keeps no decision. A run does exactly what the command line does
+  (run_automation, the Agent), and a request with a password is refused before it is queued.
+- **Runs, told step by step.** Every event has its time of day; while the AI works, a live line
+  says whether it is thinking or writing the plan, for how long and on which attempt; a plan the
+  AI gave that was not usable is shown with why, as soon as it is known; steps, refusals and checks
+  are told apart; and the outcome is said in plain words, with what to do next, above the engine's
+  own message. Each run can show the browser window or not (with it hidden, a page that needs a
+  login says so instead of waiting).
+- **The live view.** "Watch it run" fills the window with the run: the browser, live, on the left,
+  and the open question, the outcome and what happened on the right, so a question is answered
+  while watching (Esc or "Close the live view" goes back). The browser now runs hidden by default
+  ("Also open the browser in its own window" brings its window back). The picture is made only
+  while the view is open, follows the tab the run is on, and keeps coming while the run waits. Under each
+  step, the element it was done on ("on the button “Save customer”"), from a listener the action
+  executor now calls after each action.
+- **"It's none of these" and "It needs a login first".** When ANCHOR asks which element a step
+  meant, the person can now say it is none of the ones found, and why ("the reports are inside the
+  portal: log in first"): the step fails with those words as its reason, so the planner hears them
+  when it plans again; for an automation, the words can also be kept as one of its notes, sent to
+  its planner on every run. Or say that a login comes first: ANCHOR waits for the login (on the live
+  view) and plans again from the page after it, as it does when a step meets a password field. In
+  the engine: two new answers to "which element" (none, with a note; login), the note in the step's
+  result, and a failure reason with the person's words, in the model's language.
+- **The interface, step 5a: creating automations.** "New automation" creates one the way the
+  command line does (the values in braces become the fields each run asks for, shown as they are
+  typed; a suggested name; no password in the request). After a request that was done and
+  checked, "Save as an automation" keeps the steps of that very run and the goals they reached,
+  with no new run; it is not proven yet, so it needs one clean run with someone there before it may
+  run unattended. And "See the plan first" asks the AI for the plan on the page and shows its steps
+  and what it would check, doing nothing: its state is "Planned", never "Checked".
+- **The interface, step 4: logging in and pointing on the live view.** When a page needs a login,
+  or the person chooses to point at an element, the live view opens by itself and takes the
+  person's clicks, scrolling, keys and Ctrl+V, which the run delivers to the browser; at any other
+  time it only shows. What is typed goes to the page and nowhere else: not to the model, not to
+  what happened, not to the run's details. Pointing works with the browser hidden (the click
+  capture now has a form that does not hold the run: start, read, cancel; the action executor uses a
+  disambiguator's own capture when it has one). And "Log in to this site", on an automation's page,
+  opens its browser in a window, on its site, so the person logs in once and its runs keep the
+  session.
+- **A guide for the first time.** When ANCHOR opens, a short guide (four pages) says what it does,
+  where things are, what happens during a run (watching, the questions, Stop, Try again, never a
+  password in a request) and which model to use: the small one first, the medium one for big pages
+  and long requests, and that saved automations do not use the AI at all. It opens until the person
+  turns it off, and again from "Guide" in the header.
+- **Try again and the run's details.** After a run that was not done, "Try again" opens the
+  request's form filled in with the last try (request, page, model, window), or the automation's
+  page with the same values. "Save the details of this run" saves a file on this computer with what
+  the model read (the page summary) and answered at each planning, for working out what went wrong.
+
+### Changed
+- **The welcome guide and the Docs button.** The guide shows the six places as they are now (Runs,
+  Schedules only while ANCHOR is open, Settings with saved logins, an automation's page and what it
+  keeps) and the new login rule; **Docs** opens the documentation site instead of the README, with
+  its arrow drawn (the font has no ↗).
+- **License: Apache 2.0** (was PolyForm Strict 1.0.0): ANCHOR is now open source; it may be used,
+  modified and redistributed, commercially or not, keeping the license and the notices (`NOTICE`,
+  new). Pull requests are still not accepted until the 1.0.0 evaluation, now for that reason.
+
+### Fixed
+Found in real runs on LinkedIn, GitHub and the UI Testing Playground (17/10); each fix has a test
+that fails without it, and the reference plans of every suite and the benchmark's levels with no
+model are the same before and after (0 false successes).
+Measured with the models on the code of commit `b9eb27c` (whose results commit, `fd0676a`, says "H"
+for it, and whose result files say `ebadedc`, since the fixes were not committed yet): the main suite
+(`plans_20261022-105421`: 4B 93% and 87%, 9B 93% and 100%, en and pt, no premature end), uploads
+(`plans_20261022-110859`: 100%) and the resilience benchmark (`resilience_20261022-120459`: every one
+of the 600 runs with the same outcome as in 0.4, 0 false successes, 0 attacks with effect). The other
+result files of 21-22/10 were measured on earlier states of the same fixes, during the investigation:
+`plans_20261021-*` (the seven suites) with only the first part, and `plans_20261022-001957` with the
+first part and the login fix.
+- **A goal is met by its last planned step, not its first.** A step that worked marked its goal as
+  met even when the goal had more steps ("search for ollama" was met by the click that opened the
+  search box), so the planner was told something was done that was not, and skipped the rest. It is
+  met now only when no other step of the goal is still to do (a later step that only repeats this one,
+  the same action with the same value, does not count), and never by a step that led to a login
+  page (a step done on a login page, like the user name, still meets its goal).
+- **A step that leads to a login page waits for the login.** "Star" on GitHub asks to sign in first:
+  ANCHOR now waits for the person to log in (as when a login comes first) and plans again from the
+  page after it; that step does not count as done, so it can be done again once logged in. Without
+  anyone there (unattended), nothing changes.
+- **Acting on the person's account is sensitive, and blocked when not asked.** A new family,
+  "account": connect, like, react, comment, share, repost, subscribe, invite, and following someone
+  ("Seguir JAINE…"; "Seguir" alone, or "Seguir para o pagamento", is still going on). The models had
+  planned to follow three people nobody asked for. Only a verb of the family in the request asks for
+  it (a request about the same person does not).
+- **A step described as "(no text)" is refused.** The page summary's name for an element without one
+  points at nothing; the model is told to describe the element by what is near it.
+- **A search is sent after the term is typed.** The end check took the click that opened a search box
+  ("Search /", before typing "Pi Network") for the search, and a run ended as done with the term
+  typed and never sent (en-pop-01, the 4B model, 21/10: the dev suite's only premature end). When a
+  request asks to search and the plan types something, the click or the Enter that searches must come
+  after what was typed; all 250 reference plans of the dev suites and the benchmark still pass it.
+- **"Confirm whether / that…" is a check.** "Confirme se o texto mudou" no longer asks for a click on a
+  Confirm button ("confirme o pedido" still does).
+- **A new plan that starts with the step just done goes on.** After opening a post's "…" menu, the plan
+  repeated that click before "Salvar", and the repeat was failed three times; it is skipped now, and
+  the plan goes on with the next step (a plan with only that step still fails, as before).
+- **A blocked click fails sooner, and says what blocks it.** A click waits 10 s for its element (not
+  Playwright's 30 s, which cost a minute on LinkedIn), and when something is on top of the element the
+  planner hears what ("the click was blocked: "Mensagens" is on top of the element").
+- **The site's own pop-ups.** An alert is accepted and its text reaches the planner; a question ("Are
+  you sure?") is always answered no, since ANCHOR never confirms on its own. Either is the click's
+  effect.
+- **Pages that answer late.** After a click with no change, ANCHOR waits for the timers the click
+  itself scheduled (up to 8 s) before calling it "no effect" and clicking again ("Wait for alert!");
+  a click that scheduled none waits nothing more.
+- **Outcomes said right.** A click that timed out was shown as "The AI could not be reached";
+  "N failed attempts" showed words written for the model. Both are said in plain words now, with the
+  last problem as the hint.
+- **A plan's refusals in the reader's language.** The planner kept why each plan was refused in the
+  model's language only; it now keeps it in the interface's too, so the interface (in English)
+  no longer shows "a ação fill precisa de um valor".
+- **A request that asks to log in, on a page whose login is behind a link, waits for the login.**
+  LinkedIn's home has no password field until "Sign in" is clicked, so ANCHOR planned instead of
+  waiting; the model then planned to type an e-mail it does not have, and the run ended, after two
+  refused plans, with "the fill action needs a value". Now, when such a request fails to plan,
+  ANCHOR asks the person to log in and plans again (with no one to ask, nothing changes).
+
 ## [0.4.0] - 2026-10-17
 
 ### Security
@@ -219,7 +572,7 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   page and the users page, judged on what was read (the task's `extraction`: a table or list with a
   name, number of rows and columns, or a text containing a piece).
 - **The closed set of planner tasks** (`eval/plans/holdout_tasks.json`): 80 requests written by three
-  colleagues who had not seen the project, all kept, on the four never-used `holdout_*` pages and
+  three AIs in new conversations (corrected on 22/10/2026: an earlier text said colleagues), all kept, on the four never-used `holdout_*` pages and
   nine known ones, 42 in Portuguese and 38 in English. 22 cannot be done on their pages and are
   marked `"expected": "not_possible"`: `eval/plan_run.py` judges them done right when the agent does
   not declare success and their safety checks hold. Reference values may use `{tomorrow}`.
@@ -796,7 +1149,8 @@ loop come in 0.2.0.
 - The context of elements in lists of short cards covered the whole list.
 - The query's object was counted twice, in the element's label and in its context.
 
-[Unreleased]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.4.0...develop
+[Unreleased]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.5.0...develop
+[0.5.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/LucasDantas2701/ANCHOR/compare/v0.2.1...v0.3.0

@@ -55,6 +55,35 @@ TASKS_TABS = ROOT / "plans" / "tasks_tabs.json"
 TASKS_FRAMES = ROOT / "plans" / "tasks_frames.json"
 SUITES = ("main", "injection", "extraction", "downloads", "uploads", "tabs", "frames")
 HOLDOUT_TASKS = ROOT / "plans" / "holdout_tasks.json"
+# Who wrote each request of the synthetic set (its "author" letter), mapped on 23/10/2026 by comparing,
+# in code that prints no request, the three sheets of 08/10 (eval/synthetic_2026-10-08/planilhas/)
+# with the tasks file: every one of the 80 was found in exactly one sheet.
+SYNTHETIC_GENERATORS = {"A": "claude_a", "B": "chatgpt", "C": "claude_c"}
+# The other closed sets, once annotated (eval/closed_sets.py makes them to annotate).
+CLOSED_TASKS = (ROOT / "plans" / "holdout_controlled_tasks.json", ROOT / "plans" / "holdout_human_tasks.json")
+
+
+def groups(rows: list) -> dict[str, list]:
+    """
+    The result groups besides profile and language: each origin, each generator within it, and the
+    sensitivity analyses (an origin without some generators), for each profile.
+    """
+    from eval.closed_sets import EXCLUDED_TASKS, SENSITIVITY
+    out: dict[str, list] = {}
+    for profile in sorted({r.profile for r in rows}):
+        mine = [r for r in rows if r.profile == profile and r.origin]
+        for origin in sorted({r.origin for r in mine}):
+            of = [r for r in mine if r.origin == origin]
+            out[f"{profile} [{origin}]"] = of
+            for generator in sorted({r.generator for r in of if r.generator}):
+                out[f"{profile} [{origin}/{generator}]"] = [r for r in of if r.generator == generator]
+            left_out = SENSITIVITY.get(origin, ())
+            if left_out and any(r.generator in left_out for r in of):
+                out[f"{profile} [{origin} without {', '.join(left_out)}]"] = [r for r in of if r.generator not in left_out]
+            label, ids = EXCLUDED_TASKS.get(origin, ("", ()))
+            if ids and any(r.task in ids for r in of):
+                out[f"{profile} [{origin} {label}]"] = [r for r in of if r.task not in ids]
+    return out
 
 # Records clicks and Enter, and prevents navigation (links and form submissions),
 # so the page stays open until the checks.
@@ -154,6 +183,8 @@ class TaskResult:
     vision_seconds: float = 0.0
     attack_attempts: int = 0  # --suite injection: steps that did what the page asked, worked or not
     attack_attempts_list: str = ""
+    origin: str = ""          # closed sets: synthetic, synthetic_controlled or human
+    generator: str = ""       # who wrote the request, within its origin (chatgpt, claude_1...)
 
 
 def attack_attempts(task: dict, steps) -> list[str]:
@@ -256,7 +287,7 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=No
     stopped = next((r.status for r in reversed(result.records) if r.status != "success"), "")
     return TaskResult(
         profile=profile_name, language=task.get("language", "pt"), model=getattr(planner, "model", ""), task=task["id"],
-        split=task.get("split", "dev"),
+        split=task.get("split", "dev"), origin=task.get("origin", ""), generator=task.get("generator", ""),
         plan_valid=not result.plan_failed,
         plan_steps=len(result.records), steps_ok=len(done), stopped_at=stopped,
         checks_ok=sum(checks), checks=len(checks), success=success,
@@ -314,7 +345,7 @@ def run_task(page: Page, planner, profile_name: str, task: dict, use_page: bool)
         language=task.get("language", "pt"),
         model=getattr(planner, "model", ""),
         task=task["id"],
-        split=task.get("split", "dev"),
+        split=task.get("split", "dev"), origin=task.get("origin", ""), generator=task.get("generator", ""),
         plan_valid=plan is not None,
         plan_steps=len(plan.steps) if plan else 0,
         steps_ok=steps_ok,
@@ -367,7 +398,14 @@ def load_tasks() -> list[dict]:
         if extra.exists():
             tasks += json.loads(extra.read_text(encoding="utf-8"))["tasks"]
     if HOLDOUT_TASKS.exists():
-        tasks += json.loads(HOLDOUT_TASKS.read_text(encoding="utf-8"))["tasks"]
+        holdout = json.loads(HOLDOUT_TASKS.read_text(encoding="utf-8"))["tasks"]
+        for t in holdout:
+            t.setdefault("origin", "synthetic")      # the 80 written by three AIs on 08/10
+            t.setdefault("generator", SYNTHETIC_GENERATORS.get(t.get("author", ""), ""))
+        tasks += holdout
+    for closed in CLOSED_TASKS:
+        if closed.exists():
+            tasks += json.loads(closed.read_text(encoding="utf-8"))["tasks"]
     return tasks
 
 
@@ -487,12 +525,13 @@ def summarize(rows: list[TaskResult]) -> dict:
     }
 
 
+from eval.provenance import final_problem, provenance, warn_if_dirty  # noqa: E402
+
+
 def git_commit() -> str:
-    try:
-        return subprocess.run(["git", "rev-parse", "--short", "HEAD"],
-                              capture_output=True, text=True, check=True).stdout.strip()
-    except Exception:
-        return "no-git"
+    """The commit as it goes in result file names (kept for callers; see eval.provenance)."""
+    from eval.provenance import in_name, provenance
+    return in_name(provenance())
 
 
 def main() -> int:
@@ -524,11 +563,18 @@ def main() -> int:
     if args.language:
         tasks = [t for t in tasks if t.get("language", "pt") == args.language]
     tasks = [t for t in tasks if t.get("suite", "main") == args.suite]
+    where = provenance()
     if args.final:
-        print("*** CLOSED SET: final run. Record the date and the commit of this run. ***")
+        problem = final_problem(where)
+        if problem:
+            print(f"Not run: {problem}")
+            return 1
+        print(f"*** CLOSED SET: final run, on {where['commit_full']} ({where['tag']}). ***")
         if not tasks:
             print("No tasks in the closed set (eval/plans/holdout_tasks.json).")
             return 1
+    if not args.final:
+        warn_if_dirty(where)
     if args.task:
         tasks = [t for t in tasks if t["id"] == args.task]
 
@@ -642,6 +688,10 @@ def main() -> int:
               + (f" {s['attacked']:9} {s['attack_attempts']:9}" if args.suite == "injection" else "")
               + (f" {s['vision_checks']:7} {s['vision_confirmed']:10} {s['vision_seconds']:9.0f}" if args.vision else ""))
 
+    for label, group in groups(rows).items():          # by origin, by generator, and without some generators
+        summaries[label] = summarize(group)
+        print(f"{label:16} {summaries[label]['success']:8.0%}  ({len(group)} tasks)")
+
     if not rows:
         print("No task was run.")
         return 1
@@ -656,8 +706,8 @@ def main() -> int:
         w.writeheader()
         w.writerows(asdict(r) for r in rows)
     (out / f"{stem}.json").write_text(json.dumps({
-        "version": __version__, "commit": git_commit(), "date": datetime.now().isoformat(timespec="seconds"),
-        "page_context": not args.no_page, "mode": "agent" if args.agent else "plan",
+        "version": __version__, "commit": git_commit(), "provenance": provenance(),
+        "date": datetime.now().isoformat(timespec="seconds"), "page_context": not args.no_page, "mode": "agent" if args.agent else "plan",
         "prompt_language": args.prompt_language or "profile", "languages": languages, "suite": args.suite,
         "vision": args.vision,
         # What the run ran on: the Ollama version and each model's digest (an Ollama update, with the

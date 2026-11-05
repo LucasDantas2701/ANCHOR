@@ -207,14 +207,17 @@ def run_automation(
     if unattended:
         # Only a proven plan (done with someone present, with no recovery) runs with no one there,
         # and nothing may change: no repair by the model, no tie-break, no new sensitive action, no
-        # waiting for a login, and each step acts only on the element of the proving run.
+        # waiting for a login (only a saved login allowed for scheduled runs, on its exact site), and
+        # each step acts only on the element of the proving run.
         if relearn or approved is None or not approved.proven_run:
             raise AutomationError(t("auto.not_proven", name=name))
         heal = False
         if confirm is not None:
             confirm = _NoOneToAsk()
         from anchor.agent.login import TerminalLoginWaiter
-        agent_options["login"] = TerminalLoginWaiter(interactive=False)
+        from anchor.vault.fill import with_vault
+        agent_options["login"] = with_vault(TerminalLoginWaiter(interactive=False), lambda: executor.page,
+                                            report=say, unattended=True)
         saved_disambiguator, executor.disambiguator = executor.disambiguator, None
         executor.guard = _proof_guard(approved.proven_elements, values)
         agent_options["max_failures"] = 1      # nothing is repaired: no second attempt

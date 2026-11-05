@@ -28,6 +28,7 @@ class ActionResult:
     # "memory" (a previous choice by the user) or "user_skipped"
     # (the user asked to skip the step).
     resolved_by: str = "heuristic"
+    note: str = ""                    # what the person said when it was none of the elements found
 
     # Only for resolved_by == "memory": how similar the element on the page
     # is to the remembered one. It is not comparable to the heuristic's score,

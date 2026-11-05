@@ -91,6 +91,7 @@ MESSAGES: dict[str, dict[str, str]] = {
     "dis.opt_skip": {"en": "S to skip this step", "pt": "P para pular este passo"},
     "dis.prompt": {"en": "Type {options}: ", "pt": "Digite {options}: "},
     "dis.invalid": {"en": "Answer not recognized, please try again.", "pt": "Resposta não reconhecida, tente de novo."},
+    "dis.point_now": {"en": "Click the element in the browser.", "pt": "Clique no elemento na janela do navegador."},
     "dis.banner": {"en": "Click the element the assistant should use", "pt": "Clique no elemento que o assistente deve usar"},
     "dis.image_saved": {"en": "(image saved at {path})", "pt": "(imagem salva em {path})"},
     # ------------------------------------------------------------ choice memory (terminal)
@@ -130,14 +131,10 @@ MESSAGES: dict[str, dict[str, str]] = {
     # ------------------------------------------------------------ planner, profiles and Ollama
     "planner.gave_up": {"en": "invalid plan after {attempts} attempts: {error}",
                         "pt": "plano inválido depois de {attempts} tentativas: {error}"},
-    "config.needs_key": {"en": 'Profile "{profile}" needs the environment variable {env}.\n'
-                               'On Windows: setx {env} "your-key" (and open a new terminal).',
-                         "pt": 'O perfil "{profile}" precisa da variável de ambiente {env}.\n'
-                               'No Windows: setx {env} "sua-chave" (e abra um terminal novo).'},
     "config.no_model": {"en": 'Set the "model" field of profile "{profile}" in llm_profiles.json.',
                         "pt": 'Defina o campo "model" do perfil "{profile}" em llm_profiles.json.'},
-    "config.bad_api": {"en": 'Profile "{profile}": "api" must be "openai" or "ollama", not "{api}".',
-                       "pt": 'Perfil "{profile}": "api" deve ser "openai" ou "ollama", não "{api}".'},
+    "config.bad_api": {"en": 'Profile "{profile}": "api" must be "ollama" (the only one supported), not "{api}".',
+                       "pt": 'Perfil "{profile}": "api" deve ser "ollama" (a única aceita), não "{api}".'},
     "config.no_file": {"en": "Profiles file not found: {path}", "pt": "Arquivo de perfis não encontrado: {path}"},
     "config.unknown_profile": {"en": 'Profile "{profile}" does not exist. Available: {available}',
                                "pt": 'Perfil "{profile}" não existe. Disponíveis: {available}'},
@@ -317,6 +314,9 @@ MESSAGES: dict[str, dict[str, str]] = {
                         "pt": "  Não permitida desta vez (nada salvo): a próxima execução pergunta de novo."},
     "confirm.no_terminal": {"en": "  No one to confirm it (no terminal): not allowed.",
                             "pt": "  Ninguém para confirmar (sem terminal): não permitida."},
+    "agent.repeat_skipped": {"en": "just done, not repeated", "pt": "acabou de ser feito, não repetido"},
+    "confirm.cat_account": {"en": "act on your account (follow, connect, like, comment or share)",
+                            "pt": "agir na sua conta (seguir, conectar, curtir, comentar ou compartilhar)"},
     "confirm.cat_delete": {"en": "delete", "pt": "excluir"},
     "confirm.cat_submit": {"en": "save or submit", "pt": "salvar ou enviar dados"},
     "confirm.cat_send": {"en": "send", "pt": "enviar"},

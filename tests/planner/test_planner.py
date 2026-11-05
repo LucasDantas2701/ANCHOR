@@ -6,8 +6,6 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
-import httpx2
-import openai
 import pytest
 
 from anchor.engine.action_executor import ActionExecutor
@@ -21,6 +19,7 @@ from anchor.planner import (
     run_plan,
 )
 from anchor.planner.plan import Plan
+from anchor.planner.planner import SchemaNotSupported
 from anchor.planner.prompt import user_message
 
 CADASTRO = (Path(__file__).resolve().parents[2] / "eval" / "fixtures" / "registration.html").as_uri()
@@ -102,10 +101,7 @@ def test_without_extra_parameters_nothing_is_sent():
 
 
 def test_server_without_json_schema_uses_plain_json():
-    request = httpx2.Request("POST", "http://localhost/v1/chat/completions")
-    no_schema = openai.BadRequestError("json_schema não suportado",
-                                       response=httpx2.Response(400, request=request), body=None)
-    client = FakeClient(no_schema, GOOD)
+    client = FakeClient(SchemaNotSupported("json_schema não suportado"), GOOD)
     plan = LLMPlanner(client, "m").plan("cadastre a Maria Silva e salve", "http://x")
     assert len(plan.steps) == 2
     assert client.calls[1]["response_format"] == {"type": "json_object"}
@@ -131,11 +127,10 @@ def test_message_without_list_of_elements():
     assert "Pedido do usuário: abrir o carrinho" in msg and "Elementos" not in msg
 
 
-def test_profile_without_key_explains_how_to_configure(monkeypatch):
-    monkeypatch.delenv("CHAVE_DE_TESTE", raising=False)
-    profile = LLMProfile(name="p", model="m", api_key_env="CHAVE_DE_TESTE")
-    with pytest.raises(ConfigError, match="setx CHAVE_DE_TESTE"):
-        profile.client()
+def test_a_profile_for_another_api_is_refused_and_an_old_key_field_is_ignored():
+    with pytest.raises(ConfigError, match='"ollama"'):
+        LLMProfile(name="p", model="m", api="remote").client()
+    assert LLMProfile(name="p", model="m", api_key_env="OLD_KEY").client() is not None    # older files still load
 
 
 def test_profile_with_model_not_filled_in():
@@ -145,7 +140,7 @@ def test_profile_with_model_not_filled_in():
 
 def test_local_profile_does_not_require_a_key():
     client = LLMProfile(name="p", model="m", base_url="http://localhost:11434/v1").client()
-    assert str(client.base_url).startswith("http://localhost:11434")
+    assert client.url == "http://localhost:11434/api/chat"                     # Ollama's native API, even from a /v1 address
 
 
 def test_plan_run_on_the_form(page):
@@ -234,3 +229,54 @@ def test_a_goal_the_model_cannot_plan_yet_is_left_for_later():
     plan = LLMPlanner(FakeClient(answer), "m").plan("entre com ana@x.com e salve as vagas", "http://x",
                                                     history=["feito: abrir a página"])
     assert [g.id for g in plan.goals] == ["g1"] and len(plan.steps) == 1 and "g2" in plan.incomplete
+
+
+def test_refused_answers_are_also_kept_in_the_interfaces_language():
+    from anchor.i18n import get_language, set_language
+    bad = json.dumps({"steps": [{"action": "voar", "description": "x", "value": None}]})
+    before = get_language()
+    set_language("en")
+    try:
+        planner = LLMPlanner(FakeClient(bad, bad), "m")          # the model speaks Portuguese (the default prompt)
+        with pytest.raises(PlanError):
+            planner.plan("cadastre a Maria Silva e salve", "http://x")
+    finally:
+        set_language(before)
+    assert len(planner.last_refusals) == 2 and "voar" in planner.last_refusals[0]
+    assert planner.last_refusals[0] != planner.last_attempts[0][1]   # the person reads English, the model read Portuguese
+
+
+@pytest.mark.parametrize("description", ["(sem texto)", "(no text)", " (Sem texto) "])
+def test_a_step_on_an_element_named_no_text_is_refused(description):
+    """GitHub, 17/10: the 4B model clicked "(sem texto)" three times, the page summary's name for a nameless element."""
+    from anchor.planner.plan import parse_plan
+    with pytest.raises(PlanError) as err:
+        parse_plan({"steps": [{"action": "click", "description": description, "value": None}]})
+    assert "(sem texto)" in str(err.value) or "(no text)" in str(err.value)
+
+
+@pytest.mark.parametrize("request_", [
+    "Abra Text Input, digite ANCHOR e clique no botão. Depois confirme se o texto do botão mudou",
+    "Click the button and confirm that the success message appeared",
+    "Open the page and check whether the table has 3 rows",
+])
+def test_confirming_whether_something_happened_is_a_check_not_a_button(request_):
+    from anchor.planner.plan import check_request
+    check_request([Step("fill", "Text", "ANCHOR"), Step("click", "Button")], [], request_)   # no "Confirm" click is asked for
+
+
+def test_confirming_an_order_still_needs_the_click():
+    from anchor.planner.plan import check_request
+    with pytest.raises(PlanError):
+        check_request([Step("click", "Ver resumo")], [], "abra o carrinho e confirme o pedido")
+
+
+def test_a_search_is_sent_after_the_term_is_typed():
+    """CoinMarketCap pop-up (21/10): the click that opened the search box was taken for the search."""
+    from anchor.planner.plan import check_request
+    with pytest.raises(PlanError):
+        check_request([Step("click", "Search /"), Step("fill", "Search coins", "Pi Network")], [], "Search for the Pi Network coin")
+    check_request([Step("click", "Search /"), Step("fill", "Search coins", "Pi Network"), Step("press", "Search coins", "Enter")],
+                  [], "Search for the Pi Network coin")
+    check_request([Step("fill", "Busca", "tênis"), Step("click", "Buscar")], [], "pesquise tênis")
+    check_request([Step("click", "Search")], [], "search")                 # nothing typed: the click searches

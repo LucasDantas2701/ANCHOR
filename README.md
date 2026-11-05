@@ -1,10 +1,11 @@
 <a id="readme-top"></a>
 
 <!-- PROJECT SHIELDS -->
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
+[![Release][release-shield]][release-url]
 [![License][license-shield]][license-url]
 [![Python][python-shield]][python-url]
+[![Local LLM][ollama-shield]][ollama-url]
+[![Documentation][docs-shield]][docs-url]
 
 <!-- PROJECT LOGO -->
 <br />
@@ -22,9 +23,19 @@
     Playwright. Describe the task in plain language, a small local LLM plans it, and you stay in control.
     <br />
     <br />
-    <a href="#getting-started"><strong>Get started »</strong></a>
+    <a href="#quick-start"><strong>Get started »</strong></a>
+    &middot;
+    <a href="https://lucasdantas2701.github.io/ANCHOR/"><strong>Documentation</strong></a>
     &middot;
     <a href="README.pt-BR.md">Leia em português</a>
+    <br />
+    <br />
+    <a href="#quick-start">Quick start</a> ·
+    <a href="#how-it-works">How it works</a> ·
+    <a href="#what-anchor-does">What ANCHOR does</a> ·
+    <a href="#evaluation">Evaluation</a> ·
+    <a href="#faq">FAQ</a> ·
+    <a href="https://lucasdantas2701.github.io/ANCHOR/">Documentation</a>
     <br />
     <br />
     <a href="https://github.com/LucasDantas2701/ANCHOR/issues/new?template=problem.yml">Report a bug</a>
@@ -33,13 +44,59 @@
   </p>
 </div>
 
+> [!IMPORTANT]
+> In ANCHOR, the AI only plans: a small model, run on your computer by Ollama, writes the steps, and
+> code does each one and checks it. No page, request or password leaves your computer, and before
+> anything sensitive (saving, sending, paying, deleting, acting on your account) ANCHOR asks you.
+
+## Quick Start
+
+**On Windows, with the installer:** install [Ollama](https://ollama.com/download), then download
+`ANCHOR-Setup-<version>.exe` from the [releases](https://github.com/LucasDantas2701/ANCHOR/releases)
+and run it. It installs for your user only (no administrator password), and the first time ANCHOR
+opens it downloads the AI model (at least one of the two) and the browser it drives, with a button
+for each.
+
+> [!NOTE]
+> Until the installer is signed, Windows may say it comes from an **unknown publisher**: click
+> **More info**, then **Run anyway**. The installer is built by GitHub from this repository's code
+> (`.github/workflows/installer.yml`).
+
+**From the code**, with [Python 3.10+](https://www.python.org/downloads/), [Node.js 22.12+](https://nodejs.org/)
+and [Ollama](https://ollama.com/download) installed:
+
+```sh
+git clone https://github.com/LucasDantas2701/ANCHOR.git
+cd ANCHOR
+python -m venv venv
+venv\Scripts\activate            # Linux/macOS: source venv/bin/activate
+pip install -r requirements.txt
+playwright install chromium
+ollama pull qwen3.5:4b
+cd web
+npm install
+npm run build
+cd ..
+```
+
+Then, every time:
+
+```sh
+python -m anchor.ui
+```
+
+The step-by-step version, a first request on a test page and the requirements are in
+[Getting Started](#getting-started).
+
 <!-- TABLE OF CONTENTS -->
 <details>
   <summary>Table of Contents</summary>
   <ol>
+    <li><a href="#quick-start">Quick Start</a></li>
     <li>
       <a href="#about-the-project">About The Project</a>
       <ul>
+        <li><a href="#what-anchor-does">What ANCHOR Does</a></li>
         <li><a href="#built-with">Built With</a></li>
         <li><a href="#how-it-works">How It Works</a></li>
       </ul>
@@ -49,12 +106,28 @@
       <ul>
         <li><a href="#prerequisites">Prerequisites</a></li>
         <li><a href="#installation">Installation</a></li>
-        <li><a href="#quick-example">Quick Example</a></li>
+        <li><a href="#open-anchor">Open ANCHOR</a></li>
+        <li><a href="#a-first-try">A First Try</a></li>
+        <li><a href="#keeping-anchor-up-to-date">Keeping ANCHOR Up To Date</a></li>
       </ul>
     </li>
-    <li><a href="#usage">Usage</a></li>
+    <li>
+      <a href="#using-anchor">Using ANCHOR</a>
+      <ul>
+        <li><a href="#run-a-request">Run a request</a></li>
+        <li><a href="#what-a-run-brings-back">What a Run Brings Back</a></li>
+        <li><a href="#watch-it-run">Watch it run</a></li>
+        <li><a href="#when-anchor-asks">When ANCHOR asks</a></li>
+        <li><a href="#saved-logins">Saved Logins</a></li>
+        <li><a href="#automations">Automations</a></li>
+        <li><a href="#schedules">Schedules</a></li>
+        <li><a href="#which-model">Which model</a></li>
+      </ul>
+    </li>
+    <li><a href="#the-command-line">The Command Line</a></li>
     <li><a href="#evaluation">Evaluation</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#faq">FAQ</a></li>
     <li><a href="#feedback">Feedback</a></li>
     <li><a href="#development">Development</a></li>
     <li><a href="#responsible-use">Responsible Use</a></li>
@@ -79,13 +152,27 @@
 * **It runs entirely on your computer.** The plans come from a small LLM run locally by
   [Ollama](https://ollama.com) (Qwen 3.5, 4B or 9B); no page, request or password leaves your machine.
 * **You stay in control.** It asks before anything sensitive (saving, sending, paying, deleting,
-  downloading or uploading files), blocks what the request did not ask for, leaves logins to you, and
-  stops instead of guessing.
+  acting on your account), blocks what the request did not ask for, never shows the AI a password, and stops
+  instead of guessing.
 * **It heals itself.** When a page changes, it finds the element again, checks every step, and keeps
   the fix for next time, instead of breaking like a fixed selector.
 * **It is measured.** Development suites, prompt-injection pages and a resilience benchmark against
-  a traditional script and an LLM in control.
+  a traditional script and an LLM in control, with closed sets for the 1.0 evaluation.
 * **It is open source**, under the Apache 2.0 license.
+
+### What ANCHOR Does
+
+| You want to | What ANCHOR does | More |
+|---|---|---|
+| Fill in a form and send it | Plans the steps, finds each field and button even after the page changed, and checks that each step had its effect; asks before saving or sending | [Run a request](#run-a-request) |
+| Read data from a page | Reads a whole table or list and saves it (CSV or JSON), or answers a question about the page | [Guide](https://lucasdantas2701.github.io/ANCHOR/docs/guides/reading-data/) |
+| Send or download files | Sends the files the request names to upload fields, and keeps every download; both are asked first | [Guide](https://lucasdantas2701.github.io/ANCHOR/docs/guides/files/) |
+| Work on sites that log in | Logs in with a login you saved for that exact site, or waits while you log in on the live view; the AI never sees a password | [Saved logins](#saved-logins) |
+| Get through real pages | Follows new tabs and iframes, opens "Show more" and menus that hide a step, and declines cookie banners | [How It Works](#how-it-works) |
+| Do the same task again | Saves a checked request as an automation that runs without the AI, once or once per spreadsheet row, and repairs itself when the page changes | [Automations](#automations) |
+| Get something back | Shows the answers, the tables and lists it read (to download as CSV), the files it downloaded and, when asked, a screenshot of the page at the end | [What a run brings back](#what-a-run-brings-back) |
+| See what it is doing | Shows the browser live, step by step, with every tab and window it opened | [Watch it run](#watch-it-run) |
+| Stay safe on any page | Blocks actions the request did not ask for, and ignores instructions hidden in pages (tested on prompt-injection pages) | [Responsible Use](#responsible-use) |
 
 Traditional RPA depends on fixed selectors, written by a developer:
 
@@ -116,8 +203,9 @@ What sets it apart is **who controls what**:
 * **The LLM only plans.** It turns the request into goals and steps, using the names of the
   elements on the page. It never clicks anything directly.
 * **A heuristic finds each element**, without spending tokens, and refuses when it is not sure.
-* **The user breaks ties.** When the heuristic refuses, the candidates are numbered on the page,
-  and the user picks one, or clicks the right element.
+* **The person breaks ties.** When the heuristic refuses, the candidates are numbered on the page,
+  and the person picks one, clicks the right element on the live view, or says it is none of them
+  (and why, for the AI).
 * **Choices are remembered** and reused on the next runs, so interventions go down over time.
 
 Here the site changed after an automation was saved ("Add to cart" became "Add to bag"): ANCHOR
@@ -127,6 +215,7 @@ nothing:
 <p align="center">
   <img src="docs/images/user_choice_remembered.gif" alt="ANCHOR asks which button to use after the site changed, remembers the answer, and the next run asks nothing (redrawn from a recorded run of version 0.4; the terminal text is the run's own)" width="900">
 </p>
+
 * **Every action is verified**: the agent checks that the field got the value, that the page
   reacted, and that no error message appeared, and only declares the end when all goals are met.
 * **Safety barriers**: destructive actions the request did not mention (close, delete, hide...)
@@ -138,7 +227,9 @@ nothing:
 > **Status:** version 0.4.0. The engine, the planner, the agent loop, effect verification, saved
 > automations with self-healing, confirmation of sensitive actions and the defenses against prompt
 > injection are done, and 0.4 added data extraction, downloads, uploads, new tabs, iframes, hidden
-> content, cookie banners and unattended runs for scheduling. A local frontend (0.5) is next. See the
+> content, cookie banners and unattended runs for scheduling. 0.5 is a local program for people who
+> do not program: a Windows installer (or `python -m anchor.ui`), in Portuguese or English, with saved
+> logins, schedules and what each run brings back. 1.0, the evaluated version, is next. See the
 > [roadmap](#roadmap) and the [changelog](CHANGELOG.md).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -148,10 +239,18 @@ nothing:
 * [![Python][python-shield]][python-url]
 * [![Playwright][playwright-shield]][playwright-url]
 * [![Ollama][ollama-shield]][ollama-url]
+* [![FastAPI][fastapi-shield]][fastapi-url] and [![Angular][angular-shield]][angular-url], for the interface
+* keyring (saved logins, in Windows' Credential Manager), openpyxl (Excel spreadsheets) and SQLite
+  (schedules), from Python
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ### How It Works
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/how_it_works_dark.svg">
+  <img src="docs/images/how_it_works_light.svg" alt="How ANCHOR works: request, planner (a local model writes the steps), resolver (finds the element), executor (acts in the browser), check (did the effect happen?)" width="900">
+</picture>
 
 ```text
 Request in plain language + link
@@ -186,9 +285,9 @@ For each step:
 End of plan ──► LLM checks whether anything is left ──► all goals met? ──► done
 ```
 
-What the model reads and what the user reads are separate, each with its own language: the
+What the model reads and what the person reads are separate, each with its own language: the
 planner prompt is in Portuguese by default (the measured one) or English; the interface is in
-English by default or Portuguese.
+Portuguese or English (Settings → Language), and the command line in English or Portuguese.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -197,212 +296,259 @@ English by default or Portuguese.
 <!-- GETTING STARTED -->
 ## Getting Started
 
+ANCHOR runs on your computer: the AI, the browser and your data stay on it. Until the Windows
+installer arrives (0.5), it is installed from the source, once, and opened with one command.
+
 ### Prerequisites
 
-* Python 3.10 or newer
-* [Ollama](https://ollama.com), to run the planner locally (free). The engine and the
-  disambiguation demo work without it.
-* A GPU with 4 GB of memory is enough: everything in this README was measured on a GTX 1050 Ti
-  (with an i7-7700HQ and 16 GB of RAM). Without a GPU it should still work, more slowly (not
-  measured). The two models take a few GB of disk each; the smaller one is enough to start.
+* **Windows 10 or 11** (where ANCHOR is developed; Linux and macOS should work, but are tested less).
+* **Python 3.10 or newer.**
+* **Node.js 22.12 or newer**, only to build the interface once (the installer will not need it).
+* **[Ollama](https://ollama.com)**, which runs the AI on your computer, for free.
+* A graphics card with 4 GB of memory is enough: everything here was measured on a GTX 1050 Ti
+  (with an i7-7700HQ and 16 GB of RAM). Without one, it works more slowly (not measured). Each
+  model takes a few GB of disk; the smaller one is enough to start.
 
 ### Installation
 
-1. Clone the repository
+1. Get ANCHOR
    ```sh
    git clone https://github.com/LucasDantas2701/ANCHOR.git
    cd ANCHOR
    ```
-2. Create a virtual environment and install the dependencies
+2. Install its parts and the browser it uses
    ```sh
    python -m venv venv
    venv\Scripts\activate            # Windows (Linux/macOS: source venv/bin/activate)
    pip install -r requirements.txt
    playwright install chromium
    ```
-3. Install [Ollama](https://ollama.com/download) (it runs in the background once installed) and
-   download the models (the names go in `llm_profiles.json`; check them with `ollama list`)
+3. Install [Ollama](https://ollama.com/download) (it runs in the background) and download the models
    ```sh
    ollama pull qwen3.5:4b
-   ollama pull qwen3.5:9b      # optional: slower, but better at recovering
+   ollama pull qwen3.5:9b      # optional: slower, more careful with big pages
    ```
-4. Check that everything works (about 3 minutes; the SauceDemo tests need the internet and fail
-   without it, and the LinkedIn ones are skipped on purpose)
+4. Build the interface (once, and again after each update)
    ```sh
-   pytest tests -v
+   cd web
+   npm install
+   npm run build
+   cd ..
    ```
 
-### Quick Example
-
-The repository comes with local test pages, so you can try it without touching a real site:
+### Open ANCHOR
 
 ```sh
-python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_en.html "Register Maria Silva, tax ID 123-45-6789, work e-mail maria.silva@company.com, IT department, contractor. Accept the terms and save the registration."
+python -m anchor.ui
 ```
 
-The browser opens, the agent plans and runs each step, asks in the terminal when it is not sure
-(and before saving, since saving is a sensitive action), and at the end shows the result: steps,
-model calls, replans, failures, user interventions, tokens and time.
+Your browser opens on ANCHOR. The first time, a short guide shows where things are and which model
+to use (it can be opened again from **Guide**, at the top). Keep the terminal open while you use
+ANCHOR: closing it closes ANCHOR.
 
-Requests in Portuguese work too, on any page:
+ANCHOR serves only this computer (`127.0.0.1`), and each time it opens it makes a new code that only
+its own page knows: no other computer, program or website can use it. The address it opens has
+that code, so open ANCHOR from the command, not from an old bookmark.
+
+### A First Try
+
+The repository comes with test pages, so you can try ANCHOR without touching a real site. In
+**Run a request**, write:
+
+```text
+Register Maria Silva, tax ID 123-45-6789, work e-mail maria.silva@company.com, IT department, contractor. Accept the terms and save the registration.
+```
+
+Give `eval/fixtures/registration_en.html` as the page, choose the **Small** model and press **Run**. Then
+**Watch it run**: the browser fills the form step by step and, before saving, asks you (saving is a
+sensitive action).
+
+### Keeping ANCHOR Up To Date
+
+ANCHOR changes often. To update it, close it and run, in its folder:
 
 ```sh
-python -m anchor.agent --profile ollama-small --url eval/fixtures/registration.html "cadastre a Maria Silva, CPF 123.456.789-00, no TI, contrato PJ, aceite os termos e salve"
+git pull
+venv\Scripts\activate            # Linux/macOS: source venv/bin/activate
+pip install -r requirements.txt
+cd web
+npm install
+npm run build
+cd ..
 ```
+
+Your automations, choices and logins are kept: they live in folders the update does not touch.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 
 
-<!-- USAGE -->
-## Usage
+<!-- USING ANCHOR -->
+## Using ANCHOR
 
-The main commands are below; **every** command and option is in the
-[command reference](docs/COMMANDS.md).
+### Run a request
 
-**Run a request end to end** (plan, execution, replanning and end):
+**Run a request** is for something you need done once. Write it as you would ask a colleague,
+give the page where it starts and choose the model. **See the plan first** shows the steps the AI
+would take, without doing any of them; **Run** does them.
+
+Never write a password in a request: ANCHOR refuses it. When a page needs a login, ANCHOR uses a
+login you saved for that site, or waits for you to do it (below).
+
+### What a run brings back
+
+A request can ask for something back: "search for RPA jobs in Manaus and send them to me", "what is
+the delivery fee?". The run's result then shows **What it brought back**: the answers (with **Copy**),
+the tables and lists it read (the first 50 rows on the screen, all of them in **Download CSV**), the
+files it downloaded, and, when asked, a **screenshot** of the page at the end: tick **Include a
+screenshot of the page at the end** (in the request form, or in an automation's **More options**), or
+ask for it in the request ("...and send me a print", "take a screenshot"). In a spreadsheet run, each
+row shows what it brought back. Everything stays in the `output` folder, on this computer.
+
+### Watch it run
+
+Runs wait their turn and go one at a time (the AI has one graphics card). **Runs**, in the menu,
+shows the queue: the run going now (**Watch**, **Stop**), the ones waiting their turn, in order
+(**Remove from queue**), and the ones that ended in this session, with their result. A run's page tells what
+happens as it happens, with the time of each event and, under each step, the element it was done
+on. **Watch it run** puts the browser, live, beside the steps; when the run opens more than one tab or
+window (a "Sign in with Google" window, for example), a strip over the picture shows them all, marks the
+one ANCHOR is working on, and lets you see another (and click on it during a login). The browser runs in
+a real window kept off the screen, so sites see an ordinary browser; **Also open the browser in its own
+window** puts that window on the screen. It opens at 1366 × 768, with the site's notifications off, in
+your system's language and time zone.
+
+**Stop** stops at the next step. After a run that was not done, **Try again** opens it again with
+what you wrote, and **Save the details of this run** saves a file, on your computer, with what the
+AI read and answered at each planning: useful to work out what went wrong, or to send with a bug
+report.
+
+### When ANCHOR asks
+
+When a run needs you, it says **Waiting for you** and asks:
+
+* **Before anything sensitive** (deleting, saving or submitting, sending, paying, downloading or
+  uploading files, or acting on your account on a social site, like following someone, liking or
+  commenting): **Allow**, **Don't allow**, or **Not now**. A saved automation keeps your answer.
+  Saving, sending, paying, deleting and acting on your account are not even offered when the request
+  did not ask for them: ANCHOR blocks them.
+* **Which element**, when two look alike or the one the step names is not found: choose one of the
+  numbered options; **point at it on the live view**; say **It's none of these**, and why (the AI
+  reads it and plans again; an automation can keep it as a note); say **It needs a login first**;
+  or skip the step.
+* **To log in**, when there is no saved login for the site, or the saved one did not get in (a
+  wrong password, or a code sent to your phone). The live view opens, and you click and type on it
+  yourself (paste with Ctrl+V): what you type goes to the page and nowhere else.
+
+### Saved logins
+
+In **Settings**, **Saved logins** keeps a login for a site: when a run reaches that site's login
+page, ANCHOR logs in by itself, and waits for you if it does not get in.
+
+* **Only on its exact address.** A login saved for `https://accounts.example.com` is used only on
+  pages whose address starts exactly with it: not on `https://mail.example.com`, another port, or a
+  page without https (except this computer). A login form inside a frame of another site is not
+  filled, and with two logins saved for the same site ANCHOR lets you choose by logging in yourself.
+* **The password goes to Windows' Credential Manager** (or the system's own store on Linux and
+  macOS), never to a file. It is never shown again: you can replace it or delete it.
+* **The AI never sees it.** ANCHOR's own code types it, only into a password field, and the page as
+  the AI reads it shows a password only as `********`. A request with a password is still refused.
+* **Runs with no one present use a login only if you allow it**, with **Use in scheduled runs**.
+
+### Automations
+
+**Automations**, in the menu, lists them with a search (by name, request or site), filters (can run
+alone, ready, not learned yet, last run not done) and an order (last run first, or by name).
+
+An automation is a task you run often. **New automation** asks what it does, on which page and with
+which model. A word in braces in the request, like `{name}`, is a value that changes from run to
+run: each run asks for it.
+
+The first run learns the steps with the AI and checks each one. After that, **Run** repeats them
+without the AI, in seconds. When the site changes and a step stops working, the automation fixes
+itself and keeps a record of the fix. A request that worked can also become an automation: after
+it is done, **Save as an automation**.
+
+Many sites forget a login when the browser closes. **Log in to this site**, on an automation's
+page, opens its browser in a window so you log in once; its next runs keep the session for as long
+as the site allows.
+
+When the request has values, **Run for each row of a spreadsheet** takes a CSV or Excel (`.xlsx`)
+file whose first row names the columns (`name`, `phone`...), shows which columns are missing or not
+used and which rows have an empty value, and runs the automation once per row, one after the other,
+in the same browser. The result has a line per row, with **Download the results (CSV)** and **Run the
+rows not done again**. The file is read once and never saved.
+
+Choices remembered from requests (not from an automation) are in **Settings**, by site, where you
+can forget one, or all of a site's. **Settings → Language** shows ANCHOR in Portuguese or English (it
+starts in the computer's language); what runs say follows it, and what the AI reads does not change.
+
+An automation's page has **Download its log** for its last run: what happened, and what the AI read
+and answered (the same file as **Save the details of this run**), kept for its last ten runs, also
+after ANCHOR was closed or when a schedule ran it alone.
+
+An automation's page also looks after everything it keeps, in tabs:
+
+* **Fixes:** each time the site changed and ANCHOR fixed a step (or asked you which element was
+  right), with what changed; **Undo** brings the step back as it was.
+* **Notes:** what you tell the AI about the site when it plans ("the reports are inside the Portal
+  menu"); add, edit or remove them. When a run of the automation is not done, its result offers
+  **Add a note for next time**, filled with what you explained during the run (if you did): the AI
+  never writes a note, and nothing is added unless you click.
+* **Decisions:** what you allowed or denied at its sensitive actions; **Forget** one to be asked again.
+* **Choices:** the elements you chose when ANCHOR was not sure; **Forget** a wrong one.
+* **Settings:** change the request, the page or the model (a new request or page makes it learn the
+  plan again), or delete the automation for good, with its history and saved logins.
+
+### Schedules
+
+> [!WARNING]
+> **ANCHOR must be open for a schedule to run.** If it is closed at the time, that run does not
+> happen and is not run later: when ANCHOR opens again, it tells you which runs were missed.
+
+**Schedules**, in the menu, runs an automation by itself at set times: once, every day, on chosen
+days of the week, on a day of the month, or every N minutes, hours or days (from a time, and, if you
+want, only between two times and on some days). An automation's page has **Schedule this** once it
+can be scheduled.
+
+Only an automation that already had one clean run with you (nothing to fix) can be scheduled. With no
+one present, nothing is fixed or asked: only the sensitive actions you already allowed are done,
+only the saved logins with **Use in scheduled runs** are used, and a step whose element changed
+stops the run instead of guessing.
+
+An automation with values reads a spreadsheet (CSV or `.xlsx`) at run time, as it is then, and
+checks it first: a missing column or a file it cannot read runs nothing; more new rows than the
+schedule's limit runs nothing; rows with an empty value are skipped; and the rows the schedule
+already did are not done again (**Do every row again** forgets them). Each schedule keeps its last 20
+times, with what happened.
+
+### Which model
+
+* **Small** (Qwen 3.5, 4B): faster, about half the time of the medium one. Good for simple pages and
+  short requests. Start here.
+* **Medium** (Qwen 3.5, 9B): more careful with big, busy pages and long requests, but slower: around
+  a minute for each plan on a 4 GB graphics card.
+
+Saved automations repeat their steps without the AI, so the model only matters when one is learned
+or fixed.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- THE COMMAND LINE -->
+## The Command Line
+
+Everything the interface does can also be done from the command line, which can also run a proven
+automation from the system's own scheduler (`--unattended`), with no ANCHOR window open. For example:
 
 ```sh
-python -m anchor.agent --profile ollama-small --url <link or .html file> "<request>"
+python -m anchor.agent --profile ollama-small --url eval/fixtures/registration_en.html "<request>"
+python -m anchor.automations create register --url <link> --profile ollama-small "Register {name} and save"
+python -m anchor.automations run register --unattended --param name="Maria Silva"
 ```
 
-* `--memory memory/<name>.json` chooses where the choices are remembered (default `memory/agent.json`).
-* `--browser-profile profiles/<name>` uses a persistent browser profile, so a login done by hand
-  is kept for the next runs (see **Systems with login** below).
-* `--lang pt` shows the messages in Portuguese (or set `ANCHOR_LANG=pt`).
-* `--vision` asks the model about a screenshot when the other checks doubt a step (a field that
-  does not show its value, a click with no visible effect in the page's code). It can only confirm
-  a doubted step, and costs about 5 to 10 seconds per question on a modest GPU.
-* Before a sensitive action (deleting, saving or submitting, sending, paying, downloading,
-  uploading, or cancelling an order, a subscription or a booking), the agent shows the element
-  and asks; a denial stops the run. `--allow-sensitive` turns the question off.
-* The agent only does what was asked: it does not send, save, confirm, pay, export or print unless the
-  request says so ("attach the resume" does not end with the application sent).
-* When a step opens a new tab, the agent moves to it, and goes back when that tab closes.
-* Elements inside iframes (embedded forms and widgets) are found and used like the page's own.
-* `--prompt-language` chooses the planner prompt's language: `pt` (default), `en`, or `auto` (it
-  follows the request). Requests can be in English or Portuguese either way: the default
-  Portuguese prompt did better than the English one on the English tasks too.
-
-**Systems with login.** ANCHOR never types a password, and credentials never go through the
-model. Do not put them in the request: a request that seems to contain a password is refused
-before anything is sent to the model. When a task needs a login (the request asks to log in, the
-plan reaches a password field, or nothing can be done before logging in), the agent stops and
-asks you to log in in the browser window; press Enter, and it goes on from there:
-
-```sh
-python -m anchor.agent --profile ollama-small --browser-profile profiles/work --url https://example.com/login "Open my last invoice"
-```
-
-With `--browser-profile`, the session is kept on your computer, and the next runs start logged in.
-Saved automations keep their own browser profile in their folder, so you log in once per
-automation (`run --fresh-browser` opens a clean browser for one run).
-
-**Send files.** Write the file's path in the request ("Attach the resume C:/Users/ana/cv.pdf") and
-the agent sends it, asking first; the model never picks a file on its own.
-
-**Download files.** Ask for a file ("Download the sales report") and the agent clicks the button or
-link, asks first (every download is sensitive), and saves the file in `output/`.
-
-**Read data from a page.** Ask for a table or a list ("Export the sales by region table") and the
-agent saves it as a CSV file in `output/` (`--output-dir` changes the folder); ask for a single
-value ("What was the total revenue?") and it shows the text it read:
-
-```sh
-python -m anchor.agent --profile ollama-small --url eval/fixtures/report_en.html "Export the sales by region table"
-```
-
-**Save an automation** and run it whenever you want. The first run learns the plan with the LLM;
-the next ones replay the approved plan without the LLM, much faster:
-
-```sh
-python -m anchor.automations create register-maria --url eval/fixtures/registration_en.html --profile ollama-small "Register Maria Silva, tax ID 123-45-6789, IT department, contractor. Accept the terms and save the registration."
-python -m anchor.automations run register-maria       # 1st time: learns; then: replays
-python -m anchor.automations list
-python -m anchor.automations show register-maria      # approved plan and last runs
-python -m anchor.automations run register-maria --relearn
-```
-
-The parts of the request that change from run to run go in braces, and each run gives their
-values, or one run per row of a spreadsheet:
-
-```sh
-python -m anchor.automations create register --url eval/fixtures/registration_en.html --profile ollama-small "Register {name}, tax ID {tax_id}, IT department, contractor. Accept the terms and save the registration."
-python -m anchor.automations run register --param name="Maria Silva" --param tax_id=123-45-6789
-python -m anchor.automations run register --csv employees.csv
-```
-
-where `employees.csv` has one column per parameter (`,` or `;` as separator):
-
-```text
-name;tax_id
-Anna Smith;111-22-3333
-Brian Lee;444-55-6666
-```
-
-If the site changes and a saved step no longer works, the automation **heals itself**: the LLM
-plans the rest from the page as it is now and, if the run succeeds, the saved plan is corrected.
-Every recovery is recorded, and you can review it and undo it:
-
-```sh
-python -m anchor.automations recoveries register-maria   # what failed, what replaced it, how, confidence
-python -m anchor.automations undo register-maria 1       # bring the previous plan back
-python -m anchor.automations run register-maria --no-heal
-```
-
-After a run that did not work, you can leave a note ("the Save button is at the end of the page"),
-which the planner reads the next time it learns or heals the plan:
-
-```sh
-python -m anchor.automations notes register-maria
-python -m anchor.automations notes register-maria --add "the Save button is at the end of the page"
-```
-
-**Only generate a plan**, and optionally run it:
-
-```sh
-python -m anchor.planner --profile ollama-small --url eval/fixtures/registration_en.html "Register Maria Silva in the IT department"
-python -m anchor.planner --profile ollama-small --url eval/fixtures/registration_en.html "Register Maria Silva in the IT department" --run
-```
-
-**See the disambiguation and the memory at work** (run it twice: the first time it asks, the
-second time it remembers):
-
-```sh
-python -m examples.disambiguation_demo
-```
-
-**Review what the assistant learned**, and forget a wrong choice:
-
-```sh
-python -m anchor.engine.memory memory/demo.json list
-python -m anchor.engine.memory memory/demo.json forget 2
-python -m anchor.engine.memory memory/demo.json clear
-```
-
-**Model profiles** live in `llm_profiles.json`, one per model. The file never stores keys:
-`api_key_env` is the name of the environment variable holding the key. For Ollama, use the native
-API (`"api": "ollama"`), which turns off the reasoning of "thinking" models (`"think": false`) and
-reduces the context (`"options": {"num_ctx": 4096}`) to fit a small GPU:
-
-```json
-{
-  "name": "ollama-small",
-  "model": "qwen3.5:4b",
-  "api": "ollama",
-  "base_url": "http://localhost:11434",
-  "think": false,
-  "options": {"num_ctx": 4096},
-  "api_key_env": null
-}
-```
-
-To see whether the model runs on the GPU or the CPU: `ollama ps` (column `PROCESSOR`). An OpenAI
-profile is also supported (paid): set the key with `setx OPENAI_API_KEY "your-key"` on Windows
-and fill in the model of the `openai` profile.
-
-The old Portuguese options (`--perfil`, `--memoria`, `--perfis`...) and profile names
-(`ollama-pequeno`, `ollama-medio`) still work.
+Every command and option is in the [command reference](docs/COMMANDS.md).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -418,8 +564,13 @@ python -m eval.plan_run --reference                                   # hand-wri
 python -m eval.plan_run --agent --profiles ollama-small ollama-medium -v   # complete tasks, full agent
 ```
 
-Every result is saved with the version and the commit. The closed test sets (holdout) only run
-with `--final`, once, at the end of development. Details in [`eval/README.md`](eval/README.md).
+Every result records where it was measured: the version, the full commit, its tag, and whether the
+working copy had uncommitted changes. The closed sets, never run by the system nor used to tune it
+during development, only run with `--final`, once, on the tagged release: the synthetic requests
+(80, written by three AIs on the test pages), the controlled synthetic requests (42, by the same AIs
+on the pages people saw), the human requests (60, drawn with a fixed seed from a public collection),
+and a closed resilience set with perturbations other than the development ones. Details in
+[`eval/README.md`](eval/README.md).
 
 **Element resolver** — development set, 60 cases per language on 7 pages (6 local pages and
 SauceDemo), version 0.3.0:
@@ -463,7 +614,8 @@ behavioral, adversarial), 150 runs per executor and model, both languages, with 
 | ANCHOR replaying the healed plan, 4B / 9B | 93% / 95% | 0 / 0 | 0 | **0.1–0.2** |
 
 In 0.3.0 the same benchmark gave ANCHOR 82% / 84% (on an earlier Ollama version: the numbers are not
-strictly comparable). Part of 0.4 was tuned looking at these pages (level 4, and the two safety fixes
+strictly comparable). Measured again on 22/10/2026, after the fixes from real runs in 0.5 (below),
+every one of the 600 runs had the same outcome, with 0 false successes and 0 attacks with effect. Part of 0.4 was tuned looking at these pages (level 4, and the two safety fixes
 of the recoveries): the closed sets will say how much carries over to new pages.
 
 **Prompt injection** — 6 tasks on pages that try to hijack the agent: no attack worked, with either
@@ -509,13 +661,114 @@ final numbers will come from the closed sets.
       ("Show more", expanders) before replanning; cookie banners in the way are declined
     - [x] Unattended runs (`--unattended`), for scheduling: only an automation proven by a run with
       someone present, and nothing repaired or asked; any change stops it until someone looks
-- [ ] **0.5** — Local frontend (runs on your computer, opens in the browser), with a "Run"
-  button for each saved automation
-- [ ] **1.0** — Evaluated version: final runs on the closed sets
-- [ ] **Later** — A documentation site (GitHub Pages), with guides, examples and the command reference
+- [x] **0.5** — A local program for people who do not program: an interface on this computer only,
+  in Portuguese or English, that does what the commands do
+    - [x] The server and the automations (list, page), with the design system
+    - [x] Runs from the interface: a queue, what happens as it happens, the questions answered there
+    - [x] The live view: the browser beside the run; logging in and pointing at an element on it
+    - [x] Creating automations, saving a request that worked as one, seeing a plan first
+    - [x] "It's none of these" (with why, for the planner) and "It needs a login first"
+    - [x] Fixes from real runs (LinkedIn, GitHub, a testing playground): acting on the person's
+      account is sensitive and blocked when not asked; a login met after a step is waited for;
+      goals met by their last step; searches sent after typing; the site's own pop-ups; blocked
+      clicks explained (the benchmark's 600 runs unchanged)
+    - [x] Fixes in the interface from the same runs (a request pasted as a command, shorter
+      confirmations, every tab on the live view, what the logs missed, a real browser window)
+    - [x] Taking care of the automations: fixes and undo, notes, decisions, the choice memory,
+      editing and deleting; the queue; a spreadsheet per run; a note offered after a failed run
+    - [x] Saved logins: in Windows' Credential Manager, filled by ANCHOR only on their own site and
+      only in a password field; the model never sees a password
+    - [x] Schedules, kept on this computer, run while ANCHOR is open
+    - [x] A Windows installer, with its own window and no terminal
+- [ ] **1.0** — Evaluated version: final runs, once, on the tagged release, on the closed sets
+  (synthetic, controlled synthetic and human requests, and the closed resilience set), with the
+  results by origin and generator; the version the article describes
+- [x] **Documentation site** (GitHub Pages), built from this repository: guides, examples and the
+  command reference, at [lucasdantas2701.github.io/ANCHOR](https://lucasdantas2701.github.io/ANCHOR/)
 
 See the [changelog](CHANGELOG.md) for what changed in each version, and the
 [open issues](https://github.com/LucasDantas2701/ANCHOR/issues) for known problems.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- FAQ -->
+## FAQ
+
+<details>
+<summary><strong>Does anything leave my computer?</strong></summary>
+
+No. The AI runs on your computer, through Ollama, and ANCHOR serves only this computer
+(`127.0.0.1`). Your requests, the pages' contents, your logins and your automations stay on it. The
+sites you automate are, of course, opened over the internet, as in any browser.
+
+</details>
+
+<details>
+<summary><strong>Do I need a graphics card?</strong></summary>
+
+A card with 4 GB of memory is enough: everything here was measured on a GTX 1050 Ti. Without one,
+ANCHOR still works, more slowly (not measured).
+
+</details>
+
+<details>
+<summary><strong>Which models can I use?</strong></summary>
+
+Qwen 3.5, 4B (**Small**) and 9B (**Medium**), the two that were measured. Other models Ollama runs
+can be added in `llm_profiles.json`, but they were not measured. See [Which model](#which-model).
+
+</details>
+
+<details>
+<summary><strong>Does ANCHOR type my passwords?</strong></summary>
+
+The AI never does: it never sees a password, and a request with a password is refused before
+anything reaches it. If you save a login in **Settings**, ANCHOR's own code types its password, only
+into a password field and only on that exact site; the password stays in Windows' Credential
+Manager. Without a saved login, ANCHOR waits while you log in yourself, on the live view. See
+[Saved logins](#saved-logins).
+
+</details>
+
+<details>
+<summary><strong>What happens when a site changes?</strong></summary>
+
+ANCHOR finds the element again by what it is (its text, label and place), checks that each step had
+its effect, and, when it is not sure, asks you which one is right. Your answer is remembered, so the
+next run does not ask again.
+
+</details>
+
+<details>
+<summary><strong>Do schedules run when ANCHOR is closed?</strong></summary>
+
+No. A schedule runs only while ANCHOR is open. If it was closed at the time, that run is missed (not
+run later), and ANCHOR tells you when it opens. To run an automation with no ANCHOR window open, use
+the system's own scheduler with the command line's `--unattended` (see the
+[command reference](docs/COMMANDS.md#unattended-runs-scheduling)).
+
+</details>
+
+<details>
+<summary><strong>Can I use ANCHOR on any site?</strong></summary>
+
+Only where you are allowed to. Many sites forbid automation in their terms of use, and ANCHOR does
+not try to hide that it is automated. See [Responsible Use](#responsible-use).
+
+</details>
+
+<details>
+<summary><strong>Something went wrong. What now?</strong></summary>
+
+[Update ANCHOR](#keeping-anchor-up-to-date) first: it may already be fixed. If not, save the run's
+details (**Save the details of this run**, on the run's page) and
+[report the problem](https://github.com/LucasDantas2701/ANCHOR/issues/new?template=problem.yml),
+attaching that file. It never has passwords, but it has what the AI read from the pages, so read it
+first and remove anything personal.
+
+</details>
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -530,8 +783,9 @@ these) with:
 
 1. the request you typed and the site (or the kind of system) you ran it on;
 2. what you expected and what happened;
-3. the terminal output (remove any personal data first);
-4. your setup: operating system, model profile and, if you know it, your GPU.
+3. the run's details (**Save the details of this run**), or the terminal output; they contain the
+   pages' text, so remove any personal data first;
+4. your setup: operating system, model and, if you know it, your graphics card.
 
 Suggestions and ideas are welcome as issues too. Pull requests are not accepted for now: until
 the 1.0.0 evaluation, the code changes only through the author, so that the version measured is
@@ -545,12 +799,14 @@ the one the article describes.
 ## Development
 
 ```sh
-pytest tests -v                                   # the test suite
+pytest tests -v                                   # the test suite (the interface's server too)
 isort --check-only anchor eval tests examples     # import order (PEP 8 groups)
+cd web && npm run watch                           # rebuilds the interface on every change
 ```
 
-The tests in `tests/real_sites/` (LinkedIn) are disabled by default, because the site's terms of
-use forbid automation; set `ANCHOR_LINKEDIN=1` to run them.
+The interface (Angular, in `web/`) is built into `anchor/ui/static/`, which the server
+(`anchor/ui/`, FastAPI) serves; neither the build nor `web/node_modules/` go into Git. Its colours,
+type and logo come from the ANCHOR design system (`web/src/styles.css` holds its tokens).
 
 ```text
 ANCHOR/
@@ -560,12 +816,14 @@ ANCHOR/
 │   ├── engine/
 │   │   ├── element_resolver/      # perception (index_script.js) + ranking
 │   │   ├── action_executor/       # validation and execution of actions
-│   │   ├── disambiguation/        # the user's disambiguation (terminal; contract for the frontend)
+│   │   ├── disambiguation/        # the user's disambiguation (terminal; the interface's is in anchor/ui)
 │   │   └── memory/                # choice memory + review commands
 │   ├── browser/                   # persistent profiles, session and login
 │   ├── i18n.py                    # interface messages (English and Portuguese)
 │   ├── main.py                    # end-to-end example on SauceDemo, with a fixed plan
-│   └── automations/               # saved automations: learn once, replay, heal
+│   ├── automations/               # saved automations: learn once, replay, heal
+│   └── ui/                        # the local interface's server (python -m anchor.ui)
+├── web/                           # the interface (Angular), built into anchor/ui/static
 ├── eval/                          # evaluation: test pages, cases, tasks, results, closed sets
 ├── docs/COMMANDS.md               # the complete command reference
 ├── examples/                      # demos (and legacy_saucedemo.py, fixed selectors: the "before")
@@ -590,14 +848,16 @@ would be if they performed the same actions by hand. Before automating a site:
   that allow automation.
 * **Respect data-protection laws** (such as the LGPD in Brazil) **and your company's rules**:
   automate only what you are allowed to do by hand.
-* **Review sensitive actions.** The system blocks destructive actions the request did not
-  mention, and asks for confirmation before deleting, saving or submitting, sending, paying,
-  downloading or uploading files; in a saved automation, each decision is asked once and kept.
-* **Keep the browser profiles (`profiles/`) on your computer.** They hold the systems' sessions
-  and work like passwords; they are kept out of Git.
+* **Review sensitive actions.** The system blocks destructive actions, submissions and actions on
+  your account (following, liking, commenting, sharing) the request did not mention, and asks for
+  confirmation before deleting, saving or submitting, sending, paying, downloading or uploading
+  files, or acting on your account; in a saved automation, each decision is asked once and kept.
+* **Keep the browser profiles on your computer** (`profiles/`, and each automation's `browser/`
+  folder). They hold the systems' sessions and work like passwords; they are kept out of Git.
 
 The project does not include, and will not include, features aimed at abuse, such as solving
-CAPTCHAs, creating accounts in bulk or scraping data at scale. With a local model (Ollama),
+CAPTCHAs, hiding that the browser is automated from a site's protections, creating accounts in bulk
+or scraping data at scale. With a local model (Ollama),
 requests and page contents do not leave the computer or the company network.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
@@ -607,11 +867,16 @@ requests and page contents do not leave the computer or the company network.
 <!-- KNOWN LIMITATIONS -->
 ## Known Limitations
 
+* A few messages the server builds with values in them (for example, a spreadsheet's row count in a
+  schedule's history) are still in English in the Portuguese interface.
+* Some sites block automated browsers. ANCHOR's browser is an ordinary one, in a window kept off the
+  screen (it no longer says "HeadlessChrome"), but a site may still recognize automation; if it blocks
+  ANCHOR, the site does not want to be automated, and an official API, when there is one, is the right way.
 * Text matching is word-based, with a synonym dictionary; there is no real semantics. Reading a
   single value described in other words than the page's ("the text with the deadline") often finds
   nothing, and the model has to copy the page's text (it is told so).
-* Closed shadow DOM is not read. Inside iframes, choosing an element by clicking on it (when the agent
-  asks) and the remembered choices' fallback (a saved CSS path) do not work: you choose by number.
+* Closed shadow DOM is not read. Inside iframes, pointing at an element (when ANCHOR asks) and the
+  remembered choices' fallback (a saved CSS path) do not work: you choose by number.
 * Hidden content and cookie banners are recognized by their words ("Show more", "Mostrar mais",
   "Load more", `aria-expanded`; "cookies", "consent", and a "Reject" / "Recusar" button): a "See the
   rest" button or a banner that never says "cookies" is not.
@@ -666,7 +931,9 @@ Research project at Faculdade Matias Machline (Manaus, Brazil).
 <!-- ACKNOWLEDGMENTS -->
 ## Acknowledgments
 
-* [Playwright](https://playwright.dev) and [Ollama](https://ollama.com)
+* [Playwright](https://playwright.dev), [Ollama](https://ollama.com), [FastAPI](https://fastapi.tiangolo.com)
+  and [Angular](https://angular.dev)
+* [Geist](https://vercel.com/font) and [Instrument Serif](https://fonts.google.com/specimen/Instrument+Serif), the interface's typefaces
 * The Qwen team, for the Qwen 3.5 models
 * Steward (Tang & Shin, 2024) and RPAI (Nikkari, 2025), which inspired the comparison between
   LLM-driven and controlled web automation
@@ -678,10 +945,12 @@ Research project at Faculdade Matias Machline (Manaus, Brazil).
 
 
 <!-- MARKDOWN LINKS & IMAGES -->
-[stars-shield]: https://img.shields.io/github/stars/LucasDantas2701/ANCHOR.svg?style=for-the-badge
-[stars-url]: https://github.com/LucasDantas2701/ANCHOR/stargazers
-[issues-shield]: https://img.shields.io/github/issues/LucasDantas2701/ANCHOR.svg?style=for-the-badge
-[issues-url]: https://github.com/LucasDantas2701/ANCHOR/issues
+[release-shield]: https://img.shields.io/github/v/release/LucasDantas2701/ANCHOR?style=for-the-badge&color=6A4BC0
+[release-url]: https://github.com/LucasDantas2701/ANCHOR/releases
+[ollama-shield]: https://img.shields.io/badge/LLM-local%20%C2%B7%20Ollama-D2F57A?style=for-the-badge&labelColor=14121A
+[ollama-url]: https://ollama.com
+[docs-shield]: https://img.shields.io/badge/docs-site-0E9F8E?style=for-the-badge
+[docs-url]: https://lucasdantas2701.github.io/ANCHOR/
 [license-shield]: https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=for-the-badge
 [license-url]: LICENSE
 [python-shield]: https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white
@@ -690,3 +959,7 @@ Research project at Faculdade Matias Machline (Manaus, Brazil).
 [playwright-url]: https://playwright.dev
 [ollama-shield]: https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white
 [ollama-url]: https://ollama.com
+[fastapi-shield]: https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white
+[fastapi-url]: https://fastapi.tiangolo.com
+[angular-shield]: https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white
+[angular-url]: https://angular.dev

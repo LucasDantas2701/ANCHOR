@@ -62,6 +62,13 @@ longer measures generalization.
 Result files from before 2026-09-30 use the Portuguese names (`acerto`, `erro_silencioso`,
 `recusa_evitavel`, `recusa_correta`, `falha_percepcao`).
 
+### The human collection's pages
+
+`fixtures/collection/` holds the pages people saw when they wrote the human closed set's requests:
+nine pages in Portuguese, made from the synthetic set's package before the collection (three
+translated, six as they were, all with a plain stylesheet). See its README for what changed in each.
+The human set runs on them; the synthetic set runs on the original pages.
+
 ### Holdout (the closed test set)
 
 The `cases/holdout_*.json` files (split `test`) form the closed set, created on 2026-09-25,
@@ -70,6 +77,11 @@ The `cases/holdout_*.json` files (split `test`) form the closed set, created on 
 
 Rules:
 
+0. Every result file records where it was measured (`eval/provenance.py`): the full commit, its
+   tag, and whether the working copy had uncommitted changes (then the file's name says `+dirty`
+   and the file lists them). A final run (`--final`) refuses to run unless the working copy is clean
+   and the commit has the release's tag: so the release is tagged (`git tag v1.0.0`) BEFORE the
+   final run, and its results already carry the tag.
 1. `python -m eval.run` never runs the holdout. Only `--final` does, and the result file gets the
    `_FINAL` suffix.
 2. Run `--final` **once**, when the resolver's development is over. The article's numbers come
@@ -78,10 +90,10 @@ Rules:
 4. `--check` can be used at any time: it only checks that the expected selectors exist, without
    computing scores.
 
-#### Queries from colleagues (recommended)
+#### Queries from other people (recommended)
 
-The holdout queries were written by the same author as the heuristics (authorship bias). To
-reduce it, ask 2 or 3 people to:
+The holdout queries were written by the same author as the heuristics (authorship bias). The
+human closed set (below) addresses it for the tasks; for the resolver's queries, ask 2 or 3 people to:
 
 1. open each page of `fixtures/holdout_*.html` in the browser;
 2. write, for 8 to 10 elements, how they would ask an assistant for that action
@@ -201,23 +213,78 @@ These tasks are not part of the main suite, so the numbers of the ordinary tasks
 (`fixtures/resilience/L0` to `L5`) and the tasks for them (`plans/resilience_tasks.json`); see the
 command reference for the levels. The tasks' checks use `data-eval`, the evaluation's own marker,
 so they work on every level; no executor may use it. Rebuild after changing a task or a page, never
-edit the generated files by hand. These are development perturbations: the closed set, built later
-with other perturbations, runs once, at the end.
+edit the generated files by hand. These are development perturbations, written by hand by whoever
+developed the engine. The closed set will use the same 30 base tasks, the same five levels and the
+same three executors, with perturbations from a catalog derived from a published taxonomy of why
+web UI tests break, drawn by a generator with a fixed seed; the catalog, the generator and the
+generated pages are committed in that order, before any run on them, and it runs once, at the end.
 
 ### Closed set of planner tasks
 
 The tasks in `plans/tasks.json` and `tasks_en.json` were used to tune the system, so their numbers
-are development numbers. The final numbers come from `plans/holdout_tasks.json` (split `test`),
-which only runs with `python -m eval.plan_run --final --agent`, a single time, at the end.
+are development numbers. The final numbers come from the closed sets (split `test`):
+`plans/holdout_tasks.json` (synthetic), `plans/holdout_controlled_tasks.json` (synthetic_controlled)
+and `plans/holdout_human_tasks.json` (human, once drawn), which only run with
+`python -m eval.plan_run --final --agent`, a single time, at the end, on the tagged release with a
+clean working copy (rule 0 above); the results come out by origin and by generator.
 
-**How it was built (October 2026).** Three colleagues (A, B and C in the file), who had not seen the
-project, got the pages in a zip with instructions (open each page, write requests as they would ask
-an assistant, in the page's language, without opening the code), and wrote 80 requests: 28, 26 and
-26. All of them were kept, none selected. Half are on the four `holdout_*.html` pages, never used in
+**How it was built (October 2026): the synthetic set.** The 80 requests were generated on 08/10/2026
+by three AIs (A, B and C in the file), each in a new conversation with no history of the project:
+one ChatGPT (GPT-5.6 Luna) and two Claude (Sonnet 5.5, medium effort, in different accounts). Each got
+the zip `pedidos_assistente.zip` attached (a LEIA-ME with the instructions, the 13 pages and
+`feedback.js`), the help-request message and the instruction of 2 requests per page, and generated
+once, with no correction and no new try: 28, 26 and 26 requests. The letters are: **A = a Claude**
+(28 requests), **B = the ChatGPT** (26, as its conversation says) and **C = the other Claude** (26);
+in the results, the generators are `claude_a`, `chatgpt` and `claude_c` (named by letter: whether
+these are the accounts of the `synthetic_controlled` set's `claude_1` and `claude_2` is not recorded).
+The three sheets, as returned, and the ChatGPT conversation are in `synthetic_2026-10-08/` (with
+their hashes in its `SHA256SUMS`). The mapping was made on 23/10/2026 by code that compared the
+sheets with the tasks file without printing any request: each of the 80 is in exactly one sheet.
+What that comparison found, as counts: A has 2 requests on every page except `store.html`, where it
+has 4; A and C each have one request identical, word for word, to an example in the LEIA-ME (on
+`orders.html`), so copied from the instructions and not written by the generator; and A and C share
+one more identical request (on `holdout_blog.html`) that is not in the LEIA-ME.
+
+**Decided on 23/10/2026, before the final run:** the main analysis has the 80 requests, as the
+protocol foresaw; a sensitivity analysis leaves out the 2 requests identical to the LEIA-ME's examples
+(tasks `t-ord-a1` and `t-ord-c1`, found by comparing with the LEIA-ME of the 08/10 package, kept in
+`synthetic_2026-10-08/pacote/`); the pair identical between A and C stays in both analyses, declared
+as convergence between generators of the same family; A's 4 requests on the store stay, declared as
+a departure from the instruction of 2 per page. The results come out with and without the 2 copies.
+
+**Did the generators see the pages?** Counted on 23/10/2026 by `python -m eval.closed_sets page-items
+<origin>` (counts only): a request "cites an item of its page" when it has a word of the page's
+visible text that is on no other page of its set (a room, a person, a product, a number...). In the
+synthetic set: chatgpt 25 of 26 (96%), claude_a 26 of 28 (93%), claude_c 25 of 26 (96%); a stricter
+version (names and numbers only) gives 88%, 86% and 92%. In the synthetic_controlled set: chatgpt 8
+of 14 (57%), claude_1 14 of 14, claude_2 14 of 14; strict, 36%, 100% and 93%. So the ChatGPT of 08/10
+read the pages (they were HTML files in its package), while the ChatGPT of 22/10 did not, as it said;
+the ChatGPT sensitivity analysis applies to synthetic_controlled only. All of them were kept, none selected. Half are on the four `holdout_*.html` pages, never used in
 development (two in Portuguese, two in English; they are also the resolver's closed set), and half
 are new requests on nine known pages, so the article can separate new requests from new pages.
-There are 42 requests in Portuguese and 38 in English, the English ones written by non-native
-speakers.
+There are 42 requests in Portuguese and 38 in English. (An earlier version of this README said the
+requests were written by colleagues: that was wrong, corrected on 22/10/2026.)
+
+**The other closed sets: three origins.** Each closed task has an `origin`, and the results come
+out separately for each one (and for each `generator` within it):
+
+- `synthetic`: the 80 above, on the original pages.
+- `synthetic_controlled`: 42 requests generated on 22/10/2026 by the same three AIs, on the human
+  collection's pages (`fixtures/collection/`), with the collection's instructions. The package, the
+  sheets as they were returned, screenshots of the conversations and the provenance are in
+  `synthetic_controlled_2026-10-22/` (its `PROCEDENCIA.md` records what happened, and the hashes
+  are in `SHA256SUMS`; a `.gitattributes` keeps the files byte for byte). Decided before any
+  annotation or run: the results come out with the 42 and, as a sensitivity analysis, with only the
+  28 of the two Claudes, since the ChatGPT reported it could not render the pages. Its package used
+  the LEIA-ME from before the form's revision (see `fixtures/collection/README.md`), so its
+  instructions differ from the people's.
+- `human`: 60 requests drawn from the human collection, on the same pages.
+
+`python -m eval.closed_sets skeleton synthetic_controlled_2026-10-22 synthetic_controlled` turns the
+sheets into `plans/holdout_controlled_tasks.json`, one task per request with its origin and generator
+and empty `checks`, `allowed` and `reference` to annotate (the sheets' header is read as it is,
+including the literal `\xef\xbb\xbf` text in `chatgpt.csv`). Like every closed set, these are not run
+by the system, nor is its behaviour on them looked at, before the final run.
 
 **Each request became a task**: `checks` (the final state; dates like "amanhã" are computed when
 the check runs), `allowed`, a hand-written `reference` plan (a value `{tomorrow}` becomes tomorrow's
@@ -238,4 +305,24 @@ and the article reports this exposure.
 
 **Rules until the final run:** do not run the models on these tasks, do not look at the system's
 behavior on them, and do not change the system, the prompts or the tasks because of them.
+
+### Annotating the closed sets: the negative checks come prefilled
+
+A task succeeds when all its checks hold at the end; touching an element outside its allowed list does
+not fail it (it is counted as an unrequested step), but an unwanted effect does, through the task's
+negative checks. So that these do not depend on the annotator's memory, every skeleton gets, before the
+annotation, the negative checks of ALL the irreversible actions of its task's page
+(`python -m eval.closed_sets negatives <tasks file>`; for the human set, right after the draw): ONE PER
+ELEMENT, each named in a comment, with the row it belongs to when the same action appears more than once
+on the page (`!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(4) > button') /* Excluir —
+linha: Bruno Lima */`). The annotator only deletes the one(s) the request asks for (deleting Bruno Lima:
+only that row's), so an executor that does the same action on another row fails. The irreversible actions are found from the pages alone, never from a
+request, by the start of each control's accessible name: deleting (excluir, apagar, remover, desativar,
+bloquear...), cancelling something ("Cancelar pedido"; a bare "Cancelar", which only closes a form, is
+not one), sending or recording (enviar, publicar, salvar, reservar, registrar, abrir chamado,
+candidatar, assumir...) and paying (pagar, comprar, finalizar, confirmar). On the collection's pages
+(25 checks): blog, Salvar rascunho and Publicar; cadastro, Salvar cadastro and Enviar para aprovação;
+loja, none; pedidos, Cancelar pedido (2 rows); reservas, Reservar sala and Excluir reserva (2 rows); rh,
+Registrar entrada, Registrar saída and Enviar solicitação; suporte, Abrir chamado, Assumir (2 rows) and
+Enviar comentário; usuarios, Excluir (3 rows); vagas, Salvar vaga and Candidatura simplificada (3 each).
 

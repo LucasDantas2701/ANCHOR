@@ -1,0 +1,110 @@
+import { TrPipe, tr } from '../i18n';
+import { Component, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
+
+import { Api, Profile, Runs, apiError, nameFor, valuesIn } from '../api';
+import { fromCommand } from '../command';
+
+@Component({
+  selector: 'app-new-automation',
+  imports: [FormsModule, RouterLink, TrPipe],
+  template: `
+    <a routerLink="/automations" class="back muted">{{ '← All automations' | tr }}</a>
+    <p class="eyebrow">{{ 'New automation' | tr }}</p>
+    <h1 class="title">{{ 'A task you will' | tr }} <em>{{ 'run again' | tr }}</em></h1>
+    <p class="lead muted">{{ 'The first run learns the steps with the AI and checks each one. After that, ANCHOR repeats them with one click, without the AI, and fixes them by itself if the site changes.' | tr }}</p>
+
+    <form class="card form" (ngSubmit)="create()">
+      <label for="request">{{ 'What should it do?' | tr }}</label>
+      <textarea id="request" name="request" rows="3" [(ngModel)]="request" (ngModelChange)="suggest()"
+        [placeholder]="'Register {name}, phone {phone}, and save the record' | tr"></textarea>
+      @if (pasted(); as c) {
+        <div class="warn" role="status">{{ 'This looks like a terminal command, not a request: ANCHOR would read the command itself.' | tr }}
+          @if (c.request) { <button class="btn quiet" type="button" (click)="useCommand()">{{ 'Use “{request}”' | tr: { request: c.request } }}@if (c.url) { {{ 'on {url}' | tr: { url: c.url } }} }</button> }
+          @else { {{ 'Write only what ANCHOR should do, and put the page in “On which page?”.' | tr }} }
+        </div>
+      }
+      <p class="hint muted">{{ 'Put a word in braces for each value that changes from run to run, like' | tr }} <span class="param">{{ 'name' | tr }}</span>
+        {{ 'in' | tr }} <span class="mono">{{ '{' }}name{{ '}' }}</span>{{ ': each run asks for it (or reads it from a spreadsheet).' | tr }}</p>
+      @if (values().length) {
+        <p class="found">{{ 'Each run will ask for:' | tr }} @for (v of values(); track v) { <span class="param">{{ v }}</span> }</p>
+      }
+      <div class="row">
+        <div>
+          <label for="url">{{ 'On which page does it start?' | tr }}</label>
+          <input id="url" name="url" [(ngModel)]="url" [placeholder]="'crm.example.com/customers/new' | tr">
+        </div>
+        <div>
+          <label for="profile">{{ 'Model' | tr }}</label>
+          <select id="profile" name="profile" [(ngModel)]="profile">
+            @for (p of profiles(); track p.name) { <option [value]="p.name" [disabled]="p.downloaded === false">{{ p.label | tr }}{{ p.downloaded === false ? (' (not downloaded)' | tr) : '' }}</option> }
+          </select>
+        </div>
+      </div>
+      <div>
+        <label for="name">{{ 'Name' | tr }}</label>
+        <input id="name" name="name" [(ngModel)]="name" (ngModelChange)="named = true" class="mono">
+        <p class="hint muted">{{ 'Lowercase letters, numbers and hyphens, like' | tr }} <span class="mono">{{ 'register-customer' | tr }}</span>.</p>
+      </div>
+      @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+      <div class="actions">
+        <button class="btn primary" type="submit" [disabled]="busy()">{{ (busy() ? 'Creating…' : 'Create automation') | tr }}</button>
+        <span class="muted small">{{ 'Never write a password here: when a page needs a login, ANCHOR waits for you to do it.' | tr }}</span>
+      </div>
+    </form>
+  `,
+  styles: [`
+    .back { display: inline-block; margin-bottom: var(--space-6); text-decoration: none; font-size: 13px; }
+    .lead { max-width: 640px; margin: var(--space-3) 0 var(--space-8); }
+    .form { padding: var(--space-6); max-width: 760px; display: grid; gap: var(--space-4); }
+    label { font: 500 13px/18px var(--font-sans); color: var(--ink-muted); display: block; margin-bottom: 6px; }
+    textarea, input, select { width: 100%; background: var(--surface-page); color: var(--ink); border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm); padding: 10px 12px; font: 400 15px/22px var(--font-sans); }
+    input.mono { font-family: var(--font-mono); font-size: 14px; }
+    textarea { resize: vertical; }
+    .hint { font-size: 13px; margin: 6px 0 0; } .found { margin: 0; font-size: 14px; }
+    .row { display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-4); }
+    .actions { display: flex; align-items: center; gap: var(--space-4); }
+    .small { font-size: 13px; } .error { color: var(--refused); margin: 0; } .btn:disabled { opacity: .6; }
+    .warn { border: 1px solid var(--waiting); border-radius: var(--radius-sm); padding: 10px 12px; font-size: 14px; color: var(--ink);
+            display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+  `],
+})
+export class NewAutomationPage {
+  pasted() { return fromCommand(this.request); }
+  useCommand() {
+    const c = fromCommand(this.request);
+    if (!c) return;
+    this.request = c.request;
+    if (c.url) this.url = c.url;
+    this.suggest();
+  }
+  private api = inject(Api);
+  private runs = inject(Runs);
+  private router = inject(Router);
+  profiles = signal<Profile[]>([]);
+  request = ''; url = ''; profile = 'ollama-small'; name = '';
+  named = false;
+  values = signal<string[]>([]);
+  busy = signal(false);
+  error = signal('');
+
+  constructor() {
+    this.runs.profiles().subscribe(p => { this.profiles.set(p); const usable = p.filter(x => x.downloaded !== false);
+      if (usable.length && !usable.some(x => x.name === this.profile)) this.profile = usable[0].name; });
+  }
+
+  suggest() {
+    this.values.set(valuesIn(this.request));
+    if (!this.named) this.name = nameFor(this.request);
+  }
+
+  create() {
+    this.error.set(''); this.busy.set(true);
+    this.api.create(this.name.trim(), this.request, this.url, this.profile).subscribe({
+      next: a => this.router.navigate(['/automations', a.name]),
+      error: e => { this.busy.set(false); this.error.set(apiError(e, tr('The automation could not be created.'))); },
+    });
+  }
+}

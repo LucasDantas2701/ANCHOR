@@ -246,12 +246,13 @@ def print_summary(title: str, s: dict) -> None:
     print(f"  mean time per query: {s['mean_ms']:.0f} ms")
 
 
+from eval.provenance import final_problem, provenance, warn_if_dirty  # noqa: E402
+
+
 def git_commit() -> str:
-    try:
-        return subprocess.run(["git", "rev-parse", "--short", "HEAD"],
-                              capture_output=True, text=True, check=True).stdout.strip()
-    except Exception:
-        return "no-git"
+    """The commit as it goes in result file names (kept for callers; see eval.provenance)."""
+    from eval.provenance import in_name, provenance
+    return in_name(provenance())
 
 
 def save(results: list[CaseResult], summary: dict, args) -> Path:
@@ -266,6 +267,7 @@ def save(results: list[CaseResult], summary: dict, args) -> Path:
     meta = {
         "version": __version__,
         "commit": git_commit(),
+        "provenance": provenance(),
         "date": datetime.now().isoformat(timespec="seconds"),
         "filters": {"split": args.split, "site": args.site, "offline": args.offline, "language": args.language},
         "thresholds": {"min_score": DEFAULT_MIN_SCORE, "gap": DEFAULT_AMBIGUITY_GAP},
@@ -298,9 +300,15 @@ def main() -> None:
 
     if args.split == "test" and not args.final:
         ap.error('the "test" split is the holdout; use --final (once, at the end of development)')
+    where = provenance()
     if args.final:
+        problem = final_problem(where)
+        if problem:
+            ap.error(problem)
         args.split = "test"
-        print("*** HOLDOUT: final run. Record the date and the commit of this run. ***")
+        print(f"*** HOLDOUT: final run, on {where['commit_full']} ({where['tag']}). ***")
+    else:
+        warn_if_dirty(where)
 
     results: list[CaseResult] = []
     with sync_playwright() as p:

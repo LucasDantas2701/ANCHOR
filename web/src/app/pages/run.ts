@@ -1,0 +1,459 @@
+import { TrPipe, tr } from '../i18n';
+import { Component, ElementRef, OnDestroy, effect, inject, input, signal, viewChild } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+
+import { LiveView } from './live';
+import { Outputs } from './outputs';
+
+import { ACTIVE, Api, JOB_CLASS, JOB_WORDS, JobState, Question, RowOutcome, RunEvent, RunView, Runs, apiError, nameFor } from '../api';
+
+const WHAT: Record<string, string> = {
+  delete: 'delete something', submit: 'save or submit a form', send: 'send a message', pay: 'make a payment',
+  download: 'download a file', upload: 'upload a file',
+};
+
+@Component({
+  selector: 'app-run',
+  imports: [RouterLink, LiveView, Outputs, TrPipe],
+  template: `
+    @if (run(); as r) {
+      <div class="layout" [class.theater]="watching()">
+      <div class="top">
+      @if (r.kind === 'automation' || r.kind === 'login') { <a [routerLink]="['/automations', r.title]" class="back muted">← {{ r.title }}</a> }
+      @else { <a routerLink="/run" class="back muted">{{ '← Run a request' | tr }}</a> }
+      <p class="eyebrow">{{ (r.kind === 'automation' ? 'Running an automation' : r.kind === 'login' ? 'Logging in' : r.kind === 'plan' ? 'Planning only: nothing is done' : 'Running a request') | tr }}</p>
+      <div class="head">
+        <h1 class="title">{{ (r.kind === 'request' ? 'Your request' : r.kind === 'plan' ? 'The plan for your request' : r.title) | tr }}</h1>
+        <span [class]="'badge ' + jobClass[r.state]">{{ jobWords[r.state] | tr }}@if (r.state === 'queued' && r.position > 1) { {{ ' · {n} ahead' | tr: { n: r.position - 1 } }} }</span>
+        <div class="head-actions">
+          @if (watching()) { <button class="btn" type="button" (click)="watching.set(false)">{{ 'Close the live view' | tr }}</button> }
+          @else if (r.state !== 'queued' && r.kind !== 'plan') { <button class="btn" type="button" (click)="watching.set(true)">{{ (active(r) ? 'Watch it run' : 'See the last view') | tr }}</button> }
+          @if (active(r)) { <button class="btn" type="button" (click)="stop()" [disabled]="stopping()">{{ (stopping() ? 'Stopping…' : 'Stop') | tr }}</button> }
+        </div>
+      </div>
+      @if (r.kind === 'request' || r.kind === 'plan') { <blockquote class="request">{{ r.title }}</blockquote> }
+      </div>
+      @if ((r.state === 'running' || r.state === 'waiting') && r.spec['show_browser']) {
+        <p class="muted note">{{ 'The browser is also open in its own window.' | tr }}</p>
+      }
+      @if (watching()) { <app-live class="live" [run]="r.id" [state]="r.state" [ended]="!active(r)" [interactive]="takesInput(r)"
+                                   [tabs]="r.tabs ?? []" [viewing]="r.viewing ?? null" (close)="watching.set(false)" /> }
+
+      @if (r.question; as q) {
+        <section class="ask card" role="alertdialog" aria-labelledby="ask-title">
+          <p class="eyebrow">{{ 'Waiting for you' | tr }}</p>
+          @switch (q.kind) {
+            @case ('confirm') {
+              <h2 id="ask-title" class="heading">{{ 'ANCHOR wants to {what}:' | tr: { what: what(q.category) } }} <em>{{ q.shown || q.element }}</em></h2>
+              <p class="muted">{{ 'Step: {what}' | tr: { what: q.description } }}</p>
+              @if (q.near && q.near !== q.shown) { <p class="muted small near">{{ 'On the page: “{text}”' | tr: { text: q.near } }}</p> }
+              <p class="muted small">{{ (q.remembers ? 'Your answer is kept: this automation will not ask again for this step.' : 'Your answer is only for this run.') | tr }}</p>
+              <div class="actions">
+                <button class="btn primary" type="button" (click)="answer(q, { choice: 'allow' })">{{ 'Allow' | tr }}</button>
+                <button class="btn" type="button" (click)="answer(q, { choice: 'deny' })">{{ "Don't allow" | tr }}</button>
+                @if (q.remembers) { <button class="btn quiet" type="button" (click)="answer(q, { choice: 'not_now' })">{{ 'Not now, ask me next time' | tr }}</button> }
+              </div>
+            }
+            @case ('choose') {
+              <h2 id="ask-title" class="heading">@if (q.reason === 'ambiguous') { {{ 'Which one is' | tr }} <em>“{{ q.description }}”</em>? } @else { {{ 'ANCHOR could not find' | tr }} <em>“{{ q.description }}”</em> }</h2>
+              @if (q.screenshot) { <img class="shot" [src]="'data:image/png;base64,' + q.screenshot" alt="The page, with each option numbered"> }
+              @if (q.candidates?.length) {
+                <p class="muted small">{{ (q.reason === 'ambiguous' ? 'These look alike. Choose the right one:' : 'Is it one of these?') | tr }}</p>
+                <div class="options">
+                  @for (c of q.candidates; track c.number) {
+                    <button class="option" type="button" (click)="answer(q, { choice: 'candidate', number: c.number })">
+                      <span class="num mono">{{ c.number }}</span><span>{{ c.kind }} <strong>“{{ c.name }}”</strong>@if (c.near) { <span class="muted"> near {{ c.near }}</span> }</span>
+                    </button>
+                  }
+                </div>
+              }
+              <div class="actions">
+                @if (q.can_point) { <button class="btn" type="button" (click)="answer(q, { choice: 'point' })">{{ "I'll point at it on the live view" | tr }}</button> }
+                <button class="btn" type="button" (click)="answer(q, { choice: 'login' })" [title]="'Log in on the live view; then ANCHOR plans again from there' | tr">{{ 'It needs a login first' | tr }}</button>
+                <button class="btn" type="button" (click)="noneOpen.set(!noneOpen())" [attr.aria-expanded]="noneOpen()">{{ "It's none of these" | tr }}</button>
+                <button class="btn quiet" type="button" (click)="answer(q, { choice: 'skip' })">{{ 'Skip this step' | tr }}</button>
+              </div>
+              @if (noneOpen()) {
+                <form class="none" (submit)="$event.preventDefault(); answer(q, { choice: 'none', note: note(), keep: keep() }); noneOpen.set(false); note.set('')">
+                  <label for="none-why">{{ 'Tell ANCHOR why (optional). The AI reads it and plans again.' | tr }}</label>
+                  <textarea id="none-why" rows="2" [value]="note()" (input)="note.set($any($event.target).value)"
+                    [placeholder]="'The reports are inside the portal: you have to log in first' | tr"></textarea>
+                  @if (q.keeps_notes) {
+                    <label class="keep"><input type="checkbox" [checked]="keep()" (change)="keep.set($any($event.target).checked)"> {{ 'Keep this note for next runs of this automation' | tr }}</label>
+                  }
+                  <div><button class="btn primary" type="submit">{{ 'Send' | tr }}</button></div>
+                </form>
+              }
+            }
+            @case ('point') {
+              <h2 id="ask-title" class="heading">{{ 'Click the element' | tr }} <em>{{ 'on the live view' | tr }}</em></h2>
+              <p class="muted">{{ 'ANCHOR will use what you click for this step, and remember it for next time.' | tr }}</p>
+              <div class="actions">
+                <button class="btn" type="button" (click)="answer(q, { choice: 'cancel' })">{{ 'Cancel' | tr }}</button>
+              </div>
+            }
+            @case ('login') {
+              <h2 id="ask-title" class="heading">{{ 'This page needs you to' | tr }} <em>{{ q.signup ? 'sign up' : 'log in' }}</em></h2>
+              <p class="muted">@if (q.window) { {{ 'A browser window opened: log in there, or on the live view.' | tr }} } @else { {{ 'Log in on the live view: click and type on the page (paste with Ctrl+V).' | tr }} }
+                ANCHOR never types, keeps or sees your password.</p>
+              <div class="actions">
+                <button class="btn primary" type="button" (click)="answer(q, { choice: 'done' })">{{ "I've logged in, continue" | tr }}</button>
+                <button class="btn" type="button" (click)="answer(q, { choice: 'cancel' })">{{ 'Cancel the run' | tr }}</button>
+              </div>
+            }
+          }
+        </section>
+      }
+
+      @if (r.result; as res) {
+        <section [class]="'outcome card ' + jobClass[res.state]">
+          <span [class]="'badge ' + jobClass[res.state]">{{ jobWords[res.state] | tr }}</span>
+          <p class="summary">{{ (res.summary || res.message) | tr }}</p>
+          @if (res.hint) { <p class="hint">{{ res.hint | tr }}</p> }
+          @if (res.plan; as plan) {
+            <ol class="plan">
+              @for (s of plan.steps; track $index) {
+                <li><span class="n mono">{{ $index + 1 }}</span><span class="step mono">{{ s.action }} {{ s.description }}@if (s.value !== null && s.value !== undefined) { <span class="val">= "{{ s.value }}"</span> }</span></li>
+              }
+            </ol>
+            @if (plan.goals.length) {
+              <p class="muted small goals-head">{{ 'What it would check at the end:' | tr }}</p>
+              <ul class="goals">@for (g of plan.goals; track g.id) { <li>{{ g.description }}</li> }</ul>
+            }
+          }
+          @if (r.can_save) {
+            <form class="save" (submit)="$event.preventDefault(); save(r)">
+              <label for="save-name">{{ 'Save it as an automation, to run it again with one click and no AI:' | tr }}</label>
+              <div class="save-row">
+                <input id="save-name" name="save-name" class="mono" [value]="saveName() || nameFor(r.title)" (input)="saveName.set($any($event.target).value)">
+                <button class="btn primary" type="submit">{{ 'Save as an automation' | tr }}</button>
+              </div>
+              <p class="save-note muted">{{ 'It will do exactly what this run did, with the same values. For an automation that asks for a value each time, use New automation with the value in braces.' | tr }}</p>
+              @if (saveError()) { <p class="err">{{ saveError() }}</p> }
+            </form>
+          }
+          @if (res.summary && res.message && res.summary !== res.message && res.state !== 'checked' && res.state !== 'planned') { <p class="detail mono muted">{{ res.message | tr }}</p> }
+          @if (res.outputs?.length) {
+            <div class="outputs"><p class="eyebrow">{{ 'What it brought back' | tr }}</p><app-outputs [run]="r.id" [outputs]="res.outputs ?? []" /></div>
+          }
+          @if (res.rows; as rows) {
+            <div class="rows-wrap"><table class="rows">
+              <thead><tr><th>#</th>@for (k of rowKeys(rows); track k) { <th>{{ k }}</th> }<th>{{ 'Result' | tr }}</th><th>{{ 'What happened' | tr }}</th></tr></thead>
+              <tbody>@for (row of rows; track row.number) {
+                <tr><td class="muted">{{ row.number }}</td>@for (k of rowKeys(rows); track k) { <td class="mono">{{ row.values[k] }}</td> }
+                  <td><span [class]="'badge ' + jobClass[row.state]">{{ jobWords[row.state] | tr }}</span></td><td class="muted">{{ row.message }}</td></tr>
+                @if (row.outputs?.length) { <tr class="row-out"><td></td><td [attr.colspan]="rowKeys(rows).length + 2"><app-outputs [run]="r.id" [outputs]="row.outputs ?? []" [row]="row.number" /></td></tr> }
+              }</tbody>
+            </table></div>
+            <div class="row-acts">
+              <button class="btn" type="button" (click)="downloadRows(r, rows)">{{ 'Download the results (CSV)' | tr }}</button>
+              @if (notDone(rows).length && !active(r)) {
+                <button class="btn primary" type="button" (click)="runAgain(r, rows)">{{ (notDone(rows).length === 1 ? 'Run the 1 row not done again' : 'Run the {n} rows not done again') | tr: { n: notDone(rows).length } }}</button>
+              }
+            </div>
+          }
+          @if (r.suggest_note && !noteSaved()) {
+            <form class="save" (submit)="$event.preventDefault(); keepNote(r)">
+              <label for="note-text">{{ 'Add a note for next time? It tells the AI something about this site when it plans this automation again.' | tr }}</label>
+              <div class="save-row">
+                <input id="note-text" name="note-text" class="note-input" maxlength="500" [value]="noteText() ?? r.suggest_note.text"
+                       [placeholder]="'For example: the Save button is at the bottom, under More details' | tr" (input)="noteText.set($any($event.target).value)">
+                <button class="btn primary" type="submit" [disabled]="!(noteText() ?? r.suggest_note.text).trim()">{{ 'Add note' | tr }}</button>
+              </div>
+              <p class="save-note muted">@if (r.suggest_note.text) { {{ 'These are your own words, from when you said it was none of these. Edit them as you like;' | tr }} } {{ 'Nothing is added unless you click Add note.' | tr }}</p>
+              @if (noteError()) { <p class="err">{{ noteError() }}</p> }
+            </form>
+          }
+          @if (noteSaved()) { <p class="muted small">{{ 'Note added to {name}. The AI reads it the next time it plans this automation (see its Notes tab).' | tr: { name: r.title } }}</p> }
+          @if (res.steps !== undefined) {
+            <p class="muted small mono">{{ '{n} steps done' | tr: { n: res.steps } }} · {{ res.seconds }} s · {{ (res.model_calls === 1 ? '1 AI call' : res.model_calls ? '{n} AI calls' : 'no AI calls') | tr: { n: res.model_calls } }}</p>
+          }
+          <div class="actions">
+            @if (res.state === 'planned') { <button class="btn primary" type="button" (click)="runIt(r)">{{ 'Run it' | tr }}</button>
+              <button class="btn" type="button" (click)="retry(r)">{{ 'Change the request' | tr }}</button> }
+            @else if (res.state !== 'checked') { <button class="btn primary" type="button" (click)="retry(r)">{{ 'Try again' | tr }}</button> }
+            <button class="btn" type="button" (click)="saveDetails(r)">{{ 'Save the details of this run' | tr }}</button>
+          </div>
+        </section>
+      }
+
+      <section class="logsec">
+        <p class="eyebrow">{{ 'What happened' | tr }}</p>
+        <ol class="log card" #log>
+          @for (e of events(); track e.seq) {
+            @if (e.type === 'line') { <li [class]="'row ' + kindOf(e.text)"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ shown(e.text) }}</span></li> }
+            @if (e.type === 'row') { <li class="row rowsep"><time></time><span></span><span class="text">{{ 'Row {n} of {total}' | tr: { n: e['number'], total: e['total'] } }}@if (e.text) { · {{ e.text }} }</span></li> }
+            @if (e.type === 'used') { <li class="row used"><time></time><span></span><span class="text">↳ {{ 'on the {what}' | tr: { what: lower(e.text) } }}</span></li> }
+            @if (e.type === 'tried') { <li class="row used tried"><time></time><span></span><span class="text">↳ @if (e.text) { {{ 'tried the {what}:' | tr: { what: lower(e.text) } }} } {{ e['error'] }}</span></li> }
+            @if (e.type === 'page') { <li class="row used"><time></time><span></span><span class="text">↳ {{ 'now on {page}' | tr: { page: e.text } }}</span></li> }
+            @if (e.type === 'ended_on') { <li class="row used tried"><time></time><span></span><span class="text">↳ {{ 'the page showed: {what}' | tr: { what: e.text || e['url'] } }}@for (m of asList(e['messages']); track $index) { · “{{ m }}” }</span></li> }
+            @if (e.type === 'question') { <li class="row ask-row"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ 'ANCHOR asked you a question' | tr }}</span></li> }
+            @if (e.type === 'answered') { <li class="row you"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ 'You answered: {what}' | tr: { what: said(e) } }}</span></li> }
+            @if (e.type === 'result') { <li [class]="'row end ' + jobClass[stateOf(e)]"><time>{{ e.at }}</time><span class="mark" aria-hidden="true"></span><span class="text">{{ jobWords[stateOf(e)] | tr }}</span></li> }
+          } @empty { @if (!r.activity) { <li class="row muted"><time></time><span class="mark"></span><span class="text">{{ (r.state === 'queued' ? 'Waiting for the run before it to finish…' : 'Starting…') | tr }}</span></li> } }
+          @if (r.activity; as a) {
+            <li class="row live"><time>{{ 'now' | tr }}</time><span class="mark pulse" aria-hidden="true"></span>
+              <span class="text">{{ (a.phase === 'writing' ? 'The AI is writing the plan' : 'The AI is thinking') | tr }}@if (a.attempt > 1) { {{ '(attempt {n})' | tr: { n: a.attempt } }} }… {{ a.seconds }} s</span></li>
+          }
+        </ol>
+      </section>
+      </div>
+    } @else if (missing()) {
+      <h1 class="title">{{ 'This run' | tr }} <em>{{ 'is not here' | tr }}</em></h1>
+      <p class="muted">{{ 'Runs are kept only while ANCHOR is open.' | tr }}</p>
+    } @else { <p class="muted">{{ 'Loading…' | tr }}</p> }
+  `,
+  styles: [`
+    .outputs { width: 100%; display: grid; gap: var(--space-2); }
+    .outputs .eyebrow { margin: var(--space-2) 0 0; }
+    .rows tr.row-out td { white-space: normal; border-bottom: 1px solid var(--border); padding-bottom: var(--space-3); }
+    .row-acts { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+    .rowsep .text { color: var(--lime); font-weight: 600; padding-top: 6px; }
+    .rows-wrap { overflow-x: auto; width: 100%; }
+    .rows { border-collapse: collapse; font-size: 13px; width: 100%; }
+    .rows th, .rows td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+    .rows td:last-child { white-space: normal; }
+    .save .note-input { flex: 1; min-width: 0; max-width: none; font: 400 15px/20px var(--font-sans) !important; }
+    .back { display: inline-block; margin-bottom: var(--space-6); text-decoration: none; font-size: 13px; }
+    /* Watching: the same content, filling the window: the browser left, the rest in a column on the right. */
+    .theater { position: fixed; inset: 0; z-index: 40; background: var(--surface-page); padding: var(--space-4) var(--space-6) var(--space-6);
+               display: grid; gap: var(--space-4) var(--space-6); grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+               grid-template-rows: auto auto auto minmax(160px, 1fr); grid-template-areas: "top top" "live ask" "live outcome" "live log"; }
+    .theater .top { grid-area: top; } .theater .live { grid-area: live; }
+    .theater .ask { grid-area: ask; margin: 0; } .theater .outcome { grid-area: outcome; margin: 0; }
+    .theater .logsec { grid-area: log; margin: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; }
+    .theater .logsec .log { max-height: none; height: 100%; }
+    .theater .back, .theater .top > .eyebrow, .theater .request, .theater .note { display: none; }
+    .theater .head .title { font-size: 22px; line-height: 28px; }
+    .theater .ask, .theater .outcome { padding: var(--space-4); }
+    /* A long question scrolls inside its panel, so the progress below never disappears. */
+    .theater .ask { max-height: 58vh; overflow: auto; }
+    .theater .ask .shot { max-height: 34vh; width: 100%; object-fit: contain; }
+    .near { overflow-wrap: anywhere; }
+    .row.tried .text { color: var(--waiting); overflow-wrap: anywhere; }
+    .theater .ask .heading { font-size: 17px; line-height: 23px; }
+    .theater .row { grid-template-columns: 64px 16px 1fr; padding: 5px var(--space-4); }
+    .head { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+    .head-actions { margin-left: auto; display: flex; gap: var(--space-3); }
+    .request { margin: var(--space-4) 0 0; font: italic 400 22px/28px var(--font-serif); max-width: 760px; }
+    .note { font-size: 13px; margin: var(--space-3) 0 0; }
+    section { margin-top: var(--space-8); max-width: 1080px; }
+    .ask { padding: var(--space-6); border-color: var(--waiting); background: var(--surface-raised); }
+    .ask .eyebrow { color: var(--waiting); }
+    .heading { font: 600 22px/28px var(--font-sans); letter-spacing: -0.02em; margin: 0 0 var(--space-2); }
+    .heading em { font: italic 400 1.1em/1 var(--font-serif); color: var(--accent); }
+    .small { font-size: 13px; }
+    .actions { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-4); }
+    .btn.quiet { border-color: transparent; color: var(--ink-muted); }
+    .btn:disabled { opacity: .6; cursor: default; }
+    .options { display: grid; gap: var(--space-2); margin-top: var(--space-2); }
+    .option { display: flex; gap: var(--space-3); align-items: center; text-align: left; padding: var(--space-3) var(--space-4);
+              background: var(--surface-page); color: var(--ink); border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+              font: 400 14px/20px var(--font-sans); cursor: pointer; }
+    .option:hover { border-color: var(--accent); }
+    .num { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--lime); color: #0C0A12;
+           font-size: 12px; flex: none; }
+    .shot { max-width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border); margin: var(--space-3) 0; }
+    .outcome { padding: var(--space-4) var(--space-6); display: grid; gap: var(--space-2); justify-items: start; }
+    .outcome.checked { border-color: var(--checked); } .outcome.refused { border-color: var(--refused); } .outcome.waiting { border-color: var(--waiting); }
+    .plan { list-style: none; margin: var(--space-2) 0 0; padding: 0; display: grid; gap: 4px; width: 100%; }
+    .plan li { display: grid; grid-template-columns: 28px 1fr; } .plan .n { color: var(--ink-muted); font-size: 12px; }
+    .plan .step { font-size: 14px; } .plan .val { color: var(--accent); margin-left: 6px; }
+    .goals-head { margin: var(--space-2) 0 0; } .goals { margin: 0; padding-left: 1.2em; font-size: 14px; }
+    .save-note { margin: 0; font-size: 13px; }
+    .save { display: grid; gap: 8px; width: 100%; margin-top: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+    .save label { font-size: 14px; } .save-row { display: flex; gap: var(--space-3); }
+    .save input { flex: 1; max-width: 360px; background: var(--surface-page); color: var(--ink); border: 1px solid var(--border-strong);
+                  border-radius: var(--radius-sm); padding: 8px 12px; font: 400 14px var(--font-mono); }
+    .err { color: var(--refused); margin: 0; font-size: 13px; }
+    .none { display: grid; gap: 8px; margin-top: var(--space-3); padding-top: var(--space-3); border-top: 1px solid var(--border); }
+    .none label { font-size: 13px; color: var(--ink-muted); }
+    .none textarea { width: 100%; background: var(--surface-page); color: var(--ink); border: 1px solid var(--border-strong);
+                     border-radius: var(--radius-sm); padding: 8px 10px; font: 400 14px/20px var(--font-sans); resize: vertical; }
+    .none .keep { display: flex; gap: 8px; align-items: center; color: var(--ink); }
+    .summary { margin: 0; font: 600 18px/24px var(--font-sans); letter-spacing: -0.01em; }
+    .hint { margin: 0; color: var(--ink); max-width: 760px; }
+    .detail { margin: 0; font-size: 12px; }
+    .log { list-style: none; margin: 0; padding: var(--space-3) 0; max-height: 56vh; overflow: auto; }
+    .row { display: grid; grid-template-columns: 72px 20px 1fr; align-items: baseline; padding: 6px var(--space-6); }
+    .row time { font: 400 12px/20px var(--font-mono); color: var(--ink-muted); }
+    .row .text { font: 400 14px/20px var(--font-sans); white-space: pre-wrap; }
+    .mark { width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); justify-self: center; align-self: center; }
+    .row.step .text { font: 400 13px/20px var(--font-mono); } .row.step .mark { background: var(--ink-muted); }
+    .row.good .mark, .row.end.checked .mark { background: var(--checked); } .row.good .text, .row.end.checked .text { color: var(--checked); }
+    .row.bad .mark, .row.end.refused .mark { background: var(--refused); } .row.bad .text, .row.end.refused .text { color: var(--refused); }
+    .row.end .text { font-weight: 600; }
+    .row.used { padding-top: 0; } .row.used .text { color: var(--ink-muted); font-size: 13px; }
+    .row.you .mark, .row.ask-row .mark { background: var(--accent); } .row.you .text { color: var(--accent); }
+    .row.ask-row .text { color: var(--waiting); } .row.ask-row .mark { background: var(--waiting); }
+    .row.live .text { color: var(--ink-muted); } .pulse { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .3; transform: scale(.7); } }
+    @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+  `],
+})
+export class RunPage implements OnDestroy {
+  private runs = inject(Runs);
+  private router = inject(Router);
+  watching = signal(false);
+  id = input.required<string>();
+  run = signal<RunView | null>(null);
+  events = signal<RunEvent[]>([]);
+  missing = signal(false);
+  stopping = signal(false);
+  log = viewChild<ElementRef<HTMLElement>>('log');
+  jobWords = JOB_WORDS; jobClass = JOB_CLASS;
+  private timer: ReturnType<typeof setTimeout> | undefined;
+  private opened = 0;
+  private last = 0;
+
+  constructor() {
+    effect(() => { const id = +this.id(); this.reset(); this.poll(id); });
+    // A login or a pointing needs the live view: it opens by itself, once for each question.
+    effect(() => {
+      const q = this.run()?.question;
+      if (q && (q.kind === 'login' || q.kind === 'point') && q.number !== this.opened) { this.opened = q.number; this.watching.set(true); }
+    });
+  }
+
+  ngOnDestroy() { clearTimeout(this.timer); }
+
+  private reset() { clearTimeout(this.timer); this.run.set(null); this.events.set([]); this.last = 0; this.missing.set(false); this.stopping.set(false); }
+
+  private poll(id: number) {
+    this.runs.view(id, this.last).subscribe({
+      next: v => {
+        if (v.events.length) {
+          this.last = v.events[v.events.length - 1].seq;
+          this.events.update(list => [...list, ...v.events]);
+          setTimeout(() => { const el = this.log()?.nativeElement; if (el) el.scrollTop = el.scrollHeight; });
+        }
+        this.run.set(v);
+        if (this.active(v)) this.timer = setTimeout(() => this.poll(id), v.activity ? 1000 : 500);
+      },
+      error: () => this.missing.set(true),
+    });
+  }
+
+  active(r: RunView) { return ACTIVE.includes(r.state); }
+  asList(v: unknown): string[] { return Array.isArray(v) ? v as string[] : []; }
+  takesInput(r: RunView) { return !!r.question && (r.question.kind === 'login' || r.question.kind === 'point'); }
+  what(category?: string) { return tr(WHAT[category ?? ''] ?? 'do something sensitive'); }
+
+  answer(q: Question, answer: Record<string, unknown>) {
+    const r = this.run(); if (!r) return;
+    this.run.set({ ...r, question: null });                 // the panel closes at once; the poll confirms
+    this.runs.answer(r.id, q.number, answer).subscribe({ error: () => {} });
+  }
+
+  stop() {
+    const r = this.run(); if (!r) return;
+    this.stopping.set(true);
+    this.runs.stop(r.id).subscribe({ error: () => this.stopping.set(false) });
+  }
+
+  stateOf(e: RunEvent): JobState { return e['state'] as JobState; }
+  lower(text?: string): string { const t = text ?? ''; return t.charAt(0).toLowerCase() + t.slice(1); }
+
+  /** The same run again: the request's form filled in, or the automation's page with the same values. */
+  noneOpen = signal(false);
+  note = signal('');
+  keep = signal(false);
+  saveName = signal('');
+  saveError = signal('');
+  nameFor = nameFor;
+
+  save(r: RunView) {
+    this.saveError.set('');
+    this.runs.save(r.id, (this.saveName() || nameFor(r.title)).trim()).subscribe({
+      next: a => this.router.navigate(['/automations', a.name]),
+      error: e => this.saveError.set(apiError(e, tr('It could not be saved.'))),
+    });
+  }
+
+  /** The plan looked right: run the same request for real. */
+  runIt(r: RunView) {
+    const s = r.spec as Record<string, unknown>;
+    this.runs.startRequest(String(s['request']), String(s['url']), String(s['profile']), !!s['show_browser'], !!s['screenshot'])
+      .subscribe(x => this.router.navigate(['/runs', x.id]));
+  }
+
+  retry(r: RunView) {
+    const s = r.spec as Record<string, unknown>;
+    if (r.kind === 'request' || r.kind === 'plan') {
+      this.router.navigate(['/run'], { queryParams: { request: s['request'], url: s['url'], profile: s['profile'], window: s['show_browser'] ? 1 : null } });
+    } else {
+      this.router.navigate(['/automations', r.title], { state: { values: s['values'], relearn: s['relearn'], fresh: s['fresh_browser'], window: s['show_browser'] } });
+    }
+  }
+
+  /** A file on this computer with what the model read and answered: for working out what went wrong. */
+  private api = inject(Api);
+  noteText = signal<string | null>(null);
+  noteSaved = signal(false);
+  noteError = signal('');
+  keepNote(r: RunView) {
+    const text = (this.noteText() ?? r.suggest_note?.text ?? '').trim();
+    if (!text) return;
+    this.api.addNote(r.title, text, String(r.id)).subscribe({
+      next: () => this.noteSaved.set(true),
+      error: e => this.noteError.set(apiError(e, tr('The note could not be added.'))),
+    });
+  }
+  rowKeys(rows: RowOutcome[]) { return rows.length ? Object.keys(rows[0].values) : []; }
+  downloadRows(r: RunView, rows: RowOutcome[]) {
+    const keys = this.rowKeys(rows);
+    const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [[...keys, 'result', 'what happened'].map(cell).join(','),
+                   ...rows.map(row => [...keys.map(k => row.values[k]), row.state, row.message].map(cell).join(','))];
+    const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob); link.download = `${r.title}-rows-${r.id}.csv`; link.click();
+    URL.revokeObjectURL(link.href);
+  }
+  notDone(rows: RowOutcome[]) { return rows.filter(row => row.state !== 'checked'); }
+  runAgain(r: RunView, rows: RowOutcome[]) {
+    const again = this.notDone(rows).map(row => row.values);
+    this.runs.startAutomation(r.title, {}, false, false, false, again).subscribe({
+      next: x => this.router.navigate(['/runs', x.id]),
+      error: e => this.noteError.set(apiError(e, tr('The rows could not start again.'))),
+    });
+  }
+  saveDetails(r: RunView) {
+    this.runs.details(r.id).subscribe(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = Object.assign(document.createElement('a'), { href: url, download: `anchor-run-${r.id}.json` });
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  }
+
+  /** What a line is, to show it as a step, a success or a refusal. */
+  kindOf(text?: string): string {
+    const t = (text ?? '').toLowerCase();
+    if (t.startsWith('→') || t.startsWith('->')) return 'step';
+    if (t.startsWith('stopped') || t.includes('was not usable') || t.includes('refused') || t.includes('failed') || t.includes('not found')) return 'bad';
+    if (t.startsWith('done') || t.includes('checked') || t.startsWith('allowed')) return 'good';
+    return 'plain';
+  }
+
+  shown(text?: string): string { return (text ?? '').replace(/^(→|->)\s*/, ''); }
+
+  said(e: RunEvent): string { return this.saidIn(e); }
+  private saidIn(e: RunEvent): string {
+    const a = (e['answer'] ?? {}) as Record<string, unknown>;
+    const said = this.saidEnglish(e, a);
+    return said.startsWith('option ') ? tr('option {n}', { n: a['number'] })
+         : said.startsWith("It's none of these: ") ? tr('It’s none of these: “{note}”', { note: a['note'] }) : tr(said);
+  }
+  private saidEnglish(e: RunEvent, a: Record<string, unknown>): string {
+    switch (a['choice']) {
+      case 'allow': return 'Allow'; case 'deny': return "Don't allow"; case 'not_now': return 'Not now';
+      case 'candidate': return `option ${a['number']}`; case 'point': return "I'll point at it on the live view";
+      case 'skip': return 'Skip this step'; case 'done': return "I've logged in"; case 'cancel': return 'Cancel';
+      case 'login': return 'It needs a login first';
+      case 'none': return a['note'] ? `It's none of these: “${a['note']}”` : "It's none of these";
+      case undefined: return (e['answer'] === null) ? 'the element, by clicking it' : 'no answer';
+      default: return 'no answer (the run was stopped)';
+    }
+  }
+}

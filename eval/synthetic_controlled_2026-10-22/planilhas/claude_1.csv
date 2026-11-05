@@ -1,0 +1,15 @@
+﻿pagina;pedido
+P01 reservas.html;quero reservar a sala Amazonas amanhã das 10h às 11h30 para uma reunião com o time de vendas, e não precisa mandar convite por e-mail
+P01 reservas.html;cancela aquela reserva da entrevista com candidato
+P02 suporte.html;assume o chamado da VPN e deixa um comentário dizendo que vou ligar para a Juliana hoje à tarde
+P02 suporte.html;assume os chamados da impressora e do monitor
+P03 blog.html;publica o rascunho dos novos estagiários com as etiquetas rh e estagio, e deixa os comentários desligados
+P03 blog.html;"cria uma publicação nova chamada ""Calendário de feriados 2027"" e salva como rascunho"
+P04 rh.html;pede uma folga de 3 a 5 de dezembro, tipo férias, e avisa meu gestor que é para uma viagem em família
+P04 rh.html;cancela a solicitação de férias que já foi aprovada
+P05 cadastro.html;cadastra a Marina Costa, CLT, no departamento de Marketing, e-mail marina.costa@empresa.com, e só salva, sem enviar para aprovação
+P06 usuarios.html;ativa o Bruno Lima de novo e depois me mostra só os usuários ativos
+P07 pedidos.html;cancela o pedido 1023, comprei errado
+P08 vagas.html;abre a vaga de Analista de Automação da IndusAM e me diz se é presencial ou remota
+P09 loja.html;coloca o fone QuietMax no carrinho e me diz quanto fica o total
+P09 loja.html;compra a cafeteira Barista e manda entregar no meu endereço

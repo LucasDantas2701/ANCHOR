@@ -5,6 +5,10 @@ The resilience benchmark's tables, put together from the parts' results.
 
 Rows are grouped by executor (and model): the traditional script; the LLM in control; ANCHOR's
 recovery (1st run on the altered page) and reuse (2nd run, counted only if it needed no model).
+
+In the closed set's final run, the main analysis has level 0 and the task-and-level combinations in
+which an operator reached an element of the reference plan; the combinations in which none did
+("perturbation off the task's path") are reported apart. Each row says which it is (reaches_plan).
 """
 
 from __future__ import annotations
@@ -72,7 +76,13 @@ def main() -> int:
     if not rows:
         print("No rows.")
         return 1
-    print_tables(rows)
+    if any(r.get("reaches_plan") in ("yes", "no") for r in rows):
+        print("\n## Main analysis: level 0 and the combinations whose perturbations reach the task's plan")
+        print_tables([r for r in rows if r.get("reaches_plan") in ("base", "yes")])
+        print("\n## Apart: perturbation off the task's path (no operator reached the plan)")
+        print_tables([r for r in rows if r.get("reaches_plan") == "no"])
+    else:
+        print_tables(rows)
     return 0
 
 

@@ -1,0 +1,36 @@
+{
+  "version": "0.5.0",
+  "commit": "9694f30",
+  "provenance": {
+    "commit": "9694f30",
+    "commit_full": "9694f30ff087c0594f1746c544ce9d3ea353a5e0",
+    "tag": "v0.5.0-rc5",
+    "clean": true,
+    "changed": []
+  },
+  "date": "2026-11-02T17:28:04",
+  "filters": {
+    "split": null,
+    "site": null,
+    "offline": true,
+    "language": null
+  },
+  "thresholds": {
+    "min_score": 0.4,
+    "gap": 0.04
+  },
+  "overall": {
+    "n": 104,
+    "recall@1": 0.8846153846153846,
+    "recall@3": 0.9326923076923077,
+    "recall@5": 0.9326923076923077,
+    "recall@10": 0.9615384615384616,
+    "mrr": 0.9112293956043955,
+    "correct": 0.8557692307692307,
+    "silent_error": 0.038461538461538464,
+    "avoidable_refusal": 0.028846153846153848,
+    "correct_refusal": 0.07692307692307693,
+    "perception_failure": 0.0,
+    "mean_ms": 11.59326923076923
+  }
+}

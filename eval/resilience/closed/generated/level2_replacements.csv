@@ -1,0 +1,11 @@
+﻿task;level;element;word;replacement;draw
+en-ent-01;2;2;Messages;message;1
+en-log-02;2;4;Create;make;1
+en-reg-01;2;4;Phone;earphone;2
+en-reg-02;2;4;Phone;telephone;2
+en-store-02;2;10;Returns;give;1
+en-store-03;2;1;Search;look;1
+p-reg-01;2;5;Departamento;divisão;1
+p-reg-02;2;4;Telefone;telemóvel;1
+p-store-01;2;8;stock;stockpile;2
+p-store-03;2;1;Search;explore;1

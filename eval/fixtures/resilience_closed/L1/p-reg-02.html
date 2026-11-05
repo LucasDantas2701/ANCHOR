@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Cadastro de Colaborador</title>
+<style>.tb i{display:inline-block;width:18px;height:18px}</style></head><body>
+<div class="tb">
+  <button aria-label="Imprimir"><i class="fa fa-print"></i></button>
+  <button><i class="fa fa-download"></i></button>
+  <a href="/ajuda?ref=428uy"><i class="fa fa-circle-question"></i></a>
+</div>
+<h1>Cadastro de colaborador</h1>
+<form>
+  <fieldset><legend>Dados pessoais</legend>
+    <label for="ember947">Nome completo</label><input id="ember947" name="nome" data-eval="e1">
+    <label for="ember948">CPF</label><input id="ember948" name="cpf" placeholder="000.000.000-00" data-eval="e2">
+    <label for="ember949">Data de nascimento</label><input id="ember949" type="date">
+    <label for="ember950">E-mail corporativo</label><input id="ember950" type="email" data-eval="e3">
+    <label for="ember951">Telefone</label><input id="ember951" type="tel" data-eval="e8">
+  </fieldset>
+  <fieldset><legend>Contrato</legend>
+    <label for="ember952">Departamento</label>
+    <select id="ember952" data-eval="e4"><option>Selecione</option><option>Financeiro</option><option>TI</option><option>RH</option></select>
+    <span>Tipo de contrato:</span>
+    <label><input type="radio" name="tipo" value="clt"> CLT</label>
+    <label><input type="radio" name="tipo" value="pj" data-eval="e5"> PJ</label>
+    <label for="ember953">Observações</label><textarea id="ember953" data-eval="e9"></textarea>
+  </fieldset>
+  <label><input type="checkbox" id="ember954" data-eval="e6"> Li e aceito os termos de uso</label>
+  <button type="button" class="cancel">Cancelar</button>
+  <button type="submit" class="save" data-eval="e7">Salvar cadastro</button>
+  <button type="button" disabled="">Enviar para aprovação</button>
+</form>
+<p class="status">Último salvamento: 25/09/2026 14:32</p>
+<script src="../../feedback.js"></script>
+
+</body></html>

@@ -7,8 +7,6 @@ import re
 import time
 from typing import Optional, Protocol
 
-from openai import BadRequestError
-
 from anchor.i18n import t
 
 from .language import AUTO, DEFAULT_PROMPT_LANGUAGE, PROMPT_LANGUAGES, detect_language, mt
@@ -25,6 +23,9 @@ from .plan import (
 from .prompt import system_prompt, user_message
 from .reading import wants_data, wants_file, wants_upload
 
+
+class SchemaNotSupported(Exception):
+    """A client raises this when its server cannot follow a JSON schema; the planner then asks for plain JSON."""
 
 class Planner(Protocol):
     def plan(
@@ -54,7 +55,7 @@ def _extract_json(text: str, language: str = DEFAULT_PROMPT_LANGUAGE) -> object:
 
 class LLMPlanner:
     """
-    client: a client with the OpenAI SDK interface (client.chat.completions.create).
+    client: a client with a chat-completions interface (client.chat.completions.create), such as OllamaClient.
     max_attempts: if the model returns an invalid plan, it gets the error and tries again.
     extra_body: extra parameters passed to the server on every call
                 (e.g. to turn off the reasoning of a "thinking" model).
@@ -70,6 +71,7 @@ class LLMPlanner:
                              f"use one of {', '.join(PROMPT_LANGUAGES + (AUTO,))}")
         self.language = language
         self.last_attempts: list[tuple[str, str]] = []   # (the model's answer, why it was refused)
+        self.last_refusals: list[str] = []               # the same reasons, in the interface's language
         self.client = client
         self.model = model
         self.temperature = temperature
@@ -89,7 +91,7 @@ class LLMPlanner:
                     response_format={"type": "json_schema",
                                      "json_schema": {"name": "plano", "schema": PLAN_SCHEMA, "strict": True}},
                 )
-            except BadRequestError:
+            except SchemaNotSupported:
                 self._schema_supported = False  # server without schema support: ask for plain JSON
         return self.client.chat.completions.create(**kwargs, response_format={"type": "json_object"})
 
@@ -111,7 +113,7 @@ class LLMPlanner:
         known_goals: ids of the goals already defined in the run (a replan may refer to them).
         notes: the user's notes about this task, from earlier runs of a saved automation.
         """
-        self.last_attempts = []
+        self.last_attempts, self.last_refusals = [], []
         language = self.language_for(request)
         messages = [
             {"role": "system", "content": system_prompt(language, reading=wants_data(request), files=wants_file(request),
@@ -154,6 +156,7 @@ class LLMPlanner:
                             incomplete=mt("plan.goals_later", language, goals=", ".join(later)) if later else "")
             except PlanError as exc:
                 self.last_attempts.append((raw, str(exc)))
+                self.last_refusals.append(exc.user_text())
                 last_error = exc
                 messages += [
                     {"role": "assistant", "content": raw},
