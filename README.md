@@ -23,13 +23,13 @@
     Playwright. Describe the task in plain language, a small local LLM plans it, and you stay in control.
     <br />
     <br />
+    <a href="README.pt-BR.md">Leia em português</a> ·
     <a href="https://github.com/LucasDantas2701/ANCHOR/releases/latest/download/ANCHOR-Setup.exe"><strong>Download for Windows »</strong></a>
     &middot;
     <a href="#quick-start"><strong>Get started</strong></a>
     &middot;
     <a href="https://lucasdantas2701.github.io/ANCHOR/"><strong>Documentation</strong></a>
     &middot;
-    <a href="README.pt-BR.md">Leia em português</a>
     <br />
     <br />
     <a href="#quick-start">Quick start</a> ·
