@@ -290,6 +290,11 @@ __marimo__/
 # Tables and lists extracted by anchor.agent (--output-dir)
 /output/
 
+# The documentation site's build (see .github/workflows/pages.yml)
+/site_src/
+/site/
+/site_nav.yml
+
 # The interface: its dependencies, and the build (made by `npm run build` in web/)
 /web/node_modules/
 /web/.angular/

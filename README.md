@@ -6,6 +6,7 @@
 [![Python][python-shield]][python-url]
 [![Local LLM][ollama-shield]][ollama-url]
 [![Documentation][docs-shield]][docs-url]
+[![Hugging Face][hf-shield]][hf-url]
 
 <!-- PROJECT LOGO -->
 <br />
@@ -23,13 +24,14 @@
     Playwright. Describe the task in plain language, a small local LLM plans it, and you stay in control.
     <br />
     <br />
+    <a href="README.pt-BR.md">Leia em português</a> ·
     <a href="https://github.com/LucasDantas2701/ANCHOR/releases/latest/download/ANCHOR-Setup.exe"><strong>Download for Windows »</strong></a>
     &middot;
     <a href="#quick-start"><strong>Get started</strong></a>
     &middot;
     <a href="https://lucasdantas2701.github.io/ANCHOR/"><strong>Documentation</strong></a>
     &middot;
-    <a href="README.pt-BR.md">Leia em português</a>
+    <a href="https://huggingface.co/spaces/isntlucxs/anchor-demo"><strong>Try it online</strong></a>
     <br />
     <br />
     <a href="#quick-start">Quick start</a> ·
@@ -62,6 +64,9 @@
 > Until the installer is signed, Windows may say it comes from an **unknown publisher**: click
 > **More info**, then **Run anyway**. The installer is built by GitHub from this repository's code
 > (`.github/workflows/installer.yml`).
+
+To see it before installing anything, the [online demo](https://huggingface.co/spaces/isntlucxs/anchor-demo) shows a traditional RPA script and
+ANCHOR side by side on the same changed web page.
 
 The step by step, a first request and the requirements are in [Getting Started](#getting-started).
 To run ANCHOR from its code, see [Development](#development).
@@ -215,7 +220,7 @@ nothing:
 
 * [![Python][python-shield]][python-url]
 * [![Playwright][playwright-shield]][playwright-url]
-* [![Ollama][ollama-shield]][ollama-url]
+* [![Ollama][ollama-logo-shield]][ollama-url]
 * [![FastAPI][fastapi-shield]][fastapi-url] and [![Angular][angular-shield]][angular-url], for the interface
 * keyring (saved logins, in Windows' Credential Manager), openpyxl (Excel spreadsheets) and SQLite
   (schedules), from Python
@@ -483,6 +488,11 @@ or fixed.
 <!-- THE COMMAND LINE -->
 <!-- EVALUATION -->
 ## Evaluation
+
+The development set of the resilience benchmark (the 30 tasks, their pages in 5 levels of change, the
+recorded fixed-selector scripts and the measured runs) is also published as the Hugging Face dataset
+[anchor-bench](https://huggingface.co/datasets/isntlucxs/anchor-bench), and the [online demo](https://huggingface.co/spaces/isntlucxs/anchor-demo) runs the script and ANCHOR (with no
+AI) side by side on its pages. The closed sets are added there after the final round.
 
 ```sh
 python -m eval.run --offline -v                                       # element resolver, local pages
@@ -920,14 +930,15 @@ Research project at Faculdade Matias Machline (Manaus, Brazil).
 [ollama-url]: https://ollama.com
 [docs-shield]: https://img.shields.io/badge/docs-site-0E9F8E?style=for-the-badge
 [docs-url]: https://lucasdantas2701.github.io/ANCHOR/
+[hf-shield]: https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-demo%20%26%20dataset-FFD21E?style=for-the-badge&labelColor=14121A
+[hf-url]: https://huggingface.co/spaces/isntlucxs/anchor-demo
 [license-shield]: https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=for-the-badge
 [license-url]: LICENSE
 [python-shield]: https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white
 [python-url]: https://www.python.org
 [playwright-shield]: https://img.shields.io/badge/Playwright-2EAD33?style=for-the-badge&logo=playwright&logoColor=white
 [playwright-url]: https://playwright.dev
-[ollama-shield]: https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white
-[ollama-url]: https://ollama.com
+[ollama-logo-shield]: https://img.shields.io/badge/Ollama-000000?style=for-the-badge&logo=ollama&logoColor=white
 [fastapi-shield]: https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white
 [fastapi-url]: https://fastapi.tiangolo.com
 [angular-shield]: https://img.shields.io/badge/Angular-DD0031?style=for-the-badge&logo=angular&logoColor=white

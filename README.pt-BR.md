@@ -46,6 +46,9 @@ modelo, inclusive uma vez por linha de uma planilha.
 > desconhecido**: clique em **Mais informações** e depois em **Executar assim mesmo**. O instalador é
 > montado pelo GitHub a partir do código deste repositório.
 
+Para ver antes de instalar, a [demo online](https://huggingface.co/spaces/isntlucxs/anchor-demo) mostra um script de RPA tradicional e o ANCHOR
+lado a lado, na mesma página alterada.
+
 O ANCHOR abre numa janela própria, com um guia curto na primeira vez. A interface começa no idioma do
 computador (português ou inglês) e muda em **Configurações → Idioma**; os pedidos podem ser em
 português. Para atualizar, baixe e execute o `ANCHOR-Setup.exe` de novo: as suas automações,

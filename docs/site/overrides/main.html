@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block extrahead %}
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{% if page and page.title and not page.is_homepage %}{{ page.title }} · {% endif %}ANCHOR web automation agent">
+  <meta property="og:description" content="{{ config.site_description }}">
+  <meta property="og:url" content="{{ page.canonical_url if page else config.site_url }}">
+  <meta property="og:image" content="{{ config.site_url }}assets/social-preview.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="keywords" content="web automation, RPA, robotic process automation, LLM agents, local LLM, Ollama, Playwright, human-in-the-loop, self-healing automation, automação web, RPA com IA, LLM local">
+  {% if config.extra.google_site_verification %}
+  <meta name="google-site-verification" content="{{ config.extra.google_site_verification }}">
+  {% endif %}
+{% endblock %}
