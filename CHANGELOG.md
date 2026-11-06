@@ -17,6 +17,23 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 
 ## [Unreleased]
 
+### Added
+- **On Hugging Face.** The development set of the resilience benchmark is published as the dataset
+  [anchor-bench](https://huggingface.co/datasets/isntlucxs/anchor-bench) (the 30 tasks, their pages in
+  5 levels of change, the recorded fixed-selector scripts and the measured runs; the closed sets after
+  the final round), and an [online demo](https://huggingface.co/spaces/isntlucxs/anchor-demo) shows
+  the fixed-selector script and ANCHOR (with no AI) side by side on those pages. The README and the
+  documentation site link to both.
+- **A direct download link.** The installer workflow also attaches the installer as `ANCHOR-Setup.exe`,
+  so `releases/latest/download/ANCHOR-Setup.exe` always gives the latest version; the README links to it.
+
+### Changed
+- **The documentation is for the installer.** Getting started needs no terminal (install, open from the
+  Start menu, the first opening, updating, uninstalling, and a first try on a public practice site);
+  running from the code and the command line moved to Development. The site's badges and the dark
+  version of its figure are fixed, the Built With badge for Ollama shows the right badge, and
+  CITATION.cff says 0.5.0.
+
 ## [0.5.0] - 2026-11-03
 
 ### Added
