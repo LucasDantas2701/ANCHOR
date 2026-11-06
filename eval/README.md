@@ -8,6 +8,13 @@ Two evaluations live here:
 
 The test pages (`fixtures/`) and the requests stay in Portuguese: they represent the real user.
 
+
+The development set of the resilience benchmark is also on Hugging Face, as the dataset
+[anchor-bench](https://huggingface.co/datasets/isntlucxs/anchor-bench) (tasks, pages, fixed-selector
+scripts and measured runs), with an [online demo](https://huggingface.co/spaces/isntlucxs/anchor-demo)
+of the fixed-selector script and ANCHOR on its pages. The closed sets are published there only after
+the final round.
+
 ## Resolver evaluation
 
 From the project root:
