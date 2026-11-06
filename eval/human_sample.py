@@ -18,6 +18,11 @@ response was read: the pilot's response excluded, and the two request fields of 
 - a request is one non-empty answer to a page's request field ("Pxx · Pedido", or "Pxx · Pedido 1"
   and "Pxx · Pedido 2"; the page is the code P01–P09); "Pxx · Você abriu o link desta página?" is
   kept with it;
+- (added on 06/11/2026, decided by Lucas before the draw) an answer with fewer than 3 letters (empty,
+  only punctuation like "." or "-", or one or two letters) is not a request and stays out of the draw;
+  the rule is applied by this code, with no judgement case by case, and a request with text, even badly
+  written, stays in; the report counts how many answers it left out and from how many people, and
+  prints none of them;
 - 30 requests from people who work in IT and 30 from people who do not, each profile spread over
   the 9 pages: 3 per page, and the 3 left go to pages drawn with the seed;
 - within a stratum (profile and page), the requests are drawn with the seed, from the responses in
@@ -44,6 +49,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 SEED = 20261022
 PER_PROFILE = 30
+MIN_LETTERS = 3                   # an answer with fewer letters is not a request (the rule of 06/11/2026)
 PROFILES = ("it", "non_it")
 # The collection's page codes, as in its instructions and in eval/fixtures/collection/.
 PAGES = {"P01": "reservas.html", "P02": "suporte.html", "P03": "blog.html", "P04": "rh.html", "P05": "cadastro.html",
@@ -127,6 +133,7 @@ def candidates(rows: list[dict], cols: dict, people: list | None = None) -> tupl
     """Every request that can be drawn, and how many rows were left out and why. When `people` is a
     list, each kept response is added to it (its row, profile and, per page, whether the link was opened)."""
     out, left_out = [], {"pilot": 0, "did_not_agree": 0, "no_profile": 0}
+    too_short, too_short_people = 0, set()
     for number, row in enumerate(rows, start=2):                # row 1 is the header
         if cols["time"] and when(row.get(cols["time"], "")) in PILOT_AT:
             left_out["pilot"] += 1
@@ -148,11 +155,22 @@ def candidates(rows: list[dict], cols: dict, people: list | None = None) -> tupl
                 request = (row.get(field) or "").strip()
                 if not request:
                     continue
+                if letters(request) < MIN_LETTERS:          # not a request: ".", "-", "ok"... (the rule of 06/11)
+                    too_short += 1
+                    too_short_people.add(number)
+                    continue
                 position = re.search(r"pedido\s*(\d)", _plain(field))
                 out.append({"row": number, "code": code, "profile": "it" if works_in_it else "non_it",
                             "position": int(position.group(1)) if position else 1, "request": request,
                             "opened_link": _yes(row.get(opened_col, "")) if opened_col else None})
+    left_out["too_short_requests"] = too_short
+    left_out["too_short_people"] = len(too_short_people)
     return out, left_out
+
+
+def letters(text: str) -> int:
+    """How many letters a text has (any alphabet, with or without accents); digits and punctuation do not count."""
+    return sum(1 for ch in text if ch.isalpha())
 
 
 def draw(pool: list[dict], seed: int = SEED) -> tuple[list[dict], dict]:

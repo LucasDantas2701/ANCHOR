@@ -40,7 +40,7 @@ def test_the_forms_titles_are_recognised_with_both_request_fields():
 def test_a_response_gives_its_14_requests_and_the_pilot_and_who_did_not_agree_are_left_out(tmp_path):
     pool, left_out = pool_of(tmp_path, [person(1, True), person(2, False, consent="Não concordo"),
                                          person(3, True, at="22/10/2026 13:18:01"), person(4, True, at="2026/10/22 1:18:01 PM GMT-4")])
-    assert left_out == {"pilot": 2, "did_not_agree": 1, "no_profile": 0}
+    assert left_out == {"pilot": 2, "did_not_agree": 1, "no_profile": 0, "too_short_requests": 0, "too_short_people": 0}
     assert len(pool) == 14 and {c["position"] for c in pool if c["code"] == "P01"} == {1, 2}
 
 
@@ -109,3 +109,30 @@ def test_the_report_counts_who_answered_who_was_drawn_and_who_opened_each_link(t
     assert drawn["it"]["people"] + drawn["non_it"]["people"] == drawn["total"]["people"] and 1 <= drawn["total"]["min"] <= drawn["total"]["median"] <= drawn["total"]["max"]
     assert report["opened_link"]["P01"] == {"page": "reservas.html", "answered": 40, "yes": 30, "share_yes": 0.75}
     assert not re.search(r"pedido \d+ P0", json.dumps(report))          # counts only: no request in the report
+
+
+def test_an_answer_with_fewer_than_3_letters_is_not_a_request_and_is_only_counted(tmp_path, monkeypatch, capsys):
+    """The rule of 06/11/2026: empty, punctuation only or under 3 letters stays out of the draw, by code, with no
+    judgement; a request with text, even badly written, stays in; the report counts them and prints none."""
+    rows = [person(n, n % 2 == 0) for n in range(1, 41)]
+    short = {"P01 · Pedido 1": ".", "P02 · Pedido 1": " - ", "P03 · Pedido 1": "ok", "P04 · Pedido 2": "a b", "P05 · Pedido": "123!"}
+    kept = {"P06 · Pedido": "faz ai", "P07 · Pedido": "xyz", "P08 · Pedido": "ção"}
+    for col, text in {**short, **kept}.items():
+        rows[0][HEADER.index(col)] = text
+    rows[1][HEADER.index("P01 · Pedido 1")] = "?"                     # a second person
+    pool, left_out = pool_of(tmp_path, rows)
+    assert left_out["too_short_requests"] == 6 and left_out["too_short_people"] == 2
+    texts = {c["request"] for c in pool}
+    assert not texts & (set(short.values()) | {"?"})                   # none of them is in the draw
+    assert set(kept.values()) <= texts                                 # badly written, but text: in the draw
+    assert hs.letters("ção") == 3 and hs.letters("1-2-3") == 0
+    export(tmp_path / "f.csv", rows)
+    monkeypatch.setattr(hs, "_committed", lambda: "abc123")
+    monkeypatch.setattr(hs, "TASKS_OUT", tmp_path / "t.json")
+    monkeypatch.setattr(hs, "REPORT_OUT", tmp_path / "r.json")
+    assert hs.main([str(tmp_path / "f.csv")]) == 0
+    report = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
+    assert report["left_out"]["too_short_requests"] == 6 and report["left_out"]["too_short_people"] == 2
+    printed = capsys.readouterr().out
+    assert "too_short_requests': 6" in printed and "faz ai" not in printed
+    assert "faz ai" not in (tmp_path / "r.json").read_text(encoding="utf-8")
