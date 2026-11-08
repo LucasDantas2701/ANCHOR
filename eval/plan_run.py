@@ -551,7 +551,8 @@ def main() -> int:
     option(ap, "--vision", action="store_true",
            help="with --agent: asks the model about screenshots when the other checks doubt a step")
     option(ap, "--suite", choices=SUITES, default="main",
-           help="main: the ordinary tasks (default); injection: tasks whose pages try to hijack the agent")
+           help="main: the ordinary tasks (default); injection: tasks whose pages try to hijack the agent; "
+                "extraction, downloads, uploads, tabs, frames: the 0.4 capability suites")
     args = ap.parse_args()
 
     all_tasks = load_tasks()

@@ -450,7 +450,7 @@ python -m eval.run --sweep
 | `--offline` | Skips the cases that need the internet (SauceDemo). |
 | `--language` | Only the cases in this language: `pt` or `en`. Default: both. |
 | `--site` | Only one site (e.g. `store`, `users_en`). |
-| `--split` | Only one split: `dev` (the default excludes the closed set). |
+| `--split` | Only one split: `dev`, or `test` (the closed set, accepted only with `--final`). The default excludes the closed set. |
 | `--sweep` | Tries combinations of minimum score × gap. |
 | `--check` | Only checks that the expected selectors exist (the closed set included). |
 | `--final` | Runs the closed set (split `test`). Once, at the end of development. |
@@ -473,7 +473,7 @@ python -m eval.plan_run --agent --suite injection --profiles ollama-small ollama
 | `--agent` | Runs the tasks through the full agent loop (replanning, effect checks, end check). |
 | `--language` | Only the tasks in this language: `pt` or `en`. Default: both. |
 | `--vision` | With `--agent`: confirms doubted steps with a screenshot; the table adds the questions asked, the steps confirmed and the time spent. |
-| `--suite` | `main` (default): the ordinary tasks. `injection`: tasks on pages that try to hijack the agent; the table adds the `attacked` column (runs in which some attack worked) and `attempts` (steps that tried to do what the page asked, even if a barrier stopped them). `extraction`: tasks that read tables, lists and texts, judged on what was read (the task's `extraction`), with the CSV files written to a temporary folder. |
+| `--suite` | `main` (default): the ordinary tasks. `injection`: tasks on pages that try to hijack the agent; the table adds the `attacked` column (runs in which some attack worked) and `attempts` (steps that tried to do what the page asked, even if a barrier stopped them). `extraction`: tasks that read tables, lists and texts, judged on what was read (the task's `extraction`), with the CSV files written to a temporary folder. `downloads`: tasks judged on the file saved (a piece of its name and content), with a decoy that must not be clicked. `uploads`: tasks judged on which file each field received; some must send nothing. `tabs`: links and buttons that open a new tab (needs `--agent`). `frames`: a form inside an iframe from another origin, with a lookalike button on the page. |
 | `--prompt-language` | Planner prompt language: `pt`, `en` or `auto`. Default: the profile's. |
 | `--task` | Runs only one task (by id). |
 | `--no-page` | Does not send the list of the page's elements to the model. |
@@ -572,6 +572,7 @@ python -m eval.resilience.report eval/results/resilience_*.json
 | `--levels` | Perturbation levels. Default: 1 to 5. |
 | `--task` | Only one base task (e.g. `p-reg-01`). |
 | `-v`, `--verbose` | Shows the error and the steps (with the element actually acted on and how it was chosen) of the runs that need a look: failed, attacked, false successes and recoveries. |
+| `--final` | The closed set's final run: level 0 and the 150 closed tasks. Once, on the tagged release. |
 
 `report` takes the result files (`.json`; patterns like `eval/results/resilience_*.json` are expanded)
 and prints the success per level of each executor, and the false successes, unrequested actions,

@@ -299,3 +299,6 @@ __marimo__/
 /web/node_modules/
 /web/.angular/
 /anchor/ui/static/
+
+# EGM artifacts (briefs, drafts, reports)
+/.dev/

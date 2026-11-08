@@ -2,7 +2,7 @@
 
 New perturbations on known tasks: the same 30 base tasks, five levels and three executors as the
 development benchmark (`eval/resilience/`), with perturbations from a catalog derived from published
-sources (`CATALOG.md`, written from `catalog.json`). It runs once, in the final run of the release.
+sources (`CATALOG.md`, written from `catalog.json` by `python -m eval.resilience.closed.catalog_md`). It runs once, in the final run of the release.
 
 ## What is here, and in what order it was committed
 
@@ -14,7 +14,8 @@ sources (`CATALOG.md`, written from `catalog.json`). It runs once, in the final 
    `reference_targets.json` (the marker of the element each reference step acts on, recorded once on the
    original L0 pages, which are development pages, by running the reference plan through the agent as
    in development). Tests: `tests/resilience_closed/` (every operator keeps every marker on its element;
-   no measured executor uses the markers; the generator on a made-up base).
+   no measured executor uses the markers; the generator on a made-up base, `page.html`; the final run's
+   rules, `test_final_run.py`).
 3. The generated set, committed by the author without opening it: the pages
    (`eval/fixtures/resilience_closed/`), the tasks (`eval/plans/resilience_closed_tasks.json`) and, in
    `generated/`, the report, the list of level-2 replacements with the vetoes, and the manifest.
@@ -29,8 +30,8 @@ python -m eval.resilience.closed.generate
 
 The generator runs only exactly as committed, and refuses to run once the set is committed. It prints
 only counts. The one output meant to be read is `generated/level2_replacements.csv` (task, level,
-element, original word → replacement): for each replacement that makes no sense, add a line to a
-`vetoes.csv` kept outside the repository (`task;level;element;word;replacement`, copied from the list)
+element, original word → replacement, draw): for each replacement that makes no sense, add a line to a
+`vetoes.csv` kept outside the repository (`task;level;element;word;replacement;draw`, copied from the list)
 and run again with `--vetoes vetoes.csv`. A vetoed replacement is drawn again, at most 3 times per
 element; when an element's replacements run out, it gets another operator of level 2. Repeat until a
 run brings no replacement to veto. Then commit, without opening them, the pages, the tasks and
