@@ -7,11 +7,13 @@ in the README and in the article. This page says which files back each published
 | File name | Tool | What it is |
 |---|---|---|
 | `<date>_<commit>.csv/json` | `eval.run` | The element resolver, case by case |
-| `plans_<date>_<commit>.csv/json` | `eval.plan_run` | Complete tasks (`_injection`: the injection suite; `_vision`: with `--vision`) |
-| `resilience_<date>_<commit>_<executor>_<model>_<language>` | `eval.resilience.run` | The resilience benchmark, one part per file |
+| `plans_<date>_<commit>.csv/json` | `eval.plan_run` | Complete tasks (`_<suite>` for every suite but `main`: `_injection`, `_extraction`, `_downloads`, `_uploads`, `_tabs`, `_frames`; `_vision`: with `--vision`; `_FINAL`: the closed set's final run) |
+| `resilience_<date>_<commit>_<executors>[_<models>][_<language>][_FINAL]` | `eval.resilience.run` | The resilience benchmark, one part per file (executors and models joined by `-`; the language only when `--language` was given) |
 | `interventions_<date>.json` | `eval.interventions` | The interventions experiment |
 | `vision_<date>.json` | `eval.vision_probe` | Time and accuracy of questions about screenshots |
 | `planos_*` | `eval.plan_run` | Older runs, from before the code was translated to English (Portuguese field names) |
+
+A run made with uncommitted changes has `+dirty` after the commit in its name (`eval/provenance.py`).
 
 ## The numbers of version 0.3.0
 

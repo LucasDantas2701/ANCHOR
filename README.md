@@ -224,6 +224,8 @@ nothing:
 * [![FastAPI][fastapi-shield]][fastapi-url] and [![Angular][angular-shield]][angular-url], for the interface
 * keyring (saved logins, in Windows' Credential Manager), openpyxl (Excel spreadsheets) and SQLite
   (schedules), from Python
+* pywebview (WebView2), pystray and Pillow for the desktop program, packaged with PyInstaller and
+  Inno Setup into the Windows installer
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -447,7 +449,8 @@ An automation's page also looks after everything it keeps, in tabs:
 * **Decisions:** what you allowed or denied at its sensitive actions; **Forget** one to be asked again.
 * **Choices:** the elements you chose when ANCHOR was not sure; **Forget** a wrong one.
 * **Settings:** change the request, the page or the model (a new request or page makes it learn the
-  plan again), or delete the automation for good, with its history and saved logins.
+  plan again), or delete the automation for good, with its history and browser profile (the site's
+  [saved logins](#saved-logins) are kept: remove them in Settings).
 
 ### Schedules
 
@@ -790,25 +793,42 @@ type and logo come from the ANCHOR design system (`web/src/styles.css` holds its
 ```text
 ANCHOR/
 ├── anchor/
-│   ├── agent/                     # the agent loop: plan, execution, effect checks, replanning, end
+│   ├── agent/                     # the agent loop: plan, execution, effect checks, replanning, end; login waits
 │   ├── planner/                   # LLM: request → goals and steps (profiles, prompt, validation)
 │   ├── engine/
 │   │   ├── element_resolver/      # perception (index_script.js) + ranking
 │   │   ├── action_executor/       # validation and execution of actions
 │   │   ├── disambiguation/        # the user's disambiguation (terminal; the interface's is in anchor/ui)
-│   │   └── memory/                # choice memory + review commands
-│   ├── browser/                   # persistent profiles, session and login
-│   ├── i18n.py                    # interface messages (English and Portuguese)
-│   ├── main.py                    # end-to-end example on SauceDemo, with a fixed plan
+│   │   ├── memory/                # choice memory + review commands
+│   │   ├── frames.py              # the page and its iframes, read as one
+│   │   ├── sensitive.py           # which actions need your approval
+│   │   └── tables.py              # finding and reading tables and lists
+│   ├── browser/                   # browser launch, persistent profiles and session
+│   ├── vault/                     # saved logins (passwords in Windows' Credential Manager)
+│   ├── schedules/                 # schedules and their history (SQLite)
 │   ├── automations/               # saved automations: learn once, replay, heal
-│   └── ui/                        # the local interface's server (python -m anchor.ui)
+│   ├── ui/                        # the local interface's server (python -m anchor.ui)
+│   ├── desktop/                   # the desktop program the installer runs (python -m anchor.desktop.app)
+│   ├── actions/                   # fixed-selector Playwright helpers, used only by examples/legacy_saucedemo.py
+│   ├── cli.py                     # options and language shared by the command-line tools
+│   ├── i18n.py                    # interface messages (English and Portuguese)
+│   └── main.py                    # end-to-end example on SauceDemo, with a fixed plan
 ├── web/                           # the interface (Angular), built into anchor/ui/static
 ├── eval/                          # evaluation: test pages, cases, tasks, results, closed sets
-├── docs/COMMANDS.md               # the complete command reference
+├── docs/
+│   ├── COMMANDS.md                # the complete command reference
+│   ├── images/                    # images used by the README
+│   └── site/                      # the documentation site's theme and assets (with mkdocs.yml)
+├── packaging/                     # the Windows installer (PyInstaller spec, Inno Setup script)
+├── .github/                       # workflows (installer, documentation site) and the site's build script
 ├── examples/                      # demos (and legacy_saucedemo.py, fixed selectors: the "before")
 ├── tests/
+├── requirements.txt               # the engine and the interface (requirements-desktop.txt: the desktop program)
+├── pyproject.toml, pytest.ini     # project metadata and test settings
 ├── profiles/                      # browser profiles (not in Git)
-├── memory/                        # remembered choices (not in Git)
+├── memory/                        # remembered choices and schedules (not in Git)
+├── automations/                   # your saved automations (not in Git)
+├── output/                        # tables and lists extracted from the command line (not in Git)
 └── llm_profiles.json              # model profiles (no keys)
 ```
 

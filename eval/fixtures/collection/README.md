@@ -46,7 +46,7 @@ file's history).
 
 `eval/human_publish.py` publishes the whole export after the draw, in `eval/human_collection/`:
 - each response is numbered by its place in the export, BEFORE anything is left out; the numbers of
-  whoever answered "Não concordo" are simply missing (so the numbering depends on no later decision
+  whoever answered "Não concordo", and of the pilot response, are simply missing (so the numbering depends on no later decision
   and matches the draw's count of what was left out);
 - the time each response was sent is not published; the profile and every "abriu o link" are (the
   consent covers them, and the draw, stratified by profile, can only be checked with them);
@@ -60,5 +60,6 @@ The people's instructions differ from the ones the AIs of the `synthetic_control
 set's package used the LEIA-ME from before this revision, with the examples "quero reservar a sala
 Amazonas para amanhã às 10h" and "cancela o pedido que ainda não saiu" and without the pizzeria
 example (an order to the assistant versus the text typed in the site). The presentation differs too:
-the people see a picture of each page and can open it; the AIs got the package's pictures.
+the people see a picture of each page and can open it; the AIs got the pages themselves, as HTML files in the package (`paginas/*.html`, with `colecao.css` and
+`feedback.js`), with no pictures.
 

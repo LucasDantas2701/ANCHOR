@@ -153,8 +153,9 @@ download step of 0.4 makes that checkable.
 
 ### What a run ran on
 
-Every results file (`.json`) has an `environment` entry with, for each profile, the Ollama version
-and the model's digest and date, and `plan_run` prints them before the tasks. On 14/10/2026 an
+Every `plan_run` results file (`.json`) from `plans_20261014-150802_ac52bbb` on has an `environment`
+entry with, for each profile, the Ollama version and the model's digest and date, and `plan_run`
+prints them before the tasks (the resolver's, resilience, interventions and vision files have none). On 14/10/2026 an
 automatic Ollama update (to 0.40.4), with the same model files, changed the 4B model's plan for a
 task that had been stable for days: runs on different Ollama versions or model digests are not
 comparable, and the version must be the same through a whole set of measurements (turn off
@@ -221,10 +222,15 @@ These tasks are not part of the main suite, so the numbers of the ordinary tasks
 command reference for the levels. The tasks' checks use `data-eval`, the evaluation's own marker,
 so they work on every level; no executor may use it. Rebuild after changing a task or a page, never
 edit the generated files by hand. These are development perturbations, written by hand by whoever
-developed the engine. The closed set will use the same 30 base tasks, the same five levels and the
+developed the engine. The closed set uses the same 30 base tasks, the same five levels and the
 same three executors, with perturbations from a catalog derived from a published taxonomy of why
 web UI tests break, drawn by a generator with a fixed seed; the catalog, the generator and the
-generated pages are committed in that order, before any run on them, and it runs once, at the end.
+generated pages were committed in that order, before any run on them, and it runs once, at the end
+(`python -m eval.resilience.run --final`). They are in `resilience/closed/` (see its README and
+`CATALOG.md`), with the pages in `fixtures/resilience_closed/` and the 150 tasks in
+`plans/resilience_closed_tasks.json`; `plans/resilience_scripts.json` holds the traditional script's
+fixed selectors. `python -m eval.resilience.report eval/results/resilience_*.json` puts the parts'
+results together.
 
 ### Closed set of planner tasks
 
@@ -262,13 +268,13 @@ a departure from the instruction of 2 per page. The results come out with and wi
 **Did the generators see the pages?** Counted on 23/10/2026 by `python -m eval.closed_sets page-items
 <origin>` (counts only): a request "cites an item of its page" when it has a word of the page's
 visible text that is on no other page of its set (a room, a person, a product, a number...). In the
-synthetic set: chatgpt 25 of 26 (96%), claude_a 26 of 28 (93%), claude_c 25 of 26 (96%); a stricter
-version (names and numbers only) gives 88%, 86% and 92%. In the synthetic_controlled set: chatgpt 8
-of 14 (57%), claude_1 14 of 14, claude_2 14 of 14; strict, 36%, 100% and 93%. So the ChatGPT of 08/10
+synthetic set: chatgpt 25 of 26 (96%), claude_a 26 of 28 (93%), claude_c 25 of 26 (96%). In the
+synthetic_controlled set: chatgpt 8 of 14 (57%), claude_1 14 of 14, claude_2 14 of 14. So the ChatGPT of 08/10
 read the pages (they were HTML files in its package), while the ChatGPT of 22/10 did not, as it said;
-the ChatGPT sensitivity analysis applies to synthetic_controlled only. All of them were kept, none selected. Half are on the four `holdout_*.html` pages, never used in
-development (two in Portuguese, two in English; they are also the resolver's closed set), and half
-are new requests on nine known pages, so the article can separate new requests from new pages.
+the ChatGPT sensitivity analysis applies to synthetic_controlled only. All of them were kept, none selected. 24 are on the four `holdout_*.html` pages, never used in
+development (two in Portuguese, `holdout_booking` and `holdout_helpdesk`, and two in English,
+`holdout_blog` and `holdout_hr`, 6 requests each; they are also the resolver's closed set), and 56 are
+new requests on nine known pages, so the article can separate new requests from new pages.
 There are 42 requests in Portuguese and 38 in English. (An earlier version of this README said the
 requests were written by colleagues: that was wrong, corrected on 22/10/2026.)
 
@@ -287,8 +293,9 @@ out separately for each one (and for each `generator` within it):
   instructions differ from the people's.
 - `human`: 60 requests drawn from the human collection, on the same pages.
 
-`python -m eval.closed_sets skeleton synthetic_controlled_2026-10-22 synthetic_controlled` turns the
-sheets into `plans/holdout_controlled_tasks.json`, one task per request with its origin and generator
+`python -m eval.closed_sets skeleton eval/synthetic_controlled_2026-10-22 synthetic_controlled` (run
+from the project root) turned the sheets into `plans/holdout_controlled_tasks.json` (it never writes
+over an existing file, which may already be annotated), one task per request with its origin and generator
 and empty `checks`, `allowed` and `reference` to annotate (the sheets' header is read as it is,
 including the literal `\xef\xbb\xbf` text in `chatgpt.csv`). Like every closed set, these are not run
 by the system, nor is its behaviour on them looked at, before the final run.
@@ -303,7 +310,10 @@ hold. Declaring success on them counts as a premature end.
 
 **Checked without trying the system.** `python -m eval.plan_run --check` runs each reference plan on
 its `reference_targets` with Playwright alone, with no part of ANCHOR, and checks that every check
-holds and nothing unrequested was touched (all 80 pass). A first validation, before this one, ran
+holds and nothing unrequested was touched. All 80 tasks of the synthetic set pass. The
+synthetic_controlled and human sets are checked after their annotation: until then their skeletons
+have no `checks`, `allowed` or `reference`, so `--check` lists each of them as a problem (42 for
+synthetic_controlled), as expected. A first validation, before this one, ran
 the reference plans through ANCHOR's resolver and agent loop; it showed that some of ANCHOR's checks
 refuse correct plans on these requests (for example, the check of the request against "Excluir
 reserva" for "cancela minha reunião") and that the resolver picks a wrong button on the help desk
@@ -321,8 +331,8 @@ negative checks. So that these do not depend on the annotator's memory, every sk
 annotation, the negative checks of ALL the irreversible actions of its task's page
 (`python -m eval.closed_sets negatives <tasks file>`; for the human set, right after the draw): ONE PER
 ELEMENT, each named in a comment, with the row it belongs to when the same action appears more than once
-on the page (`!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(4) > button') /* Excluir —
-linha: Bruno Lima */`). The annotator only deletes the one(s) the request asks for (deleting Bruno Lima:
+on the page (`!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(2)') /*
+Excluir — linha: Bruno Lima */`). The annotator only deletes the one(s) the request asks for (deleting Bruno Lima:
 only that row's), so an executor that does the same action on another row fails. The irreversible actions are found from the pages alone, never from a
 request, by the start of each control's accessible name: deleting (excluir, apagar, remover, desativar,
 bloquear...), cancelling something ("Cancelar pedido"; a bare "Cancelar", which only closes a form, is
@@ -333,3 +343,17 @@ loja, none; pedidos, Cancelar pedido (2 rows); reservas, Reservar sala and Exclu
 Registrar entrada, Registrar saída and Enviar solicitação; suporte, Abrir chamado, Assumir (2 rows) and
 Enviar comentário; usuarios, Excluir (3 rows); vagas, Salvar vaga and Candidatura simplificada (3 each).
 
+## Other tools in `eval/`
+
+Every option of `eval.run`, `eval.plan_run` and `eval.resilience.run` (`--split`, `--site`,
+`--headed`, `--task`, `--no-page`, `--vision`...) is in the [command reference](../docs/COMMANDS.md).
+
+- `python -m eval.human_sample <export.csv>`: the draw of the human closed set (60 requests) from the
+  collection's export; it writes `plans/holdout_human_tasks.json` and `plans/holdout_human_sample.json`
+  and prints only counts.
+- `python -m eval.human_publish <export.csv>`: publishes the human collection, after the draw, in
+  `human_collection/responses.csv`.
+- `python -m eval.interventions`: does the system ask the user less as it learns? The resolver's cases
+  run with the choice memory and a simulated user, counting the questions per round.
+- `python -m eval.vision_probe --profiles ...`: the time and accuracy of the model's answers about
+  screenshots, measured before the effect check by screenshot was built.
