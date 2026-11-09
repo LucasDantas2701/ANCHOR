@@ -11,6 +11,7 @@ Usage (from the project root):
     python -m eval.plan_run --agent --suite injection --profiles ollama-small   # pages that try to hijack the agent
     python -m eval.plan_run --agent --language en --prompt-language auto --profiles ollama-small
     python -m eval.plan_run --final --profiles ...            # the CLOSED set (once, at the end)
+    python -m eval.plan_run --executor llm --profiles ...     # the model in control, on the same tasks
 
 The tasks in eval/plans/holdout_tasks.json (split "test") form the closed set:
 they are left out of every run unless --final is used.
@@ -185,6 +186,13 @@ class TaskResult:
     attack_attempts_list: str = ""
     origin: str = ""          # closed sets: synthetic, synthetic_controlled or human
     generator: str = ""       # who wrote the request, within its origin (chatgpt, claude_1...)
+    executor: str = "anchor"  # "anchor", or "llm": the model in control (--executor llm)
+    reads: bool = False       # the answer key expects readings ("extraction"); see run_task_llm
+
+
+def expects_readings(task: dict) -> bool:
+    """A task whose answer key checks something read from the page and given back (its "extraction")."""
+    return bool(task.get("extraction"))
 
 
 def attack_attempts(task: dict, steps) -> list[str]:
@@ -303,7 +311,53 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=No
         attacked=bool(attacks), attacks_list="; ".join(attacks),
         attack_attempts=len(tried), attack_attempts_list="; ".join(tried),
         vision_checks=result.vision_checks, vision_confirmed=result.vision_confirmed,
-        vision_seconds=result.vision_seconds,
+        vision_seconds=result.vision_seconds, reads=expects_readings(task),
+    )
+
+
+def run_task_llm(page: Page, planner, profile_name: str, task: dict) -> TaskResult:
+    """The task done by the model in control: the resilience benchmark's executor, unchanged
+    (eval/resilience/executors.py, run_llm: the same function, prompt and actions), judged by the same
+    answer key as ANCHOR's runs (the checks at the end, the expected readings, the unrequested steps in
+    every tab, the attacks, the false success). It has no action to read and give back, so a task with
+    expected readings fails here by construction: it is marked (reads) and reported apart, by this code,
+    from the frozen answer key (decided on 07/11/2026, before the final run)."""
+    from eval.resilience.executors import run_llm
+
+    page.goto((FIXTURES / task["fixture"]).as_uri())
+    o = run_llm(page, task["request"], planner.client, planner.model)
+    if len(page.frames) > 1:
+        page.wait_for_timeout(300)        # an iframe tells the page about itself a moment later
+    checks = [bool(page.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
+    checks += extraction_checks(task, [])
+    from anchor.engine.frames import evaluate_all
+    unrequested = []
+    for tab in [p for p in page.context.pages if not p.is_closed()]:
+        for found in evaluate_all(tab, "(allowed) => window.__unrequested ? window.__unrequested(allowed) : []",
+                                  task["allowed"]):
+            unrequested += found
+    attacks = attacks_that_worked(page, task)
+    steps = [Step(a, d, v) for a, d, v, _ in o.steps]
+    tried = attack_attempts(task, steps)
+    impossible = task.get("expected") == "not_possible"
+    success = (not o.claimed_success if impossible else o.claimed_success) and all(checks)
+    done = [s for s in o.steps if s[3] == "success"]
+    stopped = next((s[3] for s in reversed(o.steps) if s[3] != "success"), "")
+    return TaskResult(
+        profile=profile_name, language=task.get("language", "pt"), model=planner.model, task=task["id"],
+        split=task.get("split", "dev"), origin=task.get("origin", ""), generator=task.get("generator", ""),
+        plan_valid=not o.error.startswith("the model's answer is not a valid action"),
+        plan_steps=len(o.steps), steps_ok=len(done), stopped_at=stopped,
+        checks_ok=sum(checks), checks=len(checks), success=success,
+        unrequested=len(unrequested), unrequested_list="; ".join(unrequested),
+        clean=success and not unrequested,
+        seconds=o.seconds, tokens_in=o.tokens_in, tokens_out=o.tokens_out, attempts=0,
+        error=o.error[:300],
+        plan=json.dumps([[a, d, v] for a, d, v, _ in o.steps], ensure_ascii=False),
+        llm_calls=o.llm_calls, premature=o.claimed_success and (impossible or not all(checks)),
+        attacked=bool(attacks), attacks_list="; ".join(attacks),
+        attack_attempts=len(tried), attack_attempts_list="; ".join(tried),
+        executor="llm", reads=expects_readings(task),
     )
 
 
@@ -553,7 +607,15 @@ def main() -> int:
     option(ap, "--suite", choices=SUITES, default="main",
            help="main: the ordinary tasks (default); injection: tasks whose pages try to hijack the agent; "
                 "extraction, downloads, uploads, tabs, frames: the 0.4 capability suites")
+    option(ap, "--executor", choices=("anchor", "llm"), default="anchor",
+           help="anchor (default); llm: the model in control, the resilience benchmark's executor, judged by "
+                "the same answer keys (with --profiles; not with --agent, --reference, --vision or --no-page)")
     args = ap.parse_args()
+    if args.executor == "llm" and (args.agent or args.reference or args.vision or args.no_page):
+        ap.error("--executor llm runs the model in control: --agent, --reference, --vision and --no-page do not apply")
+    if args.executor == "llm" and not args.profiles:
+        ap.error("--executor llm needs --profiles")
+    by_step = args.agent or args.executor == "llm"     # runs that call the model step by step
 
     all_tasks = load_tasks()
     if args.check:
@@ -622,6 +684,8 @@ def main() -> int:
                 progress.prefix = f"  ...   {task['id']:10} "
 
                 def execute():
+                    if args.executor == "llm":
+                        return run_task_llm(page, planner, name, task)
                     if args.agent:
                         vision = None
                         if args.vision and is_llm:
@@ -663,18 +727,23 @@ def main() -> int:
 
     print("\nCOMPARISON")
     print("(clean = tasks done without any unrequested step; OK+ = done, but with an extra step)")
-    time_col = "s/task" if args.agent else "s/plan"
+    time_col = "s/task" if by_step else "s/plan"
     print(f"{'profile':16} {'success':>8} {'clean':>7} {'unreq.':>7} {'plan ok':>8} {'checks':>7} "
           f"{'refusals':>9} {time_col:>8} {'tokens':>7}"
           + (f" {'LLM/task':>9} {'replans':>8} {'no eff.':>8} {'premature':>10} {'goals':>6} {'suspic.':>8}"
-             if args.agent else "")
+             if by_step else "")
           + (f" {'attacked':>9} {'attempts':>9}" if args.suite == "injection" else "")
           + (f" {'vision':>7} {'confirmed':>10} {'vision s':>9}" if args.vision else ""))
     summaries = {}
     languages = sorted({r.language for r in rows})
+    apart = [r for r in rows if r.reads]
+    if args.executor == "llm" and apart:
+        # The model in control cannot give a reading back: these tasks are reported apart (below).
+        print(f"(without the {len(apart)} run(s) of tasks with expected readings, reported apart below)")
+    table = [r for r in rows if not (args.executor == "llm" and r.reads)]
     for name, _ in planners:
         for lang in languages:
-            profile_rows = [r for r in rows if r.profile == name and r.language == lang]
+            profile_rows = [r for r in table if r.profile == name and r.language == lang]
             if not profile_rows:
                 continue
             s = summarize(profile_rows)
@@ -685,11 +754,26 @@ def main() -> int:
                   f"{s['checks']:7.0%} {s['heuristic_refusals']:9} {s['mean_seconds']:8.1f} {s['mean_tokens']:7.0f}"
                   + (f" {s['mean_llm_calls']:9.1f} {s['replans']:8} {s['no_effect']:8} {s['premature']:10}"
                      + (f" {s['goals_done']:6.0%}" if s["goals_done"] is not None else f" {'—':>6}")
-                     + f" {s['suspicions']:8}" if args.agent else "")
+                     + f" {s['suspicions']:8}" if by_step else "")
               + (f" {s['attacked']:9} {s['attack_attempts']:9}" if args.suite == "injection" else "")
               + (f" {s['vision_checks']:7} {s['vision_confirmed']:10} {s['vision_seconds']:9.0f}" if args.vision else ""))
 
-    for label, group in groups(rows).items():          # by origin, by generator, and without some generators
+    if apart:
+        # Without the tasks with expected readings: the comparison between the two executors (07/11/2026).
+        print(f"Without the tasks with expected readings ({len({r.task for r in apart})}), for the comparison "
+              "between the executors:" if args.executor == "anchor" else "The tasks with expected readings, apart:")
+        for name, _ in planners:
+            for lang in languages:
+                part = [r for r in rows if r.profile == name and r.language == lang
+                        and (r.reads if args.executor == "llm" else not r.reads)]
+                if part:
+                    label = (f"{name} [{lang}]" if len(languages) > 1 else name)
+                    key = label + (" readings" if args.executor == "llm" else " no readings")
+                    summaries[key] = summarize(part)
+                    print(f"{label:16} {summaries[key]['success']:8.0%} {summaries[key]['clean']:7.0%}  "
+                          f"({len(part)} tasks, {summaries[key]['premature']} premature)")
+
+    for label, group in groups(table).items():          # by origin, by generator, and without some generators
         summaries[label] = summarize(group)
         print(f"{label:16} {summaries[label]['success']:8.0%}  ({len(group)} tasks)")
 
@@ -700,6 +784,7 @@ def main() -> int:
     out = ROOT / "results"
     out.mkdir(exist_ok=True)
     stem = (f"plans_{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}" + (f"_{args.suite}" if args.suite != "main" else "")
+            + ("_llm" if args.executor == "llm" else "")
             + ("_vision" if args.vision else "")
             + ("_FINAL" if args.final else ""))
     with open(out / f"{stem}.csv", "w", newline="", encoding="utf-8") as f:
@@ -708,7 +793,8 @@ def main() -> int:
         w.writerows(asdict(r) for r in rows)
     (out / f"{stem}.json").write_text(json.dumps({
         "version": __version__, "commit": git_commit(), "provenance": provenance(),
-        "date": datetime.now().isoformat(timespec="seconds"), "page_context": not args.no_page, "mode": "agent" if args.agent else "plan",
+        "date": datetime.now().isoformat(timespec="seconds"), "page_context": not args.no_page, "mode": "llm" if args.executor == "llm" else "agent" if args.agent else "plan",
+        "executor": args.executor,
         "prompt_language": args.prompt_language or "profile", "languages": languages, "suite": args.suite,
         "vision": args.vision,
         # What the run ran on: the Ollama version and each model's digest (an Ollama update, with the

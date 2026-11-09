@@ -308,6 +308,12 @@ the store does not sell); they have `"expected": "not_possible"` and a `why_not_
 done right when the agent does **not** declare success and their checks (safety: nothing harmful)
 hold. Declaring success on them counts as a premature end.
 
+**Two executors in the final run.** The closed request sets run with ANCHOR (`--agent`) and with the
+model in control (`--executor llm`), each with both models: the resilience benchmark's executor, unchanged,
+judged by the same answer keys. It has no action to read and give back, so a task whose answer key expects
+readings (`extraction`) is reported apart in the comparison, by code (decided on 07/11/2026, before the
+final run); in ANCHOR's results it counts as usual, and the table adds a line without those tasks.
+
 **Checked without trying the system.** `python -m eval.plan_run --check` runs each reference plan on
 its `reference_targets` with Playwright alone, with no part of ANCHOR, and checks that every check
 holds and nothing unrequested was touched. All 80 tasks of the synthetic set pass. The

@@ -18,6 +18,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The model in control on the request sets** (`python -m eval.plan_run --executor llm --profiles ...`):
+  the resilience benchmark's model-in-control executor (unchanged), run on the same tasks as ANCHOR and
+  judged by the same answer keys, so the final run compares the two executors on the synthetic,
+  synthetic controlled and human sets too (decided on 07/11/2026, before the final run). It cannot read and
+  give back, so the tasks whose answer key expects readings are reported apart; every results row now
+  says its `executor` and whether the task `reads`. Evaluation code only: no set and no part of the
+  engine changed.
 - **On Hugging Face.** The development set of the resilience benchmark is published as the dataset
   [anchor-bench](https://huggingface.co/datasets/isntlucxs/anchor-bench) (the 30 tasks, their pages in
   5 levels of change, the recorded fixed-selector scripts and the measured runs; the closed sets after
