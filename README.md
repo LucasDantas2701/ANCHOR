@@ -728,9 +728,11 @@ these) with:
    pages' text, so remove any personal data first;
 4. your setup: operating system, model and, if you know it, your graphics card.
 
-Suggestions and ideas are welcome as issues too. Pull requests are not accepted for now: until
-the 1.0.0 evaluation, the code changes only through the author, so that the version measured is
-the one the article describes.
+Suggestions and ideas are welcome as issues too. Until the 1.0.0 evaluation, so that the version
+measured is the one the article describes, a pull request may touch only the interface (`web/`,
+`anchor/ui/`) and its server, and the automations' storage (without changing how a saved automation
+runs); never the engine, the evaluation (`eval/`) or its closed sets. Lucas reviews and accepts each
+one; before a larger change, open an issue or a discussion.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
