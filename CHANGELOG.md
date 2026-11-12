@@ -18,6 +18,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The article's tables and figures by code** (`python -m eval.paper_tables`): from the result files
+  of the final run, the data of Figures 2 and 3 and Tables 4 to 7 (LaTeX and CSV), the sensitivity
+  analyses (the synthetic set without t-ord-a1 and t-ord-c1, the controlled set without ChatGPT), the
+  report of the tasks that expect readings, and Table 6's rule for the cause of a failed run (safety stop,
+  element resolution, effect verification, planning, other; false successes counted apart), decided before
+  the final run. The uncertainty interval is pluggable (Wilson 95% by default, provisionally).
 - **The model in control on the request sets** (`python -m eval.plan_run --executor llm --profiles ...`):
   the resilience benchmark's model-in-control executor (unchanged), run on the same tasks as ANCHOR and
   judged by the same answer keys, so the final run compares the two executors on the synthetic,

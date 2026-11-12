@@ -647,6 +647,27 @@ each text becomes `[removido: type]`, in the publication and in a drawn task, an
 python -m eval.human_publish <export.csv> --removals <removals.csv>
 ```
 
+
+### The article's tables and figures
+
+```sh
+python -m eval.paper_tables --final                       # the newest *_FINAL result files, all of one commit
+python -m eval.paper_tables --resilience F... --plans F... --resolver F --out DIR   # given files
+```
+
+Reads only result files and writes, in `--out` (default `eval/paper/`), the data of Figures 2 and 3
+(success and false success by level, executor and model; the off-path combinations apart), Tables 4 to 7
+in LaTeX and CSV, the sensitivity analyses, the report of the tasks that expect readings, and
+`sources.txt` (the files read and their commits). It writes and prints no request text. In `--final`
+mode it refuses files from different commits.
+
+| Option | What it does |
+|---|---|
+| `--final` | Uses the newest `*_FINAL` files of the three evaluations. |
+| `--resilience`, `--plans`, `--resolver` | The result files to read (patterns are expanded). For tests: development files only. |
+| `--out` | The output folder. Default: `eval/paper/`. |
+| `--ci` | The uncertainty interval: `wilson` (95%, the provisional default) or `none`. |
+
 ## Development
 
 ```sh
