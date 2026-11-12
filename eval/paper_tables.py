@@ -120,7 +120,18 @@ def newest(pattern: str, exclude: tuple[str, ...] = ()) -> list[Path]:
 # Figures 2 and 3: resilience
 # ---------------------------------------------------------------------------------------------------------
 
-EXECUTOR_NAMES = {"script": "Fixed-selector script", "llm": "LLM in control", "anchor": "ANCHOR",
+MODEL_NAMES = {"ollama-small": "4B", "ollama-medium": "9B"}
+SHORT_EXECUTOR = {"anchor": "ANCHOR", "llm": "LLM"}
+ACTION_NAMES = {"all": "All", "click": "click", "fill": "type", "select": "select", "check": "check",
+                "uncheck": "uncheck", "hover": "hover", "press": "press a key", "extract_text": "read text",
+                "extract_table": "read table", "download": "download", "upload": "upload"}
+
+
+def model_name(profile: str) -> str:
+    return MODEL_NAMES.get(profile, profile) if profile else "-"
+
+
+EXECUTOR_NAMES = {"script": "Fixed selectors", "llm": "LLM in control", "anchor": "ANCHOR",
                   "anchor1": "ANCHOR, 1st run", "anchor2": "ANCHOR, 2nd run (no model call)"}
 
 
@@ -150,7 +161,7 @@ def fig2_fig3(rows: list[dict]) -> tuple[list[list], list[list]]:
     table = [["part", "executor", "model", "level", "success_k", "n", "success_%", "success_lo", "success_hi",
               "false_success_k", "n", "false_success_%", "false_lo", "false_hi"]]
     for (part, ex, model, level), g in sorted(groups.items()):
-        table.append([part, EXECUTOR_NAMES[ex], model or "-", level]
+        table.append([part, EXECUTOR_NAMES[ex], model_name(model), level]
                      + Rate(sum(resilience_success(r) for r in g), len(g)).csv()
                      + Rate(sum(true(r.get("false_success")) for r in g), len(g)).csv())
     safety = [["executor", "model", "level5_runs", "attacked_runs", "attack_attempts"]]
@@ -159,7 +170,7 @@ def fig2_fig3(rows: list[dict]) -> tuple[list[list], list[list]]:
         if int(r["level"]) == 5:
             by[(resilience_executor(r), r.get("profile") or "")].append(r)
     for (ex, model), g in sorted(by.items()):
-        safety.append([EXECUTOR_NAMES[ex], model or "-", len(g), sum(true(r.get("attacked")) for r in g),
+        safety.append([EXECUTOR_NAMES[ex], model_name(model), len(g), sum(true(r.get("attacked")) for r in g),
                        sum(int(r.get("attack_attempts") or 0) for r in g)])
     return table, safety
 
@@ -209,9 +220,18 @@ def by_set_executor_model(rows: list[dict], label=request_set) -> dict:
 def measure_table(groups: dict, set_names: dict) -> list[list]:
     out = [["set", "executor", "model", "success_k", "n", "success_%", "lo", "hi", "false_success_k", "n",
             "false_success_%", "lo", "hi", "clean_k", "n", "clean_%", "lo", "hi"]]
-    for (s, ex, model), g in sorted(groups.items()):
-        out.append([set_names.get(s, s), EXECUTOR_NAMES.get(ex, ex), model] + sum((m.csv() for m in measures(g)), []))
+    for (s, ex, model), g in sorted(groups.items(), key=group_order):
+        out.append([set_names.get(s, s), EXECUTOR_NAMES.get(ex, ex), model_name(model)] + sum((m.csv() for m in measures(g)), []))
     return out
+
+
+SET_ORDER = ["synthetic", "synthetic_controlled", "human", "development"]
+
+
+def group_order(item) -> tuple:
+    """Sets in the article's order, then ANCHOR before the LLM in control, then 4B before 9B."""
+    (s, ex, model), _ = item
+    return (SET_ORDER.index(s) if s in SET_ORDER else len(SET_ORDER), str(s), ex, model_name(model))
 
 
 def failure_cause(row: dict) -> str:
@@ -239,15 +259,15 @@ CAUSES = ["safety stop", "element resolution", "effect verification", "planning"
 
 def table6(rows: list[dict]) -> list[list]:
     failed = [r for r in rows if not true(r["success"])]
-    columns = sorted({(plans_executor(r), r["profile"]) for r in rows})
-    out = [["cause"] + [f"{EXECUTOR_NAMES.get(e, e)} / {m}" for e, m in columns]]
+    columns = sorted({(plans_executor(r), r["profile"]) for r in rows}, key=lambda c: (c[0], model_name(c[1])))
+    out = [["Cause"] + [f"{SHORT_EXECUTOR.get(e, e)} {model_name(m)}" for e, m in columns]]
     for cause in CAUSES:
-        out.append([cause] + [sum(1 for r in failed if failure_cause(r) == cause and (plans_executor(r), r["profile"]) == c)
+        out.append([cause.capitalize()] + [sum(1 for r in failed if failure_cause(r) == cause and (plans_executor(r), r["profile"]) == c)
                               for c in columns])
-    out.append(["false success (of the failures)"] + [sum(1 for r in failed if true(r["premature"])
+    out.append(["Of which false success"] + [sum(1 for r in failed if true(r["premature"])
                                                         and (plans_executor(r), r["profile"]) == c) for c in columns])
-    out.append(["failed runs"] + [sum(1 for r in failed if (plans_executor(r), r["profile"]) == c) for c in columns])
-    out.append(["runs"] + [sum(1 for r in rows if (plans_executor(r), r["profile"]) == c) for c in columns])
+    out.append(["Failed runs"] + [sum(1 for r in failed if (plans_executor(r), r["profile"]) == c) for c in columns])
+    out.append(["Runs"] + [sum(1 for r in rows if (plans_executor(r), r["profile"]) == c) for c in columns])
     return out
 
 
@@ -285,7 +305,7 @@ def table7(rows: list[dict]) -> list[list]:
         judged = [r for r in g if r.get("outcome")]
         dec = [_pct(sum(1 for r in judged if r["outcome"] == d) / len(judged)) if judged else "" for d in DECISIONS]
         r1 = at(1).csv()
-        out.append([name, n, r1[2], r1[3], r1[4], at(3).csv()[2], at(5).csv()[2], at(10).csv()[2],
+        out.append([ACTION_NAMES.get(name, name), n, r1[2], r1[3], r1[4], at(3).csv()[2], at(5).csv()[2], at(10).csv()[2],
                     f"{mrr:.3f}" if mrr is not None else "", f"{ms:.0f}" if ms is not None else ""] + dec)
     return out
 
@@ -304,22 +324,71 @@ def tex_escape(text) -> str:
     return str(text).replace("\\", "\\textbackslash{}").replace("&", "\\&").replace("%", "\\%").replace("_", "\\_")
 
 
-def write_tex(path: Path, caption: str, header: list[str], rows: list[list], label: str) -> None:
-    cols = "l" * 3 + "r" * (len(header) - 3) if len(header) > 3 else "l" + "r" * (len(header) - 1)
-    lines = [f"% generated by eval/paper_tables.py; uncertainty: {Rate.method}", "\\begin{table}[ht]", "\\centering",
-             f"\\caption{{{caption}}}", f"\\label{{{label}}}", f"\\begin{{tabular}}{{{cols}}}", "\\toprule",
-             " & ".join(tex_escape(h) for h in header) + " \\\\", "\\midrule"]
+NUMBER = re.compile(r"^(--|-|-?\d+(\.\d+)?( \(\d+(\.\d+)?--\d+(\.\d+)?\))?)$")
+INTERVAL_TEXT = {"wilson": "the 95% Wilson score interval", "none": ""}
+
+
+def header_rows(header: list[str]) -> list[str]:
+    """The header line(s): a line break in a cell gives a two-line header (two real rows, so LaTeX spaces them)."""
+    if not any("\n" in h for h in header):
+        return [" & ".join(tex_escape(h) for h in header) + " \\\\"]
+    split = [h.split("\n", 1) if "\n" in h else ["", h] for h in header]
+    return [" & ".join(tex_escape(top) for top, _ in split) + " \\\\",
+            " & ".join(tex_escape(bottom) for _, bottom in split) + " \\\\"]
+
+
+def write_tex(path: Path, caption: str, header: list[str], rows: list[list], label: str,
+              groups: list[tuple[str, int]] | None = None, colsep: str | None = None) -> None:
+    """In the article's style: no booktabs, \\hline\\hline at the top and bottom and \\hline after the header,
+    \\small; more than 5 columns go in table* (the page's width); the first column and the text columns
+    left-aligned, the numeric ones right-aligned."""
+    numeric = [all(NUMBER.match(str(r[i])) for r in rows) if rows else False for i in range(len(header))]
+    cols = "".join("r" if i and numeric[i] else "l" for i in range(len(header)))
+    env = "table*" if len(header) > 5 else "table"
+    lines = [f"% generated by eval/paper_tables.py; uncertainty: {Rate.method}", f"\\begin{{{env}}}[ht]", "\\centering",
+             "\\small", *([f"\\setlength{{\\tabcolsep}}{{{colsep}}}"] if colsep else []), f"\\caption{{{tex_escape(caption)}}}", f"\\label{{{label}}}", f"\\begin{{tabular}}{{{cols}}}", "\\hline\\hline",
+             *([" & ".join(f"\\multicolumn{{{n}}}{{c}}{{{tex_escape(g)}}}" if g else "" for g, n in groups) + " \\\\"]
+               if groups else []),
+             *header_rows(header), "\\hline"]
     lines += [" & ".join(tex_escape(c) for c in row) + " \\\\" for row in rows]
-    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}", ""]
+    lines += ["\\hline\\hline", "\\end{tabular}", f"\\end{{{env}}}", ""]
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def interval_note() -> str:
+    text = INTERVAL_TEXT.get(Rate.method, Rate.method)
+    return f"Values are percentages, with {text} in parentheses" if text else "Values are percentages"
+
+
+def measures_caption(title: str) -> str:
+    return (f"{title} Success: the task was done and all its checks hold. False success: the run said the task "
+            "was done when it was not. No extra steps: done without acting on any element the task did not "
+            f"allow. {interval_note()}; n is the number of runs.")
+
+
 def measures_tex(groups: dict, set_names: dict) -> list[list]:
-    return [[set_names.get(s, s), EXECUTOR_NAMES.get(ex, ex), model] + [m.tex() for m in measures(g)] + [len(g)]
-            for (s, ex, model), g in sorted(groups.items())]
+    return [[set_names.get(s, s), EXECUTOR_NAMES.get(ex, ex), model_name(model)] + [m.tex() for m in measures(g)] + [len(g)]
+            for (s, ex, model), g in sorted(groups.items(), key=group_order)]
 
 
-MEASURE_HEADER = ["Set", "Executor", "Model", "Success %", "False success %", "Without unrequested steps %", "n"]
+MEASURE_HEADER = ["Set", "Executor", "Model", "Success", "False success", "No extra steps", "n"]
+
+
+def table7_tex(rows: list[list]) -> tuple[list[str], list[list]]:
+    """Table 7, compact: R@1 with its interval in one cell, the five decisions with short names."""
+    header = ["Group", "n", "R@1", "R@3", "R@5", "R@10", "MRR", "ms", "Correct", "Silent\nerr.", "Avoid.\nref.",
+              "Corr.\nref.", "Percep."]
+    body = []
+    for r in rows[1:]:
+        r1 = f"{r[2]} ({r[3]}--{r[4]})" if r[3] != "" else r[2]
+        body.append([r[0], r[1], r1, r[5], r[6], r[7], r[8], r[9]] + [x or "--" for x in r[10:15]])
+    return header, body
+
+
+TABLE7_CAPTION = ("Element selection on the closed set. R@k: cases with the right element among the first k candidates; "
+                  "MRR: mean reciprocal rank; ms: mean time per query. The executor's decisions: Correct (acted on the "
+                  "right element), Silent err. (acted on a wrong one), Avoid. ref. (refused when the right element was "
+                  "first), Corr. ref. (refused when it was not first), Percep. (the right element was not indexed). ")
 
 
 # ---------------------------------------------------------------------------------------------------------
@@ -363,7 +432,9 @@ def main(argv: list[str] | None = None) -> int:
         rows = read_rows(plans)
         main_rows = comparable(rows)
         write_csv(out / "table4_closed_sets.csv", measure_table(by_set_executor_model(main_rows), SET_NAMES))
-        write_tex(out / "table4_closed_sets.tex", "Results on the closed request sets, by set, executor and model.",
+        write_tex(out / "table4_closed_sets.tex", measures_caption(
+                      "Results on the closed request sets, by set, executor and model; the LLM in control without the "
+                      "tasks that expect readings, reported apart."),
                   MEASURE_HEADER, measures_tex(by_set_executor_model(main_rows), SET_NAMES), "tab:closed-sets")
         both = comparable(rows, anchor_too=True)
         write_csv(out / "table4_without_readings.csv", measure_table(by_set_executor_model(both), SET_NAMES))
@@ -378,7 +449,8 @@ def main(argv: list[str] | None = None) -> int:
             return None
         sens = by_set_executor_model([r for r in main_rows if sensitivity(r)], label=sensitivity)
         write_csv(out / "sensitivity.csv", measure_table(sens, {}))
-        write_tex(out / "sensitivity.tex", "Sensitivity analyses.", MEASURE_HEADER, measures_tex(sens, {}), "tab:sensitivity")
+        write_tex(out / "sensitivity.tex", measures_caption("Sensitivity analyses."), MEASURE_HEADER,
+                  measures_tex(sens, {}), "tab:sensitivity")
 
         infeasible = infeasible_ids()
         def breakdown(r: dict) -> str | None:
@@ -400,12 +472,20 @@ def main(argv: list[str] | None = None) -> int:
             for name in people_vs_ai(r):
                 t5[(name, plans_executor(r), r["profile"])].append(r)
         write_csv(out / "table5_people_vs_ai.csv", measure_table(t5, {}))
-        write_tex(out / "table5_people_vs_ai.tex", "People and AI models on the same nine pages.", MEASURE_HEADER,
+        write_tex(out / "table5_people_vs_ai.tex", measures_caption("People and AI models on the same nine pages."), MEASURE_HEADER,
                   measures_tex(t5, {}), "tab:people-vs-ai")
 
         t6 = table6([r for r in main_rows if request_set(r) != "development"] or main_rows)
         write_csv(out / "table6_failures.csv", t6)
-        write_tex(out / "table6_failures.tex", "Failed runs by cause and executor.", t6[0], t6[1:], "tab:failures")
+        exec_of = [h.rsplit(" ", 1) for h in t6[0][1:]]
+        groups6 = [("", 1)] + [(e, sum(1 for x in exec_of if x[0] == e))
+                               for e in dict.fromkeys(x[0] for x in exec_of)]
+        write_tex(out / "table6_failures.tex",
+                  "Failed runs by cause, executor and model. Each failed run has one cause, by code, from its recorded "
+                  "stop, in this order: safety stop, element resolution, effect verification, planning, other. False "
+                  "success counts, apart, the failures in which the run said the task was done. Perception failures "
+                  "are not recorded in a task run (Table 7). LLM: the LLM in control.", ["Cause"] + [m for _, m in exec_of], t6[1:],
+                  "tab:failures", groups=groups6)
         written += ["table4_closed_sets.csv/.tex", "table4_without_readings.csv", "readings_apart.csv",
                     "sensitivity.csv/.tex", "synthetic_breakdown.csv", "table5_people_vs_ai.csv/.tex",
                     "table6_failures.csv/.tex"]
@@ -413,7 +493,9 @@ def main(argv: list[str] | None = None) -> int:
     if resolver:
         t7 = table7(read_rows(resolver))
         write_csv(out / "table7_elements.csv", t7)
-        write_tex(out / "table7_elements.tex", "Element selection.", t7[0], t7[1:], "tab:elements")
+        header7, body7 = table7_tex(t7)
+        write_tex(out / "table7_elements.tex", TABLE7_CAPTION + interval_note() + " (R@1); the decisions as a "
+                  "percentage of the judged cases.", header7, body7, "tab:elements", colsep="4pt")
         written.append("table7_elements.csv/.tex")
 
     sources = [f"{p.name}\t{commit_of(p)}" for p in resilience + plans + resolver]

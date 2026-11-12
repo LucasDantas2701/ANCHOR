@@ -44,8 +44,9 @@ def test_table6_counts_each_failure_once_and_the_false_successes_apart():
             plan_row(executor="llm", premature="True", stopped_at="failed")]
     t = {r[0]: r[1:] for r in pt.table6(rows)}
     # columns: ANCHOR / ollama-small, then LLM in control / ollama-small
-    assert t["element resolution"] == [1, 0] and t["planning"] == [1, 0] and t["other"] == [0, 1]
-    assert t["false success (of the failures)"] == [1, 1] and t["failed runs"] == [2, 1] and t["runs"] == [3, 1]
+    assert t["Element resolution"] == [1, 0] and t["Planning"] == [1, 0] and t["Other"] == [0, 1]
+    assert t["Of which false success"] == [1, 1] and t["Failed runs"] == [2, 1] and t["Runs"] == [3, 1]
+    assert pt.table6(rows)[0] == ["Cause", "ANCHOR 4B", "LLM 4B"]
 
 
 def test_the_model_in_control_is_compared_without_the_tasks_that_expect_readings():
@@ -85,7 +86,7 @@ def test_the_command_writes_every_table_and_names_its_sources(tmp_path):
     assert "controlled, all" in t5 and "human, IT" in t5 and "controlled, without ChatGPT" not in t5
     assert "readings" not in (out / "table4_closed_sets.csv").read_text() and "LLM in control" in (out / "readings_apart.csv").read_text()
     t7 = list(csv.reader(open(out / "table7_elements.csv")))
-    assert t7[1][:3] == ["all", "2", "50.0"] and t7[1][-1] == "50.0"
+    assert t7[1][:3] == ["All", "2", "50.0"] and t7[1][-1] == "50.0" and t7[3][0] == "type"
     assert "abc1234" in (out / "sources.txt").read_text()
 
 
@@ -95,3 +96,25 @@ def test_final_mode_refuses_files_from_different_commits(tmp_path, monkeypatch):
     write(tmp_path / "20261201-100000_def5678_FINAL.csv", [{"split": "test", "action": "click", "rank": "1", "outcome": "correct", "ms": "1"}])
     with pytest.raises(SystemExit):
         pt.main(["--final", "--out", str(tmp_path / "o")])
+
+
+
+def test_the_latex_follows_the_articles_style(tmp_path):
+    """No booktabs; \\hline\\hline at the top and bottom; \\small; table* above 5 columns; l for text, r for numbers;
+    4B and 9B; percent signs escaped; the labels unchanged."""
+    rows = [{k: v for k, v in plan_row(success="True", clean="True").items() if k != "_file"},
+            {k: v for k, v in plan_row(profile="ollama-medium").items() if k != "_file"}]
+    plans = write(tmp_path / "plans_x.csv", rows)
+    resolver = write(tmp_path / "r.csv", [{"split": "test", "action": "extract_text", "rank": "1", "outcome": "correct", "ms": "9"}])
+    out = tmp_path / "out"
+    pt.main(["--plans", str(plans), "--resolver", str(resolver), "--out", str(out)])
+    t4 = (out / "table4_closed_sets.tex").read_text(encoding="utf-8")
+    assert "booktabs" not in t4 and "toprule" not in t4 and t4.count("\\hline\\hline") == 2 and "\\small" in t4
+    assert "\\begin{table*}" in t4 and "\\begin{tabular}{lllrrrr}" in t4 and "\\label{tab:closed-sets}" in t4
+    assert "& 4B &" in t4 and "& 9B &" in t4 and "ollama" not in t4 and "95\\% Wilson" in t4
+    assert "Success & False success & No extra steps & n" in t4
+    t6 = (out / "table6_failures.tex").read_text(encoding="utf-8")
+    assert "\\begin{table}[ht]" in t6 and "\\begin{tabular}{lrr}" in t6 and "\\multicolumn{2}{c}{ANCHOR}" in t6
+    t7 = (out / "table7_elements.tex").read_text(encoding="utf-8")
+    assert "\\begin{table*}" in t7 and "read text" in t7 and "extract" not in t7 and "_" not in t7.split("\\label")[0].split("caption")[1]
+    assert "R@1 & R@3" in t7 and "Silent" in t7 and "lo" not in t7.split("\\hline")[2]
