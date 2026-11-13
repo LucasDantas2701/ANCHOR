@@ -321,6 +321,13 @@ from the page's numbered element list instead of by the Resolver (`--ablation mo
 `eval/ablations.py`, in the evaluation's code: no line of the engine changes, and with no ablation the
 runners build ANCHOR exactly as measured (checked run by run with `python -m eval.determinism`).
 
+**A second annotator.** A seeded draw (`python -m eval.second_annotator draw`, seed 20261113) takes 25% of
+each closed request set, stratified by page, into clean skeletons (`eval/plans/second_annotator/`), which
+a second person annotates with the first annotator's method in each set (by hand in the synthetic one, with
+the local annotation helper in the other two); the second key freezes with the first, on 01/12/2026. In the
+final run, every run of a drawn task is judged by both keys on the same final page (`success_2`), and
+`python -m eval.second_annotator kappa` gives Cohen's kappa between them (decided on 13/11/2026).
+
 **Checked without trying the system.** `python -m eval.plan_run --check` runs each reference plan on
 its `reference_targets` with Playwright alone, with no part of ANCHOR, and checks that every check
 holds and nothing unrequested was touched. All 80 tasks of the synthetic set pass. The
