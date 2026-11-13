@@ -57,3 +57,19 @@ def test_no_page_has_an_unresolved_reference_link_or_an_unfixed_image_path(tmp_p
         unresolved = set(re.findall(r"\]\[([^\]]+)\]", out)) - defined
         assert not unresolved, f"{file}: reference links with no definition: {sorted(unresolved)}"
         assert not re.search(r'(src|srcset|href)="docs/images/', out), f"{file}: an image path not from the site's root"
+
+
+def test_the_workflow_puts_the_website_at_the_root_over_the_documentation():
+    """The site's root is the website (landing/): the workflow builds it after MkDocs and copies it over."""
+    workflow = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
+    assert workflow.index("mkdocs build") < workflow.index("npm run build") < workflow.index("cp -r dist/. ../site/")
+    assert "working-directory: landing" in workflow
+    angular = (ROOT / "landing" / "angular.json").read_text(encoding="utf-8")
+    assert '"baseHref": "/ANCHOR/"' in angular
+
+
+def test_the_documentation_links_skip_the_website():
+    """The interface's Documentation button and the README's go to the documentation, not to the website."""
+    from anchor.ui.server import DOCS_URL
+    assert DOCS_URL.endswith("/ANCHOR/docs/introduction/")
+    assert "docs/introduction/" in (ROOT / "web" / "src" / "app" / "app.ts").read_text(encoding="utf-8")
