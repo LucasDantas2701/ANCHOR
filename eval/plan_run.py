@@ -259,17 +259,20 @@ def attacks_that_worked(page: Page, task: dict) -> list[str]:
     return [a for a in task.get("attacks", []) if page.evaluate(f"() => Boolean({a})")]
 
 
-def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=None) -> TaskResult:
+def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=None, ablation: str | None = None) -> TaskResult:
     """The task run through the agent loop (no human disambiguation)."""
     from anchor.agent import Agent
+    from eval.ablations import EXECUTOR_NAME
 
     page.goto((FIXTURES / task["fixture"]).as_uri())
     if isinstance(planner, ReferencePlanner):
         planner.current = task["reference"]
     import tempfile
     with tempfile.TemporaryDirectory() as output:      # extracted tables and downloads are not kept
-        agent = Agent(page, planner, ActionExecutor(page, resolver=ElementResolver(page)), report=None,
-                      vision=vision, output_dir=output)
+        from eval.ablations import agent_options, make_executor
+        executor = make_executor(page, ablation, planner, resolver=ElementResolver(page))   # ANCHOR, unless ablated
+        agent = Agent(page, planner, executor, report=None, vision=vision, output_dir=output,
+                      **agent_options(ablation))
         result = agent.run(task["request"])
         # The checks run on the tab the agent ended in (a task may move to a new tab).
         final = agent.page if not agent.page.is_closed() else page
@@ -301,17 +304,20 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=No
         checks_ok=sum(checks), checks=len(checks), success=success,
         unrequested=len(unrequested), unrequested_list="; ".join(unrequested),
         clean=success and not unrequested,
-        seconds=result.seconds, tokens_in=result.tokens_in, tokens_out=result.tokens_out,
+        seconds=result.seconds,
+        # an ablation whose model picks the elements: its calls count in the cost, as the planner's do
+        tokens_in=result.tokens_in + getattr(executor, "tokens_in", 0),
+        tokens_out=result.tokens_out + getattr(executor, "tokens_out", 0),
         attempts=result.failures, error="" if result.ok else result.message[:300],
         plan=json.dumps([[r.step.action, r.step.description, r.step.value] for r in result.records],
                         ensure_ascii=False),
-        llm_calls=result.llm_calls, replans=result.replans,
+        llm_calls=result.llm_calls + getattr(executor, "calls", 0), replans=result.replans,
         no_effect=result.no_effect, premature=result.ok and (impossible or not all(checks)),
         goals=result.goals_total, goals_done=result.goals_done, suspicions=result.suspicions,
         attacked=bool(attacks), attacks_list="; ".join(attacks),
         attack_attempts=len(tried), attack_attempts_list="; ".join(tried),
         vision_checks=result.vision_checks, vision_confirmed=result.vision_confirmed,
-        vision_seconds=result.vision_seconds, reads=expects_readings(task),
+        vision_seconds=result.vision_seconds, reads=expects_readings(task), executor=EXECUTOR_NAME[ablation],
     )
 
 
@@ -607,6 +613,9 @@ def main() -> int:
     option(ap, "--suite", choices=SUITES, default="main",
            help="main: the ordinary tasks (default); injection: tasks whose pages try to hijack the agent; "
                 "extraction, downloads, uploads, tabs, frames: the 0.4 capability suites")
+    option(ap, "--ablation", choices=("no_verify", "model_picks"),
+           help="with --agent: ANCHOR without one of its parts (decided on 13/11/2026): no_verify, without the "
+                "effect check; model_picks, with the element chosen by the model instead of the Resolver")
     option(ap, "--executor", choices=("anchor", "llm"), default="anchor",
            help="anchor (default); llm: the model in control, the resilience benchmark's executor, judged by "
                 "the same answer keys (with --profiles; not with --agent, --reference, --vision or --no-page)")
@@ -615,6 +624,8 @@ def main() -> int:
         ap.error("--executor llm runs the model in control: --agent, --reference, --vision and --no-page do not apply")
     if args.executor == "llm" and not args.profiles:
         ap.error("--executor llm needs --profiles")
+    if args.ablation and not args.agent:
+        ap.error("--ablation needs --agent")
     by_step = args.agent or args.executor == "llm"     # runs that call the model step by step
 
     all_tasks = load_tasks()
@@ -691,7 +702,7 @@ def main() -> int:
                         if args.vision and is_llm:
                             from anchor.agent.vision import VisionChecker
                             vision = VisionChecker(planner.client, planner.model)
-                        return run_task_agent(page, planner, name, task, vision)
+                        return run_task_agent(page, planner, name, task, vision, args.ablation)
                     return run_task(page, planner, name, task, use_page=not args.no_page)
 
                 if is_llm:
@@ -780,6 +791,7 @@ def main() -> int:
     out.mkdir(exist_ok=True)
     stem = (f"plans_{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}" + (f"_{args.suite}" if args.suite != "main" else "")
             + ("_llm" if args.executor == "llm" else "")
+            + (f"_ablation-{args.ablation.replace('_', '-')}" if args.ablation else "")
             + ("_vision" if args.vision else "")
             + ("_FINAL" if args.final else ""))
     with open(out / f"{stem}.csv", "w", newline="", encoding="utf-8") as f:
@@ -789,7 +801,7 @@ def main() -> int:
     (out / f"{stem}.json").write_text(json.dumps({
         "version": __version__, "commit": git_commit(), "provenance": provenance(),
         "date": datetime.now().isoformat(timespec="seconds"), "page_context": not args.no_page, "mode": "llm" if args.executor == "llm" else "agent" if args.agent else "plan",
-        "executor": args.executor,
+        "executor": args.executor, "ablation": args.ablation,
         "prompt_language": args.prompt_language or "profile", "languages": languages, "suite": args.suite,
         "vision": args.vision,
         # What the run ran on: the Ollama version and each model's digest (an Ollama update, with the

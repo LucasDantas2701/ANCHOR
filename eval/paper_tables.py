@@ -233,7 +233,8 @@ def cluster_of(row: dict) -> str:
 # ---------------------------------------------------------------------------------------------------------
 
 MODEL_NAMES = {"ollama-small": "4B", "ollama-medium": "9B"}
-SHORT_EXECUTOR = {"anchor": "ANCHOR", "llm": "LLM", "llm_plan": "LLM+plan"}
+SHORT_EXECUTOR = {"anchor": "ANCHOR", "llm": "LLM", "llm_plan": "LLM+plan", "anchor_noverify": "No check",
+                  "anchor_modelpick": "Model picks"}
 ACTION_NAMES = {"all": "All", "click": "click", "fill": "type", "select": "select", "check": "check",
                 "uncheck": "uncheck", "hover": "hover", "press": "press a key", "extract_text": "read text",
                 "extract_table": "read table", "download": "download", "upload": "upload"}
@@ -243,20 +244,26 @@ def model_name(profile: str) -> str:
     return MODEL_NAMES.get(profile, profile) if profile else "-"
 
 
-EXECUTOR_NAMES = {"script": "Fixed selectors", "roles": "Role and text locators", "llm": "LLM in control", "llm_plan": "LLM in control, with the plan",
-                  "anchor": "ANCHOR",
-                  "anchor1": "ANCHOR, 1st run", "anchor2": "ANCHOR, 2nd run (no model call)"}
+EXECUTOR_NAMES = {"script": "Fixed selectors", "roles": "Role and text locators", "llm": "LLM in control",
+                  "llm_plan": "LLM in control, with the plan", "anchor": "ANCHOR",
+                  "anchor_noverify": "ANCHOR without the effect check", "anchor_modelpick": "ANCHOR, element chosen by the model",
+                  "anchor1": "ANCHOR, 1st run", "anchor2": "ANCHOR, 2nd run (no model call)",
+                  "anchor_noverify1": "ANCHOR without the effect check, 1st run",
+                  "anchor_noverify2": "ANCHOR without the effect check, 2nd run (no model call)",
+                  "anchor_modelpick1": "ANCHOR, element chosen by the model, 1st run",
+                  "anchor_modelpick2": "ANCHOR, element chosen by the model, 2nd run (no model call)"}
 
 
 def resilience_executor(row: dict) -> str:
-    if row["executor"] == "anchor":
-        return "anchor1" if row["run"] == "1" else "anchor2"
+    """ANCHOR and its ablations have two runs each (the 1st recovers, the 2nd reuses): anchor1, anchor2..."""
+    if row["executor"].startswith("anchor"):
+        return row["executor"] + ("1" if row["run"] == "1" else "2")
     return row["executor"]
 
 
 def resilience_success(row: dict) -> bool:
     """The 2nd ANCHOR run counts as a success only when done again with no model call (as the report does)."""
-    if resilience_executor(row) == "anchor2":
+    if resilience_executor(row).startswith("anchor") and resilience_executor(row).endswith("2"):
         return true(row["success"]) and row.get("llm_calls") in ("0", "")
     return true(row["success"])
 
@@ -445,7 +452,7 @@ def mcnemar_resilience(rows: list[dict]) -> list[list]:
             success = {}
             for r in chosen:
                 ex = resilience_executor(r)
-                if r.get("profile") in (model, "", None) and ex != "anchor2":
+                if r.get("profile") in (model, "", None) and not (ex.startswith("anchor") and ex.endswith("2")):
                     success[(ex, r["task"])] = resilience_success(r)
             for other in sorted({e for e, _ in success} - {"anchor1"}):
                 line = paired(success, "anchor1", other, f"ANCHOR vs {EXECUTOR_NAMES.get(other, other)}", model)

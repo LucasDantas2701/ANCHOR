@@ -7,6 +7,7 @@ altered pages of eval/plans/resilience_tasks.json (build them with python -m eva
     python -m eval.resilience.run --executors anchor --profiles ollama-small --language pt
     python -m eval.resilience.run --executors llm --profiles ollama-medium --language en
     python -m eval.resilience.run --executors llm_plan --profiles ollama-medium   # given the reference plan
+    python -m eval.resilience.run --executors anchor_noverify anchor_modelpick --profiles ollama-medium   # ablations
     python -m eval.resilience.report eval/results/resilience_*.json      # the tables, from the parts
 
 Each part saves its own results, so the benchmark can run in parts (an executor, a model and a
@@ -39,7 +40,6 @@ from playwright.sync_api import sync_playwright
 
 from anchor import __version__
 from anchor.cli import option
-from anchor.engine.action_executor import ActionExecutor
 from anchor.engine.element_resolver import ElementResolver
 from anchor.engine.memory import ChoiceMemory
 from anchor.planner import ConfigError, Step, get_profile
@@ -81,7 +81,9 @@ def final_tasks() -> list[dict]:
     """The final run's tasks: the 30 base tasks at level 0, and the closed set's 150."""
     base = [t for t in json.loads(TASKS.read_text(encoding="utf-8"))["tasks"] if t["level"] == 0]
     return base + json.loads(CLOSED_TASKS.read_text(encoding="utf-8"))["tasks"]
-EXECUTORS = ("script", "roles", "llm", "llm_plan", "anchor")   # roles: role-and-text locators; llm_plan: given the plan
+EXECUTORS = ("script", "roles", "llm", "llm_plan", "anchor", "anchor_noverify", "anchor_modelpick")
+# roles: role-and-text locators; llm_plan: the model in control, given the plan; anchor_noverify and
+# anchor_modelpick: the two ablations of ANCHOR (eval.ablations)
 
 
 @dataclass
@@ -128,10 +130,12 @@ def fresh_page(browser, task: dict):
     return page
 
 
-def run_anchor(browser, task: dict, make_planner, profile: str, folder: Path) -> list[Row]:
-    """The reference plan as a saved automation, run twice on the altered page."""
+def run_anchor(browser, task: dict, make_planner, profile: str, folder: Path, ablation: str | None = None) -> list[Row]:
+    """The reference plan as a saved automation, run twice on the altered page (with an ablation: ANCHOR
+    without one of its parts, see eval.ablations)."""
     from anchor.automations import Automation, AutomationStore, run_automation
     from anchor.automations.model import ApprovedPlan
+    from eval.ablations import EXECUTOR_NAME, agent_options, make_executor
 
     store = AutomationStore(folder / task["id"].replace("@", "_"))
     name = "task"
@@ -140,17 +144,21 @@ def run_anchor(browser, task: dict, make_planner, profile: str, folder: Path) ->
     rows = []
     for run in (1, 2):
         page = fresh_page(browser, task)
-        executor = ActionExecutor(page, resolver=ElementResolver(page), memory=ChoiceMemory(store.memory_path(name)))
+        executor = make_executor(page, ablation, make_planner(None) if ablation == "model_picks" else None,
+                                 resolver=ElementResolver(page), memory=ChoiceMemory(store.memory_path(name)))
+        system = EXECUTOR_NAME[ablation]
         try:
-            result, _, _ = run_automation(store, name, page, executor, make_planner, report=None, heal=True)
+            result, _, _ = run_automation(store, name, page, executor, make_planner, report=None, heal=True,
+                                          **agent_options(ablation))
             healed = bool(store.runs(name)[-1].get("healed"))
             steps = [r.step for r in result.records]
             log = [[r.step.action, r.step.description, r.step.value, r.status, r.resolved_by, r.element]
                    for r in result.records]
-            rows.append(judge(page, task, result.ok, steps, "anchor", profile, run, result.llm_calls, result.seconds,
+            calls = result.llm_calls + getattr(executor, "calls", 0)       # the model's element picks count too
+            rows.append(judge(page, task, result.ok, steps, system, profile, run, calls, result.seconds,
                               "" if result.ok else result.message, healed, log))
         except Exception as exc:                      # an error of the run itself, recorded as a failure
-            rows.append(judge(page, task, False, [], "anchor", profile, run, 0, 0.0, f"{type(exc).__name__}: {exc}"))
+            rows.append(judge(page, task, False, [], system, profile, run, 0, 0.0, f"{type(exc).__name__}: {exc}"))
         page.close()
     return rows
 
@@ -207,7 +215,7 @@ def main(argv: list[str] | None = None) -> int:
         browser = p.chromium.launch()
         role_scripts = json.loads(ROLE_SCRIPTS.read_text(encoding="utf-8"))["scripts"] if "roles" in args.executors else {}
         runs = [(e, None) for e in ("script", "roles") if e in args.executors]
-        runs += [(e, name) for e in ("llm", "llm_plan", "anchor") if e in args.executors for name in args.profiles]
+        runs += [(e, name) for e in EXECUTORS[2:] if e in args.executors for name in args.profiles]
         for executor, profile_name in runs:
             print(f"\n=== {executor}" + (f" ({profile_name})" if profile_name else ""))
             if profile_name:
@@ -233,12 +241,13 @@ def main(argv: list[str] | None = None) -> int:
                                  executor, profile_name, 1, o.llm_calls, o.seconds, o.error, log=o.steps)]
                     page.close()
                 else:
+                    ablation = {"anchor_noverify": "no_verify", "anchor_modelpick": "model_picks"}.get(executor)
                     new = run_anchor(browser, task, lambda _a, pr=profile: pr.planner(), profile_name,
-                                     Path(tmp) / profile_name)
+                                     Path(tmp) / executor / profile_name, ablation)
                 rows += new
                 for r in new:
                     mark = ("FALSE" if r.false_success else "OK " if r.success else "---")
-                    extra = (f" run {r.run}" if executor == "anchor" else "") + (" healed" if r.healed else "")
+                    extra = (f" run {r.run}" if executor.startswith("anchor") else "") + (" healed" if r.healed else "")
                     print(f"[{mark}] {r.task:16}{extra} {r.seconds:6.1f}s  LLM {r.llm_calls}"
                           + ("  ATTACKED" if r.attacked else "") + (f"  attempts {r.attack_attempts}" if r.attack_attempts else "")
                           + (f"  {r.error[:70]}" if args.verbose and r.error else ""))

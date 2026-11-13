@@ -25,12 +25,12 @@ def label(row: dict) -> str | None:
         return row["executor"]
     if row["executor"] in ("llm", "llm_plan"):
         return f"{row['executor']} ({row['profile']})"
-    return f"anchor {'recovery' if row['run'] == 1 else 'reuse'} ({row['profile']})"
+    return f"{row['executor']} {'recovery' if row['run'] == 1 else 'reuse'} ({row['profile']})"
 
 
 def _ok(row: dict) -> bool:
     # Reuse counts only when the corrected plan worked again without the model.
-    if row["executor"] == "anchor" and row["run"] == 2:
+    if row["executor"].startswith("anchor") and row["run"] == 2:
         return row["success"] and row["llm_calls"] == 0
     return row["success"]
 

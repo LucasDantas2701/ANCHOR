@@ -314,6 +314,13 @@ by the same answer keys. Like ANCHOR, it can read an element's text or a whole t
 own table reading), so every task is compared directly (decided on 13/11/2026, before the final run; until
 then, the tasks with expected readings were reported apart); a breakdown without them is kept.
 
+**Two ablations of ANCHOR.** On the same request sets and resilience benchmark, ANCHOR also runs without
+one of its parts, to measure what it is worth (decided on 13/11/2026, before the final run): without the
+effect check after each step (`--ablation no_verify`), and with each step's element chosen by the model
+from the page's numbered element list instead of by the Resolver (`--ablation model_picks`). Both live in
+`eval/ablations.py`, in the evaluation's code: no line of the engine changes, and with no ablation the
+runners build ANCHOR exactly as measured (checked run by run with `python -m eval.determinism`).
+
 **Checked without trying the system.** `python -m eval.plan_run --check` runs each reference plan on
 its `reference_targets` with Playwright alone, with no part of ANCHOR, and checks that every check
 holds and nothing unrequested was touched. All 80 tasks of the synthetic set pass. The

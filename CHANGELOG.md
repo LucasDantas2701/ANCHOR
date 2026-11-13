@@ -18,6 +18,12 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Two ablations of ANCHOR** (decided on 13/11/2026, before the final run), on the request sets
+  (`plan_run --agent --ablation ...`) and in the resilience benchmark (`--executors anchor_noverify
+  anchor_modelpick`): without the effect check, and with each step's element chosen by the model instead
+  of by the Resolver. They live in the evaluation's code (`eval/ablations.py`): no line of the engine
+  changed, and with no ablation ANCHOR runs exactly as measured (five development suites compared run by
+  run, identical).
 - **Readings for the model in control** (decided on 13/11/2026, before the final run): like ANCHOR, it can
   read an element's text (`read`) or a whole table or list by its name (`read_table`, with ANCHOR's own table
   reading), and what it read is judged as ANCHOR's readings are; every task of the request sets is now
