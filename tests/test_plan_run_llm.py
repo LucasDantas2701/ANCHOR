@@ -57,6 +57,35 @@ def test_a_task_with_expected_readings_is_marked_and_cannot_succeed(page):
     assert pr.expects_readings(reading) and not pr.expects_readings(task("en-log-02"))
 
 
+class Scripted(FakeModel):
+    """Answers a fixed list of actions, one per call, then says it is done."""
+    def __init__(self, *answers):
+        super().__init__()
+        self.answers = list(answers)
+
+    def create(self, model, temperature, messages, **kw):
+        self.calls += 1
+        answer = self.answers.pop(0) if self.answers else {"action": "done", "element": None, "value": None}
+        usage = SimpleNamespace(prompt_tokens=100, completion_tokens=10)
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=json.dumps(answer)))], usage=usage)
+
+
+@pytest.mark.parametrize("task_id, answer", [
+    ("x-rep-01", {"action": "read_table", "element": None, "value": "Vendas por região"}),
+    ("x-rep-03", {"action": "read", "element": None, "value": "a receita total do mês"}),
+])
+def test_the_model_in_control_reads_as_anchor_does_and_is_judged_on_it(page, task_id, answer):
+    """Decided on 13/11/2026: it reads a text or a whole table by what it describes, through ANCHOR's own
+    readings, and the answer key judges what it read."""
+    r = run(page, task(task_id), Scripted(answer))
+    assert r.reads and r.success and not r.premature and json.loads(r.plan)[0][0] == answer["action"]
+
+
+def test_a_reading_that_finds_nothing_is_a_failed_step(page):
+    r = run(page, task("x-rep-01"), Scripted({"action": "read_table", "element": None, "value": "Clientes inativos"}))
+    assert not r.success and r.premature and r.steps_ok == 0
+
+
 @pytest.mark.parametrize("extra", [["--agent"], ["--reference"], ["--no-page"], ["--vision"], []])
 def test_the_model_in_control_takes_only_profiles(monkeypatch, extra):
     args = ["--executor", "llm"] + (extra + ["--profiles", "ollama-small"] if extra else [])
@@ -65,9 +94,9 @@ def test_the_model_in_control_takes_only_profiles(monkeypatch, extra):
         pr.main()
 
 
-def test_the_command_reports_the_tasks_with_readings_apart_and_names_its_file(playwright, tmp_path, monkeypatch, capsys):
-    """The whole command, with the fake model standing in for Ollama: the table leaves the task with
-    expected readings out, reports it apart, and the results file ends in _llm and says its executor."""
+def test_the_command_compares_every_task_and_names_its_file(playwright, tmp_path, monkeypatch, capsys):
+    """The whole command, with the fake model standing in for Ollama: every task is in the table (the tasks
+    with expected readings also in a breakdown), and the results file ends in _llm and says its executor."""
     reading = next(t for t in pr.load_tasks() if t.get("extraction") and t.get("split", "dev") == "dev")
     tasks = [task("en-log-02"), {**reading, "suite": "main"}]
     model = FakeModel("select", "Português", "Português")
@@ -80,14 +109,14 @@ def test_the_command_reports_the_tasks_with_readings_apart_and_names_its_file(pl
     monkeypatch.setattr("sys.argv", ["plan_run", "--executor", "llm", "--profiles", "fake"])
     assert pr.main() == 0
     out = capsys.readouterr().out
-    assert "without the 1 run(s) of tasks with expected readings" in out and "The tasks with expected readings, apart:" in out
+    assert "Of which, the tasks with expected readings (1):" in out
     saved = list((tmp_path / "results").glob("plans_*_llm.json"))
     assert len(saved) == 1
     data = json.loads(saved[0].read_text(encoding="utf-8"))
     assert data["executor"] == "llm" and data["mode"] == "llm"
     # one task per language here, so the table is per language, as for ANCHOR
     assert data["summary"]["fake [en]"]["tasks"] == 1 and data["summary"]["fake [pt] readings"]["tasks"] == 1
-    assert "fake [pt]" not in data["summary"]          # the task with readings is not in the main table
+    assert data["summary"]["fake [pt]"]["tasks"] == 1  # the task with readings is in the main table too
     rows = (tmp_path / "results" / saved[0].name.replace(".json", ".csv")).read_text(encoding="utf-8")
     assert "executor" in rows.splitlines()[0] and "reads" in rows.splitlines()[0]
 

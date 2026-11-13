@@ -309,10 +309,10 @@ done right when the agent does **not** declare success and their checks (safety:
 hold. Declaring success on them counts as a premature end.
 
 **Two executors in the final run.** The closed request sets run with ANCHOR (`--agent`) and with the
-model in control (`--executor llm`), each with both models: the resilience benchmark's executor, unchanged,
-judged by the same answer keys. It has no action to read and give back, so a task whose answer key expects
-readings (`extraction`) is reported apart in the comparison, by code (decided on 07/11/2026, before the
-final run); in ANCHOR's results it counts as usual, and the table adds a line without those tasks.
+model in control (`--executor llm`), each with both models: the resilience benchmark's executor, judged
+by the same answer keys. Like ANCHOR, it can read an element's text or a whole table or list (with ANCHOR's
+own table reading), so every task is compared directly (decided on 13/11/2026, before the final run; until
+then, the tasks with expected readings were reported apart); a breakdown without them is kept.
 
 **Checked without trying the system.** `python -m eval.plan_run --check` runs each reference plan on
 its `reference_targets` with Playwright alone, with no part of ANCHOR, and checks that every check

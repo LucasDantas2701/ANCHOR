@@ -319,9 +319,9 @@ def run_task_llm(page: Page, planner, profile_name: str, task: dict) -> TaskResu
     """The task done by the model in control: the resilience benchmark's executor, unchanged
     (eval/resilience/executors.py, run_llm: the same function, prompt and actions), judged by the same
     answer key as ANCHOR's runs (the checks at the end, the expected readings, the unrequested steps in
-    every tab, the attacks, the false success). It has no action to read and give back, so a task with
-    expected readings fails here by construction: it is marked (reads) and reported apart, by this code,
-    from the frozen answer key (decided on 07/11/2026, before the final run)."""
+    every tab, the attacks, the false success). Like ANCHOR, it can read an element's text or a whole table
+    or list (decided on 13/11/2026), and what it read is judged as ANCHOR's readings are, so every task is
+    in the comparison; the tasks whose answer key expects readings are marked (reads) for a breakdown."""
     from eval.resilience.executors import run_llm
 
     page.goto((FIXTURES / task["fixture"]).as_uri())
@@ -329,7 +329,7 @@ def run_task_llm(page: Page, planner, profile_name: str, task: dict) -> TaskResu
     if len(page.frames) > 1:
         page.wait_for_timeout(300)        # an iframe tells the page about itself a moment later
     checks = [bool(page.evaluate(f"() => Boolean({c})")) for c in task["checks"]]
-    checks += extraction_checks(task, [])
+    checks += extraction_checks(task, o.extractions)
     from anchor.engine.frames import evaluate_all
     unrequested = []
     for tab in [p for p in page.context.pages if not p.is_closed()]:
@@ -736,11 +736,8 @@ def main() -> int:
           + (f" {'vision':>7} {'confirmed':>10} {'vision s':>9}" if args.vision else ""))
     summaries = {}
     languages = sorted({r.language for r in rows})
-    apart = [r for r in rows if r.reads]
-    if args.executor == "llm" and apart:
-        # The model in control cannot give a reading back: these tasks are reported apart (below).
-        print(f"(without the {len(apart)} run(s) of tasks with expected readings, reported apart below)")
-    table = [r for r in rows if not (args.executor == "llm" and r.reads)]
+    reading = [r for r in rows if r.reads]
+    table = rows          # every task in the comparison: both executors can read (decided on 13/11/2026)
     for name, _ in planners:
         for lang in languages:
             profile_rows = [r for r in table if r.profile == name and r.language == lang]
@@ -758,20 +755,18 @@ def main() -> int:
               + (f" {s['attacked']:9} {s['attack_attempts']:9}" if args.suite == "injection" else "")
               + (f" {s['vision_checks']:7} {s['vision_confirmed']:10} {s['vision_seconds']:9.0f}" if args.vision else ""))
 
-    if apart:
-        # Without the tasks with expected readings: the comparison between the two executors (07/11/2026).
-        print(f"Without the tasks with expected readings ({len({r.task for r in apart})}), for the comparison "
-              "between the executors:" if args.executor == "anchor" else "The tasks with expected readings, apart:")
+    if reading:
+        # A breakdown, not a separate report: the tasks whose answer key expects readings.
+        print(f"Of which, the tasks with expected readings ({len({r.task for r in reading})}):")
         for name, _ in planners:
             for lang in languages:
-                part = [r for r in rows if r.profile == name and r.language == lang
-                        and (r.reads if args.executor == "llm" else not r.reads)]
+                part = [r for r in reading if r.profile == name and r.language == lang]
                 if part:
                     label = (f"{name} [{lang}]" if len(languages) > 1 else name)
-                    key = label + (" readings" if args.executor == "llm" else " no readings")
-                    summaries[key] = summarize(part)
-                    print(f"{label:16} {summaries[key]['success']:8.0%} {summaries[key]['clean']:7.0%}  "
-                          f"({len(part)} tasks, {summaries[key]['premature']} premature)")
+                    summaries[label + " readings"] = summarize(part)
+                    print(f"{label:16} {summaries[label + ' readings']['success']:8.0%} "
+                          f"{summaries[label + ' readings']['clean']:7.0%}  ({len(part)} tasks, "
+                          f"{summaries[label + ' readings']['premature']} premature)")
 
     for label, group in groups(table).items():          # by origin, by generator, and without some generators
         summaries[label] = summarize(group)

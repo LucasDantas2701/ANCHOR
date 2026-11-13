@@ -43,6 +43,7 @@ class Outcome:
     tokens_in: int = 0
     tokens_out: int = 0
     seconds: float = 0.0
+    extractions: list = field(default_factory=list)    # what was read, in the agent's format (see plan_run)
 
 
 # --------------------------------------------------------------------------
@@ -227,8 +228,11 @@ def run_role_script(page: Page, script: list[list], timeout_ms: int = 3000) -> O
 LLM_SYSTEM = """Você controla um navegador para cumprir o pedido do usuário. A cada vez, você recebe \
 o pedido, a lista numerada dos elementos da página e o que já fez. Responda só com um JSON com a \
 próxima ação, sem texto antes ou depois:
-{"action": "click" | "fill" | "select" | "check" | "uncheck" | "press" | "done", "element": número, "value": texto ou null}
+{"action": "click" | "fill" | "select" | "check" | "uncheck" | "press" | "read" | "read_table" | "done", "element": número, "value": texto ou null}
 fill: value é o texto a digitar; select: value é o texto da opção; press: value é a tecla (ex.: "Enter").
+read: lê um texto da página, e value descreve o que ler (ex.: "o total do pedido"); read_table: lê \
+inteira a tabela ou lista cujo nome está em value. Nas duas, element pode ser null. Use-as quando o pedido \
+pede uma informação da página.
 Use "done" quando o pedido estiver cumprido. Elementos marcados com [pop-up] estão num diálogo ou \
 menu aberto por cima da página."""
 
@@ -306,6 +310,27 @@ def run_llm(page: Page, request: str, client, model: str, max_steps: int = 12, t
         if action == "done":
             outcome.claimed_success = True
             break
+        if action in ("read", "read_table"):
+            # ANCHOR's own readings (the same engine code as its extract_text and extract_table), by what
+            # the model describes: the element list holds only interactive elements, and so does ANCHOR's
+            # reading not depend on one (decided on 13/11/2026)
+            reader = ActionExecutor(page, resolver=ElementResolver(page))
+            read = (reader.extract_text if action == "read" else reader.extract_table)(str(value or ""))
+            if read.status == "success" and read.value is not None:
+                if action == "read":
+                    text = " ".join(str(read.value).split())
+                    outcome.extractions.append({"kind": "text", "description": str(value), "text": text})
+                    done.append(f'read "{value}": "{text[:150]}"')
+                else:
+                    table = read.value
+                    outcome.extractions.append({"kind": table.kind, "description": str(value), "name": table.label(),
+                                                "rows": len(table.rows), "columns": table.columns})
+                    done.append(f'read_table "{value}": {table.label()}, {len(table.rows)} linhas')
+                steps.append([action, str(value), None, "success"])
+            else:
+                steps.append([action, str(value), None, "failed"])
+                done.append(f'falhou: {action} "{value}" ({read.status})')
+            continue
         try:
             number = int(answer.get("element"))
             target = page.locator(f'[data-er-id="{ids[number - 1]}"]').first

@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Readings for the model in control** (decided on 13/11/2026, before the final run): like ANCHOR, it can
+  read an element's text (`read`) or a whole table or list by its name (`read_table`, with ANCHOR's own table
+  reading), and what it read is judged as ANCHOR's readings are; every task of the request sets is now
+  compared directly (the tasks with expected readings were reported apart before), with a breakdown kept.
+  The executor's prompt changed, so it is measured again on the development sets.
 - **A script with role and text locators in the resilience benchmark** (decided on 13/11/2026, before the
   final run): a fifth executor (`roles`) replays scripts written with Playwright's `getByRole` and `getByText`
   (exact), recorded on the L0 pages from the same reference plans as the fixed-selector ones

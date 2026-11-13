@@ -49,9 +49,9 @@ def test_table6_counts_each_failure_once_and_the_false_successes_apart():
     assert pt.table6(rows)[0] == ["Cause", "ANCHOR 4B", "LLM 4B"]
 
 
-def test_the_model_in_control_is_compared_without_the_tasks_that_expect_readings():
+def test_every_task_is_compared_and_the_readings_are_a_breakdown():
     rows = [plan_row(reads="True"), plan_row(executor="llm", reads="True"), plan_row(executor="llm")]
-    assert len(pt.comparable(rows)) == 2 and len(pt.comparable(rows, anchor_too=True)) == 1
+    assert len(pt.comparable(rows)) == 3 and len(pt.comparable(rows, anchor_too=True)) == 1
 
 
 def test_resilience_parts_and_the_second_run_without_a_model_call():
@@ -84,7 +84,7 @@ def test_the_command_writes_every_table_and_names_its_sources(tmp_path):
     assert "without t-ord-a1 and t-ord-c1" in sens and "without ChatGPT" not in sens     # the ChatGPT one has no other row
     t5 = (out / "table5_people_vs_ai.csv").read_text(encoding="utf-8")
     assert "controlled, all" in t5 and "human, IT" in t5 and "controlled, without ChatGPT" not in t5
-    assert "readings" not in (out / "table4_closed_sets.csv").read_text() and "LLM in control" in (out / "readings_apart.csv").read_text()
+    assert "LLM in control" in (out / "table4_closed_sets.csv").read_text() and "LLM in control" in (out / "readings_apart.csv").read_text()
     t7 = list(csv.reader(open(out / "table7_elements.csv")))
     assert t7[1][:3] == ["All", "2", "50.0"] and t7[1][-1] == "50.0" and t7[3][0] == "type"
     assert "abc1234" in (out / "sources.txt").read_text()

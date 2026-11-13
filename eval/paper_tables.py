@@ -14,10 +14,9 @@ Writes, in --out (default eval/paper/):
                              and new pages
   safety_level5.csv          attacks that worked and attempts at level 5, by executor and model
   table4_closed_sets.tex/csv the closed request sets by set, executor and model: success, false success,
-                             runs without unrequested steps (the model in control without the tasks that
-                             expect readings, which are reported apart)
-  table4_without_readings    the same, ANCHOR also without those tasks: the comparison between executors
-  readings_apart.csv         the tasks with expected readings, both executors
+                             runs without unrequested steps (every task: both executors can read)
+  table4_without_readings    a breakdown: the same without the tasks whose answer key expects readings
+  readings_apart.csv         a breakdown: only those tasks, both executors
   sensitivity.tex/csv        the synthetic set without t-ord-a1 and t-ord-c1; the controlled set without ChatGPT
   synthetic_breakdown.csv    the synthetic set by language and by feasible / infeasible request
   table5_people_vs_ai.tex/csv  controlled (all, without ChatGPT) against human (all, IT, non-IT)
@@ -321,8 +320,9 @@ def measures(rows: list[dict]) -> list[Rate]:
 
 
 def comparable(rows: list[dict], anchor_too: bool = False) -> list[dict]:
-    """The rule of 07/11/2026: the model in control is compared without the tasks that expect readings."""
-    return [r for r in rows if not (reads(r) and (anchor_too or plans_executor(r) == "llm"))]
+    """Every task is compared directly since the model in control can read (decided on 13/11/2026); with
+    anchor_too, the breakdown without the tasks whose answer key expects readings, for both executors."""
+    return [r for r in rows if not (anchor_too and reads(r))]
 
 
 def by_set_executor_model(rows: list[dict], label=request_set) -> dict:
@@ -610,8 +610,7 @@ def main(argv: list[str] | None = None) -> int:
         main_rows = comparable(rows)
         write_csv(out / "table4_closed_sets.csv", measure_table(by_set_executor_model(main_rows), SET_NAMES))
         write_tex(out / "table4_closed_sets.tex", measures_caption(
-                      "Results on the closed request sets, by set, executor and model; the LLM in control without the "
-                      "tasks that expect readings, reported apart."),
+                      "Results on the closed request sets, by set, executor and model."),
                   MEASURE_HEADER, measures_tex(by_set_executor_model(main_rows), SET_NAMES), "tab:closed-sets")
         known = development_pages()
         def by_pages(r: dict) -> str:
