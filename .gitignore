@@ -298,17 +298,12 @@ __marimo__/
 # The interface: its dependencies, and the build (made by `npm run build` in web/)
 /web/node_modules/
 /web/.angular/
+/anchor/ui/static/
 
 # The presentation site: its dependencies, and the build (made by `npm run build` in landing/)
 /landing/node_modules/
 /landing/dist/
 /landing/.angular/
-/anchor/ui/static/
 
 # EGM artifacts (briefs, drafts, reports)
 /.dev/
-
-# The presentation site: its dependencies, and the build (made by npm run build in landing/)
-/landing/node_modules/
-/landing/dist/
-/landing/.angular/
