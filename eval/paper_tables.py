@@ -6,7 +6,12 @@ The article's tables and figures, computed from the result files of the final ru
 
 Writes, in --out (default eval/paper/):
   fig2_fig3_resilience.csv   success and false success by level, executor and model; the main combinations
-                             (level 0 and those that reach the reference plan) and the off-path ones apart
+                             (level 0 and those that reach the reference plan), the off-path ones apart, and
+                             the total of all the combinations
+  mcnemar_resilience.csv     McNemar's exact test, ANCHOR against each other system, paired task by task
+  mcnemar_requests.csv       the same on the request sets, by set and model
+  table4_by_pages.csv        the request sets split into known pages (used in development, or made from one)
+                             and new pages
   safety_level5.csv          attacks that worked and attempts at level 5, by executor and model
   table4_closed_sets.tex/csv the closed request sets by set, executor and model: success, false success,
                              runs without unrequested steps (the model in control without the tasks that
@@ -20,6 +25,9 @@ Writes, in --out (default eval/paper/):
   table7_elements.tex/csv    element selection: recall@1/3/5/10, MRR, time per query and the five decisions
   sources.txt                the files read and their commits
 
+Uncertainty (--ci): wilson (the provisional default), bootstrap (clustered by page in the request sets and by
+base task in the resilience benchmark; 10,000 draws, seed 7) or none. The final choice is the methodologist's.
+
 It reads result files only (and, for the infeasible mark, the task definitions' "expected" field), and
 writes and prints no request text. Test it only with development results, never with closed ones.
 """
@@ -29,6 +37,7 @@ import argparse
 import csv
 import glob
 import math
+import random
 import re
 from collections import defaultdict
 from pathlib import Path
@@ -55,16 +64,52 @@ def wilson(k: int, n: int, z: float = 1.959964) -> tuple[float, float] | None:
     return max(0.0, centre - half), min(1.0, centre + half)
 
 
-INTERVALS = {"wilson": wilson, "none": lambda k, n: None}
+BOOTSTRAP_SAMPLES = 10_000
+BOOTSTRAP_SEED = 7          # fixed: the same files always give the same intervals (decided on 13/11/2026)
+
+
+def bootstrap(outcomes: list[bool], clusters: list[str], samples: int = BOOTSTRAP_SAMPLES,
+              seed: int = BOOTSTRAP_SEED) -> tuple[float, float] | None:
+    """Clustered (cluster) bootstrap, 95% percentile interval: whole clusters are drawn with replacement (a
+    base task in the resilience benchmark, a page in the request sets), so runs that share one are not
+    counted as independent. Same seed, same interval."""
+    if not outcomes:
+        return None
+    groups = defaultdict(lambda: [0, 0])
+    for ok, cluster in zip(outcomes, clusters):
+        groups[cluster][0] += bool(ok)
+        groups[cluster][1] += 1
+    sums = list(groups.values())
+    rng = random.Random(seed)
+    rates = []
+    for _ in range(samples):
+        drawn = [sums[rng.randrange(len(sums))] for _ in sums]
+        n = sum(d[1] for d in drawn)
+        rates.append(sum(d[0] for d in drawn) / n)
+    rates.sort()
+    return rates[int(0.025 * samples)], rates[min(samples - 1, int(0.975 * samples))]
+
+
+INTERVALS = {"wilson": wilson, "bootstrap": None, "none": lambda k, n: None}
 
 
 class Rate:
-    """k of n, with its interval from the chosen method."""
+    """k of n, with its interval from the chosen method (the clustered bootstrap needs each run's outcome and
+    cluster; with none given it falls back to one cluster per run)."""
     method = "wilson"
 
-    def __init__(self, k: int, n: int):
+    def __init__(self, k: int, n: int, outcomes: list[bool] | None = None, clusters: list[str] | None = None):
         self.k, self.n = k, n
-        self.ci = INTERVALS[Rate.method](k, n)
+        if Rate.method == "bootstrap":
+            outcomes = outcomes if outcomes is not None else [True] * k + [False] * (n - k)
+            clusters = clusters if clusters is not None else [str(i) for i in range(len(outcomes))]
+            self.ci = bootstrap(outcomes, clusters)
+        else:
+            self.ci = INTERVALS[Rate.method](k, n)
+
+    @classmethod
+    def of(cls, outcomes: list[bool], clusters: list[str]) -> "Rate":
+        return cls(sum(bool(o) for o in outcomes), len(outcomes), outcomes, clusters)
 
     @property
     def rate(self) -> float | None:
@@ -117,6 +162,74 @@ def newest(pattern: str, exclude: tuple[str, ...] = ()) -> list[Path]:
 
 
 # ---------------------------------------------------------------------------------------------------------
+# Known and new pages (decided on 13/11/2026): a page is known when it, or the page it was made from, was used
+# in development (by a development task or resolver case); else it is new. The nine pages of the human
+# collection are made from earlier pages: six have the same visible text, three the same structure (they are
+# translated), as checked on 13/11/2026.
+# ---------------------------------------------------------------------------------------------------------
+
+COLLECTION_ORIGIN = {
+    "collection/cadastro.html": "registration.html", "collection/pedidos.html": "orders.html",
+    "collection/usuarios.html": "users.html", "collection/vagas.html": "jobs.html", "collection/loja.html": "store.html",
+    "collection/reservas.html": "holdout_booking.html", "collection/suporte.html": "holdout_helpdesk.html",
+    "collection/blog.html": "holdout_blog.html", "collection/rh.html": "holdout_hr.html",
+}
+_TASKS: dict | None = None
+
+
+def task_index() -> dict:
+    """Each task's id -> its fixture and base task, from the task definitions (only those two fields)."""
+    global _TASKS
+    if _TASKS is None:
+        import json
+        _TASKS = {}
+        try:
+            from eval.plan_run import load_tasks
+            for t in load_tasks():
+                _TASKS[t["id"]] = {"fixture": t.get("fixture", ""), "base": t.get("base_task", "")}
+        except Exception:
+            pass
+        for name in ("resilience_tasks.json", "resilience_closed_tasks.json"):
+            path = ROOT / "plans" / name
+            if path.exists():
+                for t in json.loads(path.read_text(encoding="utf-8"))["tasks"]:
+                    _TASKS[t["id"]] = {"fixture": t.get("fixture", ""), "base": t.get("base_task", "")}
+    return _TASKS
+
+
+def development_pages() -> set[str]:
+    import json
+    pages = set()
+    try:
+        from eval.plan_run import load_tasks
+        pages |= {t["fixture"] for t in load_tasks() if t.get("split", "dev") == "dev"}
+    except Exception:
+        pass
+    for path in (ROOT / "cases").glob("*.json"):
+        if path.name.startswith("holdout"):
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, dict) and data.get("fixture"):
+            pages.add(data["fixture"])
+    return pages
+
+
+def page_kind(fixture: str, known: set[str]) -> str:
+    origin = COLLECTION_ORIGIN.get(fixture, fixture)
+    if origin.startswith(("resilience/", "resilience_closed/")):
+        return "known"                       # every resilience page is a development page, perturbed or not
+    return "known" if origin in known else "new"
+
+
+def cluster_of(row: dict) -> str:
+    """The bootstrap's cluster: the base task in the resilience benchmark, the page in the request sets."""
+    if row.get("base_task"):
+        return row["base_task"]
+    info = task_index().get(row.get("task", ""), {})
+    return COLLECTION_ORIGIN.get(info.get("fixture", ""), info.get("fixture", "")) or row.get("task", "")
+
+
+# ---------------------------------------------------------------------------------------------------------
 # Figures 2 and 3: resilience
 # ---------------------------------------------------------------------------------------------------------
 
@@ -157,13 +270,15 @@ def resilience_part(row: dict) -> str:
 def fig2_fig3(rows: list[dict]) -> tuple[list[list], list[list]]:
     groups = defaultdict(list)
     for r in rows:
-        groups[(resilience_part(r), resilience_executor(r), r.get("profile") or "", int(r["level"]))].append(r)
+        key = (resilience_executor(r), r.get("profile") or "", int(r["level"]))
+        groups[(resilience_part(r),) + key].append(r)
+        groups[("all",) + key].append(r)              # the total of the 150 combinations, besides the parts
     table = [["part", "executor", "model", "level", "success_k", "n", "success_%", "success_lo", "success_hi",
               "false_success_k", "n", "false_success_%", "false_lo", "false_hi"]]
     for (part, ex, model, level), g in sorted(groups.items()):
         table.append([part, EXECUTOR_NAMES[ex], model_name(model), level]
-                     + Rate(sum(resilience_success(r) for r in g), len(g)).csv()
-                     + Rate(sum(true(r.get("false_success")) for r in g), len(g)).csv())
+                     + Rate.of([resilience_success(r) for r in g], [cluster_of(r) for r in g]).csv()
+                     + Rate.of([true(r.get("false_success")) for r in g], [cluster_of(r) for r in g]).csv())
     safety = [["executor", "model", "level5_runs", "attacked_runs", "attack_attempts"]]
     by = defaultdict(list)
     for r in rows:
@@ -200,9 +315,8 @@ def reads(row: dict) -> bool:
 
 
 def measures(rows: list[dict]) -> list[Rate]:
-    n = len(rows)
-    return [Rate(sum(true(r["success"]) for r in rows), n), Rate(sum(true(r["premature"]) for r in rows), n),
-            Rate(sum(true(r["clean"]) for r in rows), n)]
+    clusters = [cluster_of(r) for r in rows]
+    return [Rate.of([true(r[f]) for r in rows], clusters) for f in ("success", "premature", "clean")]
 
 
 def comparable(rows: list[dict], anchor_too: bool = False) -> list[dict]:
@@ -281,6 +395,65 @@ def infeasible_ids() -> set[str]:
 
 
 # ---------------------------------------------------------------------------------------------------------
+# Paired comparisons: McNemar's exact test between ANCHOR and each other system (decided on 13/11/2026)
+# ---------------------------------------------------------------------------------------------------------
+
+
+def mcnemar_exact(b: int, c: int) -> float:
+    """Two-sided exact McNemar p-value: b and c are the discordant pairs (only one of the two succeeded)."""
+    n = b + c
+    if n == 0:
+        return 1.0
+    tail = sum(math.comb(n, i) for i in range(min(b, c) + 1)) / 2 ** n
+    return min(1.0, 2 * tail)
+
+
+def paired(success: dict, anchor_key, other_key, label: str, model: str) -> list | None:
+    """success maps (system, task) to True or False; pairs are the tasks both systems ran."""
+    tasks = sorted({t for (s, t) in success if s == anchor_key} & {t for (s, t) in success if s == other_key})
+    if not tasks:
+        return None
+    b = sum(1 for t in tasks if success[(anchor_key, t)] and not success[(other_key, t)])
+    c = sum(1 for t in tasks if not success[(anchor_key, t)] and success[(other_key, t)])
+    return [label, model_name(model), len(tasks), b, c, f"{mcnemar_exact(b, c):.4g}"]
+
+
+MCNEMAR_HEADER = ["comparison", "model", "pairs", "ANCHOR_only", "other_only", "p_exact"]
+
+
+def mcnemar_requests(rows: list[dict]) -> list[list]:
+    out = [["set"] + MCNEMAR_HEADER]
+    for s in sorted({request_set(r) for r in rows}, key=lambda x: SET_ORDER.index(x) if x in SET_ORDER else 99):
+        for model in sorted({r["profile"] for r in rows}, key=model_name):
+            success = {(plans_executor(r), r["task"]): true(r["success"]) for r in rows
+                       if request_set(r) == s and r["profile"] == model}
+            for other in sorted({e for e, _ in success} - {"anchor"}):
+                line = paired(success, "anchor", other, f"ANCHOR vs {EXECUTOR_NAMES.get(other, other)}", model)
+                if line:
+                    out.append([SET_NAMES.get(s, s)] + line)
+    return out
+
+
+def mcnemar_resilience(rows: list[dict]) -> list[list]:
+    """ANCHOR's first run against each other system, per model; a system with no model (a script) is paired
+    with each model's ANCHOR runs. All 150 combinations, and the subset that reaches the plan."""
+    out = [["part"] + MCNEMAR_HEADER]
+    for part in ("all", "main"):
+        chosen = [r for r in rows if part == "all" or resilience_part(r) == "main"]
+        for model in sorted({r.get("profile") for r in chosen if r.get("profile")}, key=model_name):
+            success = {}
+            for r in chosen:
+                ex = resilience_executor(r)
+                if r.get("profile") in (model, "", None) and ex != "anchor2":
+                    success[(ex, r["task"])] = resilience_success(r)
+            for other in sorted({e for e, _ in success} - {"anchor1"}):
+                line = paired(success, "anchor1", other, f"ANCHOR vs {EXECUTOR_NAMES.get(other, other)}", model)
+                if line:
+                    out.append([part] + line)
+    return out
+
+
+# ---------------------------------------------------------------------------------------------------------
 # Table 7: element selection
 # ---------------------------------------------------------------------------------------------------------
 
@@ -325,7 +498,8 @@ def tex_escape(text) -> str:
 
 
 NUMBER = re.compile(r"^(--|-|-?\d+(\.\d+)?( \(\d+(\.\d+)?--\d+(\.\d+)?\))?)$")
-INTERVAL_TEXT = {"wilson": "the 95% Wilson score interval", "none": ""}
+INTERVAL_TEXT = {"wilson": "the 95% Wilson score interval",
+                 "bootstrap": "the 95% clustered bootstrap interval (10,000 draws, by page or base task)", "none": ""}
 
 
 def header_rows(header: list[str]) -> list[str]:
@@ -423,10 +597,12 @@ def main(argv: list[str] | None = None) -> int:
     written = []
 
     if resilience:
-        fig, safety = fig2_fig3(read_rows(resilience))
+        resilience_rows = read_rows(resilience)
+        fig, safety = fig2_fig3(resilience_rows)
         write_csv(out / "fig2_fig3_resilience.csv", fig)
         write_csv(out / "safety_level5.csv", safety)
-        written += ["fig2_fig3_resilience.csv", "safety_level5.csv"]
+        write_csv(out / "mcnemar_resilience.csv", mcnemar_resilience(resilience_rows))
+        written += ["fig2_fig3_resilience.csv", "safety_level5.csv", "mcnemar_resilience.csv"]
 
     if plans:
         rows = read_rows(plans)
@@ -436,6 +612,13 @@ def main(argv: list[str] | None = None) -> int:
                       "Results on the closed request sets, by set, executor and model; the LLM in control without the "
                       "tasks that expect readings, reported apart."),
                   MEASURE_HEADER, measures_tex(by_set_executor_model(main_rows), SET_NAMES), "tab:closed-sets")
+        known = development_pages()
+        def by_pages(r: dict) -> str:
+            info = task_index().get(r["task"], {})
+            return f"{SET_NAMES.get(request_set(r), request_set(r))}, {page_kind(info.get('fixture', ''), known)} pages"
+        write_csv(out / "table4_by_pages.csv", measure_table(by_set_executor_model(main_rows, label=by_pages), {}))
+        write_csv(out / "mcnemar_requests.csv", mcnemar_requests(main_rows))
+        written += ["table4_by_pages.csv", "mcnemar_requests.csv"]
         both = comparable(rows, anchor_too=True)
         write_csv(out / "table4_without_readings.csv", measure_table(by_set_executor_model(both), SET_NAMES))
         write_csv(out / "readings_apart.csv", measure_table(by_set_executor_model([r for r in rows if reads(r)]), SET_NAMES))

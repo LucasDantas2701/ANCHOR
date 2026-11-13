@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The tables' statistics** (decided on 13/11/2026, before the final run): besides the Wilson interval, a
+  clustered bootstrap (by page in the request sets, by base task in the resilience benchmark; 10,000 draws,
+  seed 7) and McNemar's exact test between ANCHOR and each other system, paired task by task; the request
+  sets split into known pages (used in development, or made from one) and new pages, by code; and, in the
+  resilience benchmark, the total of all the combinations besides the subset that reaches the plan.
 - **The website** at the site's root ([lucasdantas2701.github.io/ANCHOR](https://lucasdantas2701.github.io/ANCHOR/)),
   for people who do not program, in Portuguese and English, light and dark, with the interface's look
   (`landing/`, Angular): what ANCHOR is in plain words, a working demo of its interface (pick a request;

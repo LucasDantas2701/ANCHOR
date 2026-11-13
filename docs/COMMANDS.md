@@ -656,7 +656,9 @@ python -m eval.paper_tables --resilience F... --plans F... --resolver F --out DI
 ```
 
 Reads only result files and writes, in `--out` (default `eval/paper/`), the data of Figures 2 and 3
-(success and false success by level, executor and model; the off-path combinations apart), Tables 4 to 7
+(success and false success by level, executor and model; the off-path combinations apart, and the total),
+McNemar's exact test between ANCHOR and each other system (paired task by task), the request sets split
+into known and new pages, Tables 4 to 7
 in LaTeX and CSV, the sensitivity analyses, the report of the tasks that expect readings, and
 `sources.txt` (the files read and their commits). It writes and prints no request text. In `--final`
 mode it refuses files from different commits.
@@ -666,7 +668,7 @@ mode it refuses files from different commits.
 | `--final` | Uses the newest `*_FINAL` files of the three evaluations. |
 | `--resilience`, `--plans`, `--resolver` | The result files to read (patterns are expanded). For tests: development files only. |
 | `--out` | The output folder. Default: `eval/paper/`. |
-| `--ci` | The uncertainty interval: `wilson` (95%, the provisional default) or `none`. |
+| `--ci` | The uncertainty interval: `wilson` (95%, the provisional default), `bootstrap` (95%, clustered by page in the request sets and by base task in the resilience benchmark; 10,000 draws, seed 7) or `none`. |
 
 ## Development
 

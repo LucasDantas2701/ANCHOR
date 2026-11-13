@@ -118,3 +118,46 @@ def test_the_latex_follows_the_articles_style(tmp_path):
     t7 = (out / "table7_elements.tex").read_text(encoding="utf-8")
     assert "\\begin{table*}" in t7 and "read text" in t7 and "extract" not in t7 and "_" not in t7.split("\\label")[0].split("caption")[1]
     assert "R@1 & R@3" in t7 and "Silent" in t7 and "lo" not in t7.split("\\hline")[2]
+
+
+def test_mcnemar_exact_matches_the_binomial_values():
+    assert pt.mcnemar_exact(0, 0) == 1.0
+    assert pt.mcnemar_exact(5, 0) == pytest.approx(0.0625)            # 2 x (1/2)^5
+    assert pt.mcnemar_exact(6, 1) == pytest.approx(0.125)             # 2 x (1 + 7) / 2^7
+    assert pt.mcnemar_exact(3, 3) == 1.0
+
+
+def test_the_clustered_bootstrap_is_fixed_by_its_seed_and_wider_when_runs_share_a_cluster():
+    outcomes = [True] * 10 + [False] * 10
+    one_each = [str(i) for i in range(20)]
+    by_page = ["a"] * 10 + ["b"] * 10                                  # all the successes on one page
+    first, again = pt.bootstrap(outcomes, by_page, samples=2000), pt.bootstrap(outcomes, by_page, samples=2000)
+    assert first == again
+    narrow = pt.bootstrap(outcomes, one_each, samples=2000)
+    assert (first[1] - first[0]) > (narrow[1] - narrow[0])
+    assert pt.bootstrap([], []) is None
+
+
+def test_a_page_is_known_when_it_or_its_origin_was_used_in_development():
+    known = {"registration.html", "store.html"}
+    assert pt.page_kind("registration.html", known) == "known" and pt.page_kind("holdout_blog.html", known) == "new"
+    assert pt.page_kind("collection/cadastro.html", known) == "known"           # made from registration.html
+    assert pt.page_kind("collection/reservas.html", known) == "new"             # made from holdout_booking.html
+    assert pt.page_kind("resilience_closed/L3/store.html", known) == "known"
+
+
+def test_mcnemar_pairs_anchor_with_each_system_task_by_task(monkeypatch):
+    monkeypatch.setattr(pt, "cluster_of", lambda row: row["task"])
+    rows = [plan_row(task=f"t{i}", success=str(i < 8)) for i in range(10)]
+    rows += [plan_row(task=f"t{i}", executor="llm", success=str(i < 3)) for i in range(10)]
+    table = pt.mcnemar_requests(rows)
+    assert table[1][1:] == ["ANCHOR vs LLM in control", "4B", 10, 5, 0, "0.0625"]
+
+
+def test_the_resilience_figure_has_the_total_of_the_combinations_besides_its_parts():
+    base = {"executor": "script", "profile": "", "level": "3", "success": "True", "false_success": "False",
+            "llm_calls": "0", "run": "1", "attacked": "False", "attack_attempts": "0", "base_task": "b1"}
+    rows = [{**base, "task": "x", "reaches_plan": "yes"}, {**base, "task": "y", "reaches_plan": "no", "success": "False"}]
+    fig, _ = pt.fig2_fig3(rows)
+    parts = {r[0]: r[4:6] for r in fig[1:]}
+    assert parts == {"all": [1, 2], "main": [1, 1], "off_path": [0, 1]}
