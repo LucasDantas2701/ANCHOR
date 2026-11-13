@@ -171,17 +171,32 @@ def _parse(text: str) -> Optional[dict]:
     return data if isinstance(data, dict) and data.get("action") else None
 
 
-def run_llm(page: Page, request: str, client, model: str, max_steps: int = 12, timeout_ms: int = 3000) -> Outcome:
-    """The LLM chooses every action and element; the action is performed directly on it."""
+LLM_SEED = 7       # the same seed as ANCHOR's planner (decided on 13/11/2026, with the determinism check)
+
+
+def plan_lines(plan: list) -> list[str]:
+    """A reference plan as guidance for the model: one line per step (action, element, value)."""
+    return [f"{i}. {action} \"{element}\"" + (f" = \"{value}\"" if value not in (None, "") else "")
+            for i, (action, element, value) in enumerate(plan, 1)]
+
+
+def run_llm(page: Page, request: str, client, model: str, max_steps: int = 12, timeout_ms: int = 3000,
+            plan: list | None = None) -> Outcome:
+    """The LLM chooses every action and element; the action is performed directly on it. With a plan (the
+    task's reference plan, the one ANCHOR's saved automation and the scripts come from), the model gets it as
+    guidance, so all the systems start from the same point (decided on 13/11/2026); without one, it plans
+    from scratch."""
     start, steps, done = time.perf_counter(), [], []
     outcome = Outcome("llm", False)
     resolver = ElementResolver(page)
     for _ in range(max_steps):
         lines, ids = numbered_elements(resolver)
         history = "\n".join(f"- {d}" for d in done) or "- (nada ainda)"
-        user = f"Pedido: {request}\n\nJá feito:\n{history}\n\nElementos:\n" + "\n".join(lines)
+        guide = ("Plano de referência (os passos que fazem o pedido; use como orientação):\n"
+                 + "\n".join(plan_lines(plan)) + "\n\n") if plan else ""
+        user = f"Pedido: {request}\n\n{guide}Já feito:\n{history}\n\nElementos:\n" + "\n".join(lines)
         response = client.chat.completions.create(
-            model=model, temperature=0,
+            model=model, temperature=0, seed=LLM_SEED,
             messages=[{"role": "system", "content": LLM_SYSTEM}, {"role": "user", "content": user}])
         outcome.llm_calls += 1
         usage = getattr(response, "usage", None)

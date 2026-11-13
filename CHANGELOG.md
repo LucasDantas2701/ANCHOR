@@ -18,6 +18,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The model in control, given the plan** (decided on 13/11/2026, before the final run): in the resilience
+  benchmark, a new executor (`llm_plan`) gives the model in control the task's reference plan as guidance,
+  the same plan ANCHOR's saved automation and the scripts come from, so the main comparison starts from the
+  same point; the one with the request only (`llm`) is reported apart, as an agent planning from scratch.
+  The model in control now uses seed 7, as ANCHOR's planner, and `python -m eval.determinism` compares two
+  runs of the same evaluation run by run (one run per combination in the final run if each executor's two
+  development runs are identical; three if not).
 - **The tables' statistics** (decided on 13/11/2026, before the final run): besides the Wilson interval, a
   clustered bootstrap (by page in the request sets, by base task in the resilience benchmark; 10,000 draws,
   seed 7) and McNemar's exact test between ANCHOR and each other system, paired task by task; the request

@@ -234,7 +234,7 @@ def cluster_of(row: dict) -> str:
 # ---------------------------------------------------------------------------------------------------------
 
 MODEL_NAMES = {"ollama-small": "4B", "ollama-medium": "9B"}
-SHORT_EXECUTOR = {"anchor": "ANCHOR", "llm": "LLM"}
+SHORT_EXECUTOR = {"anchor": "ANCHOR", "llm": "LLM", "llm_plan": "LLM+plan"}
 ACTION_NAMES = {"all": "All", "click": "click", "fill": "type", "select": "select", "check": "check",
                 "uncheck": "uncheck", "hover": "hover", "press": "press a key", "extract_text": "read text",
                 "extract_table": "read table", "download": "download", "upload": "upload"}
@@ -244,7 +244,8 @@ def model_name(profile: str) -> str:
     return MODEL_NAMES.get(profile, profile) if profile else "-"
 
 
-EXECUTOR_NAMES = {"script": "Fixed selectors", "llm": "LLM in control", "anchor": "ANCHOR",
+EXECUTOR_NAMES = {"script": "Fixed selectors", "llm": "LLM in control", "llm_plan": "LLM in control, with the plan",
+                  "anchor": "ANCHOR",
                   "anchor1": "ANCHOR, 1st run", "anchor2": "ANCHOR, 2nd run (no model call)"}
 
 

@@ -567,7 +567,7 @@ python -m eval.resilience.report eval/results/resilience_*.json
 
 | Option (`run`) | Meaning |
 |---|---|
-| `--executors` | `script`, `llm` and/or `anchor`. Default: all three. |
+| `--executors` | `script`, `llm` (the model in control, from the request only), `llm_plan` (the model in control, given the task's reference plan as guidance, the same plan ANCHOR's saved automation and the scripts come from) and/or `anchor`. Default: all four. |
 | `--profiles` | Model profiles, for `llm` and `anchor` (the script uses no model). |
 | `--language` | Only the tasks in this language: `pt` or `en`. Default: both. |
 | `--levels` | Perturbation levels. Default: 1 to 5. |
@@ -647,6 +647,17 @@ each text becomes `[removido: type]`, in the publication and in a drawn task, an
 python -m eval.human_publish <export.csv> --removals <removals.csv>
 ```
 
+
+### Are two runs identical?
+
+```sh
+python -m eval.determinism FIRST.csv SECOND.csv
+```
+
+Compares two result files of the same command (`plan_run` or `resilience.run`), run by run: the result, the
+false success, the unrequested steps and the steps themselves. It prints counts and the ids of the runs that
+differ, and exits with 0 only when the two are identical. The rule registered before the final run: if each
+executor's two development runs are identical, the final run makes one run per combination; if not, three.
 
 ### The article's tables and figures
 

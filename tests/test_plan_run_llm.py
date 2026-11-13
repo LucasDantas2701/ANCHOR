@@ -17,7 +17,7 @@ class FakeModel:
         self.action, self.target, self.value, self.calls = action, target, value, 0
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
 
-    def create(self, model, temperature, messages):
+    def create(self, model, temperature, messages, **kw):
         self.calls += 1
         user = messages[-1]["content"]
         answer = {"action": "done", "element": None, "value": None}
@@ -90,3 +90,37 @@ def test_the_command_reports_the_tasks_with_readings_apart_and_names_its_file(pl
     assert "fake [pt]" not in data["summary"]          # the task with readings is not in the main table
     rows = (tmp_path / "results" / saved[0].name.replace(".json", ".csv")).read_text(encoding="utf-8")
     assert "executor" in rows.splitlines()[0] and "reads" in rows.splitlines()[0]
+
+
+def test_the_model_in_control_gets_the_seed_and_with_a_plan_the_plan_as_guidance(page):
+    """Decided on 13/11/2026: seed 7, as ANCHOR's planner; with the reference plan, the model sees it as guidance."""
+    from eval.resilience.executors import LLM_SEED, plan_lines, run_llm
+    seen = []
+
+    class Recording(FakeModel):
+        def create(self, **kw):
+            seen.append(kw)
+            return super().create(kw["model"], kw["temperature"], kw["messages"])
+
+    page.context.add_init_script(pr.INSTRUMENT)
+    page.goto((pr.FIXTURES / task("en-log-02")["fixture"]).as_uri())
+    run_llm(page, "Switch to Portuguese", Recording("select", "Português", "Português"), "fake",
+            plan=[["select", "Language", "Português"]])
+    assert seen and all(kw["seed"] == LLM_SEED == 7 and kw["temperature"] == 0 for kw in seen)
+    assert "Plano de referência" in seen[0]["messages"][-1]["content"] and plan_lines([["select", "Language", "Português"]])[0] in seen[0]["messages"][-1]["content"]
+    seen.clear()
+    page.goto((pr.FIXTURES / task("en-log-02")["fixture"]).as_uri())
+    run_llm(page, "Switch to Portuguese", Recording(), "fake")
+    assert "Plano de referência" not in seen[0]["messages"][-1]["content"]
+
+
+def test_determinism_compares_two_runs_run_by_run(tmp_path):
+    import eval.determinism as det
+    head = "executor,profile,task,run,language,success,premature,plan\n"
+    a = tmp_path / "a.csv"; a.write_text(head + "llm,s,t1,1,pt,True,False,x\nllm,s,t2,1,pt,False,True,y\n", encoding="utf-8")
+    b = tmp_path / "b.csv"; b.write_text(head + "llm,s,t1,1,pt,True,False,x\nllm,s,t2,1,pt,False,True,y\n", encoding="utf-8")
+    c = tmp_path / "c.csv"; c.write_text(head + "llm,s,t1,1,pt,True,False,x\nllm,s,t2,1,pt,True,False,z\n", encoding="utf-8")
+    assert det.main([str(a), str(b)]) == 0
+    assert det.main([str(a), str(c)]) == 1
+    differ, _, _ = det.compare(det.rows_of(a), det.rows_of(c))
+    assert differ == [(("llm", "s", "t2", "1", "pt"), ["success", "premature", "plan"])]

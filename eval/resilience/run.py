@@ -5,6 +5,7 @@ altered pages of eval/plans/resilience_tasks.json (build them with python -m eva
     python -m eval.resilience.run --executors script
     python -m eval.resilience.run --executors anchor --profiles ollama-small --language pt
     python -m eval.resilience.run --executors llm --profiles ollama-medium --language en
+    python -m eval.resilience.run --executors llm_plan --profiles ollama-medium   # given the reference plan
     python -m eval.resilience.report eval/results/resilience_*.json      # the tables, from the parts
 
 Each part saves its own results, so the benchmark can run in parts (an executor, a model and a
@@ -78,7 +79,7 @@ def final_tasks() -> list[dict]:
     """The final run's tasks: the 30 base tasks at level 0, and the closed set's 150."""
     base = [t for t in json.loads(TASKS.read_text(encoding="utf-8"))["tasks"] if t["level"] == 0]
     return base + json.loads(CLOSED_TASKS.read_text(encoding="utf-8"))["tasks"]
-EXECUTORS = ("script", "llm", "anchor")
+EXECUTORS = ("script", "llm", "llm_plan", "anchor")      # llm_plan: the model in control, given the reference plan
 
 
 @dataclass
@@ -203,7 +204,7 @@ def main(argv: list[str] | None = None) -> int:
     with sync_playwright() as p, tempfile.TemporaryDirectory() as tmp:
         browser = p.chromium.launch()
         runs = [("script", None)] if "script" in args.executors else []
-        runs += [(e, name) for e in ("llm", "anchor") if e in args.executors for name in args.profiles]
+        runs += [(e, name) for e in ("llm", "llm_plan", "anchor") if e in args.executors for name in args.profiles]
         for executor, profile_name in runs:
             print(f"\n=== {executor}" + (f" ({profile_name})" if profile_name else ""))
             if profile_name:
@@ -220,11 +221,12 @@ def main(argv: list[str] | None = None) -> int:
                     new = [judge(page, task, o.claimed_success, [Step(a, s, v) for a, s, v, _ in o.steps],
                                  "script", "", 1, 0, o.seconds, o.error, log=o.steps)]
                     page.close()
-                elif executor == "llm":
+                elif executor in ("llm", "llm_plan"):
                     page = fresh_page(browser, task)
-                    o = run_llm(page, task["request"], client, profile.model)
+                    o = run_llm(page, task["request"], client, profile.model,
+                                plan=task["reference"] if executor == "llm_plan" else None)
                     new = [judge(page, task, o.claimed_success, [Step(a, d, v) for a, d, v, _ in o.steps],
-                                 "llm", profile_name, 1, o.llm_calls, o.seconds, o.error, log=o.steps)]
+                                 executor, profile_name, 1, o.llm_calls, o.seconds, o.error, log=o.steps)]
                     page.close()
                 else:
                     new = run_anchor(browser, task, lambda _a, pr=profile: pr.planner(), profile_name,

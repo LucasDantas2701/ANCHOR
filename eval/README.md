@@ -354,6 +354,7 @@ Enviar comentário; usuarios, Excluir (3 rows); vagas, Salvar vaga and Candidatu
 Every option of `eval.run`, `eval.plan_run` and `eval.resilience.run` (`--split`, `--site`,
 `--headed`, `--task`, `--no-page`, `--vision`...) is in the [command reference](../docs/COMMANDS.md).
 
+- `python -m eval.determinism FIRST.csv SECOND.csv`: are two runs of the same evaluation identical, run by run?
 - `python -m eval.paper_tables --final`: the article's tables and figures from the final run's result files
   (see the command reference); tested only on development results.
 - `python -m eval.human_sample <export.csv>`: the draw of the human closed set (60 requests) from the
