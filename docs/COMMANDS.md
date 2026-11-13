@@ -502,12 +502,14 @@ a sensitivity analysis leaves out (for `synthetic_controlled`: the ChatGPT's req
 
 Builds the altered versions of the task pages, in 5 levels of perturbation, the tasks
 rewritten for them (`eval/plans/resilience_tasks.json`), and the fixed-selector scripts of the
-traditional executor, recorded on the original pages (`eval/plans/resilience_scripts.json`). Deterministic: rebuilding gives the same
-pages. Every element a task checks is marked with `data-eval`, the evaluation's own marker, which
+traditional executor, recorded on the original pages (`eval/plans/resilience_scripts.json`), and the
+role-and-text scripts (`eval/plans/resilience_role_scripts.json`: Playwright's `getByRole` and `getByText`,
+from the same reference plans). Deterministic: rebuilding gives the same pages. Every element a task checks is marked with `data-eval`, the evaluation's own marker, which
 no executor may use.
 
 ```sh
 python -m eval.resilience.build --check
+python -m eval.resilience.build --role-scripts    # only records the role-and-text scripts, rebuilding nothing else
 ```
 
 | Level | Perturbation |
@@ -567,7 +569,7 @@ python -m eval.resilience.report eval/results/resilience_*.json
 
 | Option (`run`) | Meaning |
 |---|---|
-| `--executors` | `script`, `llm` (the model in control, from the request only), `llm_plan` (the model in control, given the task's reference plan as guidance, the same plan ANCHOR's saved automation and the scripts come from) and/or `anchor`. Default: all four. |
+| `--executors` | `script` (fixed selectors), `roles` (role-and-text locators: Playwright's `getByRole` and `getByText`, recorded on L0 from the same reference plans), `llm` (the model in control, from the request only), `llm_plan` (the model in control, given the task's reference plan as guidance, the same plan ANCHOR's saved automation and the scripts come from) and/or `anchor`. Default: all five. |
 | `--profiles` | Model profiles, for `llm` and `anchor` (the script uses no model). |
 | `--language` | Only the tasks in this language: `pt` or `en`. Default: both. |
 | `--levels` | Perturbation levels. Default: 1 to 5. |

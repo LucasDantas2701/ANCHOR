@@ -1,0 +1,567 @@
+{
+  "_readme": "Role-and-text scripts (Playwright's getByRole and getByText, exact), recorded on the L0 pages from the reference plans by python -m eval.resilience.build --role-scripts. Do not edit by hand.",
+  "scripts": {
+    "p-jobs-01": [
+      [
+        "click",
+        {
+          "role": "link",
+          "name": "Consultor RPA"
+        },
+        null
+      ],
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Salvar vaga"
+        },
+        null
+      ]
+    ],
+    "en-jobs-01": [
+      [
+        "click",
+        {
+          "role": "link",
+          "name": "RPA Consultant"
+        },
+        null
+      ],
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Save job"
+        },
+        null
+      ]
+    ],
+    "p-log-01": [
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Username"
+        },
+        "lucas.dantas"
+      ],
+      [
+        "check",
+        {
+          "role": "checkbox",
+          "name": "Remember me"
+        },
+        null
+      ]
+    ],
+    "p-log-02": [
+      [
+        "select",
+        {
+          "role": "combobox",
+          "name": "Language"
+        },
+        "Português"
+      ]
+    ],
+    "en-log-01": [
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Username"
+        },
+        "lucas.dantas"
+      ],
+      [
+        "check",
+        {
+          "role": "checkbox",
+          "name": "Remember me"
+        },
+        null
+      ]
+    ],
+    "en-log-02": [
+      [
+        "select",
+        {
+          "role": "combobox",
+          "name": "Language"
+        },
+        "Português"
+      ]
+    ],
+    "p-ord-01": [
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Cancelar pedido",
+          "nth": 1
+        },
+        null
+      ]
+    ],
+    "p-ord-02": [
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Adicionar ao carrinho",
+          "nth": 1
+        },
+        null
+      ],
+      [
+        "click",
+        {
+          "role": "link",
+          "nth": 1
+        },
+        null
+      ]
+    ],
+    "en-ord-01": [
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Cancel order",
+          "nth": 1
+        },
+        null
+      ]
+    ],
+    "en-ord-02": [
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Add to cart",
+          "nth": 1
+        },
+        null
+      ],
+      [
+        "click",
+        {
+          "role": "link",
+          "nth": 1
+        },
+        null
+      ]
+    ],
+    "p-reg-01": [
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Nome completo"
+        },
+        "Maria Silva"
+      ],
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "CPF"
+        },
+        "123.456.789-00"
+      ],
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "E-mail corporativo"
+        },
+        "maria.silva@empresa.com"
+      ],
+      [
+        "select",
+        {
+          "role": "combobox",
+          "name": "Departamento"
+        },
+        "TI"
+      ],
+      [
+        "check",
+        {
+          "role": "radio",
+          "name": "PJ"
+        },
+        null
+      ],
+      [
+        "check",
+        {
+          "role": "checkbox",
+          "name": "Li e aceito os termos de uso"
+        },
+        null
+      ],
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Salvar cadastro"
+        },
+        null
+      ]
+    ],
+    "p-reg-02": [
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Telefone"
+        },
+        "(92) 99999-0000"
+      ],
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Observações"
+        },
+        "começa na segunda-feira"
+      ]
+    ],
+    "en-reg-01": [
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Full name"
+        },
+        "Maria Silva"
+      ],
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Tax ID"
+        },
+        "123-45-6789"
+      ],
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Work e-mail"
+        },
+        "maria.silva@company.com"
+      ],
+      [
+        "select",
+        {
+          "role": "combobox",
+          "name": "Department"
+        },
+        "IT"
+      ],
+      [
+        "check",
+        {
+          "role": "radio",
+          "name": "Contractor"
+        },
+        null
+      ],
+      [
+        "check",
+        {
+          "role": "checkbox",
+          "name": "I have read and accept the terms of use"
+        },
+        null
+      ],
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Save registration"
+        },
+        null
+      ]
+    ],
+    "en-reg-02": [
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Phone"
+        },
+        "(555) 123-4567"
+      ],
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Notes"
+        },
+        "starts on Monday"
+      ]
+    ],
+    "p-ent-01": [
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Pesquisar"
+        },
+        "rpa em manaus"
+      ],
+      [
+        "press",
+        {
+          "role": "textbox",
+          "name": "Pesquisar"
+        },
+        "Enter"
+      ]
+    ],
+    "en-ent-01": [
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Search"
+        },
+        "rpa in manaus"
+      ],
+      [
+        "press",
+        {
+          "role": "textbox",
+          "name": "Search"
+        },
+        "Enter"
+      ]
+    ],
+    "p-pop-01": [
+      [
+        "click",
+        {
+          "text": "Search /"
+        },
+        null
+      ],
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Search coins"
+        },
+        "Pi Network"
+      ],
+      [
+        "press",
+        {
+          "role": "textbox",
+          "name": "Search coins"
+        },
+        "Enter"
+      ]
+    ],
+    "en-pop-01": [
+      [
+        "click",
+        {
+          "text": "Search /"
+        },
+        null
+      ],
+      [
+        "fill",
+        {
+          "role": "textbox",
+          "name": "Search coins"
+        },
+        "Pi Network"
+      ],
+      [
+        "press",
+        {
+          "role": "textbox",
+          "name": "Search coins"
+        },
+        "Enter"
+      ]
+    ],
+    "p-store-01": [
+      [
+        "select",
+        {
+          "role": "combobox",
+          "name": "Sort by"
+        },
+        "Price: low to high"
+      ]
+    ],
+    "p-store-02": [
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Add to cart"
+        },
+        null
+      ],
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Add to cart",
+          "nth": 1
+        },
+        null
+      ]
+    ],
+    "p-store-03": [
+      [
+        "fill",
+        {
+          "role": "searchbox",
+          "name": "Search products"
+        },
+        "teclado mecânico"
+      ],
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Search"
+        },
+        null
+      ]
+    ],
+    "en-store-01": [
+      [
+        "select",
+        {
+          "role": "combobox",
+          "name": "Sort by"
+        },
+        "Price: low to high"
+      ]
+    ],
+    "en-store-02": [
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Add to cart"
+        },
+        null
+      ],
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Add to cart",
+          "nth": 1
+        },
+        null
+      ]
+    ],
+    "en-store-03": [
+      [
+        "fill",
+        {
+          "role": "searchbox",
+          "name": "Search products"
+        },
+        "mechanical keyboard"
+      ],
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Search"
+        },
+        null
+      ]
+    ],
+    "p-usr-01": [
+      [
+        "select",
+        {
+          "role": "combobox",
+          "name": "Filtrar por status"
+        },
+        "Inativos"
+      ]
+    ],
+    "p-usr-02": [
+      [
+        "check",
+        {
+          "role": "checkbox",
+          "name": "Selecionar Ana Souza"
+        },
+        null
+      ],
+      [
+        "check",
+        {
+          "role": "checkbox",
+          "name": "Selecionar Carla Mendes"
+        },
+        null
+      ]
+    ],
+    "p-usr-03": [
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Excluir",
+          "nth": 1
+        },
+        null
+      ]
+    ],
+    "en-usr-01": [
+      [
+        "select",
+        {
+          "role": "combobox",
+          "name": "Filter by status"
+        },
+        "Inactive"
+      ]
+    ],
+    "en-usr-02": [
+      [
+        "check",
+        {
+          "role": "checkbox",
+          "name": "Select Anna Smith"
+        },
+        null
+      ],
+      [
+        "check",
+        {
+          "role": "checkbox",
+          "name": "Select Carol Miller"
+        },
+        null
+      ]
+    ],
+    "en-usr-03": [
+      [
+        "click",
+        {
+          "role": "button",
+          "name": "Delete",
+          "nth": 1
+        },
+        null
+      ]
+    ]
+  }
+}

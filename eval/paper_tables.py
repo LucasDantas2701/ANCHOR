@@ -244,7 +244,7 @@ def model_name(profile: str) -> str:
     return MODEL_NAMES.get(profile, profile) if profile else "-"
 
 
-EXECUTOR_NAMES = {"script": "Fixed selectors", "llm": "LLM in control", "llm_plan": "LLM in control, with the plan",
+EXECUTOR_NAMES = {"script": "Fixed selectors", "roles": "Role and text locators", "llm": "LLM in control", "llm_plan": "LLM in control, with the plan",
                   "anchor": "ANCHOR",
                   "anchor1": "ANCHOR, 1st run", "anchor2": "ANCHOR, 2nd run (no model call)"}
 

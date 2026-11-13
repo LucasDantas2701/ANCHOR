@@ -21,8 +21,8 @@ from statistics import mean
 
 
 def label(row: dict) -> str | None:
-    if row["executor"] == "script":
-        return "script"
+    if row["executor"] in ("script", "roles"):
+        return row["executor"]
     if row["executor"] in ("llm", "llm_plan"):
         return f"{row['executor']} ({row['profile']})"
     return f"anchor {'recovery' if row['run'] == 1 else 'reuse'} ({row['profile']})"

@@ -19,6 +19,7 @@ element: no heuristic, no barriers, no confirmation, no effect check, no memory.
 from __future__ import annotations
 
 import json
+import re
 import time
 from dataclasses import dataclass, field
 from typing import Optional
@@ -97,6 +98,21 @@ def record_script(page: Page, reference: list) -> list[list]:
     return script
 
 
+def _act(target, action: str, value, timeout_ms: int) -> None:
+    if action == "click":
+        target.click(timeout=timeout_ms)
+    elif action == "fill":
+        target.fill(value or "", timeout=timeout_ms)
+    elif action == "select":
+        target.select_option(label=value, timeout=timeout_ms)
+    elif action == "check":
+        target.check(timeout=timeout_ms)
+    elif action == "uncheck":
+        target.uncheck(timeout=timeout_ms)
+    elif action == "press":
+        target.press(value or "Enter", timeout=timeout_ms)
+
+
 def run_script(page: Page, script: list[list], timeout_ms: int = 3000) -> Outcome:
     """Replays a recorded script blindly, as a traditional RPA robot would."""
     start, steps = time.perf_counter(), []
@@ -105,23 +121,103 @@ def run_script(page: Page, script: list[list], timeout_ms: int = 3000) -> Outcom
         try:
             if target.count() == 0:
                 raise LookupError("the selector finds nothing")
-            if action == "click":
-                target.click(timeout=timeout_ms)
-            elif action == "fill":
-                target.fill(value or "", timeout=timeout_ms)
-            elif action == "select":
-                target.select_option(label=value, timeout=timeout_ms)
-            elif action == "check":
-                target.check(timeout=timeout_ms)
-            elif action == "uncheck":
-                target.uncheck(timeout=timeout_ms)
-            elif action == "press":
-                target.press(value or "Enter", timeout=timeout_ms)
+            _act(target, action, value, timeout_ms)
             steps.append([action, selector, value, "success"])
         except Exception as exc:
             steps.append([action, selector, value, "failed"])
             return Outcome("script", False, steps, str(exc).splitlines()[0][:200], seconds=round(time.perf_counter() - start, 2))
     return Outcome("script", True, steps, seconds=round(time.perf_counter() - start, 2))
+
+
+# --------------------------------------------------------------------------
+# Script with role and text locators (decided on 13/11/2026): the robust way of writing a script by hand
+# with Playwright, recorded on L0 from the same reference plan as the fixed-selector one
+# --------------------------------------------------------------------------
+
+_SNAPSHOT = re.compile(r'^- ([a-z]+)(?: "((?:[^"\\]|\\.)*)")?')
+_NO_ROLE = {"generic", "text", "paragraph", "group", "none", "presentation", "img"}
+
+
+def role_locator(page: Page, spec: dict):
+    """The Playwright locator a role-and-text script uses: getByRole(role, name) or getByText(text), exact."""
+    if "role" in spec and "name" in spec:
+        found = page.get_by_role(spec["role"], name=spec["name"], exact=True)
+    elif "role" in spec:
+        found = page.get_by_role(spec["role"])                # no name to use: the role and its position
+    else:
+        found = page.get_by_text(spec["text"], exact=True)
+    return found.nth(spec.get("nth", 0))
+
+
+def describe_by_role(page: Page, element_id: str) -> dict | None:
+    """The element's role and accessible name, as Playwright computes them (its ARIA snapshot), or its text
+    when it has no meaningful role, or, with neither (an icon), its role alone; with its position among the
+    elements the locator finds (0 when unique)."""
+    handle = page.locator(f'[data-er-id="{element_id}"]').first
+    if not handle.count():
+        return None
+    match = _SNAPSHOT.match(handle.aria_snapshot().splitlines()[0].strip())
+    role, name = (match.group(1), (match.group(2) or "").replace('\\"', '"')) if match else (None, "")
+    text = " ".join(handle.inner_text().split())
+    if role and name and role not in _NO_ROLE:
+        spec = {"role": role, "name": name}
+        found = page.get_by_role(role, name=name, exact=True)
+    elif text:
+        spec = {"text": text}
+        found = page.get_by_text(text, exact=True)
+    elif role and role not in _NO_ROLE:
+        spec = {"role": role}                                 # no name and no text (an icon): the role's position
+        found = page.get_by_role(role)
+    else:
+        return None
+    for i in range(found.count()):
+        if found.nth(i).get_attribute("data-er-id") == element_id:
+            if i:
+                spec["nth"] = i
+            return spec
+    return None
+
+
+class _RoleRecorder(ActionExecutor):
+    """Notes the role-and-text locator of every element right before acting on it (on the L0 page)."""
+
+    def __init__(self, page: Page, **kwargs):
+        super().__init__(page, **kwargs)
+        self.spec = None
+
+    def _denied(self, action_name, description, match, resolved_by="memory"):
+        self.spec = describe_by_role(self.page, match.id)
+        return super()._denied(action_name, description, match, resolved_by)
+
+
+def record_role_script(page: Page, reference: list) -> list[list]:
+    """The reference plan, run on the page as it is now (L0), as [action, locator, value] steps."""
+    recorder = _RoleRecorder(page, resolver=ElementResolver(page))
+    script = []
+    for action, description, value in reference:
+        recorder.spec = None
+        result = run_step(recorder, Step(action, description, value))
+        if result.status != "success" or not recorder.spec:
+            raise RuntimeError(f"could not record {action} {description!r} by role or text: {result.status}")
+        script.append([action, recorder.spec, value])
+    return script
+
+
+def run_role_script(page: Page, script: list[list], timeout_ms: int = 3000) -> Outcome:
+    """Replays a role-and-text script: each step finds its element again by role and name (or text)."""
+    start, steps = time.perf_counter(), []
+    for action, spec, value in script:
+        shown = json.dumps(spec, ensure_ascii=False)
+        try:
+            target = role_locator(page, spec)
+            if target.count() == 0:
+                raise LookupError("the locator finds nothing")
+            _act(target, action, value, timeout_ms)
+            steps.append([action, shown, value, "success"])
+        except Exception as exc:
+            steps.append([action, shown, value, "failed"])
+            return Outcome("roles", False, steps, str(exc).splitlines()[0][:200], seconds=round(time.perf_counter() - start, 2))
+    return Outcome("roles", True, steps, seconds=round(time.perf_counter() - start, 2))
 
 
 # --------------------------------------------------------------------------

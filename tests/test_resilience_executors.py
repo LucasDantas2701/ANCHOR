@@ -77,3 +77,44 @@ def test_an_invalid_answer_stops_the_llm(page):
         choices=[SimpleNamespace(message=SimpleNamespace(content="não sei"))], usage=None))))
     outcome = run_llm(page, "x", client, "m")
     assert not outcome.claimed_success and "not a valid action" in outcome.error
+
+
+ROLE_PAGE = """<!doctype html><html lang="en"><body>
+<label for="q">Search</label><input id="q" data-er-id="e1">
+<button data-er-id="e2">Add to cart</button><button data-er-id="e3">Add to cart</button>
+<a href="#cart" data-er-id="e4"><img src="data:," alt=""></a><a href="#help">Help</a>
+<span data-er-id="e5" onclick="this.dataset.done = 1">Show more</span>
+</body></html>"""
+
+
+def test_a_role_and_text_script_records_role_name_text_and_position(page):
+    """Decided on 13/11/2026: getByRole(role, name) when the element has one; its text when it has no role;
+    the role alone, with its position, when it has neither (an icon)."""
+    from eval.resilience.executors import describe_by_role
+    page.set_content(ROLE_PAGE)
+    assert describe_by_role(page, "e1") == {"role": "textbox", "name": "Search"}
+    assert describe_by_role(page, "e2") == {"role": "button", "name": "Add to cart"}
+    assert describe_by_role(page, "e3") == {"role": "button", "name": "Add to cart", "nth": 1}
+    assert describe_by_role(page, "e4") == {"role": "link"}
+    assert describe_by_role(page, "e5") == {"text": "Show more"}
+
+
+def test_a_role_and_text_script_finds_moved_elements_and_breaks_on_new_words(page):
+    from eval.resilience.executors import run_role_script
+    script = [["fill", {"role": "textbox", "name": "Search"}, "rpa"], ["click", {"role": "button", "name": "Add to cart", "nth": 1}, None]]
+    moved = ROLE_PAGE.replace('<label for="q">Search</label><input id="q" data-er-id="e1">', "") \
+                     .replace("</body>", '<div><label for="q">Search</label><input id="q"></div></body>')
+    page.set_content(moved)
+    assert run_role_script(page, script).claimed_success and page.input_value("#q") == "rpa"
+    page.set_content(ROLE_PAGE.replace(">Search<", ">Find<"))
+    outcome = run_role_script(page, script)
+    assert not outcome.claimed_success and outcome.steps[0][3] == "failed" and outcome.executor == "roles"
+
+
+def test_every_resilience_task_has_a_role_and_text_script():
+    import json
+    from pathlib import Path
+    plans = Path(__file__).resolve().parents[1] / "eval" / "plans"
+    scripts = json.loads((plans / "resilience_role_scripts.json").read_text(encoding="utf-8"))["scripts"]
+    fixed = json.loads((plans / "resilience_scripts.json").read_text(encoding="utf-8"))["scripts"]
+    assert set(scripts) == set(fixed) and all(len(scripts[k]) == len(fixed[k]) for k in fixed)

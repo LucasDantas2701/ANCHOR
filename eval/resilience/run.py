@@ -3,6 +3,7 @@ Runs the resilience benchmark: the traditional script, the LLM in control and AN
 altered pages of eval/plans/resilience_tasks.json (build them with python -m eval.resilience.build).
 
     python -m eval.resilience.run --executors script
+    python -m eval.resilience.run --executors roles         # role-and-text locators (getByRole, getByText)
     python -m eval.resilience.run --executors anchor --profiles ollama-small --language pt
     python -m eval.resilience.run --executors llm --profiles ollama-medium --language en
     python -m eval.resilience.run --executors llm_plan --profiles ollama-medium   # given the reference plan
@@ -43,11 +44,12 @@ from anchor.engine.element_resolver import ElementResolver
 from anchor.engine.memory import ChoiceMemory
 from anchor.planner import ConfigError, Step, get_profile
 from eval.plan_run import INSTRUMENT, attack_attempts
-from eval.resilience.executors import run_llm, run_script
+from eval.resilience.executors import run_llm, run_role_script, run_script
 
 ROOT = Path(__file__).resolve().parents[1]
 TASKS = ROOT / "plans" / "resilience_tasks.json"
 SCRIPTS = ROOT / "plans" / "resilience_scripts.json"
+ROLE_SCRIPTS = ROOT / "plans" / "resilience_role_scripts.json"
 CLOSED_TASKS = ROOT / "plans" / "resilience_closed_tasks.json"
 CLOSED_MANIFEST = ROOT / "resilience" / "closed" / "generated" / "manifest.json"
 
@@ -79,7 +81,7 @@ def final_tasks() -> list[dict]:
     """The final run's tasks: the 30 base tasks at level 0, and the closed set's 150."""
     base = [t for t in json.loads(TASKS.read_text(encoding="utf-8"))["tasks"] if t["level"] == 0]
     return base + json.loads(CLOSED_TASKS.read_text(encoding="utf-8"))["tasks"]
-EXECUTORS = ("script", "llm", "llm_plan", "anchor")      # llm_plan: the model in control, given the reference plan
+EXECUTORS = ("script", "roles", "llm", "llm_plan", "anchor")   # roles: role-and-text locators; llm_plan: given the plan
 
 
 @dataclass
@@ -196,14 +198,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.task:
         tasks = [t for t in tasks if t["base_task"] == args.task]
     scripts = json.loads(SCRIPTS.read_text(encoding="utf-8"))["scripts"]
-    needs_model = [e for e in args.executors if e != "script"]
+    needs_model = [e for e in args.executors if e not in ("script", "roles")]
     if needs_model and not args.profiles:
         ap.error(f"{', '.join(needs_model)} need --profiles")
 
     rows: list[Row] = []
     with sync_playwright() as p, tempfile.TemporaryDirectory() as tmp:
         browser = p.chromium.launch()
-        runs = [("script", None)] if "script" in args.executors else []
+        role_scripts = json.loads(ROLE_SCRIPTS.read_text(encoding="utf-8"))["scripts"] if "roles" in args.executors else {}
+        runs = [(e, None) for e in ("script", "roles") if e in args.executors]
         runs += [(e, name) for e in ("llm", "llm_plan", "anchor") if e in args.executors for name in args.profiles]
         for executor, profile_name in runs:
             print(f"\n=== {executor}" + (f" ({profile_name})" if profile_name else ""))
@@ -215,11 +218,12 @@ def main(argv: list[str] | None = None) -> int:
                     return 1
                 client = profile.client()
             for task in tasks:
-                if executor == "script":
+                if executor in ("script", "roles"):
                     page = fresh_page(browser, task)
-                    o = run_script(page, scripts[task["base_task"]])
+                    o = (run_script(page, scripts[task["base_task"]]) if executor == "script"
+                         else run_role_script(page, role_scripts[task["base_task"]]))
                     new = [judge(page, task, o.claimed_success, [Step(a, s, v) for a, s, v, _ in o.steps],
-                                 "script", "", 1, 0, o.seconds, o.error, log=o.steps)]
+                                 executor, "", 1, 0, o.seconds, o.error, log=o.steps)]
                     page.close()
                 elif executor in ("llm", "llm_plan"):
                     page = fresh_page(browser, task)

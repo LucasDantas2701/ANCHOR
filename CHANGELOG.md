@@ -18,6 +18,13 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **A script with role and text locators in the resilience benchmark** (decided on 13/11/2026, before the
+  final run): a fifth executor (`roles`) replays scripts written with Playwright's `getByRole` and `getByText`
+  (exact), recorded on the L0 pages from the same reference plans as the fixed-selector ones
+  (`python -m eval.resilience.build --role-scripts`, into `eval/plans/resilience_role_scripts.json`): the
+  robust way of writing a script by hand, as a stronger baseline. On the development tasks it does 65% of
+  the changed pages (100% when the structure or the layout changes, 7% when the words change), against 53%
+  for the fixed selectors.
 - **The model in control, given the plan** (decided on 13/11/2026, before the final run): in the resilience
   benchmark, a new executor (`llm_plan`) gives the model in control the task's reference plan as guidance,
   the same plan ANCHOR's saved automation and the scripts come from, so the main comparison starts from the
