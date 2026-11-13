@@ -25,7 +25,7 @@ from .manage import add_routes as add_manage_routes
 from .runs import RunManager, Runner
 from .schedules import add_routes as add_schedule_routes
 
-DOCS_URL = "https://lucasdantas2701.github.io/ANCHOR/"     # the documentation site (built from the repository)
+DOCS_URL = "https://lucasdantas2701.github.io/ANCHOR/docs/introduction/"     # the documentation (the site's root is the presentation)
 STATIC = Path(__file__).parent / "static"
 TOKEN_HEADER = "X-Anchor-Token"
 

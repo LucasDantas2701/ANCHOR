@@ -29,7 +29,9 @@
     &middot;
     <a href="#quick-start"><strong>Get started</strong></a>
     &middot;
-    <a href="https://lucasdantas2701.github.io/ANCHOR/"><strong>Documentation</strong></a>
+    <a href="https://lucasdantas2701.github.io/ANCHOR/"><strong>Website</strong></a>
+    &middot;
+    <a href="https://lucasdantas2701.github.io/ANCHOR/docs/introduction/"><strong>Documentation</strong></a>
     &middot;
     <a href="https://huggingface.co/spaces/isntlucxs/anchor-demo"><strong>Try it online</strong></a>
     <br />
@@ -39,7 +41,7 @@
     <a href="#what-anchor-does">What ANCHOR does</a> ·
     <a href="#evaluation">Evaluation</a> ·
     <a href="#faq">FAQ</a> ·
-    <a href="https://lucasdantas2701.github.io/ANCHOR/">Documentation</a>
+    <a href="https://lucasdantas2701.github.io/ANCHOR/docs/introduction/">Documentation</a>
     <br />
     <br />
     <a href="https://github.com/LucasDantas2701/ANCHOR/issues/new?template=problem.yml">Report a bug</a>
@@ -625,7 +627,9 @@ final numbers will come from the closed sets.
   (synthetic, controlled synthetic and human requests, and the closed resilience set), with the
   results by origin and generator; the version the article describes
 - [x] **Documentation site** (GitHub Pages), built from this repository: guides, examples and the
-  command reference, at [lucasdantas2701.github.io/ANCHOR](https://lucasdantas2701.github.io/ANCHOR/)
+  command reference, at [lucasdantas2701.github.io/ANCHOR/docs](https://lucasdantas2701.github.io/ANCHOR/docs/introduction/)
+- [x] **Website** for people who do not program, at [lucasdantas2701.github.io/ANCHOR](https://lucasdantas2701.github.io/ANCHOR/): what
+  ANCHOR is, a demo to try in the page, what it is for, the measured results and how to install it
 
 See the [changelog](CHANGELOG.md) for what changed in each version, and the
 [open issues](https://github.com/LucasDantas2701/ANCHOR/issues) for known problems.
@@ -766,6 +770,16 @@ opens: open ANCHOR from the command, not from an old bookmark. To update, `git p
 -r requirements.txt` and build the interface again. The desktop program (what the installer runs) is
 `python -m anchor.desktop.app`, with `requirements-desktop.txt`.
 
+
+### The website
+
+The site's root, [lucasdantas2701.github.io/ANCHOR](https://lucasdantas2701.github.io/ANCHOR/), is the website for people who do not
+program (`landing/`, Angular, with the interface's design tokens and fonts); the documentation lives
+under it. To work on it: `cd landing`, `npm install`, `npm start`, and open
+`http://localhost:4200/ANCHOR/`. Its words are in `landing/src/app/copy.ts`, in English and Portuguese
+(a text missing in either does not build), and its numbers in `landing/src/app/results.ts`, with the
+result files they come from. The site's workflow (`.github/workflows/pages.yml`) builds the
+documentation, then the website, which it puts at the root.
 ### The command line
 
 Everything the interface does can also be done from the command line, which can also run a proven
@@ -816,6 +830,7 @@ ANCHOR/
 │   ├── i18n.py                    # interface messages (English and Portuguese)
 │   └── main.py                    # end-to-end example on SauceDemo, with a fixed plan
 ├── web/                           # the interface (Angular), built into anchor/ui/static
+├── landing/                       # the website (Angular), published at the site's root with the documentation
 ├── eval/                          # evaluation: test pages, cases, tasks, results, closed sets
 ├── docs/
 │   ├── COMMANDS.md                # the complete command reference
@@ -951,7 +966,7 @@ Research project at Faculdade Matias Machline (Manaus, Brazil).
 [ollama-shield]: https://img.shields.io/badge/LLM-local%20%C2%B7%20Ollama-D2F57A?style=for-the-badge&labelColor=14121A
 [ollama-url]: https://ollama.com
 [docs-shield]: https://img.shields.io/badge/docs-site-0E9F8E?style=for-the-badge
-[docs-url]: https://lucasdantas2701.github.io/ANCHOR/
+[docs-url]: https://lucasdantas2701.github.io/ANCHOR/docs/introduction/
 [hf-shield]: https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-demo%20%26%20dataset-FFD21E?style=for-the-badge&labelColor=14121A
 [hf-url]: https://huggingface.co/spaces/isntlucxs/anchor-demo
 [license-shield]: https://img.shields.io/badge/license-Apache%202.0-blue.svg?style=for-the-badge

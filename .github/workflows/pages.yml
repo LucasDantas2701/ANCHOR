@@ -1,5 +1,6 @@
-# The documentation site, built from the repository's own files on every push to main (the released
-# version) and published on GitHub Pages: https://lucasdantas2701.github.io/ANCHOR/
+# The site, built from the repository's own files on every push to main (the released version) and
+# published on GitHub Pages: https://lucasdantas2701.github.io/ANCHOR/ is the presentation (landing/,
+# Angular), and the documentation lives under it (docs/, commands/, evaluation/..., MkDocs).
 name: Documentation site
 
 on:
@@ -27,6 +28,18 @@ jobs:
       - run: pip install mkdocs==1.6.1 mkdocs-material==9.7.6
       - run: python .github/scripts/build_site.py
       - run: mkdocs build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: landing/package-lock.json
+      - name: The presentation, at the site's root
+        working-directory: landing
+        run: |
+          npm ci
+          npm run build
+          rm -f dist/prerendered-routes.json
+          cp -r dist/. ../site/
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

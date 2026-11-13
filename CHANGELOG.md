@@ -18,6 +18,14 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **The website** at the site's root ([lucasdantas2701.github.io/ANCHOR](https://lucasdantas2701.github.io/ANCHOR/)),
+  for people who do not program, in Portuguese and English, light and dark, with the interface's look
+  (`landing/`, Angular): what ANCHOR is in plain words, a working demo of its interface (pick a request;
+  allow or deny before it saves; choose when it is not sure), what it is for by situation, how it keeps
+  you in charge (a page that tries to fool an AI, to try), what happens when a site changes, the
+  measured results (an ordinary robot, an AI in control and ANCHOR, compared on three questions), a
+  schedule to build, and how to install it. The documentation moves under it (`/ANCHOR/docs/...`, its
+  other addresses unchanged), and the interface's Documentation button opens it directly.
 - **The article's tables and figures by code** (`python -m eval.paper_tables`): from the result files
   of the final run, the data of Figures 2 and 3 and Tables 4 to 7 (LaTeX and CSV), the sensitivity
   analyses (the synthetic set without t-ord-a1 and t-ord-c1, the controlled set without ChatGPT), the

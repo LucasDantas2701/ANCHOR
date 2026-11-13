@@ -88,7 +88,7 @@ import { Setup } from './setup';
 export class App implements OnInit {
   private api = inject(Api);
   theme = signal<'dark' | 'light'>((localStorage.getItem('anchor-theme') as 'dark' | 'light') || 'dark');
-  docs = signal('https://lucasdantas2701.github.io/ANCHOR/');
+  docs = signal('https://lucasdantas2701.github.io/ANCHOR/docs/introduction/');
   version = signal('');
   guide = signal(guideOnStart());
   private runs = inject(Runs);
