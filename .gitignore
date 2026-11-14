@@ -307,3 +307,5 @@ __marimo__/
 
 # EGM artifacts (briefs, drafts, reports)
 /.dev/
+
+script.ps1
