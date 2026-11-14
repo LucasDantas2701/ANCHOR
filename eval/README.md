@@ -340,6 +340,12 @@ from the page's numbered element list instead of by the Resolver (`--ablation mo
 `eval/ablations.py`, in the evaluation's code: no line of the engine changes, and with no ablation the
 runners build ANCHOR exactly as measured (checked run by run with `python -m eval.determinism`).
 
+**Checks that accept every right outcome.** The annotation recorder writes what the annotator did, exactly;
+where a request allows more than one right outcome (a comment in one's own words, "tomorrow", "in the
+morning", "a room"), fixed rules loosen those checks by code (`python -m eval.relax_checks FILE --write`,
+decided on 14/11/2026, before the final run), the same for every annotated closed set, including the second
+annotator's.
+
 **A second annotator.** A seeded draw (`python -m eval.second_annotator draw`, seed 20261113) takes 25% of
 each closed request set, stratified by page, into clean skeletons (`eval/plans/second_annotator/`), which
 a second person annotates with the first annotator's method in each set (by hand in the synthetic one, with

@@ -18,6 +18,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
 ## [Unreleased]
 
 ### Added
+- **Checks that accept every right outcome** (decided on 14/11/2026, before the final run):
+  `python -m eval.relax_checks` loosens the checks the annotation recorder writes by fixed rules, the same
+  for every annotated closed set: dictated text ignoring capitals, accents and spaces; free text by the
+  words it shares with the request; relative dates computed on the day of the run; periods of the day as
+  ranges; and a list choice the request does not name as any option.
 - **A second annotator** (decided on 13/11/2026, before the final run): `python -m eval.second_annotator`
   draws 25% of each closed request set, by page, with a fixed seed, into clean skeletons made the same way
   as the first annotator's; in the final run, every run of a drawn task is judged by both answer keys on

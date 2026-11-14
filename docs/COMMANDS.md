@@ -653,6 +653,21 @@ python -m eval.human_publish <export.csv> --removals <removals.csv>
 ```
 
 
+### Loosening the recorder's checks
+
+```sh
+python -m eval.relax_checks eval/plans/holdout_controlled_tasks.json            # shows what would change
+python -m eval.relax_checks eval/plans/holdout_controlled_tasks.json --write    # applies it
+```
+
+Fixed rules, the same for every annotated closed set, applied by code to the checks the annotation recorder
+writes (a check written by hand is left as it is): a typed text that appears in the request stays exact,
+ignoring capitals, accents and spaces at the ends (`dictated`); one that does not is checked as filled and
+containing the content words it shares with the request (`free_text`); a date with a relative day in the
+request (today, tomorrow, next Monday...) is computed on the day of the run (`date`); a time with a period
+of the day in the request (morning, afternoon, night) is a range (`period`); a list choice the request does
+not name accepts any option but the first (`any_option`). It prints only task ids and rule names.
+
 ### The second annotator
 
 ```sh
