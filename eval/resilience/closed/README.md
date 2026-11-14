@@ -1,6 +1,6 @@
 # The closed resilience set
 
-New perturbations on known tasks: the same 30 base tasks, five levels and three executors as the
+New perturbations on known tasks: the same 30 base tasks, five levels and executors as the
 development benchmark (`eval/resilience/`), with perturbations from a catalog derived from published
 sources (`CATALOG.md`, written from `catalog.json` by `python -m eval.resilience.closed.catalog_md`). It runs once, in the final run of the release.
 
@@ -87,7 +87,13 @@ row says whether its combination reaches the plan (`reaches_plan`: "base" for le
 operator of the combination reached an element of the reference plan, or is an injection; "no"
 otherwise), computed from the frozen tasks, so the split is made by code. The main analysis has level 0
 and the "yes" combinations (30 + 120 = 150); the "no" ones (30: level 1, 4; level 2, 14; level 4, 12)
-are reported apart, as "perturbation off the task's path".
+are reported apart, as "perturbation off the task's path", and the total of all the combinations is
+reported as well (decided on 13/11/2026, before the final run).
+
+The executors (decided on 13/11/2026, before the final run): the two scripts (fixed selectors, and role
+and text locators), the model in control given the reference plan (the main comparison) and from the
+request only (reported apart, as an agent planning from scratch), ANCHOR, and its two ablations; with no
+`--executors`, `--final` runs them all.
 
 The injections (level 5, visible and hidden) count as reaching the plan whatever element they are near
 (decided by Lucas on 24/10/2026, before any run on the set, and applied only to this mark, by code; no

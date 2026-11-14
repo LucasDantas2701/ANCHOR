@@ -554,10 +554,12 @@ python -m eval.resilience.closed.generate --vetoes vetoes.csv   # again, until n
 
 ### Resilience benchmark runs (`eval.resilience.run`, `eval.resilience.report`)
 
-Runs the three executors on the altered pages: the traditional script (fixed selectors recorded
-on L0), the LLM in control (it chooses every action and element, with no protection) and ANCHOR (a
-saved automation whose approved plan is the reference plan, run twice on each altered page, with no
-user: the 1st run measures the recovery, the 2nd the reuse, which counts only if it needed no model).
+Runs the executors on the altered pages: the traditional script (fixed selectors recorded on L0), the
+role-and-text script (Playwright's `getByRole` and `getByText`, recorded on L0 from the same plans), the
+LLM in control (it chooses every action and element, with no protection; given the reference plan as
+guidance, or from the request only), ANCHOR (a saved automation whose approved plan is the reference
+plan, run twice on each altered page, with no user: the 1st run measures the recovery, the 2nd the reuse,
+which counts only if it needed no model) and ANCHOR's two ablations (see `--executors`).
 Each part saves its own results, so the benchmark can run in parts; the report puts them together.
 
 ```sh

@@ -141,7 +141,8 @@ To run ANCHOR from its code, see [Development](#development).
 * **It heals itself.** When a page changes, it finds the element again, checks every step, and keeps
   the fix for next time, instead of breaking like a fixed selector.
 * **It is measured.** Development suites, prompt-injection pages and a resilience benchmark against
-  a traditional script and an LLM in control, with closed sets for the 1.0 evaluation.
+  two kinds of script (fixed selectors; role and text locators), an LLM in control (with and without
+  the reference plan) and two ablations of ANCHOR, with closed sets for the 1.0 evaluation.
 * **It is open source**, under the Apache 2.0 license.
 
 ### What ANCHOR Does

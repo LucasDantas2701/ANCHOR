@@ -223,13 +223,18 @@ command reference for the levels. The tasks' checks use `data-eval`, the evaluat
 so they work on every level; no executor may use it. Rebuild after changing a task or a page, never
 edit the generated files by hand. These are development perturbations, written by hand by whoever
 developed the engine. The closed set uses the same 30 base tasks, the same five levels and the
-same three executors, with perturbations from a catalog derived from a published taxonomy of why
+same executors, with perturbations from a catalog derived from a published taxonomy of why
 web UI tests break, drawn by a generator with a fixed seed; the catalog, the generator and the
 generated pages were committed in that order, before any run on them, and it runs once, at the end
 (`python -m eval.resilience.run --final`). They are in `resilience/closed/` (see its README and
 `CATALOG.md`), with the pages in `fixtures/resilience_closed/` and the 150 tasks in
 `plans/resilience_closed_tasks.json`; `plans/resilience_scripts.json` holds the traditional script's
-fixed selectors. `python -m eval.resilience.report eval/results/resilience_*.json` puts the parts'
+fixed selectors and `plans/resilience_role_scripts.json` the role-and-text scripts. The executors
+(decided on 13/11/2026, before the final run): the fixed-selector script (`script`), the role-and-text
+script (`roles`), the model in control given the reference plan as guidance (`llm_plan`, the main
+comparison: every system starts from the same plan) and from the request only (`llm`, reported apart,
+as an agent planning from scratch), ANCHOR (`anchor`), and its two ablations (`anchor_noverify`,
+`anchor_modelpick`). `python -m eval.resilience.report eval/results/resilience_*.json` puts the parts'
 results together.
 
 ### Closed set of planner tasks
@@ -237,9 +242,22 @@ results together.
 The tasks in `plans/tasks.json` and `tasks_en.json` were used to tune the system, so their numbers
 are development numbers. The final numbers come from the closed sets (split `test`):
 `plans/holdout_tasks.json` (synthetic), `plans/holdout_controlled_tasks.json` (synthetic_controlled)
-and `plans/holdout_human_tasks.json` (human, once drawn), which only run with
-`python -m eval.plan_run --final --agent`, a single time, at the end, on the tagged release with a
-clean working copy (rule 0 above); the results come out by origin and by generator.
+and `plans/holdout_human_tasks.json` (human, once drawn), which only run with `--final`, a single time,
+at the end, on the tagged release with a clean working copy (rule 0 above); the results come out by
+origin and by generator. The final run of the request sets is four commands, each with both models
+(decided on 13/11/2026):
+
+```sh
+python -m eval.plan_run --final --agent --profiles ollama-small ollama-medium                          # ANCHOR
+python -m eval.plan_run --final --executor llm --profiles ollama-small ollama-medium                   # the model in control
+python -m eval.plan_run --final --agent --ablation no_verify --profiles ollama-small ollama-medium     # ablation
+python -m eval.plan_run --final --agent --ablation model_picks --profiles ollama-small ollama-medium   # ablation
+```
+
+The rule for repetitions, registered before the final run: each executor runs twice on the development
+sets, and if the two runs are identical run by run (`python -m eval.determinism`), the final run makes
+one run per combination; if not, three. The drawn tasks of the second annotator
+(`plans/second_annotator/`) are closed-set files too, and are judged by both keys in the same runs.
 
 **How it was built (October 2026): the synthetic set.** The 80 requests were generated on 08/10/2026
 by three AIs (A, B and C in the file), each in a new conversation with no history of the project:
@@ -308,11 +326,12 @@ the store does not sell); they have `"expected": "not_possible"` and a `why_not_
 done right when the agent does **not** declare success and their checks (safety: nothing harmful)
 hold. Declaring success on them counts as a premature end.
 
-**Two executors in the final run.** The closed request sets run with ANCHOR (`--agent`) and with the
-model in control (`--executor llm`), each with both models: the resilience benchmark's executor, judged
-by the same answer keys. Like ANCHOR, it can read an element's text or a whole table or list (with ANCHOR's
-own table reading), so every task is compared directly (decided on 13/11/2026, before the final run; until
-then, the tasks with expected readings were reported apart); a breakdown without them is kept.
+**The model in control on the request sets.** Besides ANCHOR (`--agent`) and its two ablations, the
+closed request sets run with the model in control (`--executor llm`), each with both models: the
+resilience benchmark's executor, judged by the same answer keys, planning from the request (as ANCHOR
+does on these sets). Like ANCHOR, it can read a text or a whole table or list by describing it, through
+ANCHOR's own readings, so every task is compared directly (decided on 13/11/2026, before the final run;
+until then, the tasks with expected readings were reported apart); a breakdown without them is kept.
 
 **Two ablations of ANCHOR.** On the same request sets and resilience benchmark, ANCHOR also runs without
 one of its parts, to measure what it is worth (decided on 13/11/2026, before the final run): without the
