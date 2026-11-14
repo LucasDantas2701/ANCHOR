@@ -31,7 +31,8 @@ modelo, inclusive uma vez por linha de uma planilha.
 * **Se recupera sozinho:** quando a página muda, ele acha o elemento de novo, confere cada passo e
   guarda a correção para a próxima vez.
 * **É medido:** suítes de desenvolvimento, páginas com injeção de instruções e um benchmark de
-  resiliência contra um script tradicional e um LLM no controle.
+  resiliência contra dois tipos de script (seletores fixos; localizadores por papel e texto), um LLM
+  no controle (com e sem o plano de referência) e duas ablações do ANCHOR.
 * **É código aberto**, sob a licença Apache 2.0.
 
 ## Como começar
