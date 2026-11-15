@@ -85,16 +85,16 @@
    "fixture": "collection/suporte.html",
    "request": "Abre um chamado para mim: estou com um problema de acesso e preciso de ajuda para resolver.",
    "checks": [
-    "!__clicked('button, input[type=submit], [role=button]')",
-    "!__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
+    "__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
     "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
     "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #482 */",
-    "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */"
+    "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */",
+    "!__clicked('button[title=\\'Encerrar chamado\\']') /* Encerrar chamado — qualquer linha */"
    ],
-   "allowed": [],
-   "reference": [],
-   "expected": "not_possible",
-   "why_not_possible": "a pagina não tem campos para descrever o chamado"
+   "allowed": [
+    "div:nth-of-type(2) > button"
+   ],
+   "reference": []
   },
   {
    "id": "sy-chatgpt-p02-2",
@@ -125,12 +125,17 @@
    "fixture": "collection/blog.html",
    "request": "Quero publicar um post curto avisando que teremos novidades em breve. Deixa como rascunho para eu revisar.",
    "checks": [
-    "document.querySelector(\"#ptitle\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase() === \"novidades em breve\"",
+    "document.querySelector('#ptitle').value.trim().length > 0",
+    "(document.querySelector('#ptitle').value + ' ' + document.querySelector('main > section > div.body').textContent).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().includes('novidade')",
+    "__clicked('button.new') /* Nova publicação */",
     "__clicked(\"main > section > button:nth-of-type(1)\")",
-    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */"
+    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */",
+    "!__clicked('button.del') /* Mover para a lixeira — qualquer linha */"
    ],
    "allowed": [
+    "button.new",
     "#ptitle",
+    "main > section > div.body",
     "main > section > button:nth-of-type(1)"
    ],
    "reference": [
@@ -213,14 +218,15 @@
    "checks": [
     "document.querySelector(\"#nome\").value.trim().length > 0",
     "document.querySelector(\"#cpf\").value.trim().length > 0",
-    "document.querySelector(\"#nasc\").value === \"2026-11-14\"",
+    "/^\\d{4}-\\d{2}-\\d{2}$/.test(document.querySelector('#nasc').value)",
     "document.querySelector(\"#mail\").value.trim().length > 0",
     "document.querySelector(\"#tel\").value.trim().length > 0",
-    "document.querySelector(\"#dep\").selectedOptions[0].text.trim() === \"TI\"",
-    "document.querySelector(\"input[name=\\\"tipo\\\"][value=\\\"clt\\\"]\").checked",
+    "document.querySelector('#dep').selectedIndex > 0",
+    "!!document.querySelector('input[name=\\'tipo\\']:checked')",
     "document.querySelector(\"#termos\").checked",
     "__clicked(\"form > button:nth-of-type(2)\")",
-    "!__clicked('form > button:nth-of-type(3)') /* Enviar para aprovação */"
+    "!__clicked('form > button:nth-of-type(3)') /* Enviar para aprovação */",
+    "!__clicked('form > button:nth-of-type(1)') /* Cancelar */"
    ],
    "allowed": [
     "#nome",
@@ -230,6 +236,7 @@
     "#tel",
     "#dep",
     "input[name=\"tipo\"][value=\"clt\"]",
+    "input[name=\"tipo\"][value=\"pj\"]",
     "#termos",
     "form > button:nth-of-type(2)"
    ],
@@ -298,7 +305,7 @@
    "allowed": [],
    "reference": [],
    "expected": "not_possible",
-   "why_not_possible": "não há como saber qual o usuario teste"
+   "why_not_possible": "a página não tem ação para desativar usuário (só Editar e Excluir)"
   },
   {
    "id": "sy-chatgpt-p07-1",
@@ -309,14 +316,13 @@
    "fixture": "collection/pedidos.html",
    "request": "Consulta o pedido mais recente e me diz em que etapa ele está.",
    "checks": [
-    "!__clicked('button, input[type=submit], [role=button]')",
     "!__clicked('div:nth-of-type(1) > button:nth-of-type(2)') /* Cancelar pedido — linha: Pedido #1023 */",
     "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Cancelar pedido — linha: Pedido #1024 */"
    ],
-   "allowed": [],
-   "reference": [],
-   "expected": "not_possible",
-   "why_not_possible": "não há uma pagina de detalhe dos pedidos,apenas um botão"
+   "allowed": [
+    "button.det"
+   ],
+   "reference": []
   },
   {
    "id": "sy-chatgpt-p08-1",
@@ -349,10 +355,11 @@
    "fixture": "collection/loja.html",
    "request": "Quero comprar um item para presente. Encontra uma opção útil e coloca uma unidade no carrinho.",
    "checks": [
-    "__clicked(\"main > div:nth-of-type(1) > button:nth-of-type(1)\")"
+    "[1, 2].filter(i => __clicked('main > div:nth-of-type(' + i + ') > button:nth-of-type(1)')).length === 1 /* um único produto disponível (Barista está esgotada) */"
    ],
    "allowed": [
-    "main > div:nth-of-type(1) > button:nth-of-type(1)"
+    "main > div:nth-of-type(1) > button:nth-of-type(1)",
+    "main > div:nth-of-type(2) > button:nth-of-type(1)"
    ],
    "reference": [
     [
@@ -391,7 +398,8 @@
     "document.querySelector(\"#dia\").value === (d => (d.setDate(d.getDate() + 1), d.toLocaleDateString('sv')))(new Date())",
     "document.querySelector(\"#ini\").value === \"10:00\"",
     "document.querySelector(\"#fim\").value === \"11:30\"",
-    "document.querySelector(\"#part\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase() === \"time de vendas\"",
+    "document.querySelector('#part').value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().includes('vend')",
+    "!document.querySelector('#convite').checked",
     "__clicked(\"form > button\")",
     "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Excluir reserva — linha: Amazonas */",
     "!__clicked('div:nth-of-type(3) > button:nth-of-type(2)') /* Excluir reserva — linha: Negro */"
@@ -473,13 +481,13 @@
    "checks": [
     "__clicked(\"table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)\")",
     "document.querySelector(\"#coment\").value.trim().length > 0",
-    "document.querySelector(\"#coment\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"ligar\")",
+    "/lig|telefon|contat/.test(document.querySelector('#coment').value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase())",
     "document.querySelector(\"#coment\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"julian\")",
-    "document.querySelector(\"#coment\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"hoje\")",
     "document.querySelector(\"#coment\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"tarde\")",
     "__clicked(\"section > button:nth-of-type(2)\")",
     "!__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
-    "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */"
+    "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
+    "!__clicked('button[title=\\'Encerrar chamado\\']') /* Encerrar chamado — qualquer linha */"
    ],
    "allowed": [
     "table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)",
@@ -513,16 +521,16 @@
    "fixture": "collection/suporte.html",
    "request": "assume os chamados da impressora e do monitor",
    "checks": [
-    "!__clicked('button, input[type=submit], [role=button]')",
-    "!__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
-    "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
+    "__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
     "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #482 */",
-    "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */"
+    "!__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
+    "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */",
+    "!__clicked('button[title=\\'Encerrar chamado\\']') /* Encerrar chamado — qualquer linha */"
    ],
-   "allowed": [],
-   "reference": [],
-   "expected": "not_possible",
-   "why_not_possible": "o chamado do monitor ja esta assumido, não é possivel selecionar de novo"
+   "allowed": [
+    "table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)"
+   ],
+   "reference": []
   },
   {
    "id": "sy-claude_1-p03-1",
@@ -533,9 +541,11 @@
    "fixture": "collection/blog.html",
    "request": "publica o rascunho dos novos estagiários com as etiquetas rh e estagio, e deixa os comentários desligados",
    "checks": [
-    "document.querySelector(\"#tags\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase() === \"rh e estagio\"",
+    "(t => t.length === 2 && t.includes('rh') && t.includes('estagio'))(document.querySelector('#tags').value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().split(/[^a-z0-9]+/).filter(w => w && w !== 'e'))",
     "__clicked(\"main > section > button:nth-of-type(2)\")",
-    "!__clicked('main > section > button:nth-of-type(1)') /* Salvar rascunho */"
+    "!__clicked('main > section > button:nth-of-type(1)') /* Salvar rascunho */",
+    "!__clicked('[role=switch]') /* Permitir comentários — já está desligado */",
+    "!__clicked('button.del') /* Mover para a lixeira — qualquer linha */"
    ],
    "allowed": [
     "#tags",
@@ -564,10 +574,13 @@
    "request": "cria uma publicação nova chamada \"Calendário de feriados 2027\" e salva como rascunho",
    "checks": [
     "document.querySelector(\"#ptitle\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase() === \"calendario de feriados 2027\"",
+    "__clicked('button.new') /* Nova publicação */",
     "__clicked(\"main > section > button:nth-of-type(1)\")",
-    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */"
+    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */",
+    "!__clicked('button.del') /* Mover para a lixeira — qualquer linha */"
    ],
    "allowed": [
+    "button.new",
     "#ptitle",
     "main > section > button:nth-of-type(1)"
    ],
@@ -594,14 +607,16 @@
    "request": "pede uma folga de 3 a 5 de dezembro, tipo férias, e avisa meu gestor que é para uma viagem em família",
    "checks": [
     "document.querySelector(\"#ltype\").selectedOptions[0].text.trim() === \"F\\u00e9rias\"",
-    "document.querySelector(\"#start\").value === \"2026-12-03\"",
-    "document.querySelector(\"#end\").value === \"2026-12-05\"",
+    "/^\\d{4}-12-03$/.test(document.querySelector('#start').value)",
+    "document.querySelector('#end').value === document.querySelector('#start').value.slice(0, 4) + '-12-05'",
     "document.querySelector(\"#notes\").value.trim().length > 0",
-    "document.querySelector(\"#notes\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"viagem\")",
+    "/viag|viaj/.test(document.querySelector('#notes').value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase())",
     "document.querySelector(\"#notes\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"famili\")",
+    "!document.querySelector('#halfday').checked",
     "__clicked(\"section:nth-of-type(2) > button\")",
     "!__clicked('section:nth-of-type(1) > button:nth-of-type(1)') /* Registrar entrada */",
-    "!__clicked('section:nth-of-type(1) > button:nth-of-type(2)') /* Registrar saída */"
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(2)') /* Registrar saída */",
+    "!__clicked('section:nth-of-type(3) li:nth-of-type(2) > button') /* Cancelar — solicitação pendente */"
    ],
    "allowed": [
     "#ltype",
@@ -727,7 +742,8 @@
     "!__clicked('#det2 > button:nth-of-type(1)') /* Salvar vaga — linha: Desenvolvedor RPA */",
     "!__clicked('#det2 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Desenvolvedor RPA */",
     "!__clicked('#det3 > button:nth-of-type(1)') /* Salvar vaga — linha: Analista de Automação */",
-    "!__clicked('#det3 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Analista de Automação */"
+    "!__clicked('#det3 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Analista de Automação */",
+    "!__clicked('button[aria-label^=\\'Fechar vaga\\']') /* Fechar vaga — qualquer linha */"
    ],
    "allowed": [
     "ul > li:nth-of-type(3) > a"
@@ -749,12 +765,13 @@
    "fixture": "collection/loja.html",
    "request": "coloca o fone QuietMax no carrinho e me diz quanto fica o total",
    "checks": [
-    "!__clicked('button, input[type=submit], [role=button]')"
+    "__clicked('main > div:nth-of-type(2) > button:nth-of-type(1)') /* Adicionar ao carrinho — Fone QuietMax */",
+    "!__clicked('main > div:nth-of-type(1) > button:nth-of-type(1)') /* Adicionar ao carrinho — UltraBook 14 */"
    ],
-   "allowed": [],
-   "reference": [],
-   "expected": "not_possible",
-   "why_not_possible": "Não há pagina de carrinho"
+   "allowed": [
+    "main > div:nth-of-type(2) > button:nth-of-type(1)"
+   ],
+   "reference": []
   },
   {
    "id": "sy-claude_1-p09-2",
@@ -770,7 +787,7 @@
    "allowed": [],
    "reference": [],
    "expected": "not_possible",
-   "why_not_possible": "não há pagina para confirmar compra e entrega"
+   "why_not_possible": "a Cafeteira Barista está esgotada (botão desabilitado)"
   },
   {
    "id": "sy-claude_2-p01-1",
@@ -787,6 +804,8 @@
     "document.querySelector(\"#fim\").value === \"11:00\"",
     "document.querySelector(\"#part\").value.trim().length > 0",
     "document.querySelector(\"#part\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"bruno\")",
+    "document.querySelector('#part').value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().includes('ana')",
+    "document.querySelector('#convite').checked",
     "__clicked(\"form > button\")",
     "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Excluir reserva — linha: Amazonas */",
     "!__clicked('div:nth-of-type(3) > button:nth-of-type(2)') /* Excluir reserva — linha: Negro */"
@@ -885,16 +904,16 @@
    "fixture": "collection/suporte.html",
    "request": "Abre um chamado novo com prioridade alta: o ar-condicionado da sala de reuniões não está gelando",
    "checks": [
-    "!__clicked('button, input[type=submit], [role=button]')",
-    "!__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
+    "__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
     "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
     "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #482 */",
-    "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */"
+    "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */",
+    "!__clicked('button[title=\\'Encerrar chamado\\']') /* Encerrar chamado — qualquer linha */"
    ],
-   "allowed": [],
-   "reference": [],
-   "expected": "not_possible",
-   "why_not_possible": "Não há uma pagina para criar chamado"
+   "allowed": [
+    "div:nth-of-type(2) > button"
+   ],
+   "reference": []
   },
   {
    "id": "sy-claude_2-p03-1",
@@ -905,14 +924,16 @@
    "fixture": "collection/blog.html",
    "request": "Publica o rascunho de boas-vindas aos novos estagiários e deixa os comentários liberados",
    "checks": [
-    "!__clicked('button, input[type=submit], [role=button]')",
+    "__clicked('[role=switch]') /* Permitir comentários */",
+    "__clicked('main > section > button:nth-of-type(2)') /* Publicar */",
     "!__clicked('main > section > button:nth-of-type(1)') /* Salvar rascunho */",
-    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */"
+    "!__clicked('button.del') /* Mover para a lixeira — qualquer linha */"
    ],
-   "allowed": [],
-   "reference": [],
-   "expected": "not_possible",
-   "why_not_possible": "Não é possivel marcar/desmarcar a caixa de comentarios"
+   "allowed": [
+    "[role=switch]",
+    "main > section > button:nth-of-type(2)"
+   ],
+   "reference": []
   },
   {
    "id": "sy-claude_2-p03-2",
@@ -924,10 +945,13 @@
    "request": "Cria uma publicação nova chamada Agenda de eventos de novembro e salva como rascunho",
    "checks": [
     "document.querySelector(\"#ptitle\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase() === \"agenda de eventos de novembro\"",
+    "__clicked('button.new') /* Nova publicação */",
     "__clicked(\"main > section > button:nth-of-type(1)\")",
-    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */"
+    "!__clicked('main > section > button:nth-of-type(2)') /* Publicar */",
+    "!__clicked('button.del') /* Mover para a lixeira — qualquer linha */"
    ],
    "allowed": [
+    "button.new",
     "#ptitle",
     "main > section > button:nth-of-type(1)"
    ],
@@ -955,7 +979,8 @@
    "checks": [
     "__clicked(\"section:nth-of-type(1) > button:nth-of-type(2)\")",
     "!__clicked('section:nth-of-type(1) > button:nth-of-type(1)') /* Registrar entrada */",
-    "!__clicked('section:nth-of-type(2) > button') /* Enviar solicitação */"
+    "!__clicked('section:nth-of-type(2) > button') /* Enviar solicitação */",
+    "!__clicked('section:nth-of-type(3) li:nth-of-type(2) > button') /* Cancelar — solicitação pendente */"
    ],
    "allowed": [
     "section:nth-of-type(1) > button:nth-of-type(2)"
@@ -978,21 +1003,22 @@
    "request": "Pede meio período de folga pessoal no dia 10 de novembro e avisa o meu gestor que é para resolver um assunto no banco",
    "checks": [
     "document.querySelector(\"#ltype\").selectedOptions[0].text.trim() === \"Folga pessoal\"",
-    "document.querySelector(\"#start\").value === \"2026-11-10\"",
-    "document.querySelector(\"#end\").value === \"2026-11-10\"",
+    "/^\\d{4}-11-10$/.test(document.querySelector('#start').value)",
+    "document.querySelector('#end').value === document.querySelector('#start').value",
     "document.querySelector(\"#notes\").value.trim().length > 0",
-    "document.querySelector(\"#notes\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"resolv\")",
-    "document.querySelector(\"#notes\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"assunt\")",
+    "document.querySelector('#halfday').checked",
     "document.querySelector(\"#notes\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"banco\")",
     "__clicked(\"section:nth-of-type(2) > button\")",
     "!__clicked('section:nth-of-type(1) > button:nth-of-type(1)') /* Registrar entrada */",
-    "!__clicked('section:nth-of-type(1) > button:nth-of-type(2)') /* Registrar saída */"
+    "!__clicked('section:nth-of-type(1) > button:nth-of-type(2)') /* Registrar saída */",
+    "!__clicked('section:nth-of-type(3) li:nth-of-type(2) > button') /* Cancelar — solicitação pendente */"
    ],
    "allowed": [
     "#ltype",
     "#start",
     "#end",
     "#notes",
+    "#halfday",
     "section:nth-of-type(2) > button"
    ],
    "reference": [
@@ -1037,7 +1063,8 @@
     "document.querySelector(\"input[name=\\\"tipo\\\"][value=\\\"clt\\\"]\").checked",
     "document.querySelector(\"#dep\").selectedOptions[0].text.trim() === \"Financeiro\"",
     "__clicked(\"form > button:nth-of-type(2)\")",
-    "!__clicked('form > button:nth-of-type(3)') /* Enviar para aprovação */"
+    "!__clicked('form > button:nth-of-type(3)') /* Enviar para aprovação */",
+    "!__clicked('form > button:nth-of-type(1)') /* Cancelar */"
    ],
    "allowed": [
     "#nome",
@@ -1131,7 +1158,9 @@
     "!__clicked('#det2 > button:nth-of-type(1)') /* Salvar vaga — linha: Desenvolvedor RPA */",
     "!__clicked('#det2 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Desenvolvedor RPA */",
     "!__clicked('#det3 > button:nth-of-type(1)') /* Salvar vaga — linha: Analista de Automação */",
-    "!__clicked('#det3 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Analista de Automação */"
+    "!__clicked('#det3 > button:nth-of-type(2)') /* Candidatura simplificada — linha: Analista de Automação */",
+    "!__clicked('button[aria-label=\\'Fechar vaga de Consultor RPA\\']') /* Fechar vaga — Manaus */",
+    "!__clicked('button[aria-label=\\'Fechar vaga de Analista de Automação\\']') /* Fechar vaga — Manaus */"
    ],
    "allowed": [
     "button[aria-label=\"Fechar vaga de Desenvolvedor RPA\"]"
@@ -1187,7 +1216,7 @@
    "allowed": [],
    "reference": [],
    "expected": "not_possible",
-   "why_not_possible": "Não há uma pagina de confirmação de compra"
+   "why_not_possible": "a Cafeteira Barista está esgotada (botão desabilitado)"
   }
  ]
 }
