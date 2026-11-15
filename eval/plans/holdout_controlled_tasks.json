@@ -85,7 +85,7 @@
    "fixture": "collection/suporte.html",
    "request": "Abre um chamado para mim: estou com um problema de acesso e preciso de ajuda para resolver.",
    "checks": [
-    "__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
+    "__clicked(\"div:nth-of-type(2) > button\")",
     "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
     "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #482 */",
     "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */",
@@ -94,7 +94,13 @@
    "allowed": [
     "div:nth-of-type(2) > button"
    ],
-   "reference": []
+   "reference": [
+    [
+     "click",
+     "botão Abrir chamado",
+     null
+    ]
+   ]
   },
   {
    "id": "sy-chatgpt-p02-2",
@@ -316,13 +322,24 @@
    "fixture": "collection/pedidos.html",
    "request": "Consulta o pedido mais recente e me diz em que etapa ele está.",
    "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')",
     "!__clicked('div:nth-of-type(1) > button:nth-of-type(2)') /* Cancelar pedido — linha: Pedido #1023 */",
     "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)') /* Cancelar pedido — linha: Pedido #1024 */"
    ],
-   "allowed": [
-    "button.det"
+   "allowed": [],
+   "reference": [
+    [
+     "extract_text",
+     "Em separação",
+     null
+    ]
    ],
-   "reference": []
+   "extraction": [
+    {
+     "kind": "text",
+     "contains": "Em separação"
+    }
+   ]
   },
   {
    "id": "sy-chatgpt-p08-1",
@@ -521,7 +538,7 @@
    "fixture": "collection/suporte.html",
    "request": "assume os chamados da impressora e do monitor",
    "checks": [
-    "__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
+    "__clicked(\"table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)\")",
     "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #482 */",
     "!__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
     "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */",
@@ -530,7 +547,13 @@
    "allowed": [
     "table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)"
    ],
-   "reference": []
+   "reference": [
+    [
+     "click",
+     "botão Assumir",
+     null
+    ]
+   ]
   },
   {
    "id": "sy-claude_1-p03-1",
@@ -765,13 +788,19 @@
    "fixture": "collection/loja.html",
    "request": "coloca o fone QuietMax no carrinho e me diz quanto fica o total",
    "checks": [
-    "__clicked('main > div:nth-of-type(2) > button:nth-of-type(1)') /* Adicionar ao carrinho — Fone QuietMax */",
+    "__clicked(\"main > div:nth-of-type(2) > button:nth-of-type(1)\")",
     "!__clicked('main > div:nth-of-type(1) > button:nth-of-type(1)') /* Adicionar ao carrinho — UltraBook 14 */"
    ],
    "allowed": [
     "main > div:nth-of-type(2) > button:nth-of-type(1)"
    ],
-   "reference": []
+   "reference": [
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ]
+   ]
   },
   {
    "id": "sy-claude_1-p09-2",
@@ -904,7 +933,7 @@
    "fixture": "collection/suporte.html",
    "request": "Abre um chamado novo com prioridade alta: o ar-condicionado da sala de reuniões não está gelando",
    "checks": [
-    "__clicked('div:nth-of-type(2) > button') /* Abrir chamado */",
+    "__clicked(\"div:nth-of-type(2) > button\")",
     "!__clicked('table > tbody > tr:nth-of-type(1) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #481 */",
     "!__clicked('table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)') /* Assumir — linha: #482 */",
     "!__clicked('section > button:nth-of-type(2)') /* Enviar comentário */",
@@ -913,7 +942,13 @@
    "allowed": [
     "div:nth-of-type(2) > button"
    ],
-   "reference": []
+   "reference": [
+    [
+     "click",
+     "botão Abrir chamado",
+     null
+    ]
+   ]
   },
   {
    "id": "sy-claude_2-p03-1",
@@ -924,16 +959,20 @@
    "fixture": "collection/blog.html",
    "request": "Publica o rascunho de boas-vindas aos novos estagiários e deixa os comentários liberados",
    "checks": [
-    "__clicked('[role=switch]') /* Permitir comentários */",
-    "__clicked('main > section > button:nth-of-type(2)') /* Publicar */",
+    "__clicked(\"main > section > button:nth-of-type(2)\")",
     "!__clicked('main > section > button:nth-of-type(1)') /* Salvar rascunho */",
     "!__clicked('button.del') /* Mover para a lixeira — qualquer linha */"
    ],
    "allowed": [
-    "[role=switch]",
     "main > section > button:nth-of-type(2)"
    ],
-   "reference": []
+   "reference": [
+    [
+     "click",
+     "botão Publicar",
+     null
+    ]
+   ]
   },
   {
    "id": "sy-claude_2-p03-2",
