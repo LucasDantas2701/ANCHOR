@@ -164,12 +164,21 @@ def field_kinds(task: dict, browser) -> dict[str, str]:
     return kinds
 
 
+def indentation(text: str) -> int:
+    """The file's own indentation (the recorder writes 1 space, the synthetic set has 2), so a rewrite changes
+    only the tasks it loosens and the history shows just those."""
+    second = text.splitlines()[1] if len(text.splitlines()) > 1 else ""
+    return (len(second) - len(second.lstrip(" "))) or 1
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(prog="python -m eval.relax_checks", description="Loosens the recorder's checks by fixed rules.")
     ap.add_argument("file", type=Path)
     ap.add_argument("--write", action="store_true", help="apply the changes (without it, only shows them)")
     args = ap.parse_args(argv)
-    data = json.loads(args.file.read_text(encoding="utf-8"))
+    text = args.file.read_text(encoding="utf-8")
+    data = json.loads(text)
+    indent = indentation(text)
     from playwright.sync_api import sync_playwright
     changed = 0
     with sync_playwright() as p:
@@ -185,7 +194,7 @@ def main(argv: list[str] | None = None) -> int:
         browser.close()
     print(f"{changed} task(s) {'changed' if args.write else 'would change'} in {args.file.name}")
     if args.write and changed:
-        args.file.write_text(json.dumps(data, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        args.file.write_text(json.dumps(data, ensure_ascii=False, indent=indent) + "\n", encoding="utf-8")
     return 0
 
 

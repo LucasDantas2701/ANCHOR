@@ -88,3 +88,8 @@ def test_the_hand_written_forms_of_the_synthetic_set_follow_the_same_rules():
         assert none == [] and same["checks"] == [check]
     escaped, rules = rc.relax_task(task("Escreva D'Ávila", "document.querySelector('#n').value === 'D\\'Ávila'"), {"#n": "text"})
     assert rules == ["dictated"] and escaped["checks"][0].endswith('=== "d\'avila"')
+
+
+def test_a_rewrite_keeps_the_files_own_indentation():
+    assert rc.indentation('{\n  "tasks": []\n}') == 2 and rc.indentation('{\n "tasks": []\n}') == 1
+    assert rc.indentation("{}") == 1
