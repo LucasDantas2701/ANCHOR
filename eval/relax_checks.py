@@ -5,9 +5,11 @@ right outcome (decided on 14/11/2026, before the final run; the same rules for e
     python -m eval.relax_checks FILE            # shows which tasks a rule would change (ids and rule names)
     python -m eval.relax_checks FILE --write    # applies them
 
-The recorder writes what the annotator did, exactly: the text typed, the date, the time, the option chosen.
-That is right when the request dictates it, and too strict when it does not. The rules, applied by code to
-each check in the recorder's format (a check written by hand is left as it is):
+The recorder writes what the annotator did, exactly: the text typed, the date, the time, the option chosen
+(and the synthetic set, annotated by hand, has the same kinds of exact checks, in single quotes). That is
+right when the request dictates it, and too strict when it does not. The rules, applied by code to each
+check of those forms (a field's value compared with a text, a list's chosen option compared with or
+starting with a text; any other check is left as it is):
 
   dictated   a typed text that appears in the request (a name, an e-mail): still exact, but ignoring
              capitals, accents and the spaces at the ends.
@@ -31,8 +33,18 @@ import sys
 import unicodedata
 from pathlib import Path
 
-FILL = re.compile(r'^document\.querySelector\((".*?")\)\.value === (".*")$')
-SELECT = re.compile(r'^document\.querySelector\((".*?")\)\.selectedOptions\[0\]\.text\.trim\(\) === (".*")$')
+# A JavaScript string literal, in double quotes (the recorder's) or in single quotes (written by hand).
+_STR = r"""("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')"""
+FILL = re.compile(rf"^document\.querySelector\({_STR}\)\.value === {_STR}$")
+SELECT = re.compile(rf"^document\.querySelector\({_STR}\)\.selectedOptions\[0\]\.text(?:\.trim\(\))?"
+                    rf"(?: === {_STR}|\.startsWith\({_STR}\))$")
+
+
+def js_string(literal: str) -> str:
+    """A JavaScript string literal's value (double or single quotes)."""
+    if literal.startswith('"'):
+        return json.loads(literal)
+    return re.sub(r"\\(.)", r"\1", literal[1:-1])
 STOPWORDS = set("""a o as os um uma uns umas de da do das dos em na no nas nos para por com sem que e ou se
 mas como mais muito pra pro esta este isso essa esse aquela aquele foi ser sao tem ter the and for with
 from that this have has was are you your please """.split())
@@ -88,7 +100,7 @@ def relax_check(check: str, request: str, kinds: dict[str, str]) -> tuple[list[s
     """The check, loosened by one rule: (the new checks, the rule's name), or ([check], None)."""
     m = FILL.match(check)
     if m:
-        selector, value = json.loads(m.group(1)), json.loads(m.group(2))
+        selector, value = js_string(m.group(1)), js_string(m.group(2))
         q = f"document.querySelector({json.dumps(selector)})"
         kind = kinds.get(selector, "text")
         if kind == "date":
@@ -114,7 +126,7 @@ def relax_check(check: str, request: str, kinds: dict[str, str]) -> tuple[list[s
         return new, "free_text"
     m = SELECT.match(check)
     if m:
-        selector, option = json.loads(m.group(1)), json.loads(m.group(2))
+        selector, option = js_string(m.group(1)), js_string(m.group(2) or m.group(3))
         if plain(option) and plain(option) not in plain(request) and plain(option.split("(")[0]).strip() not in plain(request):
             return [f"document.querySelector({json.dumps(selector)}).selectedIndex > 0"], "any_option"
     return [check], None
@@ -138,7 +150,7 @@ def field_kinds(task: dict, browser) -> dict[str, str]:
     for check in task.get("checks", []):
         m = FILL.match(check) or SELECT.match(check)
         if m:
-            selectors.append(json.loads(m.group(1)))
+            selectors.append(js_string(m.group(1)))
     if not selectors:
         return {}
     page = browser.new_page()

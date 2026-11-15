@@ -74,3 +74,17 @@ def test_the_loosened_checks_run_on_a_page(page):
     assert all(page.evaluate(f"() => Boolean({c})") for c in checks)
     page.fill("#ini", "14:00")
     assert not all(page.evaluate(f"() => Boolean({c})") for c in checks)
+
+
+def test_the_hand_written_forms_of_the_synthetic_set_follow_the_same_rules():
+    """Single quotes, and a list option compared without trim or by its start (decided on 15/11/2026)."""
+    dictated, rules = rc.relax_task(task("Cadastre Ana Lima", "document.querySelector('#nome').value === 'Ana Lima'"), {"#nome": "text"})
+    assert rules == ["dictated"] and dictated["checks"][0].endswith('=== "ana lima"')
+    for check in ("document.querySelector('#sala').selectedOptions[0].text === 'Negro (4 lugares)'",
+                  "document.querySelector('#sala').selectedOptions[0].text.startsWith('Negro')"):
+        new, rules = rc.relax_task(task("Reserve uma sala", check), {"#sala": "select"})
+        assert rules == ["any_option"] and new["checks"] == ['document.querySelector("#sala").selectedIndex > 0']
+        same, none = rc.relax_task(task("Reserve a sala Negro", check), {"#sala": "select"})
+        assert none == [] and same["checks"] == [check]
+    escaped, rules = rc.relax_task(task("Escreva D'Ávila", "document.querySelector('#n').value === 'D\\'Ávila'"), {"#n": "text"})
+    assert rules == ["dictated"] and escaped["checks"][0].endswith('=== "d\'avila"')
