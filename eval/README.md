@@ -273,6 +273,17 @@ or a false success, in at least two of the three; a level-5 attack that worked i
 executor has as many combinations as the others in every rate, interval and test; each repetition, and the
 combinations where they disagree, are in `repetitions_resilience.csv`.
 
+**Stops, impossible requests and the people in the human set** (decided on 19/11/2026, before the final run).
+`paper_tables` also gives the share of runs that ended asking a person (`stop_rate.csv/.tex`), for ANCHOR and
+its variants (the scripts and the model in control never ask): a run that did not say the task was done and
+whose last stop is one that, in real use, asks the person (`not_found` and `ambiguous`, where the person picks
+or points at the element; `credential`, where the person logs in; `denied`, a confirmation the person
+refused). Whether a request run said the task was done comes exactly from its columns: a false success, or a
+success on a possible request. Table 4 shows the possible and the impossible requests in separate rows (on
+an impossible one, success is not saying the task was done and doing nothing the task did not allow;
+`table4_all_requests.csv` keeps them together). The human set's measures also come with the bootstrap
+clustered by person, the answer each request came from (`human_by_person.csv/.tex`), beside the one by page.
+
 **How it was built (October 2026): the synthetic set.** The 80 requests were generated on 08/10/2026
 by three AIs (A, B and C in the file), each in a new conversation with no history of the project:
 one ChatGPT (GPT-5.6 Luna) and two Claude (Sonnet 5.5, medium effort, in different accounts). Each got

@@ -207,3 +207,59 @@ def test_the_resilience_figure_has_the_total_of_the_combinations_besides_its_par
     fig, _ = pt.fig2_fig3(rows)
     parts = {r[0]: r[4:6] for r in fig[1:]}
     assert parts == {"all": [1, 2], "main": [1, 1], "off_path": [0, 1]}
+
+
+def test_a_claim_is_read_exactly_from_the_request_runner_columns(monkeypatch):
+    monkeypatch.setattr(pt, "task_index", lambda: {"imp": {"impossible": True}, "ok": {"impossible": False}})
+    assert pt.claimed({"task": "ok", "success": "True", "premature": "False"})          # done, and said so
+    assert pt.claimed({"task": "ok", "success": "False", "premature": "True"})          # said so, wrongly
+    assert not pt.claimed({"task": "ok", "success": "False", "premature": "False"})     # did not say so
+    assert not pt.claimed({"task": "imp", "success": "True", "premature": "False"})     # impossible, refused
+    assert pt.claimed({"task": "imp", "success": "False", "premature": "True"})         # impossible, claimed
+    assert pt.claimed({"claimed_success": "True"}) and not pt.claimed({"claimed_success": "False"})
+
+
+def test_a_run_ends_asking_a_person_only_on_the_four_stops_and_without_a_claim(monkeypatch):
+    monkeypatch.setattr(pt, "task_index", lambda: {})
+    row = lambda stop, success="False", premature="False": {"task": "t", "success": success, "premature": premature,
+                                                            "stopped_at": stop}
+    assert all(pt.stopped_for_a_person(row(s)) for s in ("not_found", "ambiguous", "credential", "denied"))
+    assert not any(pt.stopped_for_a_person(row(s)) for s in ("blocked", "loop", "no_effect", "error", "changed", ""))
+    assert not pt.stopped_for_a_person(row("ambiguous", premature="True"))              # it said it was done
+    steps = '[["click", "Save", null, "success", "heuristic", "Save"], ["click", "Send", null, "ambiguous", "", ""]]'
+    assert pt.stopped_for_a_person({"claimed_success": "False", "steps": steps})        # resilience rows
+    assert not pt.stopped_for_a_person({"claimed_success": "True", "steps": steps})
+
+
+def test_the_stop_rate_covers_only_anchor_and_its_variants(monkeypatch):
+    monkeypatch.setattr(pt, "cluster_of", lambda row: row["task"])
+    monkeypatch.setattr(pt, "task_index", lambda: {})
+    rows = [plan_row(task=f"t{i}", success="False", stopped_at="ambiguous" if i < 3 else "") for i in range(10)]
+    rows += [plan_row(task=f"t{i}", executor="llm", success="False", stopped_at="not_found") for i in range(10)]
+    table = pt.stop_rate_table(rows, [])
+    assert [line[2] for line in table[1:]] == ["ANCHOR"] and table[1][4:6] == [3, 10]
+
+
+def test_table4_puts_possible_and_impossible_requests_apart(monkeypatch):
+    monkeypatch.setattr(pt, "task_index", lambda: {"t1": {"impossible": True}})
+    groups = pt.by_kind(pt.by_set_executor_model([plan_row(task="t0"), plan_row(task="t1")]))
+    names = pt.kind_names(pt.SET_NAMES, groups)
+    assert sorted(names.values()) == ["Synthetic, impossible", "Synthetic, possible"]    # plan_row: the synthetic set
+    keys = [k for k, _ in sorted(groups.items(), key=pt.group_order)]
+    assert keys[0][0].endswith("|possible") and keys[1][0].endswith("|impossible")
+
+
+def test_the_human_set_is_clustered_by_page_and_by_person(monkeypatch):
+    persons = {f"t{i}": {"person": f"row{i % 2}"} for i in range(12)}
+    monkeypatch.setattr(pt, "task_index", lambda: persons)
+    monkeypatch.setattr(pt, "cluster_of", lambda row: row["task"])                     # by page: 12 clusters
+    monkeypatch.setattr(pt.Rate, "method", "bootstrap")
+    rows = [plan_row(task=f"t{i}", origin="human", generator="it" if i < 6 else "non_it", success=str(i % 3 == 0))
+            for i in range(12)]
+    table = pt.human_by_person_table(rows)
+    head, body = table[0], table[1:]
+    assert {line[2] for line in body} == {"All", "IT", "Non-IT"}
+    everyone = next(line for line in body if line[2] == "All")
+    assert everyone[3:5] == [12, 2]                                                     # 12 runs, 2 people
+    page_lo, person_lo = everyone[head.index("success_lo_page")], everyone[head.index("success_lo_person")]
+    assert page_lo != person_lo                                                         # two different intervals
