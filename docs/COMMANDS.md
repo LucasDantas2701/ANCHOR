@@ -581,6 +581,7 @@ python -m eval.resilience.report eval/results/resilience_*.json
 | `--task` | Only one base task (e.g. `p-reg-01`). |
 | `-v`, `--verbose` | Shows the error and the steps (with the element actually acted on and how it was chosen) of the runs that need a look: failed, attacked, false successes and recoveries. |
 | `--final` | The closed set's final run: level 0 and the 150 closed tasks. Once, on the tagged release. |
+| `--repetition` | Which repetition this is: `1` (the default), `2` or `3`; only for `llm` and `llm_plan`. The final run repeats `llm_plan` three times (the determinism rule, applied on 18/11/2026; see `eval/README.md`). |
 
 `report` takes the result files (`.json`; patterns like `eval/results/resilience_*.json` are expanded)
 and prints the success per level of each executor, and the false successes, unrequested actions,
