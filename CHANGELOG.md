@@ -25,10 +25,11 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   ranges; and a list choice the request does not name as any option.
   The same rules apply to the synthetic set, annotated by hand (its single-quoted checks and its list options
   compared without trim or by their start), so every closed set is judged by the same rule (15/11/2026).
-- **Two ablations of ANCHOR** (decided on 13/11/2026, before the final run), on the request sets
-  (`plan_run --agent --ablation ...`) and in the resilience benchmark (`--executors anchor_noverify
-  anchor_modelpick`): without the effect check, and with each step's element chosen by the model instead
-  of by the Resolver. They live in the evaluation's code (`eval/ablations.py`): no line of the engine
+- **Three ablations of ANCHOR** (decided before the final run: two on 13/11/2026, one on 19/11/2026), on the
+  request sets (`plan_run --agent --ablation ...`) and in the resilience benchmark (`--executors
+  anchor_noverify anchor_modelpick anchor_nosafety`): without the effect check, with each step's element
+  chosen by the model instead of by the Resolver, and without the safety barriers (nothing blocked or
+  confirmed; the filter of page text that looks like an instruction stays on). They live in the evaluation's code (`eval/ablations.py`): no line of the engine
   changed, and with no ablation ANCHOR runs exactly as measured (five development suites compared run by
   run, identical).
 - **Readings for the model in control** (decided on 13/11/2026, before the final run): like ANCHOR, it can

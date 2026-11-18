@@ -71,4 +71,61 @@ def test_the_tables_treat_each_ablation_as_a_system_with_two_runs():
     assert pt.resilience_executor(row) == "anchor_noverify2" and pt.resilience_success(row)
     assert not pt.resilience_success({**row, "executor": "anchor_modelpick", "llm_calls": "3"})
     assert pt.EXECUTOR_NAMES["anchor_modelpick1"].startswith("ANCHOR, element chosen by the model")
-    assert json.dumps(ab.EXECUTOR_NAME) and set(ab.ABLATIONS) == {"no_verify", "model_picks"}
+    assert json.dumps(ab.EXECUTOR_NAME) and set(ab.ABLATIONS) == {"no_verify", "model_picks", "no_safety"}
+
+
+DANGER = """<!doctype html><html lang="en"><body>
+<label>Name <input id="name"></label><button onclick="this.dataset.done = 1">Delete account</button>
+<label>Password <input id="pw" type="password"></label></body></html>"""
+
+
+def test_no_safety_keeps_the_barriers_off_whatever_sets_them(page):
+    executor = ab.make_executor(page, "no_safety", resolver=ElementResolver(page))
+    assert isinstance(executor, ab.NoSafetyExecutor)
+    executor.guard, executor.refuse_passwords, executor.confirmer = (lambda *a: "changed"), True, object()
+    assert executor.guard is None and executor.refuse_passwords is False and executor.confirmer is None
+    ab.agent_class("no_safety")(page, None, executor)                      # the agent turns the refusal on...
+    assert executor.refuse_passwords is False                              # ...and it stays off
+    plain = ab.make_executor(page, None, resolver=ElementResolver(page))
+    Agent(page, None, plain)
+    assert plain.refuse_passwords is True                                  # ANCHOR as measured: on
+
+
+def test_no_safety_types_a_password_where_anchor_refuses(page):
+    page.set_content(DANGER)
+    anchor = ab.make_executor(page, None, resolver=ElementResolver(page))
+    anchor.refuse_passwords = True
+    assert anchor.fill("Password", "secret").status == "credential"
+    assert page.input_value("#pw") == ""
+    ablated = ab.make_executor(page, "no_safety", resolver=ElementResolver(page))
+    assert ablated.fill("Password", "secret").status == "success"
+    assert page.input_value("#pw") == "secret"
+
+
+def test_no_safety_agent_blocks_no_step_that_anchor_blocks(page):
+    from anchor.planner.plan import Step
+    page.set_content(DANGER)
+    request, step = "Type Maria in the name field", Step("click", "Delete account")
+    anchor = Agent(page, None, ab.make_executor(page, None, resolver=ElementResolver(page)))
+    ablated = ab.agent_class("no_safety")(page, None, ab.make_executor(page, "no_safety", resolver=ElementResolver(page)))
+    assert anchor._unrequested_destructive(request, step) or anchor._unrequested_submit(request, step)
+    assert not (ablated._unrequested_destructive(request, step) or ablated._unrequested_submit(request, step)
+                or ablated._wrong_file(request, step) or ablated._wrong_field(request, step))
+    assert ab.agent_class(None) is Agent and ab.agent_class("no_verify") is Agent
+
+
+def test_building_swaps_the_runner_agent_only_for_no_safety():
+    import anchor.automations.runner as runner
+    for ablation in (None, "no_verify", "model_picks"):
+        with ab.building(ablation):
+            assert runner.Agent is Agent
+    with ab.building("no_safety"):
+        assert runner.Agent is ab.NoSafetyAgent
+    assert runner.Agent is Agent                                           # restored afterwards
+
+
+def test_no_safety_has_its_own_rows_and_names():
+    assert ab.EXECUTOR_NAME["no_safety"] == "anchor_nosafety"
+    row = {"executor": "anchor_nosafety", "run": "2", "success": "True", "llm_calls": "0"}
+    assert pt.resilience_executor(row) == "anchor_nosafety2" and pt.resilience_success(row)
+    assert "anchor_nosafety2" in pt.EXECUTOR_NAMES and pt.SHORT_EXECUTOR["anchor_nosafety"] == "No barriers"

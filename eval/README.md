@@ -233,8 +233,8 @@ fixed selectors and `plans/resilience_role_scripts.json` the role-and-text scrip
 (decided on 13/11/2026, before the final run): the fixed-selector script (`script`), the role-and-text
 script (`roles`), the model in control given the reference plan as guidance (`llm_plan`, the main
 comparison: every system starts from the same plan) and from the request only (`llm`, reported apart,
-as an agent planning from scratch), ANCHOR (`anchor`), and its two ablations (`anchor_noverify`,
-`anchor_modelpick`). `python -m eval.resilience.report eval/results/resilience_*.json` puts the parts'
+as an agent planning from scratch), ANCHOR (`anchor`), and its three ablations (`anchor_noverify`,
+`anchor_modelpick`, `anchor_nosafety`). `python -m eval.resilience.report eval/results/resilience_*.json` puts the parts'
 results together.
 
 ### Closed set of planner tasks
@@ -244,7 +244,7 @@ are development numbers. The final numbers come from the closed sets (split `tes
 `plans/holdout_tasks.json` (synthetic), `plans/holdout_controlled_tasks.json` (synthetic_controlled)
 and `plans/holdout_human_tasks.json` (human, once drawn), which only run with `--final`, a single time,
 at the end, on the tagged release with a clean working copy (rule 0 above); the results come out by
-origin and by generator. The final run of the request sets is four commands, each with both models
+origin and by generator. The final run of the request sets is five commands, each with both models
 (decided on 13/11/2026):
 
 ```sh
@@ -252,6 +252,7 @@ python -m eval.plan_run --final --agent --profiles ollama-small ollama-medium   
 python -m eval.plan_run --final --executor llm --profiles ollama-small ollama-medium                   # the model in control
 python -m eval.plan_run --final --agent --ablation no_verify --profiles ollama-small ollama-medium     # ablation
 python -m eval.plan_run --final --agent --ablation model_picks --profiles ollama-small ollama-medium   # ablation
+python -m eval.plan_run --final --agent --ablation no_safety --profiles ollama-small ollama-medium     # ablation
 ```
 
 The rule for repetitions, registered before the final run: each executor runs twice on the development
@@ -346,10 +347,14 @@ does on these sets). Like ANCHOR, it can read a text or a whole table or list by
 ANCHOR's own readings, so every task is compared directly (decided on 13/11/2026, before the final run;
 until then, the tasks with expected readings were reported apart); a breakdown without them is kept.
 
-**Two ablations of ANCHOR.** On the same request sets and resilience benchmark, ANCHOR also runs without
-one of its parts, to measure what it is worth (decided on 13/11/2026, before the final run): without the
-effect check after each step (`--ablation no_verify`), and with each step's element chosen by the model
-from the page's numbered element list instead of by the Resolver (`--ablation model_picks`). Both live in
+**Three ablations of ANCHOR.** On the same request sets and resilience benchmark, ANCHOR also runs without
+one of its parts, to measure what it is worth (decided before the final run: the first two on 13/11/2026,
+the third on 19/11/2026): without the effect check after each step (`--ablation no_verify`), with each
+step's element chosen by the model from the page's numbered element list instead of by the Resolver
+(`--ablation model_picks`), and without the safety barriers (`--ablation no_safety`: nothing blocked or
+confirmed; off are the blocks before a step, the saved automation's guard and the refusal to type
+passwords, while the filter that keeps page text that looks like an instruction out of what the model
+reads stays on, since it blocks and confirms nothing). All three live in
 `eval/ablations.py`, in the evaluation's code: no line of the engine changes, and with no ablation the
 runners build ANCHOR exactly as measured (checked run by run with `python -m eval.determinism`).
 

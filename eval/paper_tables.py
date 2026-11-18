@@ -253,7 +253,7 @@ def cluster_of(row: dict) -> str:
 
 MODEL_NAMES = {"ollama-small": "4B", "ollama-medium": "9B"}
 SHORT_EXECUTOR = {"anchor": "ANCHOR", "llm": "LLM", "llm_plan": "LLM+plan", "anchor_noverify": "No check",
-                  "anchor_modelpick": "Model picks"}
+                  "anchor_modelpick": "Model picks", "anchor_nosafety": "No barriers"}
 ACTION_NAMES = {"all": "All", "click": "click", "fill": "type", "select": "select", "check": "check",
                 "uncheck": "uncheck", "hover": "hover", "press": "press a key", "extract_text": "read text",
                 "extract_table": "read table", "download": "download", "upload": "upload"}
@@ -270,7 +270,10 @@ EXECUTOR_NAMES = {"script": "Fixed selectors", "roles": "Role and text locators"
                   "anchor_noverify1": "ANCHOR without the effect check, 1st run",
                   "anchor_noverify2": "ANCHOR without the effect check, 2nd run (no model call)",
                   "anchor_modelpick1": "ANCHOR, element chosen by the model, 1st run",
-                  "anchor_modelpick2": "ANCHOR, element chosen by the model, 2nd run (no model call)"}
+                  "anchor_modelpick2": "ANCHOR, element chosen by the model, 2nd run (no model call)",
+                  "anchor_nosafety": "ANCHOR without the safety barriers",
+                  "anchor_nosafety1": "ANCHOR without the safety barriers, 1st run",
+                  "anchor_nosafety2": "ANCHOR without the safety barriers, 2nd run (no model call)"}
 
 
 def resilience_executor(row: dict) -> str:

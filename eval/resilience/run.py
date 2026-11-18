@@ -7,7 +7,7 @@ altered pages of eval/plans/resilience_tasks.json (build them with python -m eva
     python -m eval.resilience.run --executors anchor --profiles ollama-small --language pt
     python -m eval.resilience.run --executors llm --profiles ollama-medium --language en
     python -m eval.resilience.run --executors llm_plan --profiles ollama-medium   # given the reference plan
-    python -m eval.resilience.run --executors anchor_noverify anchor_modelpick --profiles ollama-medium   # ablations
+    python -m eval.resilience.run --executors anchor_noverify anchor_modelpick anchor_nosafety --profiles ollama-medium   # ablations
     python -m eval.resilience.report eval/results/resilience_*.json      # the tables, from the parts
 
 Each part saves its own results, so the benchmark can run in parts (an executor, a model and a
@@ -81,9 +81,9 @@ def final_tasks() -> list[dict]:
     """The final run's tasks: the 30 base tasks at level 0, and the closed set's 150."""
     base = [t for t in json.loads(TASKS.read_text(encoding="utf-8"))["tasks"] if t["level"] == 0]
     return base + json.loads(CLOSED_TASKS.read_text(encoding="utf-8"))["tasks"]
-EXECUTORS = ("script", "roles", "llm", "llm_plan", "anchor", "anchor_noverify", "anchor_modelpick")
-# roles: role-and-text locators; llm_plan: the model in control, given the plan; anchor_noverify and
-# anchor_modelpick: the two ablations of ANCHOR (eval.ablations)
+EXECUTORS = ("script", "roles", "llm", "llm_plan", "anchor", "anchor_noverify", "anchor_modelpick", "anchor_nosafety")
+# roles: role-and-text locators; llm_plan: the model in control, given the plan; anchor_noverify,
+# anchor_modelpick and anchor_nosafety: the three ablations of ANCHOR (eval.ablations)
 
 
 # The determinism rule (registered on 13/11/2026): an executor whose two development runs differ runs three
@@ -142,7 +142,7 @@ def run_anchor(browser, task: dict, make_planner, profile: str, folder: Path, ab
     without one of its parts, see eval.ablations)."""
     from anchor.automations import Automation, AutomationStore, run_automation
     from anchor.automations.model import ApprovedPlan
-    from eval.ablations import EXECUTOR_NAME, agent_options, make_executor
+    from eval.ablations import EXECUTOR_NAME, agent_options, building, make_executor
 
     store = AutomationStore(folder / task["id"].replace("@", "_"))
     name = "task"
@@ -155,8 +155,9 @@ def run_anchor(browser, task: dict, make_planner, profile: str, folder: Path, ab
                                  resolver=ElementResolver(page), memory=ChoiceMemory(store.memory_path(name)))
         system = EXECUTOR_NAME[ablation]
         try:
-            result, _, _ = run_automation(store, name, page, executor, make_planner, report=None, heal=True,
-                                          **agent_options(ablation))
+            with building(ablation):        # the automation runner builds the ablation's agent, if it has one
+                result, _, _ = run_automation(store, name, page, executor, make_planner, report=None, heal=True,
+                                              **agent_options(ablation))
             healed = bool(store.runs(name)[-1].get("healed"))
             steps = [r.step for r in result.records]
             log = [[r.step.action, r.step.description, r.step.value, r.status, r.resolved_by, r.element]
@@ -252,7 +253,8 @@ def main(argv: list[str] | None = None) -> int:
                                  executor, profile_name, 1, o.llm_calls, o.seconds, o.error, log=o.steps)]
                     page.close()
                 else:
-                    ablation = {"anchor_noverify": "no_verify", "anchor_modelpick": "model_picks"}.get(executor)
+                    ablation = {"anchor_noverify": "no_verify", "anchor_modelpick": "model_picks",
+                                "anchor_nosafety": "no_safety"}.get(executor)
                     new = run_anchor(browser, task, lambda _a, pr=profile: pr.planner(), profile_name,
                                      Path(tmp) / executor / profile_name, ablation)
                 for r in new:

@@ -269,10 +269,10 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=No
         planner.current = task["reference"]
     import tempfile
     with tempfile.TemporaryDirectory() as output:      # extracted tables and downloads are not kept
-        from eval.ablations import agent_options, make_executor
+        from eval.ablations import agent_class, agent_options, make_executor
         executor = make_executor(page, ablation, planner, resolver=ElementResolver(page))   # ANCHOR, unless ablated
-        agent = Agent(page, planner, executor, report=None, vision=vision, output_dir=output,
-                      **agent_options(ablation))
+        agent = agent_class(ablation)(page, planner, executor, report=None, vision=vision, output_dir=output,
+                                      **agent_options(ablation))
         result = agent.run(task["request"])
         # The checks run on the tab the agent ended in (a task may move to a new tab).
         final = agent.page if not agent.page.is_closed() else page
@@ -613,9 +613,10 @@ def main() -> int:
     option(ap, "--suite", choices=SUITES, default="main",
            help="main: the ordinary tasks (default); injection: tasks whose pages try to hijack the agent; "
                 "extraction, downloads, uploads, tabs, frames: the 0.4 capability suites")
-    option(ap, "--ablation", choices=("no_verify", "model_picks"),
-           help="with --agent: ANCHOR without one of its parts (decided on 13/11/2026): no_verify, without the "
-                "effect check; model_picks, with the element chosen by the model instead of the Resolver")
+    option(ap, "--ablation", choices=("no_verify", "model_picks", "no_safety"),
+           help="with --agent: ANCHOR without one of its parts (decided on 13/11 and 19/11/2026): no_verify, "
+                "without the effect check; model_picks, with the element chosen by the model instead of the "
+                "Resolver; no_safety, without the safety barriers (nothing blocked or confirmed)")
     option(ap, "--executor", choices=("anchor", "llm"), default="anchor",
            help="anchor (default); llm: the model in control, the resilience benchmark's executor, judged by "
                 "the same answer keys (with --profiles; not with --agent, --reference, --vision or --no-page)")
