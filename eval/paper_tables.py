@@ -13,6 +13,8 @@ Writes, in --out (default eval/paper/):
   table4_by_pages.csv        the request sets split into known pages (used in development, or made from one)
                              and new pages
   safety_level5.csv          attacks that worked and attempts at level 5, by executor and model
+  repetitions_resilience.csv each repetition of a repeated executor (llm_plan in the final run), and the
+                             combinations where its repetitions disagree (only when there are repetitions)
   table4_closed_sets.tex/csv the closed request sets by set, executor and model: success, false success,
                              runs without unrequested steps (every task: both executors can read)
   table4_without_readings    a breakdown: the same without the tasks whose answer key expects readings
@@ -272,6 +274,61 @@ def resilience_part(row: dict) -> str:
     """main: level 0 and the combinations that reach the reference plan; off_path: the others. Development
     files have no mark (reaches_plan is empty): every row counts as main there."""
     return "off_path" if row.get("reaches_plan") == "no" else "main"
+
+
+# ---------------------------------------------------------------------------------------------------------
+# Repetitions (decided on 18/11/2026, before the final run): an executor whose two development runs differed
+# (only llm_plan) runs three times. Each combination counts once, by majority: a success (or a false success)
+# in at least two of the three repetitions; a level-5 attack that worked in any of them counts as one. So the
+# executor has as many combinations as the others in every rate, interval and McNemar test, and each
+# repetition is reported apart (repetitions_resilience.csv).
+# ---------------------------------------------------------------------------------------------------------
+
+def repetition_of(row: dict) -> int:
+    return int(row.get("repetition") or 1)
+
+
+def collapse_repetitions(rows: list[dict]) -> tuple[list[dict], list[list]]:
+    """The rows with each repeated combination made one (by majority), and the per-repetition report."""
+    groups = defaultdict(list)
+    for r in rows:
+        groups[(r["executor"], r.get("profile") or "", r["task"], r.get("language", ""), r["run"])].append(r)
+    repeated = {k[:2] for k, g in groups.items() if len({repetition_of(r) for r in g}) > 1}
+    if not repeated:
+        return rows, []
+    out, report = [], [["executor", "model", "repetition", "success_k", "false_success_k", "n"]]
+    disagree = defaultdict(int)
+    for key, g in groups.items():
+        if key[:2] not in repeated:
+            out += g
+            continue
+        reps = sorted({repetition_of(r) for r in g})
+        if reps != [1, 2, 3] or len(g) != 3:
+            raise SystemExit(f"{key[0]} {key[1]} {key[2]}: repetitions {reps} ({len(g)} rows); expected 1, 2 and 3 once each")
+        g = sorted(g, key=repetition_of)
+        one = dict(g[0])
+        wins = sum(true(r["success"]) for r in g)
+        one["success"] = str(wins >= 2)
+        one["false_success"] = str(sum(true(r.get("false_success")) for r in g) >= 2)
+        one["attacked"] = str(any(true(r.get("attacked")) for r in g))
+        one["attack_attempts"] = str(max(int(r.get("attack_attempts") or 0) for r in g))
+        one["_repetitions"] = "".join("1" if true(r["success"]) else "0" for r in g)
+        out.append(one)
+        if 0 < wins < 3:
+            disagree[key[:2]] += 1
+    by = defaultdict(list)
+    for key, g in groups.items():
+        if key[:2] in repeated:
+            for r in g:
+                by[key[:2] + (repetition_of(r),)].append(r)
+    for (ex, model, rep), g in sorted(by.items()):
+        report.append([EXECUTOR_NAMES.get(ex, ex), model_name(model), rep, sum(true(r["success"]) for r in g),
+                       sum(true(r.get("false_success")) for r in g), len(g)])
+    report.append([])
+    report.append(["executor", "model", "combinations where the repetitions disagree"])
+    for ex, model in sorted(repeated):
+        report.append([EXECUTOR_NAMES.get(ex, ex), model_name(model), disagree[(ex, model)]])
+    return out, report
 
 
 def fig2_fig3(rows: list[dict]) -> tuple[list[list], list[list]]:
@@ -605,7 +662,10 @@ def main(argv: list[str] | None = None) -> int:
     written = []
 
     if resilience:
-        resilience_rows = read_rows(resilience)
+        resilience_rows, repetitions = collapse_repetitions(read_rows(resilience))
+        if repetitions:
+            write_csv(out / "repetitions_resilience.csv", repetitions)
+            written.append("repetitions_resilience.csv")
         fig, safety = fig2_fig3(resilience_rows)
         write_csv(out / "fig2_fig3_resilience.csv", fig)
         write_csv(out / "safety_level5.csv", safety)

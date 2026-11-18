@@ -86,6 +86,12 @@ EXECUTORS = ("script", "roles", "llm", "llm_plan", "anchor", "anchor_noverify", 
 # anchor_modelpick: the two ablations of ANCHOR (eval.ablations)
 
 
+# The determinism rule (registered on 13/11/2026): an executor whose two development runs differ runs three
+# times in the final run. On 18/11/2026 only llm_plan differed (3 of its 300 runs, same results, other steps),
+# so the final run repeats it with --repetition 2 and 3; the model-in-control executors are the ones allowed.
+REPEATED = {"llm", "llm_plan"}
+
+
 @dataclass
 class Row:
     executor: str
@@ -107,6 +113,7 @@ class Row:
     error: str
     steps: str = ""           # JSON: [action, description, value, status, how it was resolved, element acted on]
     reaches_plan: str = ""    # final run: "base", "yes" or "no" (see reaches_plan); development: ""
+    repetition: int = 1       # the model-in-control executors' repetitions (decided on 18/11/2026; see --repetition)
 
 
 def judge(page, task: dict, claimed: bool, steps: list, executor: str, profile: str, run: int,
@@ -181,9 +188,13 @@ def main(argv: list[str] | None = None) -> int:
     option(ap, "--task", help="only one base task (e.g. p-reg-01)")
     ap.add_argument("-v", "--verbose", action="store_true",
                     help="shows the error and the steps (with the element acted on) of the runs that need a look")
+    option(ap, "--repetition", type=int, choices=(1, 2, 3), default=1,
+           help="which repetition this is (decided on 18/11/2026: the final run repeats llm_plan three times)")
     ap.add_argument("--final", action="store_true",
                     help="the closed set's final run (once, on the tagged release): level 0 and the 150 closed tasks")
     args = ap.parse_args(argv)
+    if args.repetition != 1 and set(args.executors) - REPEATED:
+        ap.error(f"--repetition is only for the executors that are repeated ({', '.join(sorted(REPEATED))})")
     where = provenance()
     if args.final:
         problem = final_problem(where)
@@ -244,6 +255,8 @@ def main(argv: list[str] | None = None) -> int:
                     ablation = {"anchor_noverify": "no_verify", "anchor_modelpick": "model_picks"}.get(executor)
                     new = run_anchor(browser, task, lambda _a, pr=profile: pr.planner(), profile_name,
                                      Path(tmp) / executor / profile_name, ablation)
+                for r in new:
+                    r.repetition = args.repetition
                 rows += new
                 for r in new:
                     mark = ("FALSE" if r.false_success else "OK " if r.success else "---")
@@ -265,7 +278,8 @@ def main(argv: list[str] | None = None) -> int:
     out = ROOT / "results"
     out.mkdir(exist_ok=True)
     tag = "-".join(args.executors) + ("_" + "-".join(args.profiles) if args.profiles else "") + \
-          (f"_{args.language}" if args.language else "") + ("_FINAL" if args.final else "")
+          (f"_{args.language}" if args.language else "") + \
+          (f"_rep{args.repetition}" if args.repetition != 1 else "") + ("_FINAL" if args.final else "")
     stem = f"resilience_{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}_{tag}"
     with open(out / f"{stem}.csv", "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=list(asdict(rows[0])))

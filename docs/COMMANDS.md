@@ -567,6 +567,8 @@ python -m eval.resilience.run --executors script
 python -m eval.resilience.run --executors anchor --profiles ollama-small --language pt
 python -m eval.resilience.run --executors llm --profiles ollama-medium --language en
 python -m eval.resilience.run --final --profiles ollama-small ollama-medium   # the closed set, once, at the end
+python -m eval.resilience.run --final --executors llm_plan --repetition 2 --profiles ollama-small ollama-medium   # its repetitions
+python -m eval.resilience.run --final --executors llm_plan --repetition 3 --profiles ollama-small ollama-medium
 python -m eval.resilience.report eval/results/resilience_*.json
 ```
 

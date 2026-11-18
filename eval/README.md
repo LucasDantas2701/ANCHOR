@@ -256,7 +256,21 @@ python -m eval.plan_run --final --agent --ablation model_picks --profiles ollama
 
 The rule for repetitions, registered before the final run: each executor runs twice on the development
 sets, and if the two runs are identical run by run (`python -m eval.determinism`), the final run makes
-one run per combination; if not, three. The drawn tasks of the second annotator
+one run per combination; if not, three. Applied on 18/11/2026, to the development runs of 15 to 17/11:
+every executor was identical in both runs except `llm_plan` in the resilience benchmark (3 of its 300 runs
+took other steps, with the same results), so the final run repeats `llm_plan` three times, with
+`--repetition 2` and `3` after the main resilience command (which is repetition 1):
+
+```sh
+python -m eval.resilience.run --final --profiles ollama-small ollama-medium
+python -m eval.resilience.run --final --executors llm_plan --repetition 2 --profiles ollama-small ollama-medium
+python -m eval.resilience.run --final --executors llm_plan --repetition 3 --profiles ollama-small ollama-medium
+```
+
+In the article's tables (`eval.paper_tables`), each repeated combination counts once, by majority (a success,
+or a false success, in at least two of the three; a level-5 attack that worked in any of them), so the
+executor has as many combinations as the others in every rate, interval and test; each repetition, and the
+combinations where they disagree, are in `repetitions_resilience.csv`. The drawn tasks of the second annotator
 (`plans/second_annotator/`) are closed-set files too, and are judged by both keys in the same runs.
 
 **How it was built (October 2026): the synthetic set.** The 80 requests were generated on 08/10/2026

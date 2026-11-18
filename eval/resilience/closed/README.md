@@ -78,8 +78,14 @@ How often an operator was applied depends on how many base pages it applies to, 
 
 ```sh
 python -m eval.resilience.run --final --profiles ollama-small ollama-medium
+python -m eval.resilience.run --final --executors llm_plan --repetition 2 --profiles ollama-small ollama-medium
+python -m eval.resilience.run --final --executors llm_plan --repetition 3 --profiles ollama-small ollama-medium
 python -m eval.resilience.report eval/results/resilience_*_FINAL.json
 ```
+
+The two `llm_plan` lines are the repetitions the determinism rule asked for (decided on 18/11/2026; see
+`eval/README.md`). The report pools them (their mean); the article's tables count each combination once,
+by majority (`eval.paper_tables`).
 
 `--final` runs the 30 base tasks at level 0 and the 150 closed tasks, once, on the tagged release with a
 clean working copy, and refuses to run if any file of the set differs from its manifest. Every result
