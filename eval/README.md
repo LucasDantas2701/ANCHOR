@@ -270,8 +270,7 @@ python -m eval.resilience.run --final --executors llm_plan --repetition 3 --prof
 In the article's tables (`eval.paper_tables`), each repeated combination counts once, by majority (a success,
 or a false success, in at least two of the three; a level-5 attack that worked in any of them), so the
 executor has as many combinations as the others in every rate, interval and test; each repetition, and the
-combinations where they disagree, are in `repetitions_resilience.csv`. The drawn tasks of the second annotator
-(`plans/second_annotator/`) are closed-set files too, and are judged by both keys in the same runs.
+combinations where they disagree, are in `repetitions_resilience.csv`.
 
 **How it was built (October 2026): the synthetic set.** The 80 requests were generated on 08/10/2026
 by three AIs (A, B and C in the file), each in a new conversation with no history of the project:
@@ -357,15 +356,11 @@ runners build ANCHOR exactly as measured (checked run by run with `python -m eva
 **Checks that accept every right outcome.** The annotation recorder writes what the annotator did, exactly;
 where a request allows more than one right outcome (a comment in one's own words, "tomorrow", "in the
 morning", "a room"), fixed rules loosen those checks by code (`python -m eval.relax_checks FILE --write`,
-decided on 14/11/2026, before the final run), the same for every annotated closed set, including the second
-annotator's.
+decided on 14/11/2026, before the final run), the same for every annotated closed set.
 
-**A second annotator.** A seeded draw (`python -m eval.second_annotator draw`, seed 20261113) takes 25% of
-each closed request set, stratified by page, into clean skeletons (`eval/plans/second_annotator/`), which
-a second person annotates with the first annotator's method in each set (by hand in the synthetic one, with
-the local annotation helper in the other two); the second key freezes with the first, on 01/12/2026. In the
-final run, every run of a drawn task is judged by both keys on the same final page (`success_2`), and
-`python -m eval.second_annotator kappa` gives Cohen's kappa between them (decided on 13/11/2026).
+**One annotator.** Every closed set's answer key is annotated by one person, the author (decided on
+19/11/2026: a second annotator, planned on 13/11/2026 for a seeded 25% of each set, was dropped before any
+second key was annotated; the article states the single annotator as a limitation).
 
 **Checked without trying the system.** `python -m eval.plan_run --check` runs each reference plan on
 its `reference_targets` with Playwright alone, with no part of ANCHOR, and checks that every check

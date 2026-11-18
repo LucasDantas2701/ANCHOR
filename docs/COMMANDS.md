@@ -672,21 +672,6 @@ request (today, tomorrow, next Monday...) is computed on the day of the run (`da
 of the day in the request (morning, afternoon, night) is a range (`period`); a list choice the request does
 not name accepts any option but the first (`any_option`). It prints only task ids and rule names.
 
-### The second annotator
-
-```sh
-python -m eval.second_annotator draw                  # 25% of each closed request set, by page, seed 20261113
-python -m eval.second_annotator status                # how many drawn tasks are annotated, per set
-python -m eval.second_annotator kappa RESULTS.csv...  # after the final run: Cohen's kappa between the two keys
-```
-
-`draw` writes clean skeletons of the drawn tasks in `eval/plans/second_annotator/<set>_tasks.json` (made
-the same way as the first annotator's: empty in the synthetic set, with every page's negative checks
-prefilled in the synthetic controlled and the human ones), with nothing of the first answer key; it never
-overwrites a set already drawn, so it runs again once the human set exists. In the final run, `plan_run`
-judges every run of a drawn task by both keys, on the same final page (the `success_2` column), and
-`kappa` gives their agreement per set, executor and model. The drawn files are closed-set files.
-
 ### Are two runs identical?
 
 ```sh

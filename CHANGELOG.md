@@ -25,10 +25,6 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   ranges; and a list choice the request does not name as any option.
   The same rules apply to the synthetic set, annotated by hand (its single-quoted checks and its list options
   compared without trim or by their start), so every closed set is judged by the same rule (15/11/2026).
-- **A second annotator** (decided on 13/11/2026, before the final run): `python -m eval.second_annotator`
-  draws 25% of each closed request set, by page, with a fixed seed, into clean skeletons made the same way
-  as the first annotator's; in the final run, every run of a drawn task is judged by both answer keys on
-  the same final page (the new `success_2` column), and `kappa` gives Cohen's kappa between them.
 - **Two ablations of ANCHOR** (decided on 13/11/2026, before the final run), on the request sets
   (`plan_run --agent --ablation ...`) and in the resilience benchmark (`--executors anchor_noverify
   anchor_modelpick`): without the effect check, and with each step's element chosen by the model instead
