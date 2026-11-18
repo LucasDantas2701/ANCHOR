@@ -703,7 +703,7 @@ mode it refuses files from different commits.
 | `--final` | Uses the newest `*_FINAL` files of the three evaluations. |
 | `--resilience`, `--plans`, `--resolver` | The result files to read (patterns are expanded). For tests: development files only. |
 | `--out` | The output folder. Default: `eval/paper/`. |
-| `--ci` | The uncertainty interval: `wilson` (95%, the provisional default), `bootstrap` (95%, clustered by page in the request sets and by base task in the resilience benchmark; 10,000 draws, seed 7) or `none`. |
+| `--ci` | The uncertainty interval (decided on 19/11/2026): `bootstrap`, the default (95%, clustered by page in the request sets and by base task in the resilience benchmark; 10,000 draws, seed 7; where a rate is 0% or 100%, the 95% Wilson interval, marked in the CSVs' `ci` columns and with a dagger in the LaTeX tables), `wilson` (95%, for every rate) or `none`. The McNemar files give the exact p-value (`p_exact`) and Holm's adjustment within each family (`p_holm`: one set, or part, and one model). |
 
 ## Development
 

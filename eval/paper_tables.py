@@ -26,8 +26,12 @@ Writes, in --out (default eval/paper/):
   table7_elements.tex/csv    element selection: recall@1/3/5/10, MRR, time per query and the five decisions
   sources.txt                the files read and their commits
 
-Uncertainty (--ci): wilson (the provisional default), bootstrap (clustered by page in the request sets and by
-base task in the resilience benchmark; 10,000 draws, seed 7) or none. The final choice is the methodologist's.
+Uncertainty (--ci, decided on 19/11/2026, before the final run): bootstrap, the default (clustered by page in the
+request sets and by base task in the resilience benchmark; 10,000 draws, seed 7), with the 95% Wilson interval
+where a rate is 0% or 100% (the bootstrap interval has no width there), marked in every CSV (a "ci" column with
+"bootstrap" or "wilson") and with a dagger in the LaTeX tables; wilson for every rate; or none. The McNemar
+tests give the exact p-value and Holm's adjustment within each family of comparisons (a set and a model in the
+requests; a part and a model in the resilience benchmark).
 
 It reads result files only (and, for the infeasible mark, the task definitions' "expected" field), and
 writes and prints no request text. Test it only with development results, never with closed ones.
@@ -51,7 +55,7 @@ COPIED_FROM_INSTRUCTIONS = ("t-ord-a1", "t-ord-c1")     # synthetic set, registe
 WITHOUT_GENERATOR = "chatgpt"                          # synthetic controlled set, decided on 22/10/2026
 
 # ---------------------------------------------------------------------------------------------------------
-# Uncertainty: pluggable (the method is to be defined; Wilson 95% is the provisional default)
+# Uncertainty: the clustered bootstrap (decided on 19/11/2026), with Wilson where the rate is 0% or 100%
 # ---------------------------------------------------------------------------------------------------------
 
 
@@ -97,14 +101,19 @@ INTERVALS = {"wilson": wilson, "bootstrap": None, "none": lambda k, n: None}
 class Rate:
     """k of n, with its interval from the chosen method (the clustered bootstrap needs each run's outcome and
     cluster; with none given it falls back to one cluster per run)."""
-    method = "wilson"
+    method = "bootstrap"
 
     def __init__(self, k: int, n: int, outcomes: list[bool] | None = None, clusters: list[str] | None = None):
         self.k, self.n = k, n
-        if Rate.method == "bootstrap":
+        self.ci_method = Rate.method if n and Rate.method != "none" else ""
+        if Rate.method == "bootstrap" and n and 0 < k < n:
             outcomes = outcomes if outcomes is not None else [True] * k + [False] * (n - k)
             clusters = clusters if clusters is not None else [str(i) for i in range(len(outcomes))]
             self.ci = bootstrap(outcomes, clusters)
+        elif Rate.method == "bootstrap" and n:
+            # 0% or 100%: every bootstrap draw gives the same rate, so its interval has no width; the 95% Wilson
+            # interval instead, marked (decided on 19/11/2026)
+            self.ci, self.ci_method = wilson(k, n), "wilson"
         else:
             self.ci = INTERVALS[Rate.method](k, n)
 
@@ -116,17 +125,25 @@ class Rate:
     def rate(self) -> float | None:
         return self.k / self.n if self.n else None
 
+    @property
+    def fallback(self) -> bool:
+        """The interval is Wilson's in place of the bootstrap's (a rate of 0% or 100%)."""
+        return Rate.method == "bootstrap" and self.ci_method == "wilson"
+
     def csv(self) -> list:
         lo, hi = self.ci if self.ci else ("", "")
-        return [self.k, self.n, _pct(self.rate), _pct(lo), _pct(hi)]
+        return [self.k, self.n, _pct(self.rate), _pct(lo), _pct(hi), self.ci_method]
 
     def tex(self) -> str:
         if not self.n:
             return "--"
         text = f"{100 * self.rate:.1f}"
         if self.ci:
-            text += f" ({100 * self.ci[0]:.1f}--{100 * self.ci[1]:.1f})"
+            text += f" ({100 * self.ci[0]:.1f}--{100 * self.ci[1]:.1f})" + (DAGGER if self.fallback else "")
         return text
+
+
+DAGGER = "\u2020"     # in a LaTeX cell, write_tex turns it into \textsuperscript{\dag}
 
 
 def _pct(x) -> str:
@@ -338,7 +355,7 @@ def fig2_fig3(rows: list[dict]) -> tuple[list[list], list[list]]:
         groups[(resilience_part(r),) + key].append(r)
         groups[("all",) + key].append(r)              # the total of the 150 combinations, besides the parts
     table = [["part", "executor", "model", "level", "success_k", "n", "success_%", "success_lo", "success_hi",
-              "false_success_k", "n", "false_success_%", "false_lo", "false_hi"]]
+              "success_ci", "false_success_k", "n", "false_success_%", "false_lo", "false_hi", "false_ci"]]
     for (part, ex, model, level), g in sorted(groups.items()):
         table.append([part, EXECUTOR_NAMES[ex], model_name(model), level]
                      + Rate.of([resilience_success(r) for r in g], [cluster_of(r) for r in g]).csv()
@@ -397,8 +414,8 @@ def by_set_executor_model(rows: list[dict], label=request_set) -> dict:
 
 
 def measure_table(groups: dict, set_names: dict) -> list[list]:
-    out = [["set", "executor", "model", "success_k", "n", "success_%", "lo", "hi", "false_success_k", "n",
-            "false_success_%", "lo", "hi", "clean_k", "n", "clean_%", "lo", "hi"]]
+    out = [["set", "executor", "model", "success_k", "n", "success_%", "lo", "hi", "ci", "false_success_k", "n",
+            "false_success_%", "lo", "hi", "ci", "clean_k", "n", "clean_%", "lo", "hi", "ci"]]
     for (s, ex, model), g in sorted(groups.items(), key=group_order):
         out.append([set_names.get(s, s), EXECUTOR_NAMES.get(ex, ex), model_name(model)] + sum((m.csv() for m in measures(g)), []))
     return out
@@ -473,6 +490,24 @@ def mcnemar_exact(b: int, c: int) -> float:
     return min(1.0, 2 * tail)
 
 
+def holm(p_values: list[float]) -> list[float]:
+    """Holm's step-down adjustment of the p-values of one family of tests (same order as given)."""
+    m = len(p_values)
+    order = sorted(range(m), key=lambda i: p_values[i])
+    adjusted, running = [0.0] * m, 0.0
+    for rank, i in enumerate(order):
+        running = max(running, min(1.0, (m - rank) * p_values[i]))
+        adjusted[i] = running
+    return adjusted
+
+
+def with_holm(family: list[list]) -> list[list]:
+    """The family's lines with the exact p-value formatted and Holm's adjusted one after it (decided on
+    19/11/2026: a family is the comparisons of ANCHOR with every other system in one set, or part, and model)."""
+    adjusted = holm([line[-1] for line in family])
+    return [line[:-1] + [f"{line[-1]:.4g}", f"{a:.4g}"] for line, a in zip(family, adjusted)]
+
+
 def paired(success: dict, anchor_key, other_key, label: str, model: str) -> list | None:
     """success maps (system, task) to True or False; pairs are the tasks both systems ran."""
     tasks = sorted({t for (s, t) in success if s == anchor_key} & {t for (s, t) in success if s == other_key})
@@ -480,10 +515,10 @@ def paired(success: dict, anchor_key, other_key, label: str, model: str) -> list
         return None
     b = sum(1 for t in tasks if success[(anchor_key, t)] and not success[(other_key, t)])
     c = sum(1 for t in tasks if not success[(anchor_key, t)] and success[(other_key, t)])
-    return [label, model_name(model), len(tasks), b, c, f"{mcnemar_exact(b, c):.4g}"]
+    return [label, model_name(model), len(tasks), b, c, mcnemar_exact(b, c)]
 
 
-MCNEMAR_HEADER = ["comparison", "model", "pairs", "ANCHOR_only", "other_only", "p_exact"]
+MCNEMAR_HEADER = ["comparison", "model", "pairs", "ANCHOR_only", "other_only", "p_exact", "p_holm"]
 
 
 def mcnemar_requests(rows: list[dict]) -> list[list]:
@@ -492,10 +527,12 @@ def mcnemar_requests(rows: list[dict]) -> list[list]:
         for model in sorted({r["profile"] for r in rows}, key=model_name):
             success = {(plans_executor(r), r["task"]): true(r["success"]) for r in rows
                        if request_set(r) == s and r["profile"] == model}
+            family = []
             for other in sorted({e for e, _ in success} - {"anchor"}):
                 line = paired(success, "anchor", other, f"ANCHOR vs {EXECUTOR_NAMES.get(other, other)}", model)
                 if line:
-                    out.append([SET_NAMES.get(s, s)] + line)
+                    family.append(line)
+            out += [[SET_NAMES.get(s, s)] + line for line in with_holm(family)]
     return out
 
 
@@ -511,10 +548,12 @@ def mcnemar_resilience(rows: list[dict]) -> list[list]:
                 ex = resilience_executor(r)
                 if r.get("profile") in (model, "", None) and not (ex.startswith("anchor") and ex.endswith("2")):
                     success[(ex, r["task"])] = resilience_success(r)
+            family = []
             for other in sorted({e for e, _ in success} - {"anchor1"}):
                 line = paired(success, "anchor1", other, f"ANCHOR vs {EXECUTOR_NAMES.get(other, other)}", model)
                 if line:
-                    out.append([part] + line)
+                    family.append(line)
+            out += [[part] + line for line in with_holm(family)]
     return out
 
 
@@ -532,7 +571,7 @@ def table7(rows: list[dict]) -> list[list]:
     groups = {"all": rows}
     for action in sorted({r["action"] for r in rows}):
         groups[action] = [r for r in rows if r["action"] == action]
-    out = [["group", "n", "recall@1_%", "lo", "hi", "recall@3_%", "recall@5_%", "recall@10_%", "MRR", "ms_per_query"]
+    out = [["group", "n", "recall@1_%", "lo", "hi", "ci", "recall@3_%", "recall@5_%", "recall@10_%", "MRR", "ms_per_query"]
            + [f"{d}_%" for d in DECISIONS]]
     for name, g in groups.items():
         n = len(g)
@@ -543,7 +582,7 @@ def table7(rows: list[dict]) -> list[list]:
         judged = [r for r in g if r.get("outcome")]
         dec = [_pct(sum(1 for r in judged if r["outcome"] == d) / len(judged)) if judged else "" for d in DECISIONS]
         r1 = at(1).csv()
-        out.append([ACTION_NAMES.get(name, name), n, r1[2], r1[3], r1[4], at(3).csv()[2], at(5).csv()[2], at(10).csv()[2],
+        out.append([ACTION_NAMES.get(name, name), n, r1[2], r1[3], r1[4], r1[5], at(3).csv()[2], at(5).csv()[2], at(10).csv()[2],
                     f"{mrr:.3f}" if mrr is not None else "", f"{ms:.0f}" if ms is not None else ""] + dec)
     return out
 
@@ -562,7 +601,7 @@ def tex_escape(text) -> str:
     return str(text).replace("\\", "\\textbackslash{}").replace("&", "\\&").replace("%", "\\%").replace("_", "\\_")
 
 
-NUMBER = re.compile(r"^(--|-|-?\d+(\.\d+)?( \(\d+(\.\d+)?--\d+(\.\d+)?\))?)$")
+NUMBER = re.compile(r"^(--|-|-?\d+(\.\d+)?( \(\d+(\.\d+)?--\d+(\.\d+)?\)\u2020?)?)$")
 INTERVAL_TEXT = {"wilson": "the 95% Wilson score interval",
                  "bootstrap": "the 95% clustered bootstrap interval (10,000 draws, by page or base task)", "none": ""}
 
@@ -591,12 +630,18 @@ def write_tex(path: Path, caption: str, header: list[str], rows: list[list], lab
              *header_rows(header), "\\hline"]
     lines += [" & ".join(tex_escape(c) for c in row) + " \\\\" for row in rows]
     lines += ["\\hline\\hline", "\\end{tabular}", f"\\end{{{env}}}", ""]
-    path.write_text("\n".join(lines), encoding="utf-8")
+    path.write_text("\n".join(lines).replace(DAGGER, "\\textsuperscript{\\dag}"), encoding="utf-8")
 
 
 def interval_note() -> str:
     text = INTERVAL_TEXT.get(Rate.method, Rate.method)
-    return f"Values are percentages, with {text} in parentheses" if text else "Values are percentages"
+    if not text:
+        return "Values are percentages"
+    note = f"Values are percentages, with {text} in parentheses"
+    if Rate.method == "bootstrap":
+        note += (f"; {DAGGER} marks the 95% Wilson score interval, used where the rate is 0% or 100% (the bootstrap "
+                 "interval has no width there)")
+    return note
 
 
 def measures_caption(title: str) -> str:
@@ -619,8 +664,9 @@ def table7_tex(rows: list[list]) -> tuple[list[str], list[list]]:
               "Corr.\nref.", "Percep."]
     body = []
     for r in rows[1:]:
-        r1 = f"{r[2]} ({r[3]}--{r[4]})" if r[3] != "" else r[2]
-        body.append([r[0], r[1], r1, r[5], r[6], r[7], r[8], r[9]] + [x or "--" for x in r[10:15]])
+        r1 = f"{r[2]} ({r[3]}--{r[4]})" + (DAGGER if Rate.method == "bootstrap" and r[5] == "wilson" else "") \
+            if r[3] != "" else r[2]
+        body.append([r[0], r[1], r1, r[6], r[7], r[8], r[9], r[10]] + [x or "--" for x in r[11:16]])
     return header, body
 
 
@@ -640,7 +686,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--plans", nargs="*", default=[], help="plan_run result files (.csv), both executors")
     ap.add_argument("--resolver", nargs="*", default=[], help="eval.run result files (.csv)")
     ap.add_argument("--out", default=str(ROOT / "paper"), help="output folder (default: eval/paper)")
-    ap.add_argument("--ci", choices=sorted(INTERVALS), default="wilson", help="the uncertainty interval (default: wilson, 95%%)")
+    ap.add_argument("--ci", choices=sorted(INTERVALS), default="bootstrap",
+                    help="the uncertainty interval (default: bootstrap, 95%%, with Wilson at 0%% and 100%%)")
     args = ap.parse_args(argv)
     Rate.method = args.ci
 

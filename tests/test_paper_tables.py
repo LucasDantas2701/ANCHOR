@@ -151,7 +151,53 @@ def test_mcnemar_pairs_anchor_with_each_system_task_by_task(monkeypatch):
     rows = [plan_row(task=f"t{i}", success=str(i < 8)) for i in range(10)]
     rows += [plan_row(task=f"t{i}", executor="llm", success=str(i < 3)) for i in range(10)]
     table = pt.mcnemar_requests(rows)
-    assert table[1][1:] == ["ANCHOR vs LLM in control", "4B", 10, 5, 0, "0.0625"]
+    assert table[1][1:] == ["ANCHOR vs LLM in control", "4B", 10, 5, 0, "0.0625", "0.0625"]   # one test: Holm = raw
+
+
+def test_holm_adjusts_the_p_values_of_a_family_step_down():
+    # sorted: 0.005*4 = 0.02, 0.01*3 = 0.03, 0.03*2 = 0.06, 0.04*1 = 0.04 -> kept at 0.06 (never below the one before)
+    assert pt.holm([0.01, 0.04, 0.03, 0.005]) == pytest.approx([0.03, 0.06, 0.06, 0.02])
+    assert pt.holm([0.5, 0.9]) == pytest.approx([1.0, 1.0])            # capped at 1
+    assert pt.holm([]) == []
+
+
+def test_mcnemar_adjusts_within_each_set_and_model_family(monkeypatch):
+    monkeypatch.setattr(pt, "cluster_of", lambda row: row["task"])
+    rows = [plan_row(task=f"t{i}", success=str(i < 8)) for i in range(10)]
+    rows += [plan_row(task=f"t{i}", executor="llm", success=str(i < 3)) for i in range(10)]
+    rows += [plan_row(task=f"t{i}", executor="anchor_noverify", success=str(i < 7)) for i in range(10)]
+    rows += [plan_row(task=f"t{i}", profile="ollama-medium", success="True") for i in range(10)]
+    rows += [plan_row(task=f"t{i}", profile="ollama-medium", executor="llm", success=str(i < 9)) for i in range(10)]
+    table = pt.mcnemar_requests(rows)
+    small = [r for r in table[1:] if r[2] == "4B"]
+    medium = [r for r in table[1:] if r[2] == "9B"]
+    raw = [float(r[6]) for r in small]
+    assert [float(r[7]) for r in small] == pytest.approx(pt.holm(raw))     # the 4B family: two tests
+    assert len(medium) == 1 and medium[0][6] == medium[0][7]               # the 9B family: one test, unadjusted
+
+
+def test_bootstrap_uses_wilson_where_the_rate_is_0_or_100_percent_and_says_so(monkeypatch):
+    monkeypatch.setattr(pt.Rate, "method", "bootstrap")
+    full, empty = pt.Rate.of([True] * 12, ["a", "b"] * 6), pt.Rate.of([False] * 12, ["a", "b"] * 6)
+    mixed = pt.Rate.of([True, False] * 6, ["a", "b", "c"] * 4)
+    assert full.ci == pt.wilson(12, 12) and full.ci[0] < 1.0 and full.ci_method == "wilson"
+    assert empty.ci == pt.wilson(0, 12) and empty.ci[1] > 0.0 and empty.csv()[5] == "wilson"
+    assert mixed.ci_method == "bootstrap" and mixed.csv()[5] == "bootstrap"
+    assert full.tex().endswith(pt.DAGGER) and not mixed.tex().endswith(pt.DAGGER)
+    monkeypatch.setattr(pt.Rate, "method", "wilson")
+    assert pt.Rate(12, 12).csv()[5] == "wilson" and not pt.Rate(12, 12).tex().endswith(pt.DAGGER)   # no mark
+    monkeypatch.setattr(pt.Rate, "method", "none")
+    assert pt.Rate(3, 12).csv()[3:] == ["", "", ""]
+
+
+def test_the_dagger_survives_the_latex_escaping_and_keeps_the_column_numeric(tmp_path, monkeypatch):
+    monkeypatch.setattr(pt.Rate, "method", "bootstrap")
+    out = tmp_path / "t.tex"
+    pt.write_tex(out, pt.measures_caption("T."), ["Set", "Success"], [["x", pt.Rate(5, 5).tex()]], "tab:x")
+    text = out.read_text(encoding="utf-8")
+    assert "\\textsuperscript{\\dag}" in text and pt.DAGGER not in text
+    assert "\\begin{tabular}{lr}" in text                                  # still a numeric column
+    assert "Wilson" in text                                                # the caption explains the mark
 
 
 def test_the_resilience_figure_has_the_total_of_the_combinations_besides_its_parts():

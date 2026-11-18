@@ -68,7 +68,9 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   analyses (the synthetic set without t-ord-a1 and t-ord-c1, the controlled set without ChatGPT), the
   report of the tasks that expect readings, and Table 6's rule for the cause of a failed run (safety stop,
   element resolution, effect verification, planning, other; false successes counted apart), decided before
-  the final run. The uncertainty interval is pluggable (Wilson 95% by default, provisionally).
+  the final run. The uncertainty interval (decided on 19/11/2026): the clustered bootstrap by default, with the
+  95% Wilson interval where a rate is 0% or 100% (marked); the McNemar tests with Holm's adjustment within
+  each family (a set, or part, and a model).
 - **The model in control on the request sets** (`python -m eval.plan_run --executor llm --profiles ...`):
   the resilience benchmark's model-in-control executor (unchanged), run on the same tasks as ANCHOR and
   judged by the same answer keys, so the final run compares the two executors on the synthetic,
