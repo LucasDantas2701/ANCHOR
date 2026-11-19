@@ -16,6 +16,7 @@ Writes, in --out (default eval/paper/):
   repetitions_resilience.csv each repetition of a repeated executor (llm_plan in the final run), and the
                              combinations where its repetitions disagree (only when there are repetitions)
   stop_rate.tex/csv          the runs that ended asking a person, by system and model (decided on 19/11/2026)
+  oracle_questions.csv       ANCHOR with a simulated person: the questions it asked per task (19/11/2026)
   human_by_person.tex/csv    the human set's measures with the bootstrap by page and by person, side by side
   table4_closed_sets.tex/csv the closed request sets by set (possible and impossible requests apart, decided
                              on 19/11/2026), executor and model: success, false success,
@@ -42,6 +43,7 @@ writes and prints no request text. Test it only with development results, never 
 from __future__ import annotations
 
 import argparse
+import statistics
 import csv
 import glob
 import math
@@ -356,13 +358,34 @@ def human_by_person_table(rows: list[dict]) -> list[list]:
 PROFILE_NAMES = {"all": "All", "it": "IT", "non_it": "Non-IT"}
 
 
+def oracle_questions_table(plan_rows: list[dict], resilience_rows: list[dict]) -> list[list]:
+    """The oracle condition (decided on 19/11/2026): how many times ANCHOR asked the simulated person, per task,
+    by source and model (and run, in the resilience benchmark)."""
+    out = [["source", "set_or_run", "model", "runs", "questions", "per_run_mean", "per_run_median", "per_run_max",
+            "runs_with_a_question_%"]]
+    groups = defaultdict(list)
+    for r in plan_rows:
+        if plans_executor(r) == "anchor_oracle":
+            groups[("Requests", SET_NAMES.get(request_set(r), request_set(r)), r["profile"])].append(r)
+    for r in resilience_rows:
+        if r["executor"] == "anchor_oracle":
+            groups[("Resilience", "1st run" if r["run"] == "1" else "2nd run", r.get("profile") or "")].append(r)
+    for (source, part, model), g in sorted(groups.items(), key=lambda kv: (kv[0][0] != "Requests", kv[0][1],
+                                                                          model_name(kv[0][2]))):
+        counts = [int(r.get("questions") or 0) for r in g]
+        out.append([source, part, model_name(model), len(g), sum(counts), round(sum(counts) / len(g), 2),
+                    statistics.median(counts), max(counts), _pct(sum(c > 0 for c in counts) / len(g))])
+    return out
+
+
 # ---------------------------------------------------------------------------------------------------------
 # Figures 2 and 3: resilience
 # ---------------------------------------------------------------------------------------------------------
 
 MODEL_NAMES = {"ollama-small": "4B", "ollama-medium": "9B"}
 SHORT_EXECUTOR = {"anchor": "ANCHOR", "llm": "LLM", "llm_plan": "LLM+plan", "anchor_noverify": "No check",
-                  "anchor_modelpick": "Model picks", "anchor_nosafety": "No barriers"}
+                  "anchor_modelpick": "Model picks", "anchor_nosafety": "No barriers",
+                  "anchor_oracle": "Oracle"}
 ACTION_NAMES = {"all": "All", "click": "click", "fill": "type", "select": "select", "check": "check",
                 "uncheck": "uncheck", "hover": "hover", "press": "press a key", "extract_text": "read text",
                 "extract_table": "read table", "download": "download", "upload": "upload"}
@@ -382,7 +405,10 @@ EXECUTOR_NAMES = {"script": "Fixed selectors", "roles": "Role and text locators"
                   "anchor_modelpick2": "ANCHOR, element chosen by the model, 2nd run (no model call)",
                   "anchor_nosafety": "ANCHOR without the safety barriers",
                   "anchor_nosafety1": "ANCHOR without the safety barriers, 1st run",
-                  "anchor_nosafety2": "ANCHOR without the safety barriers, 2nd run (no model call)"}
+                  "anchor_nosafety2": "ANCHOR without the safety barriers, 2nd run (no model call)",
+                  "anchor_oracle": "ANCHOR with a simulated person",
+                  "anchor_oracle1": "ANCHOR with a simulated person, 1st run",
+                  "anchor_oracle2": "ANCHOR with a simulated person, 2nd run (no model call)"}
 
 
 def resilience_executor(row: dict) -> str:
@@ -950,6 +976,10 @@ def main(argv: list[str] | None = None) -> int:
                   [line[:4] + [interval_cell(line[6], line[7], line[8], line[9]), line[5]] for line in stops[1:]],
                   "tab:stop-rate")
         written.append("stop_rate.csv/.tex")
+        questions = oracle_questions_table(stops_plans if plans else [], resilience_rows if resilience else [])
+        if len(questions) > 1:
+            write_csv(out / "oracle_questions.csv", questions)
+            written.append("oracle_questions.csv")
 
     if resolver:
         t7 = table7(read_rows(resolver))

@@ -129,3 +129,55 @@ def test_no_safety_has_its_own_rows_and_names():
     row = {"executor": "anchor_nosafety", "run": "2", "success": "True", "llm_calls": "0"}
     assert pt.resilience_executor(row) == "anchor_nosafety2" and pt.resilience_success(row)
     assert "anchor_nosafety2" in pt.EXECUTOR_NAMES and pt.SHORT_EXECUTOR["anchor_nosafety"] == "No barriers"
+
+
+TWINS = """<!doctype html><html lang="en"><body>
+<div><p>Report A</p><button id="a" onclick="this.dataset.done = 1">Open</button></div>
+<div><p>Report B</p><button id="b" onclick="this.dataset.done = 1">Open</button></div>
+<button id="del" onclick="this.dataset.done = 1">Delete account</button></body></html>"""
+
+
+def oracle(page, allowed):
+    return ab.make_executor(page, "oracle", allowed=allowed, resolver=ElementResolver(page))
+
+
+def test_the_oracle_picks_the_allowed_candidate_when_anchor_asks(page):
+    page.set_content(TWINS)
+    executor = oracle(page, ["#b"])
+    result = executor.click("Open")
+    assert result.status == "success" and result.resolved_by == "user" and executor.questions == 1
+    assert page.get_attribute("#b", "data-done") == "1" and page.get_attribute("#a", "data-done") is None
+
+
+def test_the_oracle_says_none_of_these_when_no_candidate_is_allowed(page):
+    page.set_content(TWINS)
+    executor = oracle(page, ["#elsewhere"])
+    result = executor.click("Open")
+    assert result.status == "ambiguous" and result.resolved_by == "user_none" and executor.questions == 1
+    assert page.get_attribute("#a", "data-done") is None and page.get_attribute("#b", "data-done") is None
+
+
+def test_the_oracle_approves_an_allowed_sensitive_action_and_denies_another(page):
+    page.set_content(TWINS)
+    yes = oracle(page, ["#del"])
+    assert yes.click("Delete account").status == "success" and yes.questions == 1
+    page.set_content(TWINS)
+    no = oracle(page, ["#a"])
+    assert no.click("Delete account").status == "denied" and no.questions == 1
+    assert page.get_attribute("#del", "data-done") is None
+
+
+def test_anchor_without_the_oracle_asks_no_one_and_stops(page):
+    page.set_content(TWINS)
+    plain = ab.make_executor(page, None, allowed=["#b"], resolver=ElementResolver(page))
+    assert type(plain) is ActionExecutor and plain.click("Open").status == "ambiguous"
+    assert not hasattr(plain, "questions") and ab.agent_class("oracle") is Agent and ab.agent_options("oracle") == {}
+
+
+def test_the_oracle_is_its_own_condition(monkeypatch):
+    assert ab.EXECUTOR_NAME["oracle"] == "anchor_oracle" and "oracle" in ab.CONDITIONS and "oracle" not in ab.ABLATIONS
+    assert pt.SHORT_EXECUTOR["anchor_oracle"] == "Oracle" and "anchor_oracle2" in pt.EXECUTOR_NAMES
+    rows = [{"executor": "anchor_oracle", "profile": "ollama-small", "task": f"t{i}", "split": "dev", "origin": "",
+             "questions": str(q), "_file": "x"} for i, q in enumerate([0, 2, 1, 0])]
+    table = pt.oracle_questions_table(rows, [])
+    assert table[1][3:] == [4, 3, 0.75, 0.5, 2, "50.0"]

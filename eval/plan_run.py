@@ -188,6 +188,7 @@ class TaskResult:
     generator: str = ""       # who wrote the request, within its origin (chatgpt, claude_1...)
     executor: str = "anchor"  # "anchor", or "llm": the model in control (--executor llm)
     reads: bool = False       # the answer key expects readings ("extraction"); see run_task_llm
+    questions: int = 0        # the oracle condition: how many times ANCHOR asked the simulated person
 
 
 def expects_readings(task: dict) -> bool:
@@ -270,7 +271,8 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=No
     import tempfile
     with tempfile.TemporaryDirectory() as output:      # extracted tables and downloads are not kept
         from eval.ablations import agent_class, agent_options, make_executor
-        executor = make_executor(page, ablation, planner, resolver=ElementResolver(page))   # ANCHOR, unless ablated
+        executor = make_executor(page, ablation, planner, allowed=task["allowed"],
+                                 resolver=ElementResolver(page))                    # ANCHOR, unless ablated
         agent = agent_class(ablation)(page, planner, executor, report=None, vision=vision, output_dir=output,
                                       **agent_options(ablation))
         result = agent.run(task["request"])
@@ -318,6 +320,7 @@ def run_task_agent(page: Page, planner, profile_name: str, task: dict, vision=No
         attack_attempts=len(tried), attack_attempts_list="; ".join(tried),
         vision_checks=result.vision_checks, vision_confirmed=result.vision_confirmed,
         vision_seconds=result.vision_seconds, reads=expects_readings(task), executor=EXECUTOR_NAME[ablation],
+        questions=getattr(executor, "questions", 0),
     )
 
 
@@ -617,6 +620,9 @@ def main() -> int:
            help="with --agent: ANCHOR without one of its parts (decided on 13/11 and 19/11/2026): no_verify, "
                 "without the effect check; model_picks, with the element chosen by the model instead of the "
                 "Resolver; no_safety, without the safety barriers (nothing blocked or confirmed)")
+    option(ap, "--oracle", action="store_true",
+           help="with --agent: ANCHOR with the person in the loop simulated by an oracle that answers from the "
+                "answer key (decided on 19/11/2026; eval/ablations.py); its rows say anchor_oracle")
     option(ap, "--executor", choices=("anchor", "llm"), default="anchor",
            help="anchor (default); llm: the model in control, the resilience benchmark's executor, judged by "
                 "the same answer keys (with --profiles; not with --agent, --reference, --vision or --no-page)")
@@ -625,6 +631,10 @@ def main() -> int:
         ap.error("--executor llm runs the model in control: --agent, --reference, --vision and --no-page do not apply")
     if args.executor == "llm" and not args.profiles:
         ap.error("--executor llm needs --profiles")
+    if args.oracle:
+        if args.ablation:
+            ap.error("--oracle is a condition of its own: not with --ablation")
+        args.ablation = "oracle"
     if args.ablation and not args.agent:
         ap.error("--ablation needs --agent")
     by_step = args.agent or args.executor == "llm"     # runs that call the model step by step
@@ -792,7 +802,7 @@ def main() -> int:
     out.mkdir(exist_ok=True)
     stem = (f"plans_{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}" + (f"_{args.suite}" if args.suite != "main" else "")
             + ("_llm" if args.executor == "llm" else "")
-            + (f"_ablation-{args.ablation.replace('_', '-')}" if args.ablation else "")
+            + ("_oracle" if args.ablation == "oracle" else f"_ablation-{args.ablation.replace('_', '-')}" if args.ablation else "")
             + ("_vision" if args.vision else "")
             + ("_FINAL" if args.final else ""))
     with open(out / f"{stem}.csv", "w", newline="", encoding="utf-8") as f:

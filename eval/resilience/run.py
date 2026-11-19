@@ -81,9 +81,11 @@ def final_tasks() -> list[dict]:
     """The final run's tasks: the 30 base tasks at level 0, and the closed set's 150."""
     base = [t for t in json.loads(TASKS.read_text(encoding="utf-8"))["tasks"] if t["level"] == 0]
     return base + json.loads(CLOSED_TASKS.read_text(encoding="utf-8"))["tasks"]
-EXECUTORS = ("script", "roles", "llm", "llm_plan", "anchor", "anchor_noverify", "anchor_modelpick", "anchor_nosafety")
+EXECUTORS = ("script", "roles", "llm", "llm_plan", "anchor", "anchor_noverify", "anchor_modelpick", "anchor_nosafety",
+             "anchor_oracle")
 # roles: role-and-text locators; llm_plan: the model in control, given the plan; anchor_noverify,
-# anchor_modelpick and anchor_nosafety: the three ablations of ANCHOR (eval.ablations)
+# anchor_modelpick and anchor_nosafety: the three ablations of ANCHOR; anchor_oracle: ANCHOR with the person
+# in the loop simulated from the answer key (eval.ablations)
 
 
 # The determinism rule (registered on 13/11/2026): an executor whose two development runs differ runs three
@@ -114,6 +116,7 @@ class Row:
     steps: str = ""           # JSON: [action, description, value, status, how it was resolved, element acted on]
     reaches_plan: str = ""    # final run: "base", "yes" or "no" (see reaches_plan); development: ""
     repetition: int = 1       # the model-in-control executors' repetitions (decided on 18/11/2026; see --repetition)
+    questions: int = 0        # anchor_oracle: how many times ANCHOR asked the simulated person (19/11/2026)
 
 
 def judge(page, task: dict, claimed: bool, steps: list, executor: str, profile: str, run: int,
@@ -152,6 +155,7 @@ def run_anchor(browser, task: dict, make_planner, profile: str, folder: Path, ab
     for run in (1, 2):
         page = fresh_page(browser, task)
         executor = make_executor(page, ablation, make_planner(None) if ablation == "model_picks" else None,
+                                 allowed=task["allowed"],
                                  resolver=ElementResolver(page), memory=ChoiceMemory(store.memory_path(name)))
         system = EXECUTOR_NAME[ablation]
         try:
@@ -167,6 +171,7 @@ def run_anchor(browser, task: dict, make_planner, profile: str, folder: Path, ab
                               "" if result.ok else result.message, healed, log))
         except Exception as exc:                      # an error of the run itself, recorded as a failure
             rows.append(judge(page, task, False, [], system, profile, run, 0, 0.0, f"{type(exc).__name__}: {exc}"))
+        rows[-1].questions = getattr(executor, "questions", 0)       # anchor_oracle's answers; 0 for the others
         page.close()
     return rows
 
@@ -254,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
                     page.close()
                 else:
                     ablation = {"anchor_noverify": "no_verify", "anchor_modelpick": "model_picks",
-                                "anchor_nosafety": "no_safety"}.get(executor)
+                                "anchor_nosafety": "no_safety", "anchor_oracle": "oracle"}.get(executor)
                     new = run_anchor(browser, task, lambda _a, pr=profile: pr.planner(), profile_name,
                                      Path(tmp) / executor / profile_name, ablation)
                 for r in new:

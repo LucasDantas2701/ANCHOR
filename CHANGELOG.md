@@ -25,6 +25,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   ranges; and a list choice the request does not name as any option.
   The same rules apply to the synthetic set, annotated by hand (its single-quoted checks and its list options
   compared without trim or by their start), so every closed set is judged by the same rule (15/11/2026).
+- **ANCHOR with a simulated person** (decided on 19/11/2026, before the final run): `plan_run --agent --oracle`
+  and the resilience executor `anchor_oracle`, an oracle that answers ANCHOR's questions from the answer key
+  (the element, from the allowed ones; the confirmation, approved for an allowed element), with the number of
+  questions per task (`questions`, and `oracle_questions.csv` in `paper_tables`).
 - **The article's tables, decided on 19/11/2026**: the share of runs that ended asking a person, by system
   and model (`stop_rate`); the possible and the impossible requests in separate rows of Table 4; and the human
   set's measures with the bootstrap clustered by person as well as by page (`human_by_person`).

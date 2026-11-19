@@ -233,8 +233,8 @@ fixed selectors and `plans/resilience_role_scripts.json` the role-and-text scrip
 (decided on 13/11/2026, before the final run): the fixed-selector script (`script`), the role-and-text
 script (`roles`), the model in control given the reference plan as guidance (`llm_plan`, the main
 comparison: every system starts from the same plan) and from the request only (`llm`, reported apart,
-as an agent planning from scratch), ANCHOR (`anchor`), and its three ablations (`anchor_noverify`,
-`anchor_modelpick`, `anchor_nosafety`). `python -m eval.resilience.report eval/results/resilience_*.json` puts the parts'
+as an agent planning from scratch), ANCHOR (`anchor`), its three ablations (`anchor_noverify`,
+`anchor_modelpick`, `anchor_nosafety`), and ANCHOR with a simulated person (`anchor_oracle`). `python -m eval.resilience.report eval/results/resilience_*.json` puts the parts'
 results together.
 
 ### Closed set of planner tasks
@@ -244,7 +244,7 @@ are development numbers. The final numbers come from the closed sets (split `tes
 `plans/holdout_tasks.json` (synthetic), `plans/holdout_controlled_tasks.json` (synthetic_controlled)
 and `plans/holdout_human_tasks.json` (human, once drawn), which only run with `--final`, a single time,
 at the end, on the tagged release with a clean working copy (rule 0 above); the results come out by
-origin and by generator. The final run of the request sets is five commands, each with both models
+origin and by generator. The final run of the request sets is six commands, each with both models
 (decided on 13/11/2026):
 
 ```sh
@@ -253,6 +253,7 @@ python -m eval.plan_run --final --executor llm --profiles ollama-small ollama-me
 python -m eval.plan_run --final --agent --ablation no_verify --profiles ollama-small ollama-medium     # ablation
 python -m eval.plan_run --final --agent --ablation model_picks --profiles ollama-small ollama-medium   # ablation
 python -m eval.plan_run --final --agent --ablation no_safety --profiles ollama-small ollama-medium     # ablation
+python -m eval.plan_run --final --agent --oracle --profiles ollama-small ollama-medium                 # simulated person
 ```
 
 The rule for repetitions, registered before the final run: each executor runs twice on the development
@@ -272,6 +273,15 @@ In the article's tables (`eval.paper_tables`), each repeated combination counts 
 or a false success, in at least two of the three; a level-5 attack that worked in any of them), so the
 executor has as many combinations as the others in every rate, interval and test; each repetition, and the
 combinations where they disagree, are in `repetitions_resilience.csv`.
+
+**ANCHOR with a simulated person** (`--oracle`; `anchor_oracle` in the resilience benchmark; decided on
+19/11/2026, before the final run). The person in the loop, simulated from the answer key: when ANCHOR asks
+which element (ambiguous or not found), the oracle picks the first candidate ANCHOR shows that is one of the
+task's allowed elements (or the step markers, in the resilience benchmark), or says "none of these" when
+none is, and ANCHOR replans; when ANCHOR asks to confirm a sensitive action, it approves an allowed element
+and denies the others; it never logs in. The answer key holds the task's allowed elements, not each step's,
+so with two allowed candidates it picks the one ANCHOR ranked first. Its runs record how many times ANCHOR
+asked (`questions`), summed up in `oracle_questions.csv`. Everything else is ANCHOR.
 
 **Stops, impossible requests and the people in the human set** (decided on 19/11/2026, before the final run).
 `paper_tables` also gives the share of runs that ended asking a person (`stop_rate.csv/.tex`), for ANCHOR and

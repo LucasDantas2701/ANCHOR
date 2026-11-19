@@ -18,7 +18,19 @@ on the same request sets and the same resilience benchmark, to measure what that
                 (19/11/2026): the filter that keeps page text that looks like an instruction out of what the
                 model reads, since it blocks and confirms nothing. Everything else is ANCHOR.
 
-All three live here, in the evaluation's code: no line of the engine changes, and with no ablation chosen, the
+Besides them, one more condition of ANCHOR (decided on 19/11/2026): ANCHOR with the person in the loop,
+simulated by an oracle that answers from the task's answer key (its allowed elements, or the step markers in
+the resilience benchmark), so it adds what a person would, with nothing else changed:
+
+  oracle        when ANCHOR asks which element (ambiguous or not found), it picks the first candidate ANCHOR
+                shows that is an allowed element; when none is, it says "none of these" (decided on 19/11/2026),
+                and ANCHOR replans as it would with a person who recognised none. When ANCHOR asks to confirm a
+                sensitive action, it approves if the element is an allowed one and denies it if not. It does
+                not log in (decided on 19/11/2026): a run that needs a login stops there, as without it. It
+                counts its answers (the questions per task). The answer key holds the task's allowed elements,
+                not each step's: with two allowed candidates, it picks the one ANCHOR ranked first.
+
+All of them live here, in the evaluation's code: no line of the engine changes, and with no ablation chosen, the
 runners build ANCHOR exactly as before. Their runs are marked with their own executor name, so the tables
 compare each one with ANCHOR as a separate system.
 """
@@ -32,8 +44,9 @@ from anchor.agent import Agent
 from anchor.engine.action_executor import ActionExecutor
 
 ABLATIONS = ("no_verify", "model_picks", "no_safety")
+CONDITIONS = ABLATIONS + ("oracle",)
 EXECUTOR_NAME = {None: "anchor", "no_verify": "anchor_noverify", "model_picks": "anchor_modelpick",
-                 "no_safety": "anchor_nosafety"}
+                 "no_safety": "anchor_nosafety", "oracle": "anchor_oracle"}
 
 PICK_SYSTEM = """Você escolhe, numa página, o elemento em que um passo deve agir. Você recebe o passo \
 (a ação e a descrição do elemento) e a lista numerada dos elementos da página. Responda só com o número \
@@ -103,6 +116,56 @@ class NoSafetyAgent(Agent):
         return False
 
 
+ALLOWED_JS = """([id, selectors]) => {
+    const e = document.querySelector(`[data-er-id="${id}"]`);
+    return !!e && selectors.some(s => { try { return e.matches(s); } catch (_) { return false; } });
+}"""
+
+
+class OracleExecutor(ActionExecutor):
+    """ANCHOR's executor with a simulated person who answers from the answer key (see the module's note)."""
+
+    def __init__(self, page, allowed: list[str], **kwargs):
+        super().__init__(page, **kwargs)
+        self.allowed = list(allowed or [])
+        self.questions = 0
+        self.disambiguator = self       # ANCHOR asks only when someone can answer; the oracle is that someone
+
+    def choose(self, request):          # never called: _ask_user answers directly (the Disambiguator protocol)
+        raise NotImplementedError
+
+    def notify(self, message: str) -> None:
+        pass
+
+    def is_allowed(self, match) -> bool:
+        """Whether a candidate is one of the task's allowed elements, in the page or any of its frames."""
+        from anchor.engine.frames import evaluate_all
+        return any(evaluate_all(self.page, ALLOWED_JS, [getattr(match, "id", ""), self.allowed]))
+
+    def _ask_user(self, description, action_name, reason, candidates):
+        from anchor.engine.disambiguation import UserChoice
+        self.questions += 1
+        shown = self._choices_to_show(reason, candidates)
+        for number, match in enumerate(shown, 1):
+            if self.is_allowed(match):
+                self._last_choice = UserChoice("candidate", number)
+                return match
+        self._last_choice = UserChoice("none")
+        return None
+
+    def _denied(self, action_name, description, match, resolved_by="memory"):
+        from anchor.engine.action_executor.result import ActionResult
+        from anchor.engine.sensitive import classify
+        element = " ".join(x for x in (match.text, match.label, match.hint) if x).strip()
+        if classify(action_name, description, element) is None:
+            return None                 # not a sensitive action: ANCHOR asks nothing
+        self.questions += 1
+        if self.is_allowed(match):
+            return None
+        return ActionResult(status="denied", action=action_name, description=description,
+                            selected_element=match, score=match.score, resolved_by=resolved_by)
+
+
 def agent_class(ablation: str | None) -> type:
     """The Agent class for an ablation (ANCHOR's own, unless the barriers are off)."""
     return NoSafetyAgent if ablation == "no_safety" else Agent
@@ -119,8 +182,10 @@ def building(ablation: str | None):
         yield
 
 
-def make_executor(page, ablation: str | None, planner=None, **kwargs) -> ActionExecutor:
-    """ANCHOR's executor (as measured), or an ablation's, built the same way otherwise."""
+def make_executor(page, ablation: str | None, planner=None, allowed: list[str] | None = None, **kwargs) -> ActionExecutor:
+    """ANCHOR's executor (as measured), or an ablation's or the oracle's, built the same way otherwise."""
+    if ablation == "oracle":
+        return OracleExecutor(page, allowed or [], **kwargs)
     if ablation == "model_picks":
         return ModelPickExecutor(page, planner.client, planner.model, **kwargs)
     if ablation == "no_safety":
