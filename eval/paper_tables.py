@@ -386,7 +386,8 @@ MODEL_NAMES = {"ollama-small": "4B", "ollama-medium": "9B"}
 SHORT_EXECUTOR = {"anchor": "ANCHOR", "llm": "LLM", "llm_plan": "LLM+plan", "anchor_noverify": "No check",
                   "anchor_modelpick": "Model picks", "anchor_nosafety": "No barriers",
                   "anchor_oracle": "Oracle"}
-ACTION_NAMES = {"all": "All", "click": "click", "fill": "type", "select": "select", "check": "check",
+BASELINE_NAMES = {"exact": "Exact name", "bm25": "BM25"}   # the last rows of Table 7, so named in its caption
+ACTION_NAMES = {"baseline:exact": BASELINE_NAMES["exact"], "baseline:bm25": BASELINE_NAMES["bm25"], "all": "All", "click": "click", "fill": "type", "select": "select", "check": "check",
                 "uncheck": "uncheck", "hover": "hover", "press": "press a key", "extract_text": "read text",
                 "extract_table": "read table", "download": "download", "upload": "upload"}
 
@@ -726,9 +727,14 @@ def table7(rows: list[dict]) -> list[list]:
     """The closed cases (split test) when the file has them, else the development ones (for testing)."""
     closed = [r for r in rows if r.get("split") == "test"]
     rows = closed or rows
-    groups = {"all": rows}
-    for action in sorted({r["action"] for r in rows}):
-        groups[action] = [r for r in rows if r["action"] == action]
+    resolver = [r for r in rows if (r.get("system") or "resolver") == "resolver"]
+    groups = {"all": resolver}
+    for action in sorted({r["action"] for r in resolver}):
+        groups[action] = [r for r in resolver if r["action"] == action]
+    for system in BASELINE_NAMES:                           # the baselines (decided on 19/11/2026): all cases
+        cases = [r for r in rows if r.get("system") == system]
+        if cases:
+            groups[f"baseline:{system}"] = cases
     out = [["group", "n", "recall@1_%", "lo", "hi", "ci", "recall@3_%", "recall@5_%", "recall@10_%", "MRR", "ms_per_query"]
            + [f"{d}_%" for d in DECISIONS]]
     for name, g in groups.items():
@@ -828,7 +834,9 @@ def table7_tex(rows: list[list]) -> tuple[list[str], list[list]]:
     return header, body
 
 
-TABLE7_CAPTION = ("Element selection on the closed set. R@k: cases with the right element among the first k candidates; "
+TABLE7_CAPTION = ("Element selection on the closed set. The last two rows, Exact name and BM25, are baselines with no "
+                  "model, on the same indexed elements: the accessible name equal to the description, and BM25 over "
+                  "the name, hints and context; each acts on its first element, or refuses when none scores. R@k: cases with the right element among the first k candidates; "
                   "MRR: mean reciprocal rank; ms: mean time per query. The executor's decisions: Correct (acted on the "
                   "right element), Silent err. (acted on a wrong one), Avoid. ref. (refused when the right element was "
                   "first), Corr. ref. (refused when it was not first), Percep. (the right element was not indexed). ")

@@ -454,6 +454,7 @@ python -m eval.run --sweep
 | `--sweep` | Tries combinations of minimum score × gap. |
 | `--check` | Only checks that the expected selectors exist (the closed set included). |
 | `--final` | Runs the closed set (split `test`). Once, at the end of development. |
+| `--baseline` | A baseline with no model in place of the Resolver, on the same indexed elements (decided on 19/11/2026; `eval/baselines.py`): `exact` (the accessible name equals the description, also without its first word when that word names a kind of element) or `bm25` (BM25 over the name, hints and context). Its results file ends in `_baseline-exact` or `_baseline-bm25`, and its rows say so in `system`; `paper_tables` adds one row per baseline to Table 7. With `--final`, each runs once on the closed set, like the Resolver. |
 | `--headed` | Shows the browser while evaluating. |
 | `-v`, `--verbose` | Shows each case. |
 

@@ -92,7 +92,13 @@ Rules:
 1. `python -m eval.run` never runs the holdout. Only `--final` does, and the result file gets the
    `_FINAL` suffix.
 2. Run `--final` **once**, when the resolver's development is over. The article's numbers come
-   from that run.
+   from that run. The two baselines with no model (decided on 19/11/2026; `eval/baselines.py`) run on the
+   same closed set, once each, with the same metrics: `python -m eval.run --final --baseline exact` (the
+   accessible name equals the description, also without a first word such as "button") and
+   `python -m eval.run --final --baseline bm25` (BM25 over the name, hints and context). Both rank the very
+   elements the Resolver indexes, with the words only lowercased and stripped of accents (none of the
+   Resolver's compound phrases, stems or glossary); each acts on its first element, or refuses when none
+   scores.
 3. If anything is changed after looking at the holdout, record it in the article.
 4. `--check` can be used at any time: it only checks that the expected selectors exist, without
    computing scores.

@@ -25,6 +25,9 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   ranges; and a list choice the request does not name as any option.
   The same rules apply to the synthetic set, annotated by hand (its single-quoted checks and its list options
   compared without trim or by their start), so every closed set is judged by the same rule (15/11/2026).
+- **Two baselines for element selection** (decided on 19/11/2026, before the final run): `eval.run --baseline
+  exact|bm25`, the exact accessible name and BM25 over the name, hints and context, on the Resolver's own
+  index and with none of its language; one row each in Table 7.
 - **ANCHOR with a simulated person** (decided on 19/11/2026, before the final run): `plan_run --agent --oracle`
   and the resilience executor `anchor_oracle`, an oracle that answers ANCHOR's questions from the answer key
   (the element, from the allowed ones; the confirmation, approved for an allowed element), with the number of

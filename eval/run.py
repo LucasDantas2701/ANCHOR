@@ -70,6 +70,7 @@ class CaseResult:
     top1_desc: str
     n_indexed: int
     ms: float
+    system: str = "resolver"  # "resolver", or a baseline: "exact", "bm25" (eval.baselines; decided on 19/11/2026)
 
 
 # ----------------------------------------------------------------------
@@ -147,13 +148,27 @@ def classify(status: str, rank: int | None, indexed: bool) -> str:
     return "avoidable_refusal" if rank == 1 else "correct_refusal"
 
 
-def run_case(page: Page, suite: dict, case: dict) -> CaseResult:
+def baseline_matches(resolver: ElementResolver, baseline: str, query: str, resolver_action: str) -> tuple[str, list]:
+    """A baseline's decision and ranking, over the elements the Resolver indexes for the same action."""
+    from types import SimpleNamespace
+    from eval.baselines import name_of, rank
+    resolver.index("content" if resolver_action == "extract" else "interactive")
+    ranked = rank(baseline, query, resolver._records)[:MAX_K]
+    matches = [SimpleNamespace(id=r["id"], score=s, role=r.get("role", ""), text=name_of(r), label="", hint="")
+               for r, s in ranked]
+    return ("success" if matches else "not_found"), matches
+
+
+def run_case(page: Page, suite: dict, case: dict, baseline: str | None = None) -> CaseResult:
     resolver = ElementResolver(page, synonyms=suite.get("synonyms"))
     executor = ActionExecutor(page, resolver=resolver, k=MAX_K)
     resolver_action = RESOLVER_ACTION_MAP.get(case["action"], case["action"])
 
     t0 = time.perf_counter()
-    status, _, matches = executor._resolve(case["query"], resolver_action)
+    if baseline:
+        status, matches = baseline_matches(resolver, baseline, case["query"], resolver_action)
+    else:
+        status, _, matches = executor._resolve(case["query"], resolver_action)
     ms = (time.perf_counter() - t0) * 1000
     matches = matches or []
 
@@ -183,6 +198,7 @@ def run_case(page: Page, suite: dict, case: dict) -> CaseResult:
         top1_desc=(f"{top1.role} '{top1.text or top1.label or top1.hint}'"[:60] if top1 else ""),
         n_indexed=len(resolver._records),
         ms=round(ms, 1),
+        system=baseline or "resolver",
     )
 
 
@@ -259,7 +275,7 @@ def save(results: list[CaseResult], summary: dict, args) -> Path:
     out = ROOT / "results"
     out.mkdir(exist_ok=True)
     tag = "_FINAL" if args.final else ""
-    stem = f"{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}{tag}"
+    stem = f"{datetime.now():%Y%m%d-%H%M%S}_{git_commit()}" + (f"_baseline-{args.baseline}" if args.baseline else "") + tag
     with open(out / f"{stem}.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(asdict(results[0])))
         w.writeheader()
@@ -270,6 +286,7 @@ def save(results: list[CaseResult], summary: dict, args) -> Path:
         "provenance": provenance(),
         "date": datetime.now().isoformat(timespec="seconds"),
         "filters": {"split": args.split, "site": args.site, "offline": args.offline, "language": args.language},
+        "system": args.baseline or "resolver",
         "thresholds": {"min_score": DEFAULT_MIN_SCORE, "gap": DEFAULT_AMBIGUITY_GAP},
         "overall": summary,
     }
@@ -292,6 +309,9 @@ def main() -> None:
     ap.add_argument("--headed", action="store_true")
     ap.add_argument("--check", action="store_true", help="only checks the expected selectors")
     ap.add_argument("--final", action="store_true", help="runs the holdout (split test)")
+    ap.add_argument("--baseline", choices=("exact", "bm25"),
+                    help="a baseline with no model in place of the Resolver, on the same indexed elements "
+                         "(decided on 19/11/2026; eval/baselines.py): exact accessible name, or BM25")
     args = ap.parse_args()
 
     if args.check:
@@ -322,7 +342,7 @@ def main() -> None:
                     continue
                 if not args.split and split == "test":
                     continue  # the holdout is left out by default
-                r = run_case(page, suite, case)
+                r = run_case(page, suite, case, args.baseline)
                 results.append(r)
                 if args.verbose:
                     mark = {"correct": "OK ", "silent_error": "ERR", "perception_failure": "PER"}.get(r.outcome, "REC")
