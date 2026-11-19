@@ -282,11 +282,12 @@ combinations where they disagree, are in `repetitions_resilience.csv`.
 
 **ANCHOR with a simulated person** (`--oracle`; `anchor_oracle` in the resilience benchmark; decided on
 19/11/2026, before the final run). The person in the loop, simulated from the answer key: when ANCHOR asks
-which element (ambiguous or not found), the oracle picks the first candidate ANCHOR shows that is one of the
-task's allowed elements (or the step markers, in the resilience benchmark), or says "none of these" when
-none is, and ANCHOR replans; when ANCHOR asks to confirm a sensitive action, it approves an allowed element
+which element (ambiguous or not found), the oracle picks the candidate ANCHOR shows when exactly one of them
+is one of the task's allowed elements (or the step markers, in the resilience benchmark), and otherwise
+(none, or more than one) says "none of these", and ANCHOR replans; when ANCHOR asks to confirm a sensitive action, it approves an allowed element
 and denies the others; it never logs in. The answer key holds the task's allowed elements, not each step's,
-so with two allowed candidates it picks the one ANCHOR ranked first. Its runs record how many times ANCHOR
+so it never picks between two allowed candidates (decided on 19/11/2026, after the development run, where
+picking the first of two chose the wrong element for the step and led to false successes). Its runs record how many times ANCHOR
 asked (`questions`), summed up in `oracle_questions.csv`. Everything else is ANCHOR.
 
 **Stops, impossible requests and the people in the human set** (decided on 19/11/2026, before the final run).

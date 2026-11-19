@@ -157,6 +157,14 @@ def test_the_oracle_says_none_of_these_when_no_candidate_is_allowed(page):
     assert page.get_attribute("#a", "data-done") is None and page.get_attribute("#b", "data-done") is None
 
 
+def test_the_oracle_never_picks_between_two_allowed_candidates(page):
+    page.set_content(TWINS)
+    executor = oracle(page, ["#a", "#b"])               # both allowed: the key cannot tell which is this step's
+    result = executor.click("Open")
+    assert result.status == "ambiguous" and result.resolved_by == "user_none" and executor.questions == 1
+    assert page.get_attribute("#a", "data-done") is None and page.get_attribute("#b", "data-done") is None
+
+
 def test_the_oracle_approves_an_allowed_sensitive_action_and_denies_another(page):
     page.set_content(TWINS)
     yes = oracle(page, ["#del"])

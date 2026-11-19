@@ -22,13 +22,16 @@ Besides them, one more condition of ANCHOR (decided on 19/11/2026): ANCHOR with 
 simulated by an oracle that answers from the task's answer key (its allowed elements, or the step markers in
 the resilience benchmark), so it adds what a person would, with nothing else changed:
 
-  oracle        when ANCHOR asks which element (ambiguous or not found), it picks the first candidate ANCHOR
-                shows that is an allowed element; when none is, it says "none of these" (decided on 19/11/2026),
-                and ANCHOR replans as it would with a person who recognised none. When ANCHOR asks to confirm a
+  oracle        when ANCHOR asks which element (ambiguous or not found), it picks the candidate ANCHOR shows
+                when exactly one of them is an allowed element; when none is, or more than one is, it says "none
+                of these" (decided on 19/11/2026; the second case after the development run, where picking the
+                first of two allowed candidates chose the wrong one for the step), and ANCHOR replans as it
+                would with a person who recognised none or was not sure. When ANCHOR asks to confirm a
                 sensitive action, it approves if the element is an allowed one and denies it if not. It does
                 not log in (decided on 19/11/2026): a run that needs a login stops there, as without it. It
                 counts its answers (the questions per task). The answer key holds the task's allowed elements,
-                not each step's: with two allowed candidates, it picks the one ANCHOR ranked first.
+                not each step's, so it never picks between two allowed candidates: it cannot tell which is
+                this step's.
 
 All of them live here, in the evaluation's code: no line of the engine changes, and with no ablation chosen, the
 runners build ANCHOR exactly as before. Their runs are marked with their own executor name, so the tables
@@ -146,10 +149,11 @@ class OracleExecutor(ActionExecutor):
         from anchor.engine.disambiguation import UserChoice
         self.questions += 1
         shown = self._choices_to_show(reason, candidates)
-        for number, match in enumerate(shown, 1):
-            if self.is_allowed(match):
-                self._last_choice = UserChoice("candidate", number)
-                return match
+        allowed = [(number, match) for number, match in enumerate(shown, 1) if self.is_allowed(match)]
+        if len(allowed) == 1:           # the answer key names this step's element only when one is allowed
+            number, match = allowed[0]
+            self._last_choice = UserChoice("candidate", number)
+            return match
         self._last_choice = UserChoice("none")
         return None
 
