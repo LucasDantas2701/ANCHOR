@@ -334,3 +334,21 @@ def test_the_threshold_grid_reproduces_the_resolver_at_its_own_values():
     assert (at[("0.40", "0.04")]["silent_error_k"], at[("0.40", "0.04")]["avoidable_refusal_k"]) == (1, 2)
     assert (at[("0.30", "0.02")]["silent_error_k"], at[("0.30", "0.02")]["avoidable_refusal_k"]) == (1, 0)   # margin 0.024
     assert (at[("0.50", "0.08")]["silent_error_k"], at[("0.50", "0.08")]["avoidable_refusal_k"]) == (0, 2)   # the wrong one: a correct refusal
+
+
+def test_the_tables_that_must_fit_use_short_names_explained_in_the_caption(tmp_path):
+    assert pt.tex_name("ANCHOR without the safety barriers") == f"ANCHOR {pt.MINUS}barriers"
+    assert pt.tex_name("ANCHOR with a simulated person, 2nd run (no model call)") == "ANCHOR + sim. user (2nd)"
+    assert pt.tex_name("LLM in control, with the plan") == "LLM + plan" and pt.tex_name("Fixed selectors") == "Fixed selectors"
+    out = tmp_path / "t.tex"
+    pt.write_tex(out, pt.NAMES_NOTE, ["Executor", "Success"], [[pt.tex_name("ANCHOR without the effect check"), "90.0"]], "t")
+    text = out.read_text(encoding="utf-8")
+    assert "ANCHOR $-$check" in text and pt.MINUS not in text and "without the effect check" in text
+
+
+def test_the_human_table_shows_each_clustering_in_its_own_row():
+    line = ["ANCHOR", "9B", "All", 40, 8] + ["90.0", "80.0", "95.0", "bootstrap", "70.0", "97.0", "bootstrap"] \
+        + ["2.5", "0.0", "7.5", "bootstrap", "0.0", "10.0", "bootstrap"]
+    page, person = pt.human_by_person_rows([["header"], line])
+    assert page[:6] == ["ANCHOR", "9B", "All", 40, 8, "page"] and page[6] == "90.0 (80.0--95.0)"
+    assert person[:6] == ["", "", "", "", "", "person"] and person[6] == "90.0 (70.0--97.0)" and person[7] == "2.5 (0.0--10.0)"
