@@ -1,0 +1,174 @@
+{
+ "script_commit": "3e09986c9f7a7e898fcb5f0889a0fe337e26cd94",
+ "input_sha256": "328bd7729b6a0ce79d5874604298bf7198a0b7812ba6404b2496dc7b63ef586a",
+ "rows": 7,
+ "left_out": {
+  "pilot": 0,
+  "did_not_agree": 0,
+  "no_profile": 0,
+  "too_short_requests": 5,
+  "too_short_people": 1
+ },
+ "requests_available": 93,
+ "respondents": {
+  "total": 7,
+  "it": 3,
+  "non_it": 4
+ },
+ "drawn_from": {
+  "total": {
+   "people": 7,
+   "min": 6,
+   "median": 9,
+   "max": 10
+  },
+  "it": {
+   "people": 3,
+   "min": 6,
+   "median": 9,
+   "max": 10
+  },
+  "non_it": {
+   "people": 4,
+   "min": 7,
+   "median": 9.0,
+   "max": 10
+  }
+ },
+ "opened_link": {
+  "P01": {
+   "page": "reservas.html",
+   "answered": 7,
+   "yes": 7,
+   "share_yes": 1.0
+  },
+  "P02": {
+   "page": "suporte.html",
+   "answered": 7,
+   "yes": 7,
+   "share_yes": 1.0
+  },
+  "P03": {
+   "page": "blog.html",
+   "answered": 7,
+   "yes": 7,
+   "share_yes": 1.0
+  },
+  "P04": {
+   "page": "rh.html",
+   "answered": 7,
+   "yes": 7,
+   "share_yes": 1.0
+  },
+  "P05": {
+   "page": "cadastro.html",
+   "answered": 7,
+   "yes": 7,
+   "share_yes": 1.0
+  },
+  "P06": {
+   "page": "usuarios.html",
+   "answered": 7,
+   "yes": 7,
+   "share_yes": 1.0
+  },
+  "P07": {
+   "page": "pedidos.html",
+   "answered": 7,
+   "yes": 7,
+   "share_yes": 1.0
+  },
+  "P08": {
+   "page": "vagas.html",
+   "answered": 7,
+   "yes": 6,
+   "share_yes": 0.857
+  },
+  "P09": {
+   "page": "loja.html",
+   "answered": 7,
+   "yes": 6,
+   "share_yes": 0.857
+  }
+ },
+ "seed": 20261022,
+ "quota": {
+  "it/P01": 3,
+  "it/P02": 3,
+  "it/P03": 3,
+  "it/P04": 3,
+  "it/P05": 4,
+  "it/P06": 4,
+  "it/P07": 4,
+  "it/P08": 3,
+  "it/P09": 3,
+  "non_it/P01": 4,
+  "non_it/P02": 3,
+  "non_it/P03": 4,
+  "non_it/P04": 3,
+  "non_it/P05": 3,
+  "non_it/P06": 3,
+  "non_it/P07": 4,
+  "non_it/P08": 3,
+  "non_it/P09": 3
+ },
+ "available": {
+  "it/P01": 6,
+  "it/P02": 6,
+  "it/P03": 5,
+  "it/P04": 6,
+  "it/P05": 3,
+  "it/P06": 3,
+  "it/P07": 2,
+  "it/P08": 2,
+  "it/P09": 4,
+  "non_it/P01": 8,
+  "non_it/P02": 8,
+  "non_it/P03": 8,
+  "non_it/P04": 8,
+  "non_it/P05": 4,
+  "non_it/P06": 4,
+  "non_it/P07": 4,
+  "non_it/P08": 4,
+  "non_it/P09": 8
+ },
+ "completions": [
+  {
+   "stratum": "it/P05",
+   "from": "non_it/P05",
+   "how": "other_profile_same_page",
+   "count": 1
+  },
+  {
+   "stratum": "it/P06",
+   "from": "non_it/P06",
+   "how": "other_profile_same_page",
+   "count": 1
+  },
+  {
+   "stratum": "it/P07",
+   "from": "non_it/P07",
+   "how": "other_profile_same_page",
+   "count": 2
+  },
+  {
+   "stratum": "it/P08",
+   "from": "non_it/P08",
+   "how": "other_profile_same_page",
+   "count": 1
+  },
+  {
+   "stratum": "non_it/P07",
+   "from": "non_it/P09",
+   "how": "same_profile_other_page",
+   "count": 1
+  },
+  {
+   "stratum": "non_it/P07",
+   "from": "non_it/P09",
+   "how": "same_profile_other_page",
+   "count": 1
+  }
+ ],
+ "drawn": 60
+}
