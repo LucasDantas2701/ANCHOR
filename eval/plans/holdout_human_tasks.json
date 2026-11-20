@@ -13,10 +13,13 @@
    "response_row": 6,
    "stratum": "it/P01",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não é possivel ajeitar o layout"
   },
   {
    "id": "hu-p01-it-2",
@@ -31,10 +34,13 @@
    "response_row": 2,
    "stratum": "it/P01",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não há sala com capacidade para 10 pessoas"
   },
   {
    "id": "hu-p01-it-3",
@@ -49,10 +55,13 @@
    "response_row": 8,
    "stratum": "it/P01",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não é possivel clicar no botao \"5 andar\""
   },
   {
    "id": "hu-p02-it-1",
@@ -67,10 +76,23 @@
    "response_row": 6,
    "stratum": "it/P02",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "reference": [
+    [
+     "extract_text",
+     "1 chamado: #482 VPN não conecta em casa (Juliana)",
+     null
+    ]
+   ],
+   "extraction": [
+    {
+     "kind": "text",
+     "contains": "Juliana"
+    }
+   ]
   },
   {
    "id": "hu-p02-it-2",
@@ -85,10 +107,13 @@
    "response_row": 8,
    "stratum": "it/P02",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não há essa informação na pagina"
   },
   {
    "id": "hu-p02-it-3",
@@ -103,10 +128,13 @@
    "response_row": 2,
    "stratum": "it/P02",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido invalido"
   },
   {
    "id": "hu-p03-it-1",
@@ -121,10 +149,13 @@
    "response_row": 8,
    "stratum": "it/P03",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido incompleto"
   },
   {
    "id": "hu-p03-it-2",
@@ -139,10 +170,30 @@
    "response_row": 2,
    "stratum": "it/P03",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "document.querySelector(\"#ptitle\").value.trim().length > 0",
+    "document.querySelector(\"#ptitle\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"reunia\")",
+    "document.querySelector(\"#ptitle\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"geral\")",
+    "document.querySelector(\"#ptitle\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"superv\")",
+    "__clicked(\"main > section > button:nth-of-type(2)\")",
+    "!__clicked('button.del')"
+   ],
+   "allowed": [
+    "#ptitle",
+    "main > section > button:nth-of-type(2)"
+   ],
+   "reference": [
+    [
+     "fill",
+     "campo Título",
+     "Reunião geral dos superviores"
+    ],
+    [
+     "click",
+     "botão Publicar",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p03-it-3",
@@ -157,10 +208,13 @@
    "response_row": 6,
    "stratum": "it/P03",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido incompleto"
   },
   {
    "id": "hu-p04-it-1",
@@ -175,10 +229,13 @@
    "response_row": 8,
    "stratum": "it/P04",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido invalido"
   },
   {
    "id": "hu-p04-it-2",
@@ -193,10 +250,27 @@
    "response_row": 6,
    "stratum": "it/P04",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "reference": [
+    [
+     "extract_text",
+     "Folga pessoal · 3 nov · Pendente",
+     null
+    ]
+   ],
+   "extraction": [
+    {
+     "kind": "text",
+     "contains": "olga pessoal"
+    },
+    {
+     "kind": "text",
+     "contains": "3"
+    }
+   ]
   },
   {
    "id": "hu-p04-it-3",
@@ -211,10 +285,43 @@
    "response_row": 2,
    "stratum": "it/P04",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "document.querySelector('#ltype').selectedOptions[0].text === 'Folga pessoal'",
+    "document.querySelector('#start').value.endsWith('-11-01')",
+    "['', document.querySelector('#start').value].includes(document.querySelector('#end').value)",
+    "!document.querySelector('#halfday').checked",
+    "__clicked(\"section:nth-of-type(2) > button\")",
+    "!__clicked('.history .cancel')",
+    "!__clicked('.clock-out')"
+   ],
+   "allowed": [
+    "#ltype",
+    "#start",
+    "#notes",
+    "section:nth-of-type(2) > button"
+   ],
+   "reference": [
+    [
+     "select",
+     "lista Tipo de ausência",
+     "Folga pessoal"
+    ],
+    [
+     "fill",
+     "campo Data de início",
+     "2026-11-01"
+    ],
+    [
+     "fill",
+     "campo Observações para o seu gestor",
+     "day off"
+    ],
+    [
+     "click",
+     "botão Enviar solicitação",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p05-it-1",
@@ -229,10 +336,13 @@
    "response_row": 8,
    "stratum": "it/P05",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido incompleto"
   },
   {
    "id": "hu-p05-it-2",
@@ -247,10 +357,13 @@
    "response_row": 2,
    "stratum": "it/P05",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "não há como anexar planilhas nessa simulação"
   },
   {
    "id": "hu-p05-it-3",
@@ -265,10 +378,13 @@
    "response_row": 6,
    "stratum": "it/P05",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido incompleto"
   },
   {
    "id": "hu-p05-non_it-1",
@@ -283,10 +399,83 @@
    "response_row": 4,
    "stratum": "it/P05",
    "filled": "other_profile_same_page",
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "document.querySelector(\"#termos\").checked",
+    "document.querySelector(\"#nome\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase() === \"austin ista\"",
+    "document.querySelector('#cpf').value.replace(/\\D/g,'') === '69669669669'",
+    "document.querySelector(\"#nasc\").value === \"1969-09-06\"",
+    "document.querySelector(\"#mail\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase() === \"eutenhoautismo@gmail.com\"",
+    "document.querySelector('#tel').value.replace(/\\D/g,'') === '69669696969'",
+    "document.querySelector(\"#dep\").selectedOptions[0].text.trim() === \"TI\"",
+    "document.querySelector(\"input[name=\\\"tipo\\\"][value=\\\"pj\\\"]\").checked",
+    "document.querySelector(\"#obs\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase() === \"sou autista\"",
+    "__clicked(\"form > button:nth-of-type(2)\")",
+    "!__clicked('form > button.cancel')"
+   ],
+   "allowed": [
+    "#termos",
+    "#nome",
+    "#cpf",
+    "#nasc",
+    "#mail",
+    "#tel",
+    "#dep",
+    "input[name=\"tipo\"][value=\"pj\"]",
+    "#obs",
+    "form > button:nth-of-type(2)"
+   ],
+   "reference": [
+    [
+     "check",
+     "caixa Li e aceito os termos de uso",
+     null
+    ],
+    [
+     "fill",
+     "campo Nome completo",
+     "Austin Ista"
+    ],
+    [
+     "fill",
+     "campo CPF",
+     "696-696-696-69"
+    ],
+    [
+     "fill",
+     "campo Data de nascimento",
+     "1969-09-06"
+    ],
+    [
+     "fill",
+     "campo E-mail corporativo",
+     "eutenhoautismo@gmail.com"
+    ],
+    [
+     "fill",
+     "campo Telefone",
+     "(69) 66969-6969"
+    ],
+    [
+     "select",
+     "lista Departamento",
+     "TI"
+    ],
+    [
+     "check",
+     "opção PJ",
+     null
+    ],
+    [
+     "fill",
+     "campo Observações",
+     "sou autista"
+    ],
+    [
+     "click",
+     "botão Salvar cadastro",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p06-it-1",
@@ -301,10 +490,28 @@
    "response_row": 2,
    "stratum": "it/P06",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "document.querySelector('tbody > tr:nth-of-type(1) input[type=checkbox]').checked",
+    "document.querySelector('tbody > tr:nth-of-type(3) input[type=checkbox]').checked",
+    "!document.querySelector('tbody > tr:nth-of-type(2) input[type=checkbox]').checked",
+    "!__clicked('button[title=\"Excluir\"]')"
+   ],
+   "allowed": [
+    "tbody > tr:nth-of-type(1) input[type=checkbox]",
+    "tbody > tr:nth-of-type(3) input[type=checkbox]"
+   ],
+   "reference": [
+    [
+     "check",
+     "caixa Selecionar Ana Souza",
+     null
+    ],
+    [
+     "check",
+     "caixa Selecionar Carla Mendes",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p06-it-2",
@@ -319,10 +526,23 @@
    "response_row": 6,
    "stratum": "it/P06",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "reference": [
+    [
+     "extract_text",
+     "Bruno Lima",
+     null
+    ]
+   ],
+   "extraction": [
+    {
+     "kind": "text",
+     "contains": "Bruno Lima"
+    }
+   ]
   },
   {
    "id": "hu-p06-it-3",
@@ -337,10 +557,13 @@
    "response_row": 8,
    "stratum": "it/P06",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não é possivel anexar arquivos neste teste"
   },
   {
    "id": "hu-p06-non_it-1",
@@ -355,10 +578,22 @@
    "response_row": 5,
    "stratum": "it/P06",
    "filled": "other_profile_same_page",
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "document.querySelector('tbody > tr:nth-of-type(2) input[type=checkbox]').checked",
+    "!document.querySelector('tbody > tr:nth-of-type(1) input[type=checkbox]').checked",
+    "!document.querySelector('tbody > tr:nth-of-type(3) input[type=checkbox]').checked",
+    "!__clicked('button[title=\"Excluir\"]')"
+   ],
+   "allowed": [
+    "tbody > tr:nth-of-type(2) input[type=checkbox]"
+   ],
+   "reference": [
+    [
+     "check",
+     "caixa Selecionar Bruno Lima",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p07-it-1",
@@ -373,10 +608,35 @@
    "response_row": 6,
    "stratum": "it/P07",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "reference": [
+    [
+     "extract_text",
+     "Pedido #1023 · Entregue em 12/09; Pedido #1024 · Em separação",
+     null
+    ]
+   ],
+   "extraction": [
+    {
+     "kind": "text",
+     "contains": "1023"
+    },
+    {
+     "kind": "text",
+     "contains": "ntregue"
+    },
+    {
+     "kind": "text",
+     "contains": "1024"
+    },
+    {
+     "kind": "text",
+     "contains": "separa"
+    }
+   ]
   },
   {
    "id": "hu-p07-it-2",
@@ -391,10 +651,19 @@
    "response_row": 8,
    "stratum": "it/P07",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "__clicked(\"div:nth-of-type(2) > button:nth-of-type(2)\")"
+   ],
+   "allowed": [
+    "div:nth-of-type(2) > button:nth-of-type(2)"
+   ],
+   "reference": [
+    [
+     "click",
+     "botão Cancelar pedido",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p07-non_it-1",
@@ -409,10 +678,40 @@
    "response_row": 4,
    "stratum": "it/P07",
    "filled": "other_profile_same_page",
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "__clicked(\"div:nth-of-type(2) > button:nth-of-type(2)\")",
+    "__clicked(\"section > div:nth-of-type(1) > button\")",
+    "__clicked(\"section > div:nth-of-type(2) > button\")",
+    "__clicked('.etapa2 > button')"
+   ],
+   "allowed": [
+    "div:nth-of-type(2) > button:nth-of-type(2)",
+    "section > div:nth-of-type(1) > button",
+    "section > div:nth-of-type(2) > button",
+    ".etapa2 > button"
+   ],
+   "reference": [
+    [
+     "click",
+     "botão Cancelar pedido",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Continuar",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p07-non_it-2",
@@ -427,10 +726,27 @@
    "response_row": 3,
    "stratum": "it/P07",
    "filled": "other_profile_same_page",
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "__clicked(\"section > div:nth-of-type(1) > button\")",
+    "__clicked(\"section > div:nth-of-type(2) > button\")",
+    "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)')"
+   ],
+   "allowed": [
+    "section > div:nth-of-type(1) > button",
+    "section > div:nth-of-type(2) > button"
+   ],
+   "reference": [
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p08-it-1",
@@ -445,10 +761,20 @@
    "response_row": 8,
    "stratum": "it/P08",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "__clicked(\"button[aria-label=\\\"Fechar vaga de Consultor RPA\\\"]\")",
+    "!__clicked('button[aria-label^=\"Fechar vaga de\"]:not([aria-label=\"Fechar vaga de Consultor RPA\"])')"
+   ],
+   "allowed": [
+    "button[aria-label=\"Fechar vaga de Consultor RPA\"]"
+   ],
+   "reference": [
+    [
+     "click",
+     "botão Fechar vaga de Consultor RPA",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p08-it-2",
@@ -463,10 +789,27 @@
    "response_row": 6,
    "stratum": "it/P08",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "reference": [
+    [
+     "extract_text",
+     "Consultor RPA (NUMEN · Manaus); Analista de Automação (IndusAM · Manaus)",
+     null
+    ]
+   ],
+   "extraction": [
+    {
+     "kind": "text",
+     "contains": "Consultor RPA"
+    },
+    {
+     "kind": "text",
+     "contains": "Analista de Automa"
+    }
+   ]
   },
   {
    "id": "hu-p08-non_it-1",
@@ -481,10 +824,54 @@
    "response_row": 5,
    "stratum": "it/P08",
    "filled": "other_profile_same_page",
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "__clicked(\"ul > li:nth-of-type(1) > a\")",
+    "__clicked(\"#det1 > button:nth-of-type(2)\")",
+    "__clicked(\"ul > li:nth-of-type(2) > a\")",
+    "__clicked(\"#det2 > button:nth-of-type(2)\")",
+    "__clicked(\"ul > li:nth-of-type(3) > a\")",
+    "__clicked(\"#det3 > button:nth-of-type(2)\")"
+   ],
+   "allowed": [
+    "ul > li:nth-of-type(1) > a",
+    "#det1 > button:nth-of-type(2)",
+    "ul > li:nth-of-type(2) > a",
+    "#det2 > button:nth-of-type(2)",
+    "ul > li:nth-of-type(3) > a",
+    "#det3 > button:nth-of-type(2)"
+   ],
+   "reference": [
+    [
+     "click",
+     "link Consultor RPA",
+     null
+    ],
+    [
+     "click",
+     "botão Candidatura simplificada",
+     null
+    ],
+    [
+     "click",
+     "link Desenvolvedor RPA",
+     null
+    ],
+    [
+     "click",
+     "botão Candidatura simplificada",
+     null
+    ],
+    [
+     "click",
+     "link Analista de Automação",
+     null
+    ],
+    [
+     "click",
+     "botão Candidatura simplificada",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p09-it-1",
@@ -499,10 +886,26 @@
    "response_row": 6,
    "stratum": "it/P09",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "__clicked(\"main > div:nth-of-type(2) > button:nth-of-type(1)\")",
+    "!__clicked('main > div:nth-of-type(1) > button.add')"
+   ],
+   "allowed": [
+    "select[aria-label=\"Ordenar por\"]",
+    "main > div:nth-of-type(2) > button:nth-of-type(1)"
+   ],
+   "reference": [
+    [
+     "select",
+     "lista Ordenar por",
+     "Preço: maior para menor"
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p09-it-2",
@@ -517,10 +920,13 @@
    "response_row": 8,
    "stratum": "it/P09",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não é possivel remover o produto"
   },
   {
    "id": "hu-p09-it-3",
@@ -535,10 +941,13 @@
    "response_row": 8,
    "stratum": "it/P09",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não é possivel acessar o carrinho"
   },
   {
    "id": "hu-p01-non_it-1",
@@ -553,10 +962,13 @@
    "response_row": 5,
    "stratum": "non_it/P01",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não é possivel concluir o pedido"
   },
   {
    "id": "hu-p01-non_it-2",
@@ -571,10 +983,48 @@
    "response_row": 4,
    "stratum": "non_it/P01",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "document.querySelector(\"#sala\").selectedIndex > 0",
+    "document.querySelector(\"#dia\").value === (d => (d.setDate(d.getDate() + 1), d.toLocaleDateString('sv')))(new Date())",
+    "document.querySelector('#ini').value !== '' && document.querySelector('#ini').value <= '08:00'",
+    "(([h,m]) => { const t=h*60+m+60; return document.querySelector('#fim').value === String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'); })(document.querySelector('#ini').value.split(':').map(Number))",
+    "__clicked(\"form > button\")",
+    "!__clicked('button.excluir')"
+   ],
+   "allowed": [
+    "#sala",
+    "#dia",
+    "#ini",
+    "#fim",
+    "form > button"
+   ],
+   "reference": [
+    [
+     "select",
+     "lista Sala",
+     "Amazonas (8 lugares)"
+    ],
+    [
+     "fill",
+     "campo Dia",
+     "2026-11-21"
+    ],
+    [
+     "fill",
+     "campo Início",
+     "06:00"
+    ],
+    [
+     "fill",
+     "campo Término",
+     "07:00"
+    ],
+    [
+     "click",
+     "botão Reservar sala",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p01-non_it-3",
@@ -589,10 +1039,13 @@
    "response_row": 3,
    "stratum": "non_it/P01",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido incompleto"
   },
   {
    "id": "hu-p01-non_it-4",
@@ -607,10 +1060,13 @@
    "response_row": 7,
    "stratum": "non_it/P01",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não é possivel clicar no botão \"5 andar\""
   },
   {
    "id": "hu-p02-non_it-1",
@@ -625,10 +1081,13 @@
    "response_row": 4,
    "stratum": "non_it/P02",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não é possivel adicionar comentarios ao pedido assumido"
   },
   {
    "id": "hu-p02-non_it-2",
@@ -643,10 +1102,13 @@
    "response_row": 5,
    "stratum": "non_it/P02",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não há essa informação na pagina"
   },
   {
    "id": "hu-p02-non_it-3",
@@ -661,10 +1123,13 @@
    "response_row": 3,
    "stratum": "non_it/P02",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido invalido"
   },
   {
    "id": "hu-p03-non_it-1",
@@ -679,10 +1144,28 @@
    "response_row": 5,
    "stratum": "non_it/P03",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "(t => /doze|12/.test(t) && !/cinco|\\b5\\b/.test(t))(document.querySelector('main .body').innerText.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase())",
+    "__clicked('main > section > button:nth-of-type(1)') || __clicked('main > section > button:nth-of-type(2)')",
+    "!__clicked('button.del')"
+   ],
+   "allowed": [
+    "main .body",
+    "main > section > button:nth-of-type(1)",
+    "main > section > button:nth-of-type(2)"
+   ],
+   "reference": [
+    [
+     "fill",
+     "campo Conteúdo da publicação",
+     "Neste semestre recebemos doze estagiários..."
+    ],
+    [
+     "click",
+     "botão Salvar rascunho",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p03-non_it-2",
@@ -697,10 +1180,27 @@
    "response_row": 7,
    "stratum": "non_it/P03",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "document.querySelector(\"#ptitle\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes(\"reuni\")",
+    "__clicked(\"main > section > button:nth-of-type(2)\")",
+    "!__clicked('button.del')"
+   ],
+   "allowed": [
+    "#ptitle",
+    "main > section > button:nth-of-type(2)"
+   ],
+   "reference": [
+    [
+     "fill",
+     "campo Título",
+     "Lembrete sobre a reunião da semana que vem"
+    ],
+    [
+     "click",
+     "botão Publicar",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p03-non_it-3",
@@ -715,10 +1215,41 @@
    "response_row": 4,
    "stratum": "non_it/P03",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "document.querySelector(\"#ptitle\").value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase() === \"bom dia!\"",
+    "document.querySelector('main .body').innerText.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase() === 'bom dia gentii :d'",
+    "(() => { const t=document.querySelector('#tags').value.split(/[,;]/).map(s=>s.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase()).filter(Boolean).sort(); return t.length===2 && t[0]==='ana' && t[1]==='estagiarios'; })()",
+    "__clicked(\"main > section > button:nth-of-type(2)\")",
+    "!__clicked('button.del')"
+   ],
+   "allowed": [
+    "#ptitle",
+    "main .body",
+    "#tags",
+    "main > section > button:nth-of-type(2)"
+   ],
+   "reference": [
+    [
+     "fill",
+     "campo Título",
+     "Bom dia!"
+    ],
+    [
+     "fill",
+     "campo Conteúdo da publicação",
+     "Bom dia gentii :D"
+    ],
+    [
+     "fill",
+     "campo Etiquetas",
+     "Ana, Estagiarios"
+    ],
+    [
+     "click",
+     "botão Publicar",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p03-non_it-4",
@@ -733,10 +1264,13 @@
    "response_row": 3,
    "stratum": "non_it/P03",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido invalido"
   },
   {
    "id": "hu-p04-non_it-1",
@@ -751,10 +1285,50 @@
    "response_row": 5,
    "stratum": "non_it/P04",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "document.querySelector('#ltype').selectedOptions[0].text === 'Licen\\u00e7a m\\u00e9dica'",
+    "document.querySelector('#start').value.endsWith('-10-20')",
+    "document.querySelector('#end').value === document.querySelector('#start').value.slice(0,5)+'10-21'",
+    "document.querySelector('#notes').value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes('atestad')",
+    "!document.querySelector('#halfday').checked",
+    "__clicked(\"section:nth-of-type(2) > button\")",
+    "!__clicked('.history .cancel')",
+    "!__clicked('.clock-out')"
+   ],
+   "allowed": [
+    "#ltype",
+    "#start",
+    "#end",
+    "#notes",
+    "section:nth-of-type(2) > button"
+   ],
+   "reference": [
+    [
+     "select",
+     "lista Tipo de ausência",
+     "Licença médica"
+    ],
+    [
+     "fill",
+     "campo Data de início",
+     "2026-10-20"
+    ],
+    [
+     "fill",
+     "campo Data de término",
+     "2026-10-21"
+    ],
+    [
+     "fill",
+     "campo Observações para o seu gestor",
+     "licença medica, atestado em anexo"
+    ],
+    [
+     "click",
+     "botão Enviar solicitação",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p04-non_it-2",
@@ -769,10 +1343,13 @@
    "response_row": 4,
    "stratum": "non_it/P04",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não é possivel alterar o horario \"trabalhado hoje\""
   },
   {
    "id": "hu-p04-non_it-3",
@@ -787,10 +1364,13 @@
    "response_row": 3,
    "stratum": "non_it/P04",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido incompleto"
   },
   {
    "id": "hu-p05-non_it-2",
@@ -805,10 +1385,13 @@
    "response_row": 5,
    "stratum": "non_it/P05",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido invalido"
   },
   {
    "id": "hu-p05-non_it-3",
@@ -823,10 +1406,13 @@
    "response_row": 7,
    "stratum": "non_it/P05",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não é possivel anexar documentos nesse teste"
   },
   {
    "id": "hu-p05-non_it-4",
@@ -841,10 +1427,13 @@
    "response_row": 3,
    "stratum": "non_it/P05",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido incompleto"
   },
   {
    "id": "hu-p06-non_it-2",
@@ -859,10 +1448,27 @@
    "response_row": 4,
    "stratum": "non_it/P06",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "__clicked(\"table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)\")",
+    "__clicked(\"table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(2)\")",
+    "!__clicked('tbody > tr:nth-of-type(1) button, tbody > tr:nth-of-type(3) button')"
+   ],
+   "allowed": [
+    "table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(1)",
+    "table > tbody > tr:nth-of-type(2) > td:nth-of-type(5) > button:nth-of-type(2)"
+   ],
+   "reference": [
+    [
+     "click",
+     "botão ",
+     null
+    ],
+    [
+     "click",
+     "botão ",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p06-non_it-3",
@@ -877,10 +1483,13 @@
    "response_row": 3,
    "stratum": "non_it/P06",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido incompleto"
   },
   {
    "id": "hu-p06-non_it-4",
@@ -895,10 +1504,13 @@
    "response_row": 7,
    "stratum": "non_it/P06",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não há ação de desativar usuário; o ícone da direita é Excluir"
   },
   {
    "id": "hu-p07-non_it-3",
@@ -913,10 +1525,13 @@
    "response_row": 5,
    "stratum": "non_it/P07",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido invalido"
   },
   {
    "id": "hu-p07-non_it-4",
@@ -931,10 +1546,90 @@
    "response_row": 7,
    "stratum": "non_it/P07",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "__clicked(\"section > div:nth-of-type(1) > button\")",
+    "!__clicked('div:nth-of-type(2) > button:nth-of-type(2)')"
+   ],
+   "allowed": [
+    "section > div:nth-of-type(1) > button"
+   ],
+   "reference": [
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p09-non_it-1",
@@ -949,10 +1644,13 @@
    "response_row": 3,
    "stratum": "non_it/P07",
    "filled": "same_profile_other_page",
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido invalido"
   },
   {
    "id": "hu-p09-non_it-2",
@@ -967,10 +1665,26 @@
    "response_row": 4,
    "stratum": "non_it/P07",
    "filled": "same_profile_other_page",
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "__clicked(\"main > div:nth-of-type(2) > button:nth-of-type(1)\")",
+    "!__clicked('main > div:nth-of-type(1) > button.add')"
+   ],
+   "allowed": [
+    "select[aria-label=\"Ordenar por\"]",
+    "main > div:nth-of-type(2) > button:nth-of-type(1)"
+   ],
+   "reference": [
+    [
+     "select",
+     "lista Ordenar por",
+     "Preço: menor para maior"
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p08-non_it-2",
@@ -985,10 +1699,39 @@
    "response_row": 7,
    "stratum": "non_it/P08",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "__clicked('button[aria-label=\"Fechar vaga de Consultor RPA\"]')",
+    "__clicked('button[aria-label=\"Fechar vaga de Desenvolvedor RPA\"]')",
+    "__clicked('button[aria-label=\"Fechar vaga de Analista de Automa\\u00e7\\u00e3o\"]')"
+   ],
+   "allowed": [
+    "ul > li:nth-of-type(2) > a",
+    "button[aria-label=\"Fechar vaga de Consultor RPA\"]",
+    "button[aria-label=\"Fechar vaga de Desenvolvedor RPA\"]",
+    "button[aria-label=\"Fechar vaga de Analista de Automação\"]"
+   ],
+   "reference": [
+    [
+     "click",
+     "link Desenvolvedor RPA",
+     null
+    ],
+    [
+     "click",
+     "botão Fechar vaga de Consultor RPA",
+     null
+    ],
+    [
+     "click",
+     "botão Fechar vaga de Desenvolvedor RPA",
+     null
+    ],
+    [
+     "click",
+     "botão Fechar vaga de Analista de Automação",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p08-non_it-3",
@@ -1003,10 +1746,19 @@
    "response_row": 4,
    "stratum": "non_it/P08",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "__clicked(\"ul > li:nth-of-type(2) > a\")"
+   ],
+   "allowed": [
+    "ul > li:nth-of-type(2) > a"
+   ],
+   "reference": [
+    [
+     "click",
+     "link Desenvolvedor RPA",
+     null
+    ]
+   ]
   },
   {
    "id": "hu-p08-non_it-4",
@@ -1021,10 +1773,13 @@
    "response_row": 3,
    "stratum": "non_it/P08",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Pedido invalido"
   },
   {
    "id": "hu-p09-non_it-3",
@@ -1039,10 +1794,13 @@
    "response_row": 5,
    "stratum": "non_it/P09",
    "filled": null,
-   "checks": [],
+   "checks": [
+    "!__clicked('button, input[type=submit], [role=button]')"
+   ],
    "allowed": [],
    "reference": [],
-   "note": "to annotate"
+   "expected": "not_possible",
+   "why_not_possible": "Não há essa informação na pagina"
   },
   {
    "id": "hu-p09-non_it-4",
@@ -1057,10 +1815,24 @@
    "response_row": 7,
    "stratum": "non_it/P09",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "(v => v.includes('rtx') && v.includes('4060'))(document.querySelector('input[name=\"q\"]').value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase())"
+   ],
+   "allowed": [
+    "input[name=\"q\"]"
+   ],
+   "reference": [
+    [
+     "fill",
+     "campo Buscar produtos",
+     "rtx 4060"
+    ],
+    [
+     "press",
+     "campo Buscar produtos",
+     "Enter"
+    ]
+   ]
   },
   {
    "id": "hu-p09-non_it-5",
@@ -1075,10 +1847,26 @@
    "response_row": 4,
    "stratum": "non_it/P09",
    "filled": null,
-   "checks": [],
-   "allowed": [],
-   "reference": [],
-   "note": "to annotate"
+   "checks": [
+    "__clicked(\"main > div:nth-of-type(1) > button:nth-of-type(1)\")",
+    "!__clicked('main > div:nth-of-type(2) > button.add')"
+   ],
+   "allowed": [
+    "select[aria-label=\"Ordenar por\"]",
+    "main > div:nth-of-type(1) > button:nth-of-type(1)"
+   ],
+   "reference": [
+    [
+     "select",
+     "lista Ordenar por",
+     "Preço: maior para menor"
+    ],
+    [
+     "click",
+     "botão Adicionar ao carrinho",
+     null
+    ]
+   ]
   }
  ]
 }
