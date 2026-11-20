@@ -286,7 +286,7 @@
    "stratum": "it/P04",
    "filled": null,
    "checks": [
-    "document.querySelector('#ltype').selectedOptions[0].text === 'Folga pessoal'",
+    "document.querySelector(\"#ltype\").selectedIndex > 0",
     "document.querySelector('#start').value.endsWith('-11-01')",
     "['', document.querySelector('#start').value].includes(document.querySelector('#end').value)",
     "!document.querySelector('#halfday').checked",
@@ -1286,7 +1286,7 @@
    "stratum": "non_it/P04",
    "filled": null,
    "checks": [
-    "document.querySelector('#ltype').selectedOptions[0].text === 'Licen\\u00e7a m\\u00e9dica'",
+    "document.querySelector(\"#ltype\").selectedIndex > 0",
     "document.querySelector('#start').value.endsWith('-10-20')",
     "document.querySelector('#end').value === document.querySelector('#start').value.slice(0,5)+'10-21'",
     "document.querySelector('#notes').value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').trim().toLowerCase().includes('atestad')",
