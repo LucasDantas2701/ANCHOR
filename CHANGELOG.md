@@ -25,6 +25,10 @@ The project was called smart-rpa until 2026-09-29; the entries before that use t
   ranges; and a list choice the request does not name as any option.
   The same rules apply to the synthetic set, annotated by hand (its single-quoted checks and its list options
   compared without trim or by their start), so every closed set is judged by the same rule (15/11/2026).
+- **The article's tests and safety stages, decided on 19/11/2026**: a paired permutation test that keeps the
+  clusters, for success and false success, as the main test, with Holm's adjustment (McNemar stays as a
+  complement; `paired_tests_*.csv`); the safety stages at level 5 (`safety_stages`); and, exploratory, the
+  Resolver's errors for a grid of its two thresholds (`resolver_thresholds.csv`).
 - **Two baselines for element selection** (decided on 19/11/2026, before the final run): `eval.run --baseline
   exact|bm25`, the exact accessible name and BM25 over the name, hints and context, on the Resolver's own
   index and with none of its language; one row each in Table 7.

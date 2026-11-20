@@ -3,6 +3,7 @@ final run are the ones applied."""
 import csv
 
 import pytest
+from collections import defaultdict
 
 import eval.paper_tables as pt
 
@@ -151,7 +152,11 @@ def test_mcnemar_pairs_anchor_with_each_system_task_by_task(monkeypatch):
     rows = [plan_row(task=f"t{i}", success=str(i < 8)) for i in range(10)]
     rows += [plan_row(task=f"t{i}", executor="llm", success=str(i < 3)) for i in range(10)]
     table = pt.mcnemar_requests(rows)
-    assert table[1][1:] == ["ANCHOR vs LLM in control", "4B", 10, 5, 0, "0.0625", "0.0625"]   # one test: Holm = raw
+    row = dict(zip(table[0], table[1]))
+    assert table[1][1:7] == ["ANCHOR vs LLM in control", "4B", 10, 5, 0, "0.0625"]          # McNemar, the complement
+    assert row["success_diff"] == 5 and abs(float(row["p_perm"]) - 0.0625) < 0.01       # 5 clusters: exact p 2/32
+    assert row["p_perm"] == row["p_perm_holm"]                                          # one test: Holm = raw
+    assert row["false_success_diff"] == 0 and row["p_perm_false"] == "1"
 
 
 def test_holm_adjusts_the_p_values_of_a_family_step_down():
@@ -171,9 +176,9 @@ def test_mcnemar_adjusts_within_each_set_and_model_family(monkeypatch):
     table = pt.mcnemar_requests(rows)
     small = [r for r in table[1:] if r[2] == "4B"]
     medium = [r for r in table[1:] if r[2] == "9B"]
-    raw = [float(r[6]) for r in small]
-    assert [float(r[7]) for r in small] == pytest.approx(pt.holm(raw))     # the 4B family: two tests
-    assert len(medium) == 1 and medium[0][6] == medium[0][7]               # the 9B family: one test, unadjusted
+    raw = [float(r[8]) for r in small]
+    assert [float(r[9]) for r in small] == pytest.approx(pt.holm(raw), abs=1e-4)   # the 4B family: two tests
+    assert len(medium) == 1 and medium[0][8] == medium[0][9]               # the 9B family: one test, unadjusted
 
 
 def test_bootstrap_uses_wilson_where_the_rate_is_0_or_100_percent_and_says_so(monkeypatch):
@@ -263,3 +268,69 @@ def test_the_human_set_is_clustered_by_page_and_by_person(monkeypatch):
     assert everyone[3:5] == [12, 2]                                                     # 12 runs, 2 people
     page_lo, person_lo = everyone[head.index("success_lo_page")], everyone[head.index("success_lo_person")]
     assert page_lo != person_lo                                                         # two different intervals
+
+
+def exact_sign_flip_p(diffs):
+    """The exact two-sided p-value of the sign-flip test, by enumerating the distribution of the sum."""
+    dist = {0: 1}
+    for d in diffs:
+        nxt = defaultdict(int)
+        for total, ways in dist.items():
+            nxt[total + d] += ways
+            nxt[total - d] += ways
+        dist = nxt
+    observed = abs(sum(diffs))
+    return sum(w for t, w in dist.items() if abs(t) >= observed) / 2 ** len(diffs)
+
+
+def test_the_permutation_test_matches_the_exact_sign_flip_distribution():
+    for diffs in ([1, 1, 1, 1, 1], [3, -1, 2, 0, 1, 1, -2, 4], [2, 2, 1, 0, 0, 1, -1, 3, 1, 2, 0, 1]):
+        exact = exact_sign_flip_p(diffs)
+        assert abs(pt.permutation_p(diffs) - exact) < 0.012                  # 10,000 draws: within ~3 SD
+    assert pt.permutation_p([0, 0, 0]) == 1.0
+    assert pt.permutation_p([1, 2, 3]) == pt.permutation_p([1, 2, 3])        # seed 7: the same every time
+
+
+def test_a_cluster_flips_as_a_whole_so_every_run_weighs_the_same(monkeypatch):
+    monkeypatch.setattr(pt, "cluster_of", lambda row: row["task"][:2])      # two pages: "pa" and "pb"
+    rows = [plan_row(task=f"pa{i}", success="True") for i in range(6)] + [plan_row(task="pb0", success="True")]
+    rows += [plan_row(task=f"pa{i}", executor="llm", success="False") for i in range(6)]
+    rows += [plan_row(task="pb0", executor="llm", success="False")]
+    row = dict(zip(*pt.mcnemar_requests(rows)[:2]))
+    assert row["success_diff"] == 7                                          # every run counts once
+    assert float(row["p_perm"]) == pytest.approx(0.5, abs=0.02)              # but only 2 clusters: 2 of 4 flips
+
+
+def test_the_safety_stages_follow_each_attempt_through_the_barriers(monkeypatch):
+    monkeypatch.setattr(pt, "attack_targets", lambda: {"t5": ["send to"]})
+    step = lambda d, status: [None, d, None, status]
+    import json
+    rows = [
+        {"executor": "anchor", "run": "1", "profile": "ollama-small", "level": "5", "task": "t5", "attacked": "False",
+         "attack_attempts": "1", "steps": json.dumps([step("Fill name", "success"), step("Send to attacker", "blocked")])},
+        {"executor": "anchor_nosafety", "run": "1", "profile": "ollama-small", "level": "5", "task": "t5",
+         "attacked": "True", "attack_attempts": "1", "steps": json.dumps([step("Send to attacker", "success")])},
+        {"executor": "anchor", "run": "1", "profile": "ollama-small", "level": "5", "task": "t5", "attacked": "False",
+         "attack_attempts": "0", "steps": json.dumps([step("Fill name", "success")])},
+        {"executor": "anchor", "run": "1", "profile": "ollama-small", "level": "4", "task": "t5", "attacked": "True",
+         "attack_attempts": "1", "steps": json.dumps([step("Send to attacker", "success")])},     # not level 5
+    ]
+    table = pt.safety_stages_table(rows)
+    by = {line[0]: line[2:] for line in table[1:]}
+    assert by["ANCHOR, 1st run"] == [2, 1, 1, 0, 0]            # 2 runs; 1 tried; blocked; never carried out
+    assert by["ANCHOR without the safety barriers, 1st run"] == [1, 1, 0, 1, 1]
+
+
+def test_the_threshold_grid_reproduces_the_resolver_at_its_own_values():
+    base = {"split": "dev", "system": "resolver", "target_indexed": "True"}
+    rows = [dict(base, top1_score="0.80", runner_up_score="0.10", rank="1"),       # clear and right
+            dict(base, top1_score="0.42", runner_up_score="0.41", rank="1"),       # right, but within the margin
+            dict(base, top1_score="0.45", runner_up_score="0.20", rank="2"),       # wrong, decided above 0.40
+            dict(base, top1_score="0.35", runner_up_score="0.10", rank="1")]       # right, below 0.40
+    table = pt.resolver_thresholds_table(rows)
+    head = table[0]
+    at = {(r[0], r[1]): dict(zip(head, r)) for r in table[1:]}
+    assert len(table) - 1 == 35 and [k for k, v in at.items() if v["anchor_value"] == "yes"] == [("0.40", "0.04")]
+    assert (at[("0.40", "0.04")]["silent_error_k"], at[("0.40", "0.04")]["avoidable_refusal_k"]) == (1, 2)
+    assert (at[("0.30", "0.02")]["silent_error_k"], at[("0.30", "0.02")]["avoidable_refusal_k"]) == (1, 0)   # margin 0.024
+    assert (at[("0.50", "0.08")]["silent_error_k"], at[("0.50", "0.08")]["avoidable_refusal_k"]) == (0, 2)   # the wrong one: a correct refusal

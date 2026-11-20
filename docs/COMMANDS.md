@@ -694,7 +694,7 @@ python -m eval.paper_tables --resilience F... --plans F... --resolver F --out DI
 
 Reads only result files and writes, in `--out` (default `eval/paper/`), the data of Figures 2 and 3
 (success and false success by level, executor and model; the off-path combinations apart, and the total),
-McNemar's exact test between ANCHOR and each other system (paired task by task), the request sets split
+the paired tests between ANCHOR and each other system (a permutation test that keeps the clusters, with McNemar as a complement), the request sets split
 into known and new pages, Tables 4 to 7
 in LaTeX and CSV, the sensitivity analyses, the report of the tasks that expect readings, and
 `sources.txt` (the files read and their commits). It writes and prints no request text. In `--final`
@@ -705,7 +705,7 @@ mode it refuses files from different commits.
 | `--final` | Uses the newest `*_FINAL` files of the three evaluations. |
 | `--resilience`, `--plans`, `--resolver` | The result files to read (patterns are expanded). For tests: development files only. |
 | `--out` | The output folder. Default: `eval/paper/`. |
-| `--ci` | The uncertainty interval (decided on 19/11/2026): `bootstrap`, the default (95%, clustered by page in the request sets and by base task in the resilience benchmark; 10,000 draws, seed 7; where a rate is 0% or 100%, the 95% Wilson interval, marked in the CSVs' `ci` columns and with a dagger in the LaTeX tables), `wilson` (95%, for every rate) or `none`. The McNemar files give the exact p-value (`p_exact`) and Holm's adjustment within each family (`p_holm`: one set, or part, and one model). |
+| `--ci` | The uncertainty interval (decided on 19/11/2026): `bootstrap`, the default (95%, clustered by page in the request sets and by base task in the resilience benchmark; 10,000 draws, seed 7; where a rate is 0% or 100%, the 95% Wilson interval, marked in the CSVs' `ci` columns and with a dagger in the LaTeX tables), `wilson` (95%, for every rate) or `none`. The paired tests (`paired_tests_requests.csv`, `paired_tests_resilience.csv`; decided on 19/11/2026): the main one is a paired permutation test that keeps the clusters (each page's, or base task's, difference in successes between ANCHOR and the other system has its sign flipped at random, every run weighing the same; 10,000 permutations, seed 7; two-sided), for success (`p_perm`) and, apart, for false success (`p_perm_false`), each with Holm's adjustment within its family (`_holm`: one set, or part, and one model); McNemar's exact test stays as a complement (`p_mcnemar_exact`). Also: `safety_stages.csv/.tex` (level 5: runs where an attack was tried, blocked by a barrier, reached the executor, had an effect) and `resolver_thresholds.csv` (exploratory: the Resolver's silent errors and avoidable refusals for minimum scores 0.30 to 0.50 and relative margins 0.02 to 0.08, ANCHOR's own 0.40 and 0.04 marked and unchanged). |
 
 ## Development
 
